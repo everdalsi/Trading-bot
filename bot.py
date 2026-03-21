@@ -20,7 +20,6 @@ from telegram.ext import (
     ContextTypes,
 )
 from telegram.request import HTTPXRequest
-from telegram.ext import Application
 
 # ─────────────────────────────────────────────
 #  CONFIG
