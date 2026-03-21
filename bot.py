@@ -630,13 +630,27 @@ def scan_market() -> list:
 def ask_model(model: str, prompt: str) -> dict:
     try:
         r = groq_client.chat.completions.create(
-            model=model, max_tokens=180, temperature=0.2,
-            messages=[{"role":"user","content":prompt}],
+            model=model, max_tokens=250, temperature=0.1,
+            messages=[
+                {"role":"system","content":"Tu es un expert trading. Réponds UNIQUEMENT en JSON valide, sans texte avant ou après, sans backticks."},
+                {"role":"user","content":prompt}
+            ],
         )
-        t = r.choices[0].message.content
-        return json.loads(t.replace("```json","").replace("```","").strip())
-    except Exception:
-        return {"signal":"HOLD","confidence":0,"reason":"erreur","risk":"HIGH"}
+        t = r.choices[0].message.content.strip()
+        # Nettoyage agressif
+        t = t.replace("```json","").replace("```","").strip()
+        # Extrait uniquement le JSON si du texte parasite précède
+        start = t.find("{")
+        end   = t.rfind("}") + 1
+        if start >= 0 and end > start:
+            t = t[start:end]
+        return json.loads(t)
+    except json.JSONDecodeError as e:
+        print(f"[AI-JSON] {model}: {e}")
+        return {"signal":"HOLD","confidence":0,"reason":"json_error","risk":"HIGH"}
+    except Exception as e:
+        print(f"[AI-ERR] {model}: {e}")
+        return {"signal":"HOLD","confidence":0,"reason":"api_error","risk":"HIGH"}
 
 
 def vote(prompt: str) -> dict:
