@@ -14,7 +14,7 @@ TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 PAPER_TRADING = True
 
 claude = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
-binance = Client(BINANCE_KEY, BINANCE_SECRET)
+bybit = HTTP(api_key=BINANCE_KEY, api_secret=BINANCE_SECRET)
 telegram = Bot(token=TELEGRAM_TOKEN)
 
 trade_history = []
@@ -37,8 +37,8 @@ def get_news():
     return "\n".join(news[:10])
 
 def get_price(symbol="BTCUSDT"):
-    ticker = binance.get_ticker(symbol=symbol)
-    return float(ticker['lastPrice'])
+    result = bybit.get_tickers(category="spot", symbol=symbol)
+    return float(result['result']['list'][0]['lastPrice'])
 
 def get_losing_trades_context():
     losing = [t for t in trade_history if t['result'] == 'loss']
