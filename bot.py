@@ -54,6 +54,15 @@ CONFIDENCE_BASE = 65
 CONFIDENCE_MIN  = 55
 CONFIDENCE_MAX  = 82
 
+# ── Mode apprentissage forcé ──────────────────────────────────
+# Quand actif : trade même à faible confiance (≥40%) avec
+# petit capital (3% max) pour accumuler un max de données
+LEARN_MODE_ENABLED  = True   # actif par défaut
+LEARN_MODE_CONF_MIN = 40     # seuil minimal en mode apprentissage
+LEARN_MODE_MAX_PCT  = 0.03   # max 3% du cash par trade apprentissage
+LEARN_MODE_SL       = 0.015  # SL plus serré en mode apprentissage (-1.5%)
+LEARN_MODE_TP       = 0.025  # TP en mode apprentissage (+2.5%)
+
 # ── Fréquences ────────────────────────────────────────────────
 CYCLE_MICRO   = 8     # micro-trades : toutes les 8s
 CYCLE_MONITOR = 15    # surveillance SL/TP : toutes les 15s
@@ -74,19 +83,55 @@ MAX_MICRO_POSITIONS = 3      # max 3 micro-trades simultanés
 # Signaux utilisés : EMA cross 1min, RSI divergence, spike volume,
 # momentum 3 bougies, Bollinger squeeze, VWAP approximé
 
-# ── Univers de trading (données réelles Bybit) ────────────────
-ALL_SYMBOLS = [
+# ── Crypto majeurs + small caps Bybit ────────────────────────
+CRYPTO_SYMBOLS = [
+    # Majeurs
     "BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT","XRPUSDT",
     "DOGEUSDT","ADAUSDT","AVAXUSDT","MATICUSDT","LINKUSDT",
     "DOTUSDT","UNIUSDT","ATOMUSDT","LTCUSDT","NEARUSDT",
     "APTUSDT","ARBUSDT","OPUSDT","INJUSDT","SUIUSDT",
+    # Small caps
+    "FETUSDT","RENDERUSDT","WLDUSDT","STRKUSDT","PYTHUSDT",
+    "JUPUSDT","TIAUSDT","SEIUSDT","ALTUSDT","ZKUSDT",
+    "EIGENUSDT","MNTUSDT","WUSDT","ONDOUSDT","ENAUSDT",
+    "REZUSDT","BBUSDT","NOTUSDT","TURBOUSDT","CATIUSDT",
 ]
+
+# Actions US — via Yahoo Finance (gratuit)
+STOCKS_SYMBOLS = {
+    "AAPL":  "Apple",   "TSLA":  "Tesla",   "NVDA":  "NVIDIA",
+    "META":  "Meta",    "MSFT":  "Microsoft","GOOGL": "Google",
+    "AMZN":  "Amazon",  "AMD":   "AMD",      "NFLX":  "Netflix",
+    "COIN":  "Coinbase","MSTR":  "MicroStrategy",
+}
+
+# Forex — via Yahoo Finance
+FOREX_SYMBOLS = {
+    "EURUSD=X": "EUR/USD", "GBPUSD=X": "GBP/USD",
+    "USDJPY=X": "USD/JPY", "AUDUSD=X": "AUD/USD",
+    "USDCHF=X": "USD/CHF", "BTCUSD=X": "BTC/USD",
+}
+
+# Matières premières — via Yahoo Finance
+COMMODITY_SYMBOLS = {
+    "GC=F":  "Or",      "SI=F":  "Argent",
+    "CL=F":  "Pétrole", "NG=F":  "Gaz naturel",
+    "HG=F":  "Cuivre",
+}
+
+ALL_SYMBOLS = CRYPTO_SYMBOLS  # Bybit pour les prix temps réel
 
 # Sous-ensemble pour micro-trading (les plus liquides)
 MICRO_SYMBOLS = [
     "BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT","XRPUSDT",
     "DOGEUSDT","AVAXUSDT","LINKUSDT","ARBUSDT","APTUSDT",
+    "FETUSDT","INJUSDT","NEARUSDT","SUIUSDT","OPUSDT",
 ]
+
+# Mode apprentissage forcé
+LEARN_MODE_ENABLED     = True   # trade même avec signal faible
+LEARN_MODE_CONF_MIN = 45     # seuil minimal en mode apprentissage
+LEARN_MODE_MAX_PCT  = 0.05   # max 5% du cash par trade en mode apprentissage
 
 DB_FILE   = "sim_v4.db"
 DATA_FILE = Path("sim_portfolio.json")
@@ -390,6 +435,85 @@ def get_order_book(symbol: str) -> dict:
         }
     except Exception:
         return {"ratio": 1.0, "pressure": "N/A"}
+
+
+# ═══════════════════════════════════════════════════════════════
+#  PRIX YAHOO FINANCE (Actions US, Forex, Matières premières)
+# ═══════════════════════════════════════════════════════════════
+_yahoo_cache: dict = {}
+
+def get_yahoo_price(ticker: str) -> float:
+    """Prix temps réel via Yahoo Finance (gratuit, pas d'API key)."""
+    now = time.time()
+    if ticker in _yahoo_cache:
+        ts, p = _yahoo_cache[ticker]
+        if now - ts < 30:  # cache 30s
+            return p
+    try:
+        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}?interval=1m&range=1d"
+        r   = requests.get(url, timeout=8,
+                           headers={"User-Agent": "Mozilla/5.0"})
+        d   = r.json()
+        p   = float(d["chart"]["result"][0]["meta"]["regularMarketPrice"])
+        _yahoo_cache[ticker] = (now, p)
+        return p
+    except Exception:
+        return _yahoo_cache.get(ticker, (0, 0.0))[1]
+
+
+def get_yahoo_closes(ticker: str, interval="1m", range_="1d") -> pd.Series:
+    """Historique de prix Yahoo Finance pour calcul d'indicateurs."""
+    try:
+        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}?interval={interval}&range={range_}"
+        r   = requests.get(url, timeout=10,
+                           headers={"User-Agent": "Mozilla/5.0"})
+        d   = r.json()
+        closes = d["chart"]["result"][0]["indicators"]["quote"][0]["close"]
+        return pd.Series([c for c in closes if c is not None], dtype=float)
+    except Exception:
+        return pd.Series(dtype=float)
+
+
+def scan_yahoo_market(market_dict: dict, market_name: str) -> list:
+    """Scanne actions/forex/commodités et retourne les opportunités."""
+    opps = []
+    for ticker, name in market_dict.items():
+        try:
+            closes = get_yahoo_closes(ticker, "5m", "1d")
+            if len(closes) < 27:
+                continue
+            ind   = compute_indicators(closes)
+            if not ind:
+                continue
+            price = get_yahoo_price(ticker)
+            if not price:
+                continue
+
+            score = 0
+            if ind["rsi"] < 35:   score += 3
+            elif ind["rsi"] < 45: score += 1
+            if ind["rsi"] > 70:   score -= 3
+            if ind["macd_h"] > 0: score += 2
+            else:                 score -= 1
+            if ind["mom5"] > 0.5: score += 2
+            elif ind["mom5"] < -0.5: score -= 2
+
+            if abs(score) >= 2:
+                opps.append({
+                    "symbol":    ticker,
+                    "name":      name,
+                    "market_type": market_name,
+                    "price":     price,
+                    "score":     score,
+                    "direction": "BUY" if score > 0 else "SELL",
+                    "ind":       ind,
+                    "patterns":  [],
+                    "has_alert": False,
+                })
+        except Exception as e:
+            print(f"[YAHOO] {ticker}: {e}")
+    opps.sort(key=lambda x: abs(x["score"]), reverse=True)
+    return opps[:3]
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -802,7 +926,11 @@ def open_trade(analysis: dict, send_fn) -> dict | None:
         return None
 
     leverage = LEVERAGE_SIM if market=="FUTURES" else 1
-    pct      = calc_position_size(conf, market)
+    # Mode apprentissage forcé → taille réduite
+    if analysis.get("_forced_pct"):
+        pct = analysis["_forced_pct"]
+    else:
+        pct = calc_position_size(conf, market)
     amount   = sim["cash"] * pct
     qty      = amount / price
 
@@ -1237,7 +1365,10 @@ def open_micro_trade(symbol: str, price: float, signal: dict, send_fn) -> dict |
     if sim["cash"] < 15:
         return None
 
-    amount = min(sim["cash"] * MICRO_MAX_PCT, sim["cash"] * 0.10)
+    # Mode apprentissage : petit capital même à faible confiance
+    is_learn = LEARN_MODE_ENABLED and signal["conf"] < MICRO_CONF_MIN
+    amount_pct = LEARN_MODE_MAX_PCT if is_learn else MICRO_MAX_PCT
+    amount = sim["cash"] * amount_pct
     qty    = amount / price
     sim["cash"] -= amount
 
@@ -1534,13 +1665,7 @@ def trading_loop(send_fn):
                         )
 
                         # ── Décision ────────────────────────────
-                        if signal == "HOLD" or conf < threshold or risk == "HIGH":
-                            if signal != "HOLD":
-                                send_fn(
-                                    f"⏸ {coin} ignoré\n"
-                                    f"  conf={conf}% < seuil={threshold}% "
-                                    f"ou risque={risk}"
-                                )
+                        if signal == "HOLD":
                             continue
 
                         if in_pos and signal in ("BUY","SELL"):
@@ -1554,7 +1679,25 @@ def trading_loop(send_fn):
                             continue
 
                         if not in_pos:
-                            open_trade(result, send_fn)
+                            # Mode apprentissage forcé : trade même si signal faible
+                            if conf >= threshold and risk in ("LOW","MEDIUM"):
+                                open_trade(result, send_fn)
+                            elif LEARN_MODE_ENABLED and conf >= LEARN_MODE_CONF_MIN:
+                                # Trade réduit pour apprendre
+                                result["_learning"] = True
+                                orig_max = MAX_PCT_PER_TRADE
+                                # Force taille réduite
+                                result["_forced_pct"] = LEARN_MODE_MAX_PCT
+                                send_fn(
+                                    f"🎓 APPRENTISSAGE {coin} — conf={conf}%\n"
+                                    f"  Signal: {signal} | Trade réduit {LEARN_MODE_MAX_PCT*100:.0f}% cash"
+                                )
+                                open_trade(result, send_fn)
+                            else:
+                                send_fn(
+                                    f"⏸ {coin} ignoré — conf={conf}% "
+                                    f"(seuil={threshold}%, min={LEARN_MODE_CONF_MIN}%)"
+                                )
 
             except Exception as e:
                 print(f"[SCALP] {e}")
@@ -1595,6 +1738,55 @@ def _deep_futures(send_fn, fear_greed: str):
         f"🔬 ANALYSE PROFONDE FUTURES\n"
         f"{fear_greed} | {len(sim['positions'])} positions ouvertes"
     )
+
+    # ── Scan Yahoo : actions, forex, commodités ─────────────────
+    all_yahoo_opps = []
+    for market_dict, market_name in [
+        (STOCKS_SYMBOLS,    "STOCK"),
+        (FOREX_SYMBOLS,     "FOREX"),
+        (COMMODITY_SYMBOLS, "COMMODITY"),
+    ]:
+        try:
+            yahoo_opps = scan_yahoo_market(market_dict, market_name)
+            all_yahoo_opps.extend(yahoo_opps)
+        except Exception as e:
+            print(f"[YAHOO-SCAN] {market_name}: {e}")
+
+    if all_yahoo_opps:
+        thresh = memory.get("confidence_threshold", CONFIDENCE_BASE)
+        lines  = [f"📈 Marchés externes ({len(all_yahoo_opps)} signaux):"]
+        for o in all_yahoo_opps[:5]:
+            e = "🟢" if o["direction"]=="BUY" else "🔴"
+            lines.append(
+                f"  {e} {o['name']} ({o['market_type']}) "
+                f"score={o['score']:+d} RSI={o['ind'].get('rsi',0):.0f}"
+            )
+        send_fn("\n".join(lines))
+
+        for o in all_yahoo_opps[:3]:
+            if not bot_state["running"]: break
+            in_pos = any(p["symbol"]==o["symbol"] for p in sim["positions"].values())
+            if in_pos or len(sim["positions"]) >= MAX_POSITIONS:
+                continue
+            prompt = f"""Simulation trading {o['market_type']}.
+{o['name']} ({o['symbol']}) | ${o['price']:.4f}
+RSI: {o['ind'].get('rsi','?')} | Mom5: {o['ind'].get('mom5','?')}% | MACD: {o['ind'].get('macd_h','?')}
+Score opportunité: {o['score']:+d} vers {o['direction']}
+{fear_greed}
+Marché: {'ouvert' if o['market_type'] in ('STOCK','FOREX') else 'continu'}
+JSON strict: {{"signal":"{o['direction']} ou HOLD","confidence":0-100,"reason":"raison","risk":"LOW ou MEDIUM ou HIGH","market":"SPOT"}}"""
+            result = vote(prompt)
+            result.update({"symbol": o["symbol"], "price": o["price"],
+                            "patterns": [], "market": "SPOT",
+                            "name": o["name"], "market_type": o["market_type"]})
+            if (result["signal"] in ("BUY","SELL")
+                    and result["confidence"] >= thresh
+                    and result["risk"] in ("LOW","MEDIUM")):
+                send_fn(
+                    f"🎯 Signal {o['market_type']}: {o['name']}\n"
+                    f"  {result['signal']} {result['confidence']}% | {result.get('reason','')[:70]}"
+                )
+                open_trade(result, send_fn)
 
     for symbol in targets:
         try:
@@ -2129,27 +2321,185 @@ async def cmd_fermer(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"✅ {count} position(s) fermée(s) manuellement.")
 
 
+async def cmd_apprentissage(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Active/désactive le mode apprentissage forcé."""
+    if not _auth(update): return
+    global LEARN_MODE_ENABLED
+    LEARN_MODE_ENABLED = not LEARN_MODE_ENABLED
+    status = "✅ ACTIVÉ" if LEARN_MODE_ENABLED else "⏸ DÉSACTIVÉ"
+    stats  = get_stats()
+    await update.message.reply_text(
+        f"🎓 MODE APPRENTISSAGE : {status}\n"
+        f"━━━━━━━━━━━━━━━━━━━\n"
+        f"Seuil normal   : {memory.get('confidence_threshold', CONFIDENCE_BASE)}%\n"
+        f"Seuil apprenti.: {LEARN_MODE_CONF_MIN}% (signal faible accepté)\n"
+        f"Capital/trade  : {LEARN_MODE_MAX_PCT*100:.0f}% (réduit)\n"
+        f"━━━━━━━━━━━━━━━━━━━\n"
+        f"{'Activé : le bot trade même avec signaux faibles pour apprendre plus vite.' if LEARN_MODE_ENABLED else 'Désactivé : le bot trade uniquement avec signaux forts.'}"
+    )
+
+
+async def cmd_stats(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Stats complètes avec répartition par marché."""
+    if not _auth(update): return
+    stats   = get_stats()
+    wr_db   = db_win_rate(30)
+    sym_s   = db_symbol_stats()
+    equity  = get_equity()
+    pnl     = equity - sim["initial"]
+    session = sim.get("session", 1)
+    thresh  = memory.get("confidence_threshold", CONFIDENCE_BASE)
+
+    # Stats par type de marché
+    all_closed = [t for t in sim["trades"] if t.get("pnl") is not None]
+    learn_trades  = [t for t in all_closed if t.get("market")=="LEARN"]
+    micro_trades  = [t for t in all_closed if t.get("market")=="MICRO"]
+    normal_trades = [t for t in all_closed if t.get("market") not in ("LEARN","MICRO")]
+
+    def wr(trades):
+        if not trades: return 0
+        return round(sum(1 for t in trades if t["pnl"]>0)/len(trades)*100, 1)
+
+    sym_lines = "\n".join(
+        f"  {s['s']:8s} WR:{s['wr']:.0f}% ({s['n']} trades) avg:${s['pnl']:+.4f}"
+        for s in sym_s[:5]
+    ) or "  Données insuffisantes"
+
+    await update.message.reply_text(
+        f"📊 STATISTIQUES COMPLÈTES\n"
+        f"Session #{session} | Capital: ${equity:.2f} ({pnl:+.2f})\n"
+        f"━━━━━━━━━━━━━━━━━━━\n"
+        f"📈 Global: {stats['total']} trades | WR: {stats['win_rate']}%\n"
+        f"   DB(30): {wr_db}% | Seuil: {thresh}%\n"
+        f"━━━━━━━━━━━━━━━━━━━\n"
+        f"⚡ Micro    : {len(micro_trades)} trades | WR: {wr(micro_trades)}%\n"
+        f"🎓 Apprenti.: {len(learn_trades)} trades | WR: {wr(learn_trades)}%\n"
+        f"🔍 Classique: {len(normal_trades)} trades | WR: {wr(normal_trades)}%\n"
+        f"━━━━━━━━━━━━━━━━━━━\n"
+        f"🥇 Top coins:\n{sym_lines}\n"
+        f"━━━━━━━━━━━━━━━━━━━\n"
+        f"📚 Leçons: {len(memory['lessons'])} | "
+        f"✅ {len(memory['patterns_that_work'])} bons patterns\n"
+        f"❌ {len(memory['patterns_to_avoid'])} patterns à éviter"
+    )
+
+
 async def cmd_reset(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
     bot_state.update({
         "running": False, "cycle_count": 0, "trades_today": 0,
-        "last_monitor": 0, "last_scalp": 0, "last_deep": 0, "last_status": 0,
+        "last_monitor": 0, "last_scalp": 0, "last_deep": 0,
+        "last_status": 0, "last_micro": 0,
     })
+    # ✅ Conserve TOUTES les leçons — depuis la RAM ET la base SQLite
+    # Recharge depuis DB pour récupérer les leçons des sessions précédentes
+    try:
+        con = sqlite3.connect(DB_FILE)
+        db_lessons = con.execute("""
+            SELECT trade_id, symbol, market, pnl, lecon, pattern,
+                   action_future, type, date
+            FROM lessons ORDER BY id DESC LIMIT 200
+        """).fetchall()
+        con.close()
+        lessons_from_db = [
+            {"trade_id": r[0], "symbol": r[1], "market": r[2],
+             "pnl": r[3], "lecon": r[4], "pattern": r[5],
+             "action_future": r[6], "type": r[7], "date": r[8]}
+            for r in db_lessons
+        ]
+    except Exception:
+        lessons_from_db = []
+
+    # Fusionne les leçons RAM + DB (dédupliquées)
+    lessons_ram   = memory.get("lessons", [])
+    all_lessons   = lessons_from_db if lessons_from_db else lessons_ram
+    patterns_work = memory.get("patterns_that_work", [])
+    patterns_avoid= memory.get("patterns_to_avoid", [])
+    threshold     = memory.get("confidence_threshold", CONFIDENCE_BASE)
+
     sim.update({
         "cash": CAPITAL_INITIAL, "initial": CAPITAL_INITIAL,
         "positions": {}, "trades": [], "equity_history": [],
+        "session": sim.get("session", 0) + 1,
     })
     memory.update({
-        "lessons": [], "patterns_to_avoid": [], "patterns_that_work": [],
-        "confidence_threshold": CONFIDENCE_BASE,
+        "lessons":             all_lessons,
+        "patterns_to_avoid":   patterns_avoid,
+        "patterns_that_work":  patterns_work,
+        "confidence_threshold": threshold,
         "total_wins": 0, "total_losses": 0,
+        "analysis_history": [],
     })
     save_data()
+    session = sim.get("session", 1)
     await update.message.reply_text(
-        f"🔄 Simulation réinitialisée.\n"
-        f"Capital virtuel: ${CAPITAL_INITIAL:,.2f}\n"
-        f"Mémoire RAM effacée. Base SQLite conservée."
+        f"🔄 SESSION #{session} DÉMARRÉE\n"
+        f"━━━━━━━━━━━━━━━━━━━\n"
+        f"💰 Capital réinitialisé : ${CAPITAL_INITIAL:,.2f}\n"
+        f"━━━━━━━━━━━━━━━━━━━\n"
+        f"🧠 Leçons chargées (DB) : {len(all_lessons)}\n"
+        f"✅ Patterns gagnants    : {len(patterns_work)}\n"
+        f"❌ Patterns à éviter    : {len(patterns_avoid)}\n"
+        f"⚙️  Seuil confiance      : {threshold}%\n"
+        f"━━━━━━━━━━━━━━━━━━━\n"
+        f"Le bot repart avec TOUTE son expérience acquise.\n"
+        f"Mode apprentissage : {'✅ ACTIF' if LEARN_MODE_ENABLED else '⏸ INACTIF'}"
     )
+
+
+async def cmd_apprendre(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Active/désactive le mode apprentissage forcé."""
+    if not _auth(update): return
+    global LEARN_MODE_ENABLED
+    LEARN_MODE_ENABLED = not LEARN_MODE_ENABLED
+    status = "✅ ACTIVÉ" if LEARN_MODE_ENABLED else "⏸ DÉSACTIVÉ"
+    await update.message.reply_text(
+        f"🎓 Mode apprentissage forcé: {status}\n"
+        f"Seuil min: {LEARN_MODE_CONF_MIN}% (vs {memory.get('confidence_threshold', CONFIDENCE_BASE)}% normal)\n"
+        f"Taille trade: {LEARN_MODE_MAX_PCT*100:.0f}% du cash (vs {MAX_PCT_PER_TRADE*100:.0f}% normal)\n"
+        f"{'Le bot trade même avec signal faible pour apprendre.' if LEARN_MODE_ENABLED else 'Le bot trade uniquement sur signaux forts.'}"
+    )
+
+
+async def cmd_marches(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Affiche un aperçu des marchés disponibles et prix actuels."""
+    if not _auth(update): return
+    await update.message.reply_text("📊 Récupération des prix...")
+    try:
+        lines = ["📊 MARCHÉS DISPONIBLES\n━━━━━━━━━━━━━"]
+
+        # Crypto top 5
+        prices = get_prices_batch()
+        lines.append("🪙 CRYPTO (Bybit)")
+        for sym in ["BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT","XRPUSDT"]:
+            p = prices.get(sym, 0)
+            lines.append(f"  {sym.replace('USDT',''): <6} ${p:,.4f}")
+
+        # Actions top 5
+        lines.append("\n📈 ACTIONS US (Yahoo)")
+        for ticker, name in list(STOCKS_SYMBOLS.items())[:5]:
+            p = get_yahoo_price(ticker)
+            lines.append(f"  {name: <12} ${p:,.2f}")
+
+        # Forex
+        lines.append("\n💱 FOREX (Yahoo)")
+        for ticker, name in list(FOREX_SYMBOLS.items())[:4]:
+            p = get_yahoo_price(ticker)
+            lines.append(f"  {name: <10} {p:.4f}")
+
+        # Commodités
+        lines.append("\n🏅 MATIÈRES PREMIÈRES")
+        for ticker, name in COMMODITY_SYMBOLS.items():
+            p = get_yahoo_price(ticker)
+            lines.append(f"  {name: <12} ${p:,.2f}")
+
+        lines.append(f"\n📊 Total: {len(ALL_SYMBOLS)} cryptos + "
+                     f"{len(STOCKS_SYMBOLS)} actions + "
+                     f"{len(FOREX_SYMBOLS)} forex + "
+                     f"{len(COMMODITY_SYMBOLS)} commodités")
+        await update.message.reply_text("\n".join(lines))
+    except Exception as e:
+        await update.message.reply_text(f"Erreur: {e}")
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -2171,15 +2521,17 @@ async def run_telegram():
     )
 
     for cmd, fn in [
-        ("start",     cmd_start),
-        ("stop",      cmd_stop),
-        ("status",    cmd_status),
-        ("scan",      cmd_scan),
-        ("portfolio", cmd_portfolio),
-        ("positions", cmd_positions),
-        ("lecons",    cmd_lecons),
-        ("fermer",    cmd_fermer),
-        ("reset",     cmd_reset),
+        ("start",         cmd_start),
+        ("stop",          cmd_stop),
+        ("status",        cmd_status),
+        ("scan",          cmd_scan),
+        ("portfolio",     cmd_portfolio),
+        ("positions",     cmd_positions),
+        ("lecons",        cmd_lecons),
+        ("fermer",        cmd_fermer),
+        ("apprentissage", cmd_apprentissage),
+        ("stats",         cmd_stats),
+        ("reset",         cmd_reset),
     ]:
         _app.add_handler(CommandHandler(cmd, fn))
 
