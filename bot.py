@@ -55,10 +55,24 @@ CONFIDENCE_MIN  = 55
 CONFIDENCE_MAX  = 82
 
 # ── Fréquences ────────────────────────────────────────────────
-CYCLE_MONITOR = 30    # secondes
-CYCLE_SCALP   = 120
-CYCLE_DEEP    = 300
-CYCLE_STATUS  = 900
+CYCLE_MICRO   = 8     # micro-trades : toutes les 8s
+CYCLE_MONITOR = 15    # surveillance SL/TP : toutes les 15s
+CYCLE_SCALP   = 60    # scalping classique : toutes les 60s
+CYCLE_DEEP    = 300   # analyse profonde : toutes les 5min
+CYCLE_STATUS  = 900   # bilan : toutes les 15min
+
+# ── Micro-trading : paramètres spéciaux ──────────────────────
+MICRO_SL_PCT       = 0.008   # stop-loss micro : -0.8%
+MICRO_TP_PCT       = 0.012   # take-profit micro : +1.2%
+MICRO_TRAILING_PCT = 0.005   # trailing micro : -0.5% du pic
+MICRO_MAX_DURATION = 90      # ferme le micro-trade après 90s max
+MICRO_MAX_PCT      = 0.10    # max 10% du cash par micro-trade
+MICRO_CONF_MIN     = 72      # seuil plus élevé (signal très fort requis)
+MAX_MICRO_POSITIONS = 3      # max 3 micro-trades simultanés
+
+# ── Indicateurs micro-trading (sur bougies 1min) ──────────────
+# Signaux utilisés : EMA cross 1min, RSI divergence, spike volume,
+# momentum 3 bougies, Bollinger squeeze, VWAP approximé
 
 # ── Univers de trading (données réelles Bybit) ────────────────
 ALL_SYMBOLS = [
@@ -66,6 +80,12 @@ ALL_SYMBOLS = [
     "DOGEUSDT","ADAUSDT","AVAXUSDT","MATICUSDT","LINKUSDT",
     "DOTUSDT","UNIUSDT","ATOMUSDT","LTCUSDT","NEARUSDT",
     "APTUSDT","ARBUSDT","OPUSDT","INJUSDT","SUIUSDT",
+]
+
+# Sous-ensemble pour micro-trading (les plus liquides)
+MICRO_SYMBOLS = [
+    "BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT","XRPUSDT",
+    "DOGEUSDT","AVAXUSDT","LINKUSDT","ARBUSDT","APTUSDT",
 ]
 
 DB_FILE   = "sim_v4.db"
@@ -1059,26 +1079,350 @@ JSON strict (sans backticks):
         print(f"[LEARN] {e}")
 
 
+
+# ═══════════════════════════════════════════════════════════════
+#  MOTEUR MICRO-TRADING (sub-minute)
+#  Logique purement algorithmique — pas d'appel IA pour la vitesse
+#  Décision en <500ms sur signaux purs : tick, EMA, RSI, volume
+# ═══════════════════════════════════════════════════════════════
+
+# Cache des klines 1min pour éviter les appels répétés
+_kline_cache_1m: dict = {}   # symbol → (timestamp, closes)
+
+def get_klines_1m_cached(symbol: str) -> pd.Series:
+    """Klines 1min avec cache de 5s."""
+    now = time.time()
+    if symbol in _kline_cache_1m:
+        ts, closes = _kline_cache_1m[symbol]
+        if now - ts < 5:
+            return closes
+    closes = get_klines(symbol, "1", 30)
+    _kline_cache_1m[symbol] = (now, closes)
+    return closes
+
+
+def micro_signal(symbol: str, price: float) -> dict:
+    """
+    Signal micro-trading purement algorithmique — décision en <200ms.
+    Aucun appel IA. Basé sur :
+      1. EMA cross 1min (EMA5 vs EMA13)
+      2. RSI 7 périodes (réactif)
+      3. Spike de volume (x2.5 avg)
+      4. Momentum 3 bougies
+      5. Bollinger squeeze (prix près d'une bande)
+      6. VWAP approximé (prix vs moyenne pondérée)
+    Score de -6 à +6 → seuil ±4 pour trader
+    """
+    try:
+        closes = get_klines_1m_cached(symbol)
+        if len(closes) < 14:
+            return {"signal": "HOLD", "score": 0, "conf": 0}
+
+        # EMA5 / EMA13 cross
+        ema5  = float(closes.ewm(span=5,  adjust=False).mean().iloc[-1])
+        ema13 = float(closes.ewm(span=13, adjust=False).mean().iloc[-1])
+        ema5_prev  = float(closes.ewm(span=5,  adjust=False).mean().iloc[-2])
+        ema13_prev = float(closes.ewm(span=13, adjust=False).mean().iloc[-2])
+
+        # RSI 7
+        delta = closes.diff()
+        gain  = delta.clip(lower=0).ewm(com=6, adjust=False).mean()
+        loss  = (-delta).clip(lower=0).ewm(com=6, adjust=False).mean()
+        rsi7  = float(100 - 100/(1 + gain/loss.replace(0, np.nan))).iloc[-1]
+
+        # Momentum 3 bougies
+        mom3 = (float(closes.iloc[-1]) - float(closes.iloc[-4]))                / float(closes.iloc[-4]) * 100
+
+        # Bollinger 10 périodes
+        sma10 = closes.rolling(10).mean()
+        std10 = closes.rolling(10).std()
+        bb_up = float((sma10 + 1.5*std10).iloc[-1])
+        bb_lo = float((sma10 - 1.5*std10).iloc[-1])
+        bb_pct = (price - bb_lo) / (bb_up - bb_lo) * 100 if bb_up != bb_lo else 50
+
+        # Volumes (on utilise le cache 1min pour dériver une estimate)
+        vols = get_volume_data(symbol, "1", 10)
+        avg_vol   = sum(vols[:-1])/max(len(vols)-1,1) if len(vols)>1 else 1
+        vol_ratio = vols[-1]/avg_vol if avg_vol>0 else 1.0
+
+        # ── Scoring ─────────────────────────────────────────────
+        score = 0
+
+        # 1. EMA cross (signal le plus fort)
+        if ema5_prev <= ema13_prev and ema5 > ema13:
+            score += 2   # golden cross 1min
+        elif ema5_prev >= ema13_prev and ema5 < ema13:
+            score -= 2   # death cross 1min
+
+        # 2. RSI7 zone
+        if rsi7 < 28:   score += 2
+        elif rsi7 < 40: score += 1
+        elif rsi7 > 72: score -= 2
+        elif rsi7 > 60: score -= 1
+
+        # 3. Momentum 3 bougies
+        if mom3 > 0.6:    score += 1
+        elif mom3 < -0.6: score -= 1
+
+        # 4. Position dans les Bollinger
+        if bb_pct < 8:    score += 1   # près de la bande basse → rebond probable
+        elif bb_pct > 92: score -= 1   # près de la bande haute → recul probable
+
+        # 5. Volume spike confirme le signal
+        if vol_ratio > 2.5 and score > 0: score += 1
+        if vol_ratio > 2.5 and score < 0: score -= 1
+
+        # ── Décision ────────────────────────────────────────────
+        if score >= 4:
+            signal = "BUY"
+            conf   = min(95, 60 + score * 7)
+        elif score <= -4:
+            signal = "SELL"
+            conf   = min(95, 60 + abs(score) * 7)
+        else:
+            signal = "HOLD"
+            conf   = 0
+
+        return {
+            "signal":   signal,
+            "score":    score,
+            "conf":     conf,
+            "rsi7":     round(rsi7, 1),
+            "ema_cross": "BULL" if ema5>ema13 else "BEAR",
+            "mom3":     round(mom3, 3),
+            "bb_pct":   round(bb_pct, 1),
+            "vol_ratio": round(vol_ratio, 2),
+            "reason":   (f"EMA{'↑' if ema5>ema13 else '↓'} RSI7={rsi7:.0f} "
+                         f"mom={mom3:+.2f}% bb={bb_pct:.0f}% vol={vol_ratio:.1f}x"),
+        }
+
+    except Exception as e:
+        print(f"[MICRO] {symbol}: {e}")
+        return {"signal": "HOLD", "score": 0, "conf": 0}
+
+
+def open_micro_trade(symbol: str, price: float, signal: dict, send_fn) -> dict | None:
+    """Ouvre un micro-trade simulé avec SL/TP ultra-serrés."""
+    side    = "LONG" if signal["signal"]=="BUY" else "SHORT"
+    conf    = signal["conf"]
+    reason  = signal.get("reason","")
+    score   = signal.get("score",0)
+
+    # Pas de short sur spot en micro (trop risqué sans levier)
+    if side == "SHORT":
+        return None
+
+    # Vérifications rapides
+    micro_count = sum(1 for p in sim["positions"].values()
+                      if p.get("trade_type")=="MICRO")
+    if micro_count >= MAX_MICRO_POSITIONS:
+        return None
+    if any(p["symbol"]==symbol and p.get("trade_type")=="MICRO"
+           for p in sim["positions"].values()):
+        return None
+    if sim["cash"] < 15:
+        return None
+
+    amount = min(sim["cash"] * MICRO_MAX_PCT, sim["cash"] * 0.10)
+    qty    = amount / price
+    sim["cash"] -= amount
+
+    trade = {
+        "id":           len(sim["trades"]) + 1,
+        "symbol":       symbol,
+        "market":       "MICRO",
+        "side":         side,
+        "trade_type":   "MICRO",
+        "price_in":     price,
+        "price_out":    None,
+        "qty":          qty,
+        "amount_usd":   amount,
+        "confidence":   conf,
+        "reason":       reason,
+        "exit_reason":  None,
+        "time_in":      datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "time_out":     None,
+        "pnl":          None,
+        "pnl_pct":      None,
+        "duration_min": None,
+        "patterns":     [f"score={score}"],
+        "leverage":     1,
+        "peak_price":   price,
+        "trough_price": price,
+        "micro_score":  score,
+        "open_time":    time.time(),  # pour timeout 90s
+    }
+
+    pos_key = f"MICRO_{symbol}_{side}_{trade['id']}"
+    sim["trades"].append(trade)
+    sim["positions"][pos_key] = {**trade, "pos_key": pos_key}
+    db_save_trade(trade)
+    bot_state["trades_today"] += 1
+    bot_state["micro_count"]  = bot_state.get("micro_count", 0) + 1
+
+    sl = price * (1 - MICRO_SL_PCT)
+    tp = price * (1 + MICRO_TP_PCT)
+
+    coin = symbol.replace("USDT","")
+    send_fn(
+        f"⚡ MICRO #{trade['id']} {coin} {side}\n"
+        f"💵 ${price:.6f} score={score:+d} conf={conf}%\n"
+        f"💰 ${amount:.2f} | SL:-{MICRO_SL_PCT*100:.1f}% TP:+{MICRO_TP_PCT*100:.1f}%\n"
+        f"⏱ Timeout {MICRO_MAX_DURATION}s | {reason[:60]}"
+    )
+    return trade
+
+
+def monitor_micro_positions(send_fn):
+    """
+    Surveillance ultra-rapide des micro-trades.
+    - SL -0.8% / TP +1.2% / Trailing -0.5%
+    - Timeout 90s : ferme automatiquement si trop long
+    - Fermeture sur signal contraire
+    """
+    now = time.time()
+    prices = get_prices_batch()
+
+    for pos_key, pos in list(sim["positions"].items()):
+        if pos.get("trade_type") != "MICRO":
+            continue
+
+        symbol = pos["symbol"]
+        price  = prices.get(symbol) or get_price(symbol, force=True)
+        if not price:
+            continue
+
+        entry   = pos["price_in"]
+        change  = (price - entry) / entry
+        elapsed = now - pos.get("open_time", now)
+
+        # Trailing stop
+        pos["peak_price"] = max(pos.get("peak_price", entry), price)
+        trailing = (pos["peak_price"] - price) / pos["peak_price"]
+
+        reason = None
+
+        # SL
+        if change <= -MICRO_SL_PCT:
+            reason = f"🛑 MICRO SL ({change*100:+.2f}%)"
+
+        # TP
+        elif change >= MICRO_TP_PCT:
+            reason = f"🎯 MICRO TP ({change*100:+.2f}%)"
+
+        # Trailing stop (si déjà en profit)
+        elif change > 0.003 and trailing >= MICRO_TRAILING_PCT:
+            reason = f"📐 MICRO TRAIL ({trailing*100:.2f}% du pic)"
+
+        # Timeout
+        elif elapsed >= MICRO_MAX_DURATION:
+            pnl_now = change * pos["amount_usd"]
+            reason  = f"⏱ TIMEOUT {int(elapsed)}s (PnL: ${pnl_now:+.4f})"
+
+        # Signal contraire rapide
+        elif elapsed > 20:
+            sig = micro_signal(symbol, price)
+            if sig["signal"] == "SELL" and pos["side"] == "LONG" and sig["score"] <= -4:
+                reason = f"🔄 Signal contraire (score={sig['score']})"
+
+        if reason:
+            # Fermeture rapide
+            side   = pos["side"]
+            amt    = pos["amount_usd"]
+            pnl    = (price - entry) / entry * amt
+            pnl_pct= (price - entry) / entry * 100
+            sim["cash"] += amt + pnl
+
+            trade = next((t for t in reversed(sim["trades"])
+                          if t["id"] == pos["id"]), None)
+            if trade:
+                dur = int(elapsed / 60 * 10) / 10  # durée en minutes
+                trade.update({
+                    "price_out":    price,
+                    "time_out":     datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "pnl":          round(pnl, 6),
+                    "pnl_pct":      round(pnl_pct, 3),
+                    "exit_reason":  reason,
+                    "duration_min": max(1, int(elapsed / 60)),
+                })
+                db_save_trade(trade)
+                learn_from_trade(trade, send_fn=None)  # apprentissage silencieux
+
+            del sim["positions"][pos_key]
+            save_data()
+
+            e     = "✅" if pnl>0 else "❌"
+            e_pnl = "🤑" if pnl>0 else "💸"
+            coin  = symbol.replace("USDT","")
+            chg   = (price-entry)/entry*100
+            send_fn(
+                f"{e} MICRO #{pos['id']} {coin}\n"
+                f"${entry:.6f}→${price:.6f} ({chg:+.3f}%)\n"
+                f"{e_pnl} PnL: ${pnl:+.6f} | {reason}"
+            )
+
+            if pnl > 0:
+                memory["total_wins"]   = memory.get("total_wins",0) + 1
+            else:
+                memory["total_losses"] = memory.get("total_losses",0) + 1
+
+
+def run_micro_cycle(send_fn):
+    """
+    Cycle micro-trading : toutes les 8 secondes.
+    Scanne MICRO_SYMBOLS avec l'algo pur (pas d'IA).
+    Ultra-rapide, décision en <500ms par symbole.
+    """
+    prices = get_prices_batch()
+
+    for symbol in MICRO_SYMBOLS:
+        if not bot_state["running"]:
+            break
+        price = prices.get(symbol, 0)
+        if not price:
+            continue
+
+        # Skip si déjà trop de positions micro
+        micro_count = sum(1 for p in sim["positions"].values()
+                          if p.get("trade_type")=="MICRO")
+        if micro_count >= MAX_MICRO_POSITIONS:
+            break
+
+        # Skip si déjà une position micro sur ce symbole
+        if any(p["symbol"]==symbol and p.get("trade_type")=="MICRO"
+               for p in sim["positions"].values()):
+            continue
+
+        # Signal algorithmique pur
+        sig = micro_signal(symbol, price)
+
+        if sig["signal"] != "HOLD" and sig["conf"] >= MICRO_CONF_MIN:
+            open_micro_trade(symbol, price, sig, send_fn)
+
+
 # ═══════════════════════════════════════════════════════════════
 #  BOUCLE CONTINUE
 # ═══════════════════════════════════════════════════════════════
 def trading_loop(send_fn):
     equity = get_equity()
+    bot_state["micro_count"] = 0
     send_fn(
-        f"🚀 SIMULATION DÉMARRÉE\n"
+        f"🚀 SIMULATION DÉMARRÉE — Mode Micro-Trading\n"
         f"━━━━━━━━━━━━━━━━━━━\n"
         f"💰 Capital      : ${CAPITAL_INITIAL:,.2f} (virtuel)\n"
-        f"🪙 Cryptos      : {len(ALL_SYMBOLS)} symboles\n"
-        f"⚡ Surveillance : {CYCLE_MONITOR}s\n"
-        f"🔍 Scalping     : {CYCLE_SCALP}s\n"
-        f"🔬 Analyse prof.: {CYCLE_DEEP}s\n"
-        f"🛑 Stop-Loss    : {STOP_LOSS_PCT*100:.1f}%\n"
-        f"🎯 Take-Profit  : {TAKE_PROFIT_PCT*100:.1f}%\n"
-        f"📐 Trailing     : {TRAILING_PCT*100:.1f}%\n"
-        f"🤖 3 modèles IA en vote majoritaire\n"
+        f"🪙 Cryptos total: {len(ALL_SYMBOLS)} | Micro: {len(MICRO_SYMBOLS)}\n"
         f"━━━━━━━━━━━━━━━━━━━\n"
-        f"Le bot prend ses propres décisions.\n"
-        f"Chaque trade est simulé sur prix réels Bybit."
+        f"⚡ MICRO-TRADES  (algo pur, <1min)\n"
+        f"  Cycle : {CYCLE_MICRO}s | SL: {MICRO_SL_PCT*100:.1f}% | TP: {MICRO_TP_PCT*100:.1f}%\n"
+        f"  Trailing: {MICRO_TRAILING_PCT*100:.1f}% | Timeout: {MICRO_MAX_DURATION}s\n"
+        f"━━━━━━━━━━━━━━━━━━━\n"
+        f"🔍 SCALP CLASSIQUE (IA, ~1-5min)\n"
+        f"  Cycle : {CYCLE_SCALP}s | SL: {STOP_LOSS_PCT*100:.1f}% | TP: {TAKE_PROFIT_PCT*100:.1f}%\n"
+        f"━━━━━━━━━━━━━━━━━━━\n"
+        f"🔬 ANALYSE PROFONDE (IA multi-TF, ~5-30min)\n"
+        f"  Cycle : {CYCLE_DEEP}s | Levier x{LEVERAGE_SIM}\n"
+        f"━━━━━━━━━━━━━━━━━━━\n"
+        f"🤖 3 niveaux actifs en parallèle — décisions autonomes."
     )
 
     fear_greed = get_fear_greed()
@@ -1086,7 +1430,16 @@ def trading_loop(send_fn):
     while bot_state["running"]:
         now = time.time()
 
-        # ══ 30s : Surveillance SL/TP ══════════════════════════
+        # ══ 8s : MICRO-TRADING (algo pur, sub-minute) ═════════
+        if now - bot_state.get("last_micro", 0) >= CYCLE_MICRO:
+            try:
+                monitor_micro_positions(send_fn)
+                run_micro_cycle(send_fn)
+            except Exception as e:
+                print(f"[MICRO] {e}")
+            bot_state["last_micro"] = now
+
+        # ══ 15s : Surveillance SL/TP classique ════════════════
         if now - bot_state["last_monitor"] >= CYCLE_MONITOR:
             try:
                 monitor_positions(send_fn)
@@ -1305,16 +1658,22 @@ def _send_bilan(send_fn):
         f"{s['s']}:{s['wr']:.0f}%WR" for s in sym_stats
     ) or "Aucun encore"
 
+    micro_count = bot_state.get("micro_count", 0)
+    micro_pos   = sum(1 for p in sim["positions"].values()
+                      if p.get("trade_type")=="MICRO")
+    classic_pos = len(sim["positions"]) - micro_pos
     send_fn(
         f"📋 BILAN 15min — {datetime.now().strftime('%H:%M:%S')}\n"
         f"━━━━━━━━━━━━━━━━━━━\n"
         f"💰 Capital   : ${equity:.2f} ({pnl/sim['initial']*100:+.1f}%)\n"
         f"📈 PnL total : ${pnl:+.2f}\n"
         f"💵 Cash libre: ${sim['cash']:.2f}\n"
-        f"📍 Positions : {len(sim['positions'])}/{MAX_POSITIONS}{pos_lines}\n"
+        f"📍 Positions : {len(sim['positions'])} "
+        f"(⚡{micro_pos} micro | 🔍{classic_pos} classique){pos_lines}\n"
         f"━━━━━━━━━━━━━━━━━━━\n"
         f"🏆 Win Rate  : {stats['win_rate']}% | DB(30): {wr_db}%\n"
         f"📊 Trades    : {stats['total']} total | {bot_state['trades_today']} aujourd'hui\n"
+        f"⚡ Micro-trades session: {micro_count}\n"
         f"⏱ Durée moy : {stats['avg_dur']} min\n"
         f"🥇 Meilleurs : {sym_str}\n"
         f"⚙️  Seuil auto : {thresh}%\n"
