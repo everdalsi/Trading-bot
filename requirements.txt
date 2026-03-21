@@ -6,3 +6,5 @@ python-telegram-bot==21.10
 schedule
 feedparser
 tweepy
+pandas
+numpy
