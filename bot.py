@@ -1,19 +1,19 @@
 import os, time, threading, feedparser
-import anthropic
+from groq import Groq
 from pybit.unified_trading import HTTP
 from telegram import Bot
 import asyncio, json
 from datetime import datetime
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
-ANTHROPIC_KEY = os.environ.get("ANTHROPIC_KEY")
+GROQ_KEY = os.environ.get("ANTHROPIC_KEY")
 BINANCE_KEY = os.environ.get("BINANCE_KEY")
 BINANCE_SECRET = os.environ.get("BINANCE_SECRET")
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 PAPER_TRADING = True
 
-claude = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
+groq_client = Groq(api_key=GROQ_KEY)
 bybit = HTTP(api_key=BINANCE_KEY, api_secret=BINANCE_SECRET)
 telegram = Bot(token=TELEGRAM_TOKEN)
 
@@ -58,20 +58,24 @@ Prix actuel BTC/USDT: ${price:,.2f}
 Actualites crypto recentes:
 {news}
 {losing_context}
-Reponds UNIQUEMENT en JSON:
-{{"signal": "BUY" ou "SELL" ou "HOLD", "confidence": 0-100, "reason": "explication courte", "risk": "LOW" ou "MEDIUM" ou "HIGH"}}
+Reponds UNIQUEMENT en JSON sans aucun texte avant ou apres:
+{{"signal": "BUY", "confidence": 75, "reason": "explication courte", "risk": "LOW"}}
+signal = BUY ou SELL ou HOLD
+confidence = nombre entre 0 et 100
+risk = LOW ou MEDIUM ou HIGH
 Ne prends position que si confidence >= 70 et risk != HIGH."""
-    response = claude.messages.create(
-        model="claude-sonnet-4-20250514",
-        max_tokens=300,
-        messages=[{"role": "user", "content": prompt}]
-    )
     try:
-        text = response.content[0].text
+        response = groq_client.chat.completions.create(
+            model="llama3-70b-8192",
+            max_tokens=300,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        text = response.choices[0].message.content
         clean = text.replace("```json", "").replace("```", "").strip()
         return json.loads(clean)
-    except:
-        return {"signal": "HOLD", "confidence": 0, "reason": "Erreur parsing", "risk": "HIGH"}
+    except Exception as e:
+        print(f"Erreur analyse: {e}")
+        return {"signal": "HOLD", "confidence": 0, "reason": "Erreur", "risk": "HIGH"}
 
 async def send_alert(message):
     await telegram.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
