@@ -1128,7 +1128,7 @@ def micro_signal(symbol: str, price: float) -> dict:
         delta = closes.diff()
         gain  = delta.clip(lower=0).ewm(com=6, adjust=False).mean()
         loss  = (-delta).clip(lower=0).ewm(com=6, adjust=False).mean()
-        rsi7  = float(100 - 100/(1 + gain/loss.replace(0, np.nan))).iloc[-1]
+        rsi7  = float((100 - 100/(1 + gain/loss.replace(0, np.nan))).iloc[-1])
 
         # Momentum 3 bougies
         mom3 = (float(closes.iloc[-1]) - float(closes.iloc[-4]))                / float(closes.iloc[-4]) * 100
@@ -1962,7 +1962,7 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Simulation déjà en cours !"); return
     bot_state.update({
         "running": True, "trades_today": 0, "cycle_count": 0,
-        "last_heartbeat": None, "last_monitor": 0,
+        "last_heartbeat": None, "last_monitor": 0, "last_micro": 0,
         "last_scalp": 0, "last_deep": 0, "last_status": 0,
     })
     send = make_send(TELEGRAM_CHAT_ID)
@@ -2196,11 +2196,34 @@ async def run_telegram():
 # ═══════════════════════════════════════════════════════════════
 #  ENTRYPOINT
 # ═══════════════════════════════════════════════════════════════
+def auto_start():
+    """Lance automatiquement la simulation au démarrage de Koyeb.
+    Plus besoin de /start manuellement après chaque redéploiement."""
+    time.sleep(5)  # attend que le webhook soit enregistré
+    send = make_send(TELEGRAM_CHAT_ID)
+    if bot_state["running"]:
+        return
+    bot_state.update({
+        "running": True, "trades_today": 0, "cycle_count": 0,
+        "last_heartbeat": None, "last_monitor": 0, "last_micro": 0,
+        "last_scalp": 0, "last_deep": 0, "last_status": 0,
+    })
+    send(
+        "🔄 Redémarrage automatique détecté\n"
+        "La simulation reprend automatiquement...\n"
+        "Tape /stop pour l'arrêter."
+    )
+    threading.Thread(target=trading_loop,  args=(send,), daemon=True).start()
+    threading.Thread(target=watchdog,      args=(send,), daemon=True).start()
+    threading.Thread(target=daily_summary, args=(send,), daemon=True).start()
+
+
 if __name__ == "__main__":
     print("🚀 Simulation Trading Bot v4")
     init_db()
     load_data()
-    threading.Thread(target=run_server, daemon=True).start()
-    threading.Thread(target=self_ping,  daemon=True).start()
+    threading.Thread(target=run_server,  daemon=True).start()
+    threading.Thread(target=self_ping,   daemon=True).start()
+    threading.Thread(target=auto_start,  daemon=True).start()
     print("Serveur HTTP port 8000")
     asyncio.run(run_telegram())
