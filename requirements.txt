@@ -2,7 +2,7 @@ groq
 pybit
 praw
 requests
-python-telegram-bot==20.7
+python-telegram-bot==21.10
 schedule
 feedparser
 tweepy
