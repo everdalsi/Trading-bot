@@ -972,22 +972,28 @@ def open_trade(analysis: dict, send_fn) -> dict | None:
     m_emoji = "📊" if market=="FUTURES" else "💱"
     s_emoji = "🟢" if side=="LONG" else "🔴"
 
+    coin     = symbol.replace("USDT","")
+    name     = analysis.get("name", coin)   # nom lisible si dispo
+    learning = "🎓 APPRENTISSAGE" if analysis.get("_forced_pct") else ""
+    mtype    = analysis.get("market_type", market)
+
+    if mtype in ("STOCK","FOREX","COMMODITY"):
+        asset_label = f"{name} ({mtype})"
+    else:
+        asset_label = f"{coin} (Crypto)"
+
     send_fn(
-        f"{s_emoji} TRADE SIMULÉ OUVERT #{trade['id']}\n"
+        f"{s_emoji} J'achète {asset_label} {learning}\n"
         f"━━━━━━━━━━━━━━━━━━━\n"
-        f"🪙 {symbol.replace('USDT','')} | {m_emoji}{market}"
-        f"{' x'+str(leverage) if leverage>1 else ''} | {side}\n"
-        f"💵 Prix entrée  : ${price:.6f}\n"
-        f"📦 Quantité sim : {qty:.6f}\n"
-        f"💰 Capital engagé: ${amount:.2f} ({pct*100:.0f}% du cash)\n"
+        f"💵 Prix actuel    : ${price:.4f}\n"
+        f"💰 Mise simulée   : ${amount:.2f} sur ${sim['cash']+amount:.2f} dispo\n"
         f"━━━━━━━━━━━━━━━━━━━\n"
-        f"🛑 Stop-Loss    : ${sl:.6f} (-{STOP_LOSS_PCT*100:.1f}%)\n"
-        f"🎯 Take-Profit  : ${tp:.6f} (+{TAKE_PROFIT_PCT*100:.1f}%)\n"
-        f"📐 Trailing SL  : -{TRAILING_PCT*100:.1f}% du pic\n"
+        f"🛑 Je coupe si ça descend à ${sl:.4f} (-{STOP_LOSS_PCT*100:.1f}%)\n"
+        f"🎯 Je prends mes gains à ${tp:.4f} (+{TAKE_PROFIT_PCT*100:.1f}%)\n"
         f"━━━━━━━━━━━━━━━━━━━\n"
-        f"🧠 Raison       : {reason[:100]}\n"
-        f"📊 Patterns     : {', '.join(trade['patterns'][:2]) or 'Aucun'}\n"
-        f"🔒 Confiance    : {conf}% | Cash restant: ${sim['cash']:.2f}"
+        f"🧠 Pourquoi      : {reason[:120]}\n"
+        f"🔒 Niveau de confiance : {conf}%\n"
+        f"🆔 Trade #{trade['id']}"
     )
     return trade
 
@@ -1045,19 +1051,33 @@ def close_trade(pos_key: str, price: float, reason: str, send_fn) -> dict | None
     e_main = "✅" if pnl>0 else "❌"
     chg    = (price-entry)/entry*100
 
+    coin       = pos["symbol"].replace("USDT","")
+    name       = pos.get("name", coin)
+    dur_str    = f"{duration} min" if duration >= 1 else f"{int((datetime.now()-datetime.strptime(pos['time_in'],'%Y-%m-%d %H:%M:%S')).total_seconds())}s"
+    equity_now = get_equity()
+    pnl_total  = equity_now - sim["initial"]
+
+    verdict = (
+        f"Excellent ! +${pnl:.2f} en {dur_str} 🚀" if pnl_pct > 3 else
+        f"Bon trade ! +${pnl:.2f} en {dur_str} 👍" if pnl > 0 else
+        f"Petit gain +${pnl:.2f} en {dur_str} 🙂" if pnl > 0 else
+        f"Petite perte ${pnl:.2f} — j'apprends 📚" if pnl > -5 else
+        f"Stop-loss déclenché ${pnl:.2f} — capital protégé 🛡️"
+    )
+
     send_fn(
-        f"{e_main} TRADE SIMULÉ FERMÉ #{pos['id']}\n"
+        f"{e_main} {name} vendu — Trade #{pos['id']}\n"
         f"━━━━━━━━━━━━━━━━━━━\n"
-        f"🪙 {pos['symbol'].replace('USDT','')} | {pos['market']} | {side}\n"
-        f"💵 Entrée  : ${entry:.6f}\n"
-        f"💵 Sortie  : ${price:.6f} ({chg:+.2f}%)\n"
-        f"⏱ Durée   : {duration} min\n"
+        f"  Acheté à  : ${entry:.4f}\n"
+        f"  Vendu à   : ${price:.4f} ({chg:+.2f}%)\n"
+        f"  Durée     : {dur_str}\n"
         f"━━━━━━━━━━━━━━━━━━━\n"
-        f"{e_pnl} PnL sim   : ${pnl:+.4f} ({pnl_pct:+.2f}%)\n"
-        f"💰 Cash sim : ${sim['cash']:.2f}\n"
+        f"{e_pnl} Résultat   : ${pnl:+.4f}\n"
+        f"  {verdict}\n"
         f"━━━━━━━━━━━━━━━━━━━\n"
-        f"📌 Raison   : {reason}\n"
-        f"🆔 Trade #{pos['id']} | ⏳ Analyse en cours..."
+        f"💰 Capital total : ${equity_now:.2f} ({pnl_total:+.2f} depuis le début)\n"
+        f"📌 Raison sortie : {reason}\n"
+        f"⏳ J'analyse ce trade pour m'améliorer..."
     )
     return trade
 
@@ -1204,18 +1224,16 @@ JSON strict (sans backticks):
 
         if send_fn:
             stats = get_stats()
-            e = "✅" if lesson["type"]=="succes" else "❌"
+            e     = "✅" if lesson["type"]=="succes" else "❌"
+            coin  = trade["symbol"].replace("USDT","")
             send_fn(
-                f"📚 LEÇON APPRISE #{trade['id']}\n"
-                f"━━━━━━━━━━━━━━━━━━━\n"
-                f"{e} {lesson['type'].upper()} | {trade['symbol'].replace('USDT','')} "
-                f"${trade['pnl']:+.4f}\n"
-                f"💡 Leçon  : {lesson['lecon']}\n"
-                f"🔍 Pattern: {lesson['pattern']}\n"
-                f"📌 Règle  : {lesson['action_future']}\n"
-                f"━━━━━━━━━━━━━━━━━━━\n"
-                f"📈 Win Rate: {stats['win_rate']}% ({stats['total']} trades)\n"
-                f"⚙️  Seuil   : {new_thresh}% | 🧠 {len(memory['lessons'])} leçons"
+                f"📚 Leçon #{len(memory['lessons'])} — {coin}\n"
+                f"{e} Ce que j'ai appris :\n"
+                f"  {lesson['lecon']}\n"
+                f"📌 Prochaine fois :\n"
+                f"  {lesson['action_future']}\n"
+                f"📊 Score global : {stats['win_rate']}% de trades gagnants "
+                f"({stats['wins']}✅ / {stats['losses']}❌)"
             )
     except Exception as e:
         print(f"[LEARN] {e}")
@@ -1410,10 +1428,10 @@ def open_micro_trade(symbol: str, price: float, signal: dict, send_fn) -> dict |
 
     coin = symbol.replace("USDT","")
     send_fn(
-        f"⚡ MICRO #{trade['id']} {coin} {side}\n"
-        f"💵 ${price:.6f} score={score:+d} conf={conf}%\n"
-        f"💰 ${amount:.2f} | SL:-{MICRO_SL_PCT*100:.1f}% TP:+{MICRO_TP_PCT*100:.1f}%\n"
-        f"⏱ Timeout {MICRO_MAX_DURATION}s | {reason[:60]}"
+        f"⚡ Micro-trade {coin} — #{trade['id']}\n"
+        f"  J'achète à ${price:.4f}\n"
+        f"  Mise: ${amount:.2f} | Durée max: {MICRO_MAX_DURATION}s\n"
+        f"  Signal algo: {reason[:70]}"
     )
     return trade
 
@@ -1497,13 +1515,12 @@ def monitor_micro_positions(send_fn):
             save_data()
 
             e     = "✅" if pnl>0 else "❌"
-            e_pnl = "🤑" if pnl>0 else "💸"
             coin  = symbol.replace("USDT","")
             chg   = (price-entry)/entry*100
+            result_str = f"Gagné ${pnl:+.4f}" if pnl>0 else f"Perdu ${pnl:.4f}"
             send_fn(
-                f"{e} MICRO #{pos['id']} {coin}\n"
-                f"${entry:.6f}→${price:.6f} ({chg:+.3f}%)\n"
-                f"{e_pnl} PnL: ${pnl:+.6f} | {reason}"
+                f"{e} Micro {coin} fermé — {result_str}\n"
+                f"  ${entry:.4f} → ${price:.4f} ({chg:+.3f}%) | {reason}"
             )
 
             if pnl > 0:
@@ -2447,6 +2464,40 @@ async def cmd_reset(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     )
 
 
+async def cmd_help(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    if not _auth(update): return
+    learning_status = "✅ ON" if LEARNING_MODE else "⏸ OFF"
+    thresh = memory.get("confidence_threshold", CONFIDENCE_BASE)
+    await update.message.reply_text(
+        f"🤖 Tradbot — Toutes les commandes\n"
+        f"━━━━━━━━━━━━━━━━━━━\n"
+        f"▶️  /start      — Lance la simulation\n"
+        f"⏹  /stop       — Arrête la simulation\n"
+        f"🔄 /reset      — Nouveau capital $1000\n"
+        f"               (leçons conservées)\n"
+        f"━━━━━━━━━━━━━━━━━━━\n"
+        f"📊 /status     — État rapide du bot\n"
+        f"💼 /portfolio  — Capital, PnL, stats\n"
+        f"📍 /positions  — Trades en cours\n"
+        f"📚 /lecons     — Ce que j'ai appris\n"
+        f"🔍 /scan       — Meilleures opportunités\n"
+        f"📈 /marches    — Prix actions/forex/crypto\n"
+        f"━━━━━━━━━━━━━━━━━━━\n"
+        f"⚡ /fermer     — Ferme tous les trades\n"
+        f"🎓 /apprendre  — Mode apprentissage {learning_status}\n"
+        f"               (trade même sur signaux faibles)\n"
+        f"━━━━━━━━━━━━━━━━━━━\n"
+        f"⚙️  Paramètres actuels :\n"
+        f"  Seuil IA     : {thresh}% (auto-ajusté)\n"
+        f"  Stop-Loss    : -{STOP_LOSS_PCT*100:.1f}%\n"
+        f"  Take-Profit  : +{TAKE_PROFIT_PCT*100:.1f}%\n"
+        f"  Trailing SL  : -{TRAILING_PCT*100:.1f}%\n"
+        f"  Micro SL/TP  : -{MICRO_SL_PCT*100:.1f}% / +{MICRO_TP_PCT*100:.1f}%\n"
+        f"  Capital      : ${sim['cash']:.2f} dispo\n"
+        f"  Marchés      : {len(ALL_SYMBOLS)} cryptos + actions + forex + commodités"
+    )
+
+
 async def cmd_apprendre(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Active/désactive le mode apprentissage forcé."""
     if not _auth(update): return
@@ -2521,17 +2572,18 @@ async def run_telegram():
     )
 
     for cmd, fn in [
-        ("start",         cmd_start),
-        ("stop",          cmd_stop),
-        ("status",        cmd_status),
-        ("scan",          cmd_scan),
-        ("portfolio",     cmd_portfolio),
-        ("positions",     cmd_positions),
-        ("lecons",        cmd_lecons),
-        ("fermer",        cmd_fermer),
-        ("apprentissage", cmd_apprentissage),
-        ("stats",         cmd_stats),
-        ("reset",         cmd_reset),
+        ("start",     cmd_start),
+        ("stop",      cmd_stop),
+        ("status",    cmd_status),
+        ("scan",      cmd_scan),
+        ("portfolio", cmd_portfolio),
+        ("positions", cmd_positions),
+        ("lecons",    cmd_lecons),
+        ("fermer",    cmd_fermer),
+        ("reset",     cmd_reset),
+        ("apprendre", cmd_apprendre),
+        ("marches",   cmd_marches),
+        ("help",      cmd_help),
     ]:
         _app.add_handler(CommandHandler(cmd, fn))
 
