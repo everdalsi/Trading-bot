@@ -799,7 +799,8 @@ def get_stats() -> dict:
 # ═══════════════════════════════════════════════════════════════
 def execute_buy(symbol: str, price: float, reason: str,
                 confidence: int, size_pct: float = 0.33,
-                patterns: list = None) -> dict | None:
+                patterns: list = None,
+                send_fn=None) -> dict | None:
     if portfolio["cash"] < 10 or symbol in portfolio["positions"]:
         return None
     amount_usd = portfolio["cash"] * size_pct
@@ -831,11 +832,33 @@ def execute_buy(symbol: str, price: float, reason: str,
     }
     db_save_trade(trade)
     save_data()
+
+    # ── Notification live achat ──────────────────────────────────
+    if send_fn:
+        sl_price = price * (1 - STOP_LOSS_PCT)
+        tp_price = price * (1 + TAKE_PROFIT_PCT)
+        coin     = symbol.replace("USDT", "")
+        pat_str  = ", ".join(trade["patterns_detected"][:3]) or "Aucun"
+        send_fn(
+            f"🟢 ACHAT EXÉCUTÉ — {coin}\n"
+            f"━━━━━━━━━━━━━━━━━━━\n"
+            f"💵 Prix entrée    : ${price:,.2f}\n"
+            f"📦 Quantité       : {qty:.6f} {coin}\n"
+            f"💰 Montant investi: ${amount_usd:,.2f} ({size_pct*100:.0f}% du cash)\n"
+            f"━━━━━━━━━━━━━━━━━━━\n"
+            f"🛑 Stop-Loss      : ${sl_price:,.2f} (-{STOP_LOSS_PCT*100:.0f}%)\n"
+            f"🎯 Take-Profit    : ${tp_price:,.2f} (+{TAKE_PROFIT_PCT*100:.0f}%)\n"
+            f"━━━━━━━━━━━━━━━━━━━\n"
+            f"🧠 Raison         : {reason}\n"
+            f"📊 Patterns       : {pat_str}\n"
+            f"🔒 Confiance      : {confidence}%\n"
+            f"🆔 Trade #{trade['id']}"
+        )
     return trade
 
 
 def execute_sell(symbol: str, price: float, reason: str,
-                 confidence: int) -> dict | None:
+                 confidence: int, send_fn=None) -> dict | None:
     pos = portfolio["positions"].get(symbol)
     if not pos:
         return None
@@ -851,7 +874,35 @@ def execute_sell(symbol: str, price: float, reason: str,
         trade["pnl"]         = round(amount_out - pos["amount_usd"], 2)
         trade["exit_reason"] = reason
         db_save_trade(trade)
-        learn_from_trade(trade)
+
+        # ── Notification live vente ──────────────────────────────
+        if send_fn:
+            coin    = symbol.replace("USDT", "")
+            pnl     = trade["pnl"]
+            chg_pct = (price - pos["price_in"]) / pos["price_in"] * 100
+            emoji   = "✅" if pnl > 0 else "❌"
+            duration = ""
+            try:
+                t_in  = datetime.strptime(trade["time_in"], "%Y-%m-%d %H:%M")
+                mins  = int((datetime.now() - t_in).total_seconds() / 60)
+                duration = f"⏱ Durée          : {mins} min\n"
+            except Exception:
+                pass
+            send_fn(
+                f"{emoji} VENTE EXÉCUTÉE — {coin}\n"
+                f"━━━━━━━━━━━━━━━━━━━\n"
+                f"💵 Prix entrée    : ${pos['price_in']:,.2f}\n"
+                f"💵 Prix sortie    : ${price:,.2f} ({chg_pct:+.2f}%)\n"
+                f"{duration}"
+                f"━━━━━━━━━━━━━━━━━━━\n"
+                f"{'🤑' if pnl > 0 else '💸'} PnL             : ${pnl:+.2f}\n"
+                f"💰 Cash restant   : ${portfolio['cash']:,.2f}\n"
+                f"━━━━━━━━━━━━━━━━━━━\n"
+                f"📌 Raison sortie  : {reason}\n"
+                f"🆔 Trade #{trade['id']}\n"
+                f"⏳ Analyse en cours..."
+            )
+        learn_from_trade(trade, send_fn=send_fn)
     save_data()
     return trade
 
@@ -877,14 +928,8 @@ def stoploss_watchdog(send_fn_sync):
                 elif change >= TAKE_PROFIT_PCT:
                     reason = f"TAKE-PROFIT ({change*100:.1f}%)"
                 if reason:
-                    trade = execute_sell(symbol, price, reason, 100)
-                    if trade:
-                        emoji = "🛑" if "STOP" in reason else "🎯"
-                        send_fn_sync(
-                            f"{emoji} {reason} — {symbol}\n"
-                            f"Entrée: ${pos['price_in']:,.2f} → Sortie: ${price:,.2f}\n"
-                            f"PnL: ${trade['pnl']:+.2f}"
-                        )
+                    trade = execute_sell(symbol, price, reason, 100,
+                                         send_fn=send_fn_sync)
         except Exception as e:
             print(f"[SL/TP] {e}")
 
@@ -892,7 +937,7 @@ def stoploss_watchdog(send_fn_sync):
 # ═══════════════════════════════════════════════════════════════
 #  APPRENTISSAGE
 # ═══════════════════════════════════════════════════════════════
-def learn_from_trade(trade: dict):
+def learn_from_trade(trade: dict, send_fn=None):
     if trade.get("pnl") is None:
         return
     try:
@@ -946,9 +991,29 @@ JSON strict (sans backticks):
         memory["patterns_that_work"] = memory["patterns_that_work"][-20:]
 
         # Auto-ajustement du seuil après chaque trade
-        auto_adjust_threshold()
+        new_threshold = auto_adjust_threshold()
         save_data()
         print(f"[LEARN] {lesson['lecon']}")
+
+        # ── Notification live leçon apprise ─────────────────────
+        if send_fn:
+            emoji_t = "❌" if lesson["type"] == "erreur" else "✅"
+            emoji_p = "🤑" if trade["pnl"] > 0 else "💸"
+            stats   = get_stats()
+            send_fn(
+                f"📚 LEÇON APPRISE — Trade #{trade['id']}\n"
+                f"━━━━━━━━━━━━━━━━━━━\n"
+                f"{emoji_t} Type           : {lesson['type'].upper()}\n"
+                f"{emoji_p} PnL ce trade   : ${trade['pnl']:+.2f}\n"
+                f"━━━━━━━━━━━━━━━━━━━\n"
+                f"💡 Leçon         : {lesson['lecon']}\n"
+                f"🔍 Pattern       : {lesson['pattern']}\n"
+                f"📌 Règle future  : {lesson['action_future']}\n"
+                f"━━━━━━━━━━━━━━━━━━━\n"
+                f"📈 Win Rate      : {stats['win_rate']}% ({stats['total']} trades)\n"
+                f"⚙️  Seuil auto    : {new_threshold}%\n"
+                f"🧠 Total leçons  : {len(memory['lessons'])}"
+            )
     except Exception as e:
         print(f"[LEARN] {e}")
 
@@ -1135,93 +1200,175 @@ def daily_summary_scheduler(send_fn_sync):
 
 
 # ═══════════════════════════════════════════════════════════════
-#  BOUCLE PRINCIPALE
+#  BOUCLE PRINCIPALE — avec narration live Telegram
 # ═══════════════════════════════════════════════════════════════
 def bot_loop(send_fn_sync):
     cycle = 0
     while bot_state["running"]:
         try:
             cycle += 1
-            print(f"[{datetime.now().strftime('%H:%M:%S')}] Cycle #{cycle}")
+            now = datetime.now().strftime("%H:%M:%S")
+            print(f"[{now}] Cycle #{cycle}")
 
-            results = analyze_all_markets()
-            prices  = {sym: price for sym, _, price, _, _ in results}
-            pv      = get_portfolio_value(prices)
-            stats   = get_stats()
+            # ── ÉTAPE 1 : Annonce du début d'analyse ────────────
+            send_fn_sync(
+                f"🔍 ANALYSE #{cycle} — {now}\n"
+                f"Collecte des données marché pour {len(SYMBOLS)} cryptos...\n"
+                f"(News + Reddit + OrderBook + Indicateurs multi-TF)"
+            )
+
+            # ── ÉTAPE 2 : Collecte des données communes ──────────
+            news_text  = "\n".join((get_news() + get_reddit() + get_google_trends())[:20])
+            fear_greed = get_fear_greed()
+            sp500      = get_sp500_trend()
+            onchain    = get_onchain_signals()
+
+            context = {"fear_greed": fear_greed, "sp500": sp500,
+                       "timestamp": datetime.now().isoformat()}
+            memory["analysis_history"].append(context)
+            memory["analysis_history"] = memory["analysis_history"][-100:]
+
+            # ── ÉTAPE 3 : Analyse par symbole avec narration ─────
+            all_results = []
+            for symbol in SYMBOLS:
+                coin = symbol.replace("USDT", "")
+                try:
+                    send_fn_sync(
+                        f"📡 Analyse {coin} en cours...\n"
+                        f"  RSI / MACD / Bollinger (15m, 1h, 4h)\n"
+                        f"  Détection patterns + vote 3 modèles IA"
+                    )
+                    analysis, price, patterns, mtf = analyze_symbol(
+                        symbol, news_text, fear_greed, sp500, onchain
+                    )
+                    all_results.append((symbol, analysis, price, patterns, mtf))
+
+                    # Résultat de l'analyse pour ce coin
+                    signal     = analysis.get("signal", "HOLD")
+                    confidence = analysis.get("confidence", 0)
+                    risk       = analysis.get("risk", "HIGH")
+                    votes      = analysis.get("votes", [])
+                    consensus  = analysis.get("consensus", "?")
+                    confluence = analysis.get("confluence", {})
+                    pat_names  = analysis.get("patterns", [])
+                    key_signal = analysis.get("key_signal", "")
+                    reason     = analysis.get("reason", "")
+                    sentiment  = analysis.get("sentiment", "neutral")
+
+                    sig_e   = {"BUY": "🟢", "SELL": "🔴", "HOLD": "⚪"}.get(signal, "⚪")
+                    sent_e  = {"bullish": "📈", "bearish": "📉"}.get(sentiment, "➡️")
+                    in_pos  = symbol in portfolio["positions"]
+                    pos_tag = " 📍 EN POSITION" if in_pos else ""
+
+                    send_fn_sync(
+                        f"{sig_e} RÉSULTAT {coin}{pos_tag}\n"
+                        f"━━━━━━━━━━━━━━━━━━━\n"
+                        f"💵 Prix           : ${price:,.2f}\n"
+                        f"📊 Signal         : {signal} — {confidence}% [{consensus}]\n"
+                        f"🗳 Votes IA       : {' / '.join(votes)}\n"
+                        f"🔀 Confluence TF  : {confluence.get('score',0)}/3 → {confluence.get('direction','?')}\n"
+                        f"{sent_e} Sentiment      : {sentiment}\n"
+                        f"⚠️  Risque         : {risk}\n"
+                        f"📊 Patterns       : {', '.join(pat_names[:3]) or 'Aucun'}\n"
+                        f"🔑 Signal clé     : {key_signal[:80]}\n"
+                        f"💬 Raison         : {reason[:100]}"
+                    )
+                except Exception as e:
+                    print(f"[LOOP] Erreur {symbol}: {e}")
+                    send_fn_sync(f"⚠️ Erreur analyse {coin}: {e}")
+
+            # ── ÉTAPE 4 : Décisions de trading ───────────────────
             threshold = memory.get("confidence_threshold", CONFIDENCE_BASE)
+            prices    = {sym: price for sym, _, price, _, _ in all_results}
+            traded    = False
 
-            lines = [
-                f"🤖 Rapport #{cycle}",
-                f"━━━━━━━━━━━━━━━━━━━",
-                f"💰 ${pv:,.2f} ({((pv/portfolio['initial'])-1)*100:+.1f}%) "
-                f"| Cash: ${portfolio['cash']:,.2f}",
-                f"🏆 {stats['win_rate']}% win rate | 📚 {len(memory['lessons'])} leçons "
-                f"| Seuil: {threshold}%",
-                f"━━━━━━━━━━━━━━━━━━━",
-            ]
-
-            for symbol, analysis, price, patterns, mtf in results:
+            for symbol, analysis, price, patterns, mtf in all_results:
                 signal     = analysis.get("signal", "HOLD")
                 confidence = analysis.get("confidence", 0)
                 risk       = analysis.get("risk", "HIGH")
                 reason     = analysis.get("reason", "")
-                sentiment  = analysis.get("sentiment", "neutral")
-                votes      = analysis.get("votes", [])
-                consensus  = analysis.get("consensus", "?")
-                confluence = analysis.get("confluence", {})
-                pat_names  = analysis.get("patterns", [])
+                coin       = symbol.replace("USDT", "")
                 in_pos     = symbol in portfolio["positions"]
 
-                sig_e  = {"BUY": "🟢", "SELL": "🔴", "HOLD": "⚪"}.get(signal, "⚪")
-                sent_e = {"bullish": "📈", "bearish": "📉"}.get(sentiment, "➡️")
-                pos_tag = " 📍" if in_pos else ""
-
-                lines.append(
-                    f"{sig_e} {symbol}{pos_tag}: {signal} {confidence}% "
-                    f"[{consensus}] {sent_e}"
-                )
-                if pat_names:
-                    lines.append(f"  📊 {', '.join(pat_names[:3])}")
-                if confluence.get("score") is not None:
-                    lines.append(
-                        f"  🔀 Confluence: {confluence['score']}/3 → {confluence.get('direction','?')}"
-                    )
-
-                # ── Décision de trading ──────────────────────────
-                # Bloque si Pump & Dump détecté
-                has_alert = any("Pump" in p.get("name", "") or "Dump" in p.get("name", "")
+                has_alert = any("Pump" in p.get("name","") or "Dump" in p.get("name","")
                                 for p in patterns)
                 if has_alert:
-                    lines.append(f"  ⚠️ ALERTE manipulation — trade bloqué")
+                    send_fn_sync(
+                        f"🚨 TRADE BLOQUÉ — {coin}\n"
+                        f"Manipulation de marché détectée.\n"
+                        f"{[p['desc'] for p in patterns if 'Pump' in p.get('name','') or 'Dump' in p.get('name','')]}"
+                    )
                     continue
 
-                if signal == "BUY" and confidence >= threshold and risk in ("LOW", "MEDIUM"):
+                if signal == "BUY" and confidence >= threshold and risk in ("LOW","MEDIUM"):
                     if not in_pos:
-                        mtf_data   = mtf
-                        size_pct   = compute_position_size(symbol, confidence, mtf_data)
-                        trade = execute_buy(symbol, price, reason,
-                                            confidence, size_pct, patterns)
-                        if trade:
-                            lines.append(
-                                f"  📈 ACHAT {symbol}: {trade['qty']:.6f} "
-                                f"@ ${price:,.2f} ({size_pct*100:.0f}% cash)"
-                            )
+                        send_fn_sync(
+                            f"⚡ SIGNAL D'ACHAT VALIDÉ — {coin}\n"
+                            f"Confiance: {confidence}% (seuil: {threshold}%)\n"
+                            f"Calcul de la taille de position (Kelly)..."
+                        )
+                        size_pct = compute_position_size(symbol, confidence, mtf)
+                        execute_buy(symbol, price, reason, confidence,
+                                    size_pct, patterns, send_fn=send_fn_sync)
+                        traded = True
+
+                    else:
+                        send_fn_sync(
+                            f"💡 Signal BUY {coin} ignoré\n"
+                            f"Raison: déjà en position sur ce symbole."
+                        )
 
                 elif signal == "SELL" and confidence >= threshold - 5:
                     if in_pos:
-                        trade = execute_sell(symbol, price, reason, confidence)
-                        if trade and trade.get("pnl") is not None:
-                            e = "✅" if trade["pnl"] > 0 else "❌"
-                            lines.append(
-                                f"  {e} VENTE {symbol}: PnL ${trade['pnl']:+.2f}"
-                            )
+                        send_fn_sync(
+                            f"⚡ SIGNAL DE VENTE VALIDÉ — {coin}\n"
+                            f"Confiance: {confidence}% | Raison: {reason[:80]}"
+                        )
+                        execute_sell(symbol, price, reason, confidence,
+                                     send_fn=send_fn_sync)
+                        traded = True
 
-            send_fn_sync("\n".join(lines))
-            print("\n".join(lines))
+                elif signal == "HOLD":
+                    pos_info = ""
+                    if in_pos:
+                        pos = portfolio["positions"][symbol]
+                        chg = (price - pos["price_in"]) / pos["price_in"] * 100
+                        pos_info = f"\n  Position actuelle: {chg:+.2f}% | SL: ${pos['price_in']*(1-STOP_LOSS_PCT):,.0f} | TP: ${pos['price_in']*(1+TAKE_PROFIT_PCT):,.0f}"
+                    send_fn_sync(
+                        f"⚪ HOLD — {coin} — rien à faire{pos_info}"
+                    )
+
+                elif signal in ("BUY","SELL") and confidence < threshold:
+                    send_fn_sync(
+                        f"📉 Signal {signal} {coin} ignoré\n"
+                        f"Confiance {confidence}% < seuil {threshold}%\n"
+                        f"Le bot attend un signal plus fort."
+                    )
+
+            # ── ÉTAPE 5 : Résumé du cycle ─────────────────────────
+            pv    = get_portfolio_value(prices)
+            stats = get_stats()
+            wr_db = db_get_win_rate_last_n(20)
+            send_fn_sync(
+                f"📋 FIN DU CYCLE #{cycle}\n"
+                f"━━━━━━━━━━━━━━━━━━━\n"
+                f"💰 Portfolio      : ${pv:,.2f} ({((pv/portfolio['initial'])-1)*100:+.1f}%)\n"
+                f"💵 Cash disponible: ${portfolio['cash']:,.2f}\n"
+                f"📍 Positions      : {len(portfolio['positions'])}\n"
+                f"━━━━━━━━━━━━━━━━━━━\n"
+                f"🏆 Win Rate       : {stats['win_rate']}% (global) | {wr_db}% (20 derniers)\n"
+                f"📊 Trades total   : {stats['total']}\n"
+                f"📚 Leçons         : {len(memory['lessons'])}\n"
+                f"⚙️  Seuil auto     : {threshold}%\n"
+                f"━━━━━━━━━━━━━━━━━━━\n"
+                f"⏰ Prochain cycle  : dans 10 min"
+            )
+
             bot_state["last_heartbeat"] = datetime.now()
 
-            # Backtest automatique toutes les 10 cycles (~ 100 min)
+            # Backtest automatique toutes les 10 cycles
             if cycle % 10 == 0:
+                send_fn_sync("🔬 Lancement du backtest automatique (30 jours)...")
                 threading.Thread(
                     target=lambda: [run_backtest(s) for s in SYMBOLS],
                     daemon=True
@@ -1229,10 +1376,9 @@ def bot_loop(send_fn_sync):
 
         except Exception as e:
             print(f"[LOOP] {e}")
+            send_fn_sync(f"⚠️ Erreur cycle #{cycle}: {e}")
 
         time.sleep(600)
-
-
 # ═══════════════════════════════════════════════════════════════
 #  DASHBOARD HTML
 # ═══════════════════════════════════════════════════════════════
