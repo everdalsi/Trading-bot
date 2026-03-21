@@ -66,7 +66,7 @@ risk = LOW ou MEDIUM ou HIGH
 Ne prends position que si confidence >= 70 et risk != HIGH."""
     try:
         response = groq_client.chat.completions.create(
-            model="llama3-70b-8192",
+            model="llama-3.3-70b-versatile",
             max_tokens=300,
             messages=[{"role": "user", "content": prompt}]
         )
