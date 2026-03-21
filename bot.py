@@ -1014,11 +1014,29 @@ async def run_telegram():
 
 
 # ─────────────────────────────────────────────
+#  SELF-PING (empêche Koyeb de mettre en veille sur plan Free)
+#  Ping toutes les 4m30 pour rester sous le idle period de 3900s
+# ─────────────────────────────────────────────
+def self_ping():
+    time.sleep(60)
+    while True:
+        try:
+            requests.get(
+                "https://junior-tick-1ever-6bf9cee7.koyeb.app/health",
+                timeout=10,
+            )
+        except Exception:
+            pass
+        time.sleep(270)
+
+
+# ─────────────────────────────────────────────
 #  ENTRYPOINT
 # ─────────────────────────────────────────────
 if __name__ == "__main__":
     print("Démarrage...")
     load_data()
     threading.Thread(target=run_server, daemon=True).start()
+    threading.Thread(target=self_ping,  daemon=True).start()
     print("Serveur HTTP démarré sur port 8000")
     asyncio.run(run_telegram())
