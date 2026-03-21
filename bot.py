@@ -1,6 +1,6 @@
 import os, time, threading, feedparser
 import anthropic
-from binance.client import Client
+from pybit.unified_trading import HTTP
 from telegram import Bot
 import asyncio, json
 from datetime import datetime
