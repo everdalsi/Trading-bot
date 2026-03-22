@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 10168.105052219204,
+    "cash": 10398.33075189529,
     "initial": 1000.0,
     "positions": {},
     "trades": [
@@ -65,51 +65,24 @@
         "side": "LONG",
         "trade_type": "MEME",
         "meme_symbol": "one",
-        "price_in": 0.0007417,
+        "price_in": 0.0006924,
         "price_out": 0.01707,
-        "qty": 321157.06250562886,
+        "qty": 344023.96484752296,
         "amount_usd": 238.2021932604249,
         "confidence": 95,
         "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": "\ud83c\udfaf MEME TP (+2201.5%)",
-        "time_in": "2026-03-22 23:06:51",
-        "time_out": "2026-03-22 23:06:52",
-        "pnl": 5243.948864,
-        "pnl_pct": 2201.47,
+        "exit_reason": "\ud83c\udfaf MEME TP (+2365.3%)",
+        "time_in": "2026-03-22 23:07:07",
+        "time_out": "2026-03-22 23:07:09",
+        "pnl": 5634.286887,
+        "pnl_pct": 2365.34,
         "duration_min": 1,
         "patterns": [
           "memecoin"
         ],
         "leverage": 1,
-        "peak_price": 0.0007417,
-        "open_time": 1774220811.3058996,
-        "kelly_pct": 0.05
-      },
-      {
-        "id": 4,
-        "symbol": "INCOME",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "INCOME",
-        "price_in": 0.0002226,
-        "price_out": 0.0003801,
-        "qty": 1016586.1796828556,
-        "amount_usd": 226.29208359740366,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": "\ud83c\udfaf MEME TP (+70.8%)",
-        "time_in": "2026-03-22 23:06:51",
-        "time_out": "2026-03-22 23:06:53",
-        "pnl": 160.112323,
-        "pnl_pct": 70.75,
-        "duration_min": 1,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0002226,
-        "open_time": 1774220811.6372514,
+        "peak_price": 0.0006924,
+        "open_time": 1774220827.965451,
         "kelly_pct": 0.05
       }
     ],
