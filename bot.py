@@ -596,35 +596,203 @@ def scan_promo_codes() -> list:
     return promos
 
 
+# ═══════════════════════════════════════════════════════════════
+#  ÉPARGNE — SCAN SILENCIEUX + AUTO-FILL FORMULAIRES
+# ═══════════════════════════════════════════════════════════════
+def auto_fill_form(url: str, form_type: str) -> dict:
+    """
+    Remplit automatiquement les formulaires d'airdrops/faucets
+    avec les vraies infos de l'utilisateur configurées dans Koyeb.
+    """
+    if not all([USER_EMAIL, USER_FIRSTNAME, USER_LASTNAME, USER_WALLET]):
+        return {"success": False, "reason": "Infos utilisateur incomplètes dans Koyeb"}
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15",
+        "Accept": "application/json, text/html, */*",
+        "Accept-Language": "en-AU,en;q=0.9",
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Referer": url,
+    }
+
+    # Champs communs utilisés par la majorité des formulaires
+    form_data = {
+        # Champs email
+        "email":        USER_EMAIL,
+        "Email":        USER_EMAIL,
+        "user_email":   USER_EMAIL,
+        "EMAIL":        USER_EMAIL,
+        # Champs nom
+        "name":         f"{USER_FIRSTNAME} {USER_LASTNAME}",
+        "full_name":    f"{USER_FIRSTNAME} {USER_LASTNAME}",
+        "first_name":   USER_FIRSTNAME,
+        "last_name":    USER_LASTNAME,
+        "FirstName":    USER_FIRSTNAME,
+        "LastName":     USER_LASTNAME,
+        # Champs wallet
+        "wallet":           USER_WALLET,
+        "wallet_address":   USER_WALLET,
+        "eth_address":      USER_WALLET,
+        "address":          USER_WALLET,
+        "crypto_address":   USER_WALLET,
+        "erc20_address":    USER_WALLET,
+        # Champs adresse
+        "country":      "Australia",
+        "country_code": "AU",
+        "timezone":     "Australia/Sydney",
+        # Acceptation des CGU
+        "terms":        "1",
+        "agree":        "1",
+        "accept":       "1",
+        "subscribe":    "1",
+    }
+
+    try:
+        session = requests.Session()
+        session.headers.update(headers)
+
+        # 1. GET initial pour récupérer les tokens CSRF
+        r_get = session.get(url, timeout=10)
+        
+        # Cherche les tokens CSRF cachés dans le HTML
+        csrf_patterns = [
+            r'name=["\']csrf_token["\'].*?value=["\']([^"\']+)["\']',
+            r'name=["\']_token["\'].*?value=["\']([^"\']+)["\']',
+            r'name=["\']authenticity_token["\'].*?value=["\']([^"\']+)["\']',
+            r'"csrf":"([^"]+)"',
+            r'csrfToken.*?["\']([a-zA-Z0-9_\-]+)["\']',
+        ]
+        for pattern in csrf_patterns:
+            match = re.search(pattern, r_get.text, re.IGNORECASE)
+            if match:
+                token = match.group(1)
+                form_data["csrf_token"]         = token
+                form_data["_token"]             = token
+                form_data["authenticity_token"] = token
+                break
+
+        # 2. Cherche les champs de formulaire dans le HTML
+        input_pattern = r'<input[^>]*name=["\']([^"\']+)["\'][^>]*>'
+        inputs = re.findall(input_pattern, r_get.text, re.IGNORECASE)
+        
+        # Ajoute les champs manquants avec des valeurs par défaut
+        for field in inputs:
+            field_lower = field.lower()
+            if field_lower not in [k.lower() for k in form_data.keys()]:
+                if "phone" in field_lower or "tel" in field_lower:
+                    form_data[field] = "+61400000000"
+                elif "twitter" in field_lower or "handle" in field_lower:
+                    form_data[field] = "@tradbot_user"
+                elif "telegram" in field_lower:
+                    form_data[field] = "@tradbot_user"
+                elif "discord" in field_lower:
+                    form_data[field] = "tradbot#0000"
+                elif "referral" in field_lower or "ref" in field_lower:
+                    form_data[field] = ""
+
+        # 3. Cherche l'action du formulaire
+        action_match = re.search(r'<form[^>]*action=["\']([^"\']+)["\']', 
+                                  r_get.text, re.IGNORECASE)
+        submit_url = url
+        if action_match:
+            action = action_match.group(1)
+            if action.startswith("http"):
+                submit_url = action
+            elif action.startswith("/"):
+                from urllib.parse import urlparse
+                parsed = urlparse(url)
+                submit_url = f"{parsed.scheme}://{parsed.netloc}{action}"
+
+        # 4. POST le formulaire
+        r_post = session.post(submit_url, data=form_data, timeout=15, 
+                              allow_redirects=True)
+        
+        # Analyse la réponse
+        success_keywords = ["success","thank","confirm","registered","submitted",
+                           "merci","félicitation","bravo","done","completed"]
+        error_keywords   = ["error","invalid","failed","wrong","already","exists"]
+        
+        response_text = r_post.text.lower()
+        
+        if any(kw in response_text for kw in success_keywords):
+            return {"success": True, "status": r_post.status_code,
+                    "message": "Formulaire soumis avec succès"}
+        elif any(kw in response_text for kw in error_keywords):
+            return {"success": False, "status": r_post.status_code,
+                    "message": "Erreur détectée dans la réponse"}
+        elif r_post.status_code in (200, 201, 302):
+            return {"success": True, "status": r_post.status_code,
+                    "message": f"Soumis (HTTP {r_post.status_code})"}
+        else:
+            return {"success": False, "status": r_post.status_code,
+                    "message": f"HTTP {r_post.status_code}"}
+
+    except Exception as e:
+        return {"success": False, "reason": str(e)[:100]}
+
+
 def run_epargne_scan(send_fn):
-    send_fn("🔍 Scan épargne en cours...")
-    airdrops=scan_airdrops(); faucets=scan_faucets(); promos=scan_promo_codes()
-    epargne["last_scan"]=time.time(); epargne["promos_found"]=promos
-    if airdrops:
-        lines=[f"🪂 AIRDROPS ({len(airdrops)})\n━━━━━━━━━━━━━"]
-        for a in airdrops[:5]:
-            lines.append(f"  🎁 {a['name']}\n  {a['url']}\n  Source: {a['source']}")
+    """Scan silencieux — alerte uniquement si opportunité intéressante."""
+    airdrops = scan_airdrops()
+    faucets  = scan_faucets()
+    promos   = scan_promo_codes()
+
+    epargne["last_scan"]    = time.time()
+    epargne["promos_found"] = promos
+
+    results = []
+
+    # Auto-fill airdrops si wallet configuré
+    if USER_WALLET and airdrops:
+        for airdrop in airdrops[:3]:
+            url = airdrop.get("url", "")
+            if not url: continue
+            try:
+                result = auto_fill_form(url, "airdrop")
+                status = "✅" if result["success"] else "⚠️"
+                results.append(
+                    f"{status} Airdrop: {airdrop['name'][:40]}\n"
+                    f"  {result.get('message', result.get('reason',''))}"
+                )
+                if result["success"]:
+                    epargne["airdrops_claimed"].append({
+                        "hash":   airdrop.get("hash",""),
+                        "name":   airdrop["name"],
+                        "date":   datetime.now().strftime("%Y-%m-%d %H:%M"),
+                        "url":    url,
+                    })
+                time.sleep(2)  # Pause entre les soumissions
+            except Exception as e:
+                print(f"[AUTOFILL] {e}")
+
+    # Alerte seulement si nouveaux airdrops ou faucets intéressants
+    online = [f for f in faucets if "✅" in f["status"]]
+    new_airdrops = [a for a in airdrops 
+                    if a.get("hash") not in 
+                    [c.get("hash") for c in epargne["airdrops_claimed"]]]
+
+    # Message silencieux — uniquement si quelque chose de nouveau
+    if new_airdrops or len(online) >= 3:
+        lines = ["💰 ÉPARGNE — Nouvelles opportunités\n━━━━━━━━━━━━━"]
+        
+        if new_airdrops:
+            lines.append(f"🪂 {len(new_airdrops)} nouveaux airdrops")
+        
+        if online:
+            lines.append(f"💧 {len(online)} faucets en ligne")
+        
+        if promos:
+            lines.append(f"🎟️ {len(promos)} exchanges avec promos")
+
+        if results:
+            lines.append("\n📝 Auto-remplissage:")
+            lines.extend(results[:3])
+
+        lines.append("\n💡 /epargne pour les détails | /faucets pour les liens")
         send_fn("\n".join(lines))
-    else: send_fn("🪂 Airdrops: aucun nouveau")
-    online=[f for f in faucets if "✅" in f["status"]]
-    if online:
-        lines=[f"💧 FAUCETS EN LIGNE ({len(online)})\n━━━━━━━━━━━━━"]
-        for f in online:
-            lines.append(f"  ✅ {f['name']} ({f['crypto']})\n  {f['url']}")
-        send_fn("\n".join(lines))
-    if promos:
-        lines=["🎟️ CODES PROMO\n━━━━━━━━━━━━━"]
-        for p in promos:
-            lines.append(f"  🏦 {p['exchange']}: {', '.join(p['keywords'])}\n  {p['url']}")
-        send_fn("\n".join(lines))
-    send_fn(
-        f"📊 RÉSUMÉ ÉPARGNE\n━━━━━━━━━━━━━\n"
-        f"🪂 Airdrops : {len(airdrops)} trouvés\n"
-        f"💧 Faucets  : {len(online)}/{len(faucets)} en ligne\n"
-        f"🎟️  Promos   : {len(promos)} exchanges avec offres\n"
-        f"━━━━━━━━━━━━━\n"
-        f"💡 /faucets pour les liens | /airdrops pour les détails"
-    )
+
+    save_data()
+
 
 
 def get_epargne_info() -> str:
