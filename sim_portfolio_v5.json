@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 42094.75083442604,
+    "cash": 40103.79050555469,
     "initial": 1000.0,
     "positions": {
       "MICRO_FETUSDT_5": {
@@ -29,6 +29,34 @@
         "open_time": 1774220848.8027596,
         "kelly_pct": 0.1,
         "pos_key": "MICRO_FETUSDT_5"
+      },
+      "MEME_INCOME_9": {
+        "id": 9,
+        "symbol": "INCOME",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "INCOME",
+        "price_in": 0.0002226,
+        "price_out": null,
+        "qty": 4167880.480000356,
+        "amount_usd": 927.7701948480792,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-22 23:08:31",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0002226,
+        "open_time": 1774220911.2284024,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_INCOME_9"
       }
     },
     "trades": [
@@ -227,24 +255,51 @@
         "side": "LONG",
         "trade_type": "MEME",
         "meme_symbol": "one",
-        "price_in": 0.0007082,
+        "price_in": 0.0007417,
         "price_out": 0.01707,
-        "qty": 1378989.2757741334,
+        "qty": 1316705.1437282476,
         "amount_usd": 976.6002051032413,
         "confidence": 95,
         "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": "\ud83c\udfaf MEME TP (+2310.3%)",
-        "time_in": "2026-03-22 23:08:23",
-        "time_out": "2026-03-22 23:08:24",
-        "pnl": 22562.746732,
-        "pnl_pct": 2310.34,
+        "exit_reason": "\ud83c\udfaf MEME TP (+2201.5%)",
+        "time_in": "2026-03-22 23:08:30",
+        "time_out": "2026-03-22 23:08:32",
+        "pnl": 21499.556598,
+        "pnl_pct": 2201.47,
         "duration_min": 1,
         "patterns": [
           "memecoin"
         ],
         "leverage": 1,
-        "peak_price": 0.0007082,
-        "open_time": 1774220903.1900308,
+        "peak_price": 0.0007417,
+        "open_time": 1774220910.8492837,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 9,
+        "symbol": "INCOME",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "INCOME",
+        "price_in": 0.0002226,
+        "price_out": null,
+        "qty": 4167880.480000356,
+        "amount_usd": 927.7701948480792,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-22 23:08:31",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0002226,
+        "open_time": 1774220911.2284024,
         "kelly_pct": 0.05
       }
     ],
@@ -256,7 +311,7 @@
     "patterns_to_avoid": [],
     "patterns_that_work": [],
     "confidence_threshold": 65,
-    "total_wins": 4,
+    "total_wins": 5,
     "total_losses": 0
   },
   "epargne": {
