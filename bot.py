@@ -130,19 +130,18 @@ LEARN_MODE_MAX_PCT  = 0.05   # max 5% du cash par trade en mode apprentissage
 DB_FILE   = "sim_v4.db"
 DATA_FILE = Path("sim_portfolio.json")
 
-# Modèles Groq actifs en 2025 (mixtral + gemma2 désactivés)
-AI_MODELS = [
-    "llama-3.3-70b-versatile",   # principal — rapide et fiable
-    "llama3-70b-8192",            # backup — même famille, quota séparé
-    "llama-3.1-8b-instant",       # ultra-rapide — pour validation légère
-]
+# ── Modèles Groq actifs 2025 ─────────────────────────────────
+# Seul llama-3.1-8b-instant est utilisé — 6x moins de tokens
+# L'IA confirme ou infirme les signaux algo pur, elle ne les génère pas
+AI_MODELS = ["llama-3.1-8b-instant"]
+GROQ_PRIMARY_MODEL   = "llama-3.1-8b-instant"
+GROQ_SECONDARY_MODEL = "llama-3.1-8b-instant"
+GROQ_FAST_MODEL      = "llama-3.1-8b-instant"
 
-# Limites Groq Free : 100k tokens/jour par modèle
-# Stratégie : utiliser llama-3.1-8b-instant pour les analyses répétitives
-# et réserver llama-3.3-70b pour les décisions importantes
-GROQ_PRIMARY_MODEL   = "llama-3.3-70b-versatile"
-GROQ_SECONDARY_MODEL = "llama3-70b-8192"
-GROQ_FAST_MODEL      = "llama-3.1-8b-instant"  # 8B = 6x moins de tokens
+# Budget IA : max 10 appels par heure (largement suffisant)
+# 10 appels × 300 tokens × 24h = ~72k tokens/jour
+AI_CALLS_PER_HOUR_MAX = 10
+AI_CYCLE_MIN_INTERVAL = 360  # minimum 6 min entre 2 analyses IA
 
 # ── Surveillance traders en temps réel ───────────────────────
 # Comptes Nitter (miroir gratuit Twitter) à surveiller
@@ -838,58 +837,52 @@ def scan_market() -> list:
 # ═══════════════════════════════════════════════════════════════
 #  VOTE MAJORITAIRE IA
 # ═══════════════════════════════════════════════════════════════
-# Compteur de tokens pour éviter le rate limit
-_token_usage = {"count": 0, "reset_time": time.time()}
+# Compteur d'appels IA par heure (remplace compteur tokens)
+_ai_calls = {"count": 0, "window_start": time.time(), "last_call": 0}
 
-def _check_token_budget() -> bool:
-    """Vérifie si on peut encore faire un appel IA aujourd'hui."""
+def _can_call_ai() -> bool:
+    """Max 10 appels IA par heure + 6 min entre chaque appel."""
     now = time.time()
-    # Reset quotidien
-    if now - _token_usage["reset_time"] > 86400:
-        _token_usage["count"]      = 0
-        _token_usage["reset_time"] = now
-    # Budget conservateur : max 80k tokens/jour (marge de sécurité)
-    return _token_usage["count"] < 80000
+    # Reset horaire
+    if now - _ai_calls["window_start"] > 3600:
+        _ai_calls["count"]        = 0
+        _ai_calls["window_start"] = now
+    # Vérifie quota horaire
+    if _ai_calls["count"] >= AI_CALLS_PER_HOUR_MAX:
+        return False
+    # Vérifie intervalle minimum
+    if now - _ai_calls["last_call"] < AI_CYCLE_MIN_INTERVAL:
+        return False
+    return True
+
+def _register_ai_call():
+    _ai_calls["count"]     += 1
+    _ai_calls["last_call"]  = time.time()
 
 
 def ask_model_single(prompt: str, model: str = None) -> dict:
-    """
-    1 appel IA avec gestion intelligente du quota.
-    - Utilise le modèle rapide (8B) pour économiser les tokens
-    - Bascule sur le backup si rate limit atteint
-    - Retourne HOLD si budget épuisé
-    """
-    if not _check_token_budget():
-        print("[AI] Budget tokens épuisé — HOLD forcé jusqu'à minuit")
-        return {"signal":"HOLD","confidence":0,"reason":"budget_epuise","risk":"HIGH"}
+    """Appel IA unique avec llama-3.1-8b-instant. Court et rapide."""
+    if not _can_call_ai():
+        return {"signal":"HOLD","confidence":0,"reason":"quota_horaire","risk":"HIGH"}
 
-    # Utilise le modèle rapide par défaut pour économiser les tokens
     if model is None:
         model = GROQ_FAST_MODEL
 
-    # Essaie 2 modèles en cas d'erreur
-    models_to_try = [model, GROQ_PRIMARY_MODEL if model != GROQ_PRIMARY_MODEL else GROQ_SECONDARY_MODEL]
-
-    for m in models_to_try:
+    for m in [model, GROQ_SECONDARY_MODEL]:
         try:
+            _register_ai_call()
             r = groq_client.chat.completions.create(
                 model=m,
-                max_tokens=80,   # réduit à 80 pour économiser tokens
+                max_tokens=60,
                 temperature=0.1,
                 messages=[
-                    {"role":"system",
-                     "content":"Trading expert. JSON only: {signal,confidence,reason,risk,market}"},
-                    {"role":"user","content":prompt[:600]}  # limite prompt à 600 chars
+                    {"role":"system","content":"JSON: {signal,confidence,reason,risk,market}"},
+                    {"role":"user","content":prompt[:400]}
                 ],
             )
-            # Estime l'usage tokens
-            tokens_used = len(prompt[:600].split()) * 1.3 + 80
-            _token_usage["count"] += int(tokens_used)
-
             t = r.choices[0].message.content.strip()
             t = t.replace("```json","").replace("```","").strip()
-            s = t.find("{")
-            e = t.rfind("}") + 1
+            s = t.find("{"); e = t.rfind("}")+1
             if s >= 0 and e > s:
                 t = t[s:e]
             result = json.loads(t)
@@ -898,19 +891,18 @@ def ask_model_single(prompt: str, model: str = None) -> dict:
             return result
         except json.JSONDecodeError:
             return {"signal":"HOLD","confidence":0,"reason":"json_error","risk":"HIGH"}
-        except Exception as e:
-            err = str(e)
+        except Exception as ex:
+            err = str(ex)
             if "rate_limit" in err or "429" in err:
-                print(f"[AI-LIMIT] {m} rate limit — essai modèle suivant")
-                continue
+                print(f"[AI] Rate limit {m} — pause 5min")
+                _ai_calls["count"] = AI_CALLS_PER_HOUR_MAX  # bloque temporairement
+                return {"signal":"HOLD","confidence":0,"reason":"rate_limit","risk":"HIGH"}
             if "decommissioned" in err or "400" in err:
-                print(f"[AI-OLD] {m} désactivé — essai modèle suivant")
                 continue
-            print(f"[AI-ERR] {m}: {err[:60]}")
+            print(f"[AI-ERR] {err[:60]}")
             return {"signal":"HOLD","confidence":0,"reason":"api_error","risk":"HIGH"}
 
-    return {"signal":"HOLD","confidence":0,"reason":"all_models_failed","risk":"HIGH"}
-
+    return {"signal":"HOLD","confidence":0,"reason":"all_failed","risk":"HIGH"}
 
 def vote(prompt: str) -> dict:
     """
@@ -2131,7 +2123,28 @@ def trading_loop(send_fn):
 
                 if opps:
                     # Analyse silencieuse — on n'envoie rien sauf si trade réel
-                    for opp in opps[:3]:
+                    # IA seulement si score algo fort ET quota dispo
+                    top_opps = [o for o in opps[:5] if abs(o["score"]) >= 4]
+                    if not top_opps or not _can_call_ai():
+                        # Sans IA : décision 100% algo sur score >= 5
+                        for opp in opps[:3]:
+                            if abs(opp["score"]) < 5: continue
+                            if opp["has_alert"]: continue
+                            in_pos = any(p["symbol"]==opp["symbol"]
+                                         for p in sim["positions"].values())
+                            if not in_pos and len(sim["positions"]) < MAX_POSITIONS:
+                                fake = {
+                                    "signal": "BUY" if opp["score"]>0 else "SELL",
+                                    "confidence": min(80, 50+abs(opp["score"])*5),
+                                    "reason": f"Algo pur score={opp['score']}",
+                                    "risk": "MEDIUM", "market": "SPOT",
+                                    "symbol": opp["symbol"], "price": opp["price"],
+                                    "patterns": opp["patterns"], "ind": opp["ind"],
+                                }
+                                open_trade(fake, send_fn)
+                        continue  # passe au prochain cycle
+
+                    for opp in top_opps[:2]:  # max 2 analyses IA par cycle
                         if not bot_state["running"]: break
                         if opp["has_alert"]: continue
 
@@ -2139,7 +2152,6 @@ def trading_loop(send_fn):
                         signal = result["signal"]
                         conf   = result["confidence"]
                         risk   = result["risk"]
-                        reason = result.get("reason","")
                         in_pos = any(p["symbol"]==opp["symbol"]
                                      for p in sim["positions"].values())
 
