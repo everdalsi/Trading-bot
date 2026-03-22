@@ -1878,6 +1878,7 @@ def generate_trading_rules():
     Après chaque 10 trades, l'IA analyse les résultats et génère
     ses propres règles de trading basées sur ce qui a marché.
     """
+    global STOP_LOSS_PCT, TAKE_PROFIT_PCT
     closed = [t for t in sim["trades"] if t.get("pnl") is not None]
     if len(closed) < 10 or len(closed) % 10 != 0:
         return None
@@ -1933,7 +1934,6 @@ JSON strict: {{"rules":["règle1","règle2","règle3"],"sl_pct":2.5,"tp_pct":4.0
                 pass
 
         # Mise à jour des paramètres si amélioration significative
-        global STOP_LOSS_PCT, TAKE_PROFIT_PCT
         if 0.01 <= sl_new <= 0.05 and sl_new != STOP_LOSS_PCT:
             old_sl = STOP_LOSS_PCT
             STOP_LOSS_PCT = sl_new
