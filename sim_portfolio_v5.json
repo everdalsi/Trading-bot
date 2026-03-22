@@ -53,10 +53,32 @@
         "name": "Gold & Crypto Airdrops: 10 Ways to Get Precious Metal Exposu",
         "date": "2026-03-22 22:50",
         "url": "https://airdrops.io/blog/gold-crypto-airdrops-2026/"
+      },
+      {
+        "hash": "662dde5c",
+        "name": "Binance Records $700M Net Inflow in 24 Hours: What This Mean",
+        "date": "2026-03-22 22:54",
+        "url": "https://airdrops.io/blog/binance-net-inflow-airdrop-farming/"
+      },
+      {
+        "hash": "d949b426",
+        "name": "The ULTIMATE Airdrop Tier List for 2026",
+        "date": "2026-03-22 22:54",
+        "url": "https://airdrops.io/blog/the-ultimate-airdrop-tier-list-for-2026/"
       }
     ],
     "faucets_used": [],
     "promos_found": [
+      {
+        "exchange": "Bybit",
+        "url": "https://www.bybit.com/en/promo/",
+        "keywords": [
+          "bonus",
+          "promo",
+          "free"
+        ],
+        "status": "\u2705 Promos d\u00e9tect\u00e9es"
+      },
       {
         "exchange": "KuCoin",
         "url": "https://www.kucoin.com/news/bonus",
@@ -68,6 +90,6 @@
         "status": "\u2705 Promos d\u00e9tect\u00e9es"
       }
     ],
-    "last_scan": 1774219838.6786509
+    "last_scan": 1774220050.8907332
   }
 }
