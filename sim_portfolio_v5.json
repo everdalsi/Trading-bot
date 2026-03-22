@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 427639.3383040582,
+    "cash": 199330.5180500702,
     "initial": 1000.0,
     "positions": {},
     "trades": [
@@ -272,33 +272,6 @@
         "peak_price": 0.000714,
         "open_time": 1774220993.8236916,
         "kelly_pct": 0.05
-      },
-      {
-        "id": 11,
-        "symbol": "one",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "one",
-        "price_in": 0.000714,
-        "price_out": 0.01707,
-        "qty": 13958719.75140548,
-        "amount_usd": 9966.525902503512,
-        "confidence": 95,
-        "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": "\ud83c\udfaf MEME TP (+2290.8%)",
-        "time_in": "2026-03-22 23:10:35",
-        "time_out": "2026-03-22 23:10:37",
-        "pnl": 228308.820254,
-        "pnl_pct": 2290.76,
-        "duration_min": 1,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.000714,
-        "open_time": 1774221035.771171,
-        "kelly_pct": 0.05
       }
     ],
     "equity_history": [],
@@ -387,6 +360,6 @@
         "status": "\u2705 Promos d\u00e9tect\u00e9es"
       }
     ],
-    "last_scan": 1774221025.075615
+    "last_scan": 1774221077.0342565
   }
 }
