@@ -468,7 +468,7 @@
     "patterns_to_avoid": [],
     "patterns_that_work": [],
     "confidence_threshold": 65,
-    "total_wins": 7,
+    "total_wins": 8,
     "total_losses": 3
   },
   "epargne": {
@@ -526,6 +526,16 @@
     "faucets_used": [],
     "promos_found": [
       {
+        "exchange": "Bybit",
+        "url": "https://www.bybit.com/en/promo/",
+        "keywords": [
+          "bonus",
+          "promo",
+          "free"
+        ],
+        "status": "\u2705 Promos d\u00e9tect\u00e9es"
+      },
+      {
         "exchange": "KuCoin",
         "url": "https://www.kucoin.com/news/bonus",
         "keywords": [
@@ -536,6 +546,6 @@
         "status": "\u2705 Promos d\u00e9tect\u00e9es"
       }
     ],
-    "last_scan": 1774222587.756703
+    "last_scan": 1774222642.912729
   }
 }
