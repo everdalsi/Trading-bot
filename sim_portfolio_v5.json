@@ -418,7 +418,7 @@
     "patterns_that_work": [],
     "confidence_threshold": 65,
     "total_wins": 7,
-    "total_losses": 1
+    "total_losses": 2
   },
   "epargne": {
     "total_earned": 0.0,
@@ -495,6 +495,6 @@
         "status": "\u2705 Promos d\u00e9tect\u00e9es"
       }
     ],
-    "last_scan": 1774222437.431421
+    "last_scan": 1774222486.5645182
   }
 }
