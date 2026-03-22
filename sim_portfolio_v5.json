@@ -1,0 +1,73 @@
+{
+  "sim": {
+    "cash": 1000.0,
+    "initial": 1000.0,
+    "positions": {},
+    "trades": [],
+    "equity_history": [],
+    "session": 1
+  },
+  "memory": {
+    "lessons": [],
+    "patterns_to_avoid": [],
+    "patterns_that_work": [],
+    "confidence_threshold": 65,
+    "total_wins": 0,
+    "total_losses": 0
+  },
+  "epargne": {
+    "total_earned": 0.0,
+    "airdrops_claimed": [
+      {
+        "hash": "ccb51d65",
+        "name": "9 Tools to Make Airdrop Farming for Perp DEXs Easier (Part 1",
+        "date": "2026-03-22 22:50",
+        "url": "https://airdrops.io/blog/9-tools-to-make-airdrop-farming-for-perp-dexs-easier-part-1/"
+      },
+      {
+        "hash": "ccb51d65",
+        "name": "9 Tools to Make Airdrop Farming for Perp DEXs Easier (Part 1",
+        "date": "2026-03-22 22:50",
+        "url": "https://airdrops.io/blog/9-tools-to-make-airdrop-farming-for-perp-dexs-easier-part-1/"
+      },
+      {
+        "hash": "25cfd0e8",
+        "name": "DEFENSE Mode Activated: Farming the Ventuals Airdrop with Th",
+        "date": "2026-03-22 22:50",
+        "url": "https://airdrops.io/blog/defense-mode-activated-farming-the-ventuals-airdrop-with-thematic-baskets-part-1/"
+      },
+      {
+        "hash": "25cfd0e8",
+        "name": "DEFENSE Mode Activated: Farming the Ventuals Airdrop with Th",
+        "date": "2026-03-22 22:50",
+        "url": "https://airdrops.io/blog/defense-mode-activated-farming-the-ventuals-airdrop-with-thematic-baskets-part-1/"
+      },
+      {
+        "hash": "edaaba7a",
+        "name": "Gold & Crypto Airdrops: 10 Ways to Get Precious Metal Exposu",
+        "date": "2026-03-22 22:50",
+        "url": "https://airdrops.io/blog/gold-crypto-airdrops-2026/"
+      },
+      {
+        "hash": "edaaba7a",
+        "name": "Gold & Crypto Airdrops: 10 Ways to Get Precious Metal Exposu",
+        "date": "2026-03-22 22:50",
+        "url": "https://airdrops.io/blog/gold-crypto-airdrops-2026/"
+      }
+    ],
+    "faucets_used": [],
+    "promos_found": [
+      {
+        "exchange": "KuCoin",
+        "url": "https://www.kucoin.com/news/bonus",
+        "keywords": [
+          "bonus",
+          "promo",
+          "voucher"
+        ],
+        "status": "\u2705 Promos d\u00e9tect\u00e9es"
+      }
+    ],
+    "last_scan": 1774219838.6786509
+  }
+}
