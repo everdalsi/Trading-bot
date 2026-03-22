@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 199330.5180500702,
+    "cash": 200240.1115054013,
     "initial": 1000.0,
     "positions": {},
     "trades": [
@@ -253,24 +253,24 @@
         "side": "LONG",
         "trade_type": "MEME",
         "meme_symbol": "one",
-        "price_in": 0.000714,
+        "price_in": 0.0007082,
         "price_out": 0.01707,
-        "qty": 6506414.611896796,
+        "qty": 6559700.695981802,
         "amount_usd": 4645.580032894312,
         "confidence": 95,
         "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": "\ud83c\udfaf MEME TP (+2290.8%)",
-        "time_in": "2026-03-22 23:09:53",
-        "time_out": "2026-03-22 23:09:54",
-        "pnl": 106418.917392,
-        "pnl_pct": 2290.76,
+        "exit_reason": "\ud83c\udfaf MEME TP (+2310.3%)",
+        "time_in": "2026-03-22 23:10:09",
+        "time_out": "2026-03-22 23:10:10",
+        "pnl": 107328.510848,
+        "pnl_pct": 2310.34,
         "duration_min": 1,
         "patterns": [
           "memecoin"
         ],
         "leverage": 1,
-        "peak_price": 0.000714,
-        "open_time": 1774220993.8236916,
+        "peak_price": 0.0007082,
+        "open_time": 1774221009.1073246,
         "kelly_pct": 0.05
       }
     ],
@@ -282,7 +282,7 @@
     "patterns_to_avoid": [],
     "patterns_that_work": [],
     "confidence_threshold": 65,
-    "total_wins": 5,
+    "total_wins": 6,
     "total_losses": 1
   },
   "epargne": {
