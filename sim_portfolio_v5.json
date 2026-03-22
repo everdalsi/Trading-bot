@@ -1,63 +1,8 @@
 {
   "sim": {
-    "cash": 755407.4011969166,
+    "cash": 914419.5494807609,
     "initial": 1000.0,
-    "positions": {
-      "MICRO_FETUSDT_15": {
-        "id": 15,
-        "symbol": "FETUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.2066,
-        "price_out": null,
-        "qty": 398247.7987010314,
-        "amount_usd": 82277.9952116331,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=14 mom=-0.19% vol=6.0x",
-        "exit_reason": null,
-        "time_in": "2026-03-22 23:34:56",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.2066,
-        "open_time": 1774222496.8672934,
-        "kelly_pct": 0.1,
-        "pos_key": "MICRO_FETUSDT_15"
-      },
-      "MICRO_SUIUSDT_16": {
-        "id": 16,
-        "symbol": "SUIUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.9069,
-        "price_out": null,
-        "qty": 81651.9965712535,
-        "amount_usd": 74050.1956904698,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=22 mom=-0.19% vol=2.6x",
-        "exit_reason": null,
-        "time_in": "2026-03-22 23:34:58",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.9071,
-        "open_time": 1774222498.552826,
-        "kelly_pct": 0.1,
-        "pos_key": "MICRO_SUIUSDT_16"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
@@ -396,7 +341,7 @@
         "reason": "EMA\u2193 RSI7=23 mom=-0.11% vol=2.7x",
         "exit_reason": "\u23f1 TIMEOUT 98s",
         "time_in": "2026-03-22 23:33:24",
-        "time_out": "2026-03-22 23:35:02",
+        "time_out": "2026-03-22 23:35:03",
         "pnl": -105.211937,
         "pnl_pct": -0.115,
         "duration_min": 1,
@@ -433,85 +378,6 @@
         "leverage": 1,
         "peak_price": 0.01497,
         "open_time": 1774222459.9195926,
-        "kelly_pct": 0.05
-      },
-      {
-        "id": 15,
-        "symbol": "FETUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.2066,
-        "price_out": null,
-        "qty": 398247.7987010314,
-        "amount_usd": 82277.9952116331,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=14 mom=-0.19% vol=6.0x",
-        "exit_reason": null,
-        "time_in": "2026-03-22 23:34:56",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.2066,
-        "open_time": 1774222496.8672934,
-        "kelly_pct": 0.1
-      },
-      {
-        "id": 16,
-        "symbol": "SUIUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.9069,
-        "price_out": null,
-        "qty": 81651.9965712535,
-        "amount_usd": 74050.1956904698,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=22 mom=-0.19% vol=2.6x",
-        "exit_reason": null,
-        "time_in": "2026-03-22 23:34:58",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.9069,
-        "open_time": 1774222498.552826,
-        "kelly_pct": 0.1
-      },
-      {
-        "id": 17,
-        "symbol": "Buttcoin",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "Buttcoin",
-        "price_in": 0.01497,
-        "price_out": 0.01391,
-        "qty": 2532035.2657937813,
-        "amount_usd": 37904.567928932905,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": "\ud83d\uded1 MEME SL (-7.1%)",
-        "time_in": "2026-03-22 23:35:09",
-        "time_out": "2026-03-22 23:35:11",
-        "pnl": -2683.957382,
-        "pnl_pct": -7.08,
-        "duration_min": 1,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.01497,
-        "open_time": 1774222509.9260418,
         "kelly_pct": 0.05
       }
     ],
@@ -601,6 +467,6 @@
         "status": "\u2705 Promos d\u00e9tect\u00e9es"
       }
     ],
-    "last_scan": 1774222486.5645182
+    "last_scan": 1774222552.043898
   }
 }
