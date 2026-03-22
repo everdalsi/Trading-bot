@@ -144,19 +144,42 @@ AI_CALLS_PER_HOUR_MAX = 10
 AI_CYCLE_MIN_INTERVAL = 360  # minimum 6 min entre 2 analyses IA
 
 # ── Surveillance traders en temps réel ───────────────────────
-# Comptes Nitter (miroir gratuit Twitter) à surveiller
 TRADER_TWITTER_ACCOUNTS = [
-    "michael_saylor",    # MicroStrategy - BTC maximaliste
-    "CathieDWood",       # ARK Invest - growth/innovation
-    "APompliano",        # Anthony Pompliano - crypto macro
-    "PeterSchiff",       # Bear crypto - bon pour contrarian
-    "WClementeIII",      # On-chain analyst
-    "DocumentingBTC",    # Bitcoin tracker
-    "AltcoinDailyio",    # Altcoin analysis
-    "CryptoKaleo",       # TA trader influent
-    "RaoulGMI",          # Macro crypto
-    "inversebrah",       # Crypto sentiment
+    # Macro crypto
+    "michael_saylor", "CathieDWood", "APompliano",
+    "WClementeIII", "CryptoKaleo", "RaoulGMI",
+    # Memecoins traders (AlxCooks + influents)
+    "AlxCooks_off",      # Memecoin trader TikTok/Twitch
+    "MustStopMurad",     # Murad — memecoin bull reconnu
+    "blknoiz06",         # Ansem — Solana memecoins
+    "Degentraland",      # Memecoin alpha
+    "CryptoGodJohn",     # Solana memecoin trader
+    "solbigbrain",       # Solana alpha
 ]
+
+# ── Memecoins Solana (Bybit) ──────────────────────────────────
+MEMECOIN_SOLANA = [
+    "BONKUSDT","WIFUSDT","POPCATUSDT","JUPUSDT",
+    "MEWUSDT","BRETTUSDT","MOTHERUSDT","MIGGLESUSDT",
+]
+
+# ── Memecoins Ethereum (Bybit) ────────────────────────────────
+MEMECOIN_ETH = [
+    "SHIBUSDT","FLOKIUSDT","PEPEUSDT","MOGUSDT",
+    "DOGEUSDT","BABYDOGEUSDT",
+]
+
+# ── Paramètres memecoins (plus agressifs) ─────────────────────
+MEME_SL_PCT       = 0.05   # -5% (memecoins = volatils)
+MEME_TP_PCT       = 0.15   # +15% (pumps rapides)
+MEME_TRAILING_PCT = 0.07   # trailing -7% du pic
+MEME_MAX_PCT      = 0.05   # max 5% du capital (risque élevé)
+MEME_MAX_DURATION = 300    # ferme après 5min si pas de mouvement
+CYCLE_MEME        = 45     # scan memecoins toutes les 45s
+
+# ── DexScreener API (gratuit, pas de clé) ─────────────────────
+DEXSCREENER_API = "https://api.dexscreener.com/latest/dex"
+DEXSCREENER_NEW = "https://api.dexscreener.com/token-boosts/latest/v1"
 
 # Chaînes YouTube à surveiller (ID de chaîne)
 YOUTUBE_CHANNELS = {
@@ -600,6 +623,468 @@ def scan_yahoo_market(market_dict: dict, market_name: str) -> list:
             print(f"[YAHOO] {ticker}: {e}")
     opps.sort(key=lambda x: abs(x["score"]), reverse=True)
     return opps[:3]
+
+
+# ═══════════════════════════════════════════════════════════════
+#  MODULE MEMECOINS — DexScreener + Surveillance Traders
+# ═══════════════════════════════════════════════════════════════
+
+_dex_cache: dict = {}        # cache prix DexScreener
+_trending_tokens: list = []  # tokens trendés détectés
+_mentioned_tokens: list = [] # tokens mentionnés par les traders
+
+def get_dex_price(token_address: str, chain: str = "solana") -> dict:
+    """Prix d'un token via DexScreener (gratuit, sans clé API)."""
+    now = time.time()
+    key = f"{chain}:{token_address}"
+    if key in _dex_cache:
+        ts, data = _dex_cache[key]
+        if now - ts < 15:
+            return data
+    try:
+        url  = f"{DEXSCREENER_API}/tokens/{token_address}"
+        r    = requests.get(url, timeout=8, headers={"User-Agent": "Mozilla/5.0"})
+        data = r.json()
+        pairs = data.get("pairs", [])
+        if not pairs:
+            return {}
+        # Prend la paire avec le plus de liquidité
+        best  = max(pairs, key=lambda p: float(p.get("liquidity",{}).get("usd",0) or 0))
+        result = {
+            "symbol":    best.get("baseToken",{}).get("symbol","?"),
+            "name":      best.get("baseToken",{}).get("name","?"),
+            "price":     float(best.get("priceUsd", 0) or 0),
+            "change5m":  float(best.get("priceChange",{}).get("m5",0) or 0),
+            "change1h":  float(best.get("priceChange",{}).get("h1",0) or 0),
+            "change24h": float(best.get("priceChange",{}).get("h24",0) or 0),
+            "volume24h": float(best.get("volume",{}).get("h24",0) or 0),
+            "liquidity": float(best.get("liquidity",{}).get("usd",0) or 0),
+            "mcap":      float(best.get("marketCap",0) or 0),
+            "chain":     best.get("chainId","?"),
+            "address":   token_address,
+            "dex":       best.get("dexId","?"),
+            "url":       best.get("url",""),
+        }
+        _dex_cache[key] = (now, result)
+        return result
+    except Exception as e:
+        print(f"[DEX] {e}")
+        return {}
+
+
+def get_trending_dex_tokens() -> list:
+    """
+    Récupère les tokens en tendance sur DexScreener.
+    Filtre : volume > $50k, liquidité > $20k, age < 48h.
+    """
+    try:
+        # Token boosts (tokens promus/trendés)
+        r1 = requests.get(DEXSCREENER_NEW, timeout=8,
+                          headers={"User-Agent": "Mozilla/5.0"})
+        boosts = r1.json() if r1.status_code == 200 else []
+
+        # Search trending sur Solana
+        r2 = requests.get(
+            f"{DEXSCREENER_API}/search?q=SOL",
+            timeout=8, headers={"User-Agent": "Mozilla/5.0"})
+        search_data = r2.json().get("pairs", []) if r2.status_code == 200 else []
+
+        tokens = []
+
+        # Analyse les boosts
+        for item in (boosts if isinstance(boosts, list) else [])[:20]:
+            addr = item.get("tokenAddress","")
+            chain = item.get("chainId","solana")
+            if addr and chain in ("solana","ethereum","base"):
+                data = get_dex_price(addr, chain)
+                if data and data.get("liquidity",0) > 20000 and data.get("volume24h",0) > 50000:
+                    data["source"] = "boost"
+                    tokens.append(data)
+
+        # Analyse search Solana - filtre les pumps récents
+        for pair in search_data[:30]:
+            change5m = float(pair.get("priceChange",{}).get("m5",0) or 0)
+            change1h = float(pair.get("priceChange",{}).get("h1",0) or 0)
+            vol24    = float(pair.get("volume",{}).get("h24",0) or 0)
+            liq      = float(pair.get("liquidity",{}).get("usd",0) or 0)
+            # Signal : pump fort sur 5min + volume + liquidité correcte
+            if change5m > 5 and vol24 > 30000 and liq > 15000:
+                addr = pair.get("baseToken",{}).get("address","")
+                if addr:
+                    tokens.append({
+                        "symbol":    pair.get("baseToken",{}).get("symbol","?"),
+                        "name":      pair.get("baseToken",{}).get("name","?"),
+                        "price":     float(pair.get("priceUsd",0) or 0),
+                        "change5m":  change5m,
+                        "change1h":  change1h,
+                        "change24h": float(pair.get("priceChange",{}).get("h24",0) or 0),
+                        "volume24h": vol24,
+                        "liquidity": liq,
+                        "chain":     pair.get("chainId","solana"),
+                        "address":   addr,
+                        "dex":       pair.get("dexId","?"),
+                        "url":       pair.get("url",""),
+                        "source":    "trending",
+                    })
+
+        # Trie par variation 5min
+        tokens.sort(key=lambda x: x.get("change5m",0), reverse=True)
+        return tokens[:10]
+
+    except Exception as e:
+        print(f"[TREND] {e}")
+        return []
+
+
+def extract_token_from_text(text: str) -> list:
+    """
+    Extrait les mentions de tokens depuis un tweet/post.
+    Détecte : $BONK $WIF $NOTHING ou adresses Solana.
+    """
+    tokens = []
+    # Pattern $TOKEN (majuscules)
+    import re
+    cashtags = re.findall(r'\$([A-Z]{2,10})', text.upper())
+    tokens.extend(cashtags)
+    # Adresses Solana (base58, 32-44 chars)
+    sol_addrs = re.findall(r'[1-9A-HJ-NP-Za-km-z]{32,44}', text)
+    tokens.extend(sol_addrs[:2])  # max 2 adresses par post
+    return list(set(tokens))
+
+
+def scan_trader_mentions() -> list:
+    """
+    Scrape les derniers posts des traders memecoins et extrait
+    les tokens mentionnés avec leur contexte.
+    """
+    global _mentioned_tokens
+    found = []
+
+    # Traders memecoins à surveiller en priorité
+    meme_traders = [
+        "AlxCooks_off", "MustStopMurad", "blknoiz06",
+        "Degentraland", "CryptoGodJohn", "solbigbrain",
+    ]
+
+    # Rotation : 2 traders par cycle
+    idx    = bot_state.get("meme_trader_idx", 0)
+    batch  = meme_traders[idx % len(meme_traders):(idx % len(meme_traders)) + 2]
+    bot_state["meme_trader_idx"] = idx + 2
+
+    for trader in batch:
+        try:
+            signals = scrape_nitter(trader)
+            for sig in signals[:3]:
+                text   = sig.get("content","")
+                tokens = extract_token_from_text(text)
+                for token in tokens:
+                    # Cherche le token sur DexScreener
+                    if len(token) > 10:
+                        # Adresse Solana
+                        data = get_dex_price(token, "solana")
+                    else:
+                        # Cherche par symbole
+                        try:
+                            r = requests.get(
+                                f"{DEXSCREENER_API}/search?q={token}",
+                                timeout=6,
+                                headers={"User-Agent": "Mozilla/5.0"})
+                            pairs = r.json().get("pairs",[])
+                            if pairs:
+                                best = max(pairs,
+                                    key=lambda p: float(p.get("volume",{}).get("h24",0) or 0))
+                                addr = best.get("baseToken",{}).get("address","")
+                                data = get_dex_price(addr, best.get("chainId","solana"))
+                            else:
+                                data = {}
+                        except Exception:
+                            data = {}
+
+                    if data and data.get("price",0) > 0:
+                        data["mentioned_by"] = trader
+                        data["tweet"]        = text[:100]
+                        found.append(data)
+        except Exception as e:
+            print(f"[MEME-SCAN] {trader}: {e}")
+
+    # Garde les 20 dernières mentions uniques
+    seen = set()
+    unique = []
+    for t in found:
+        k = t.get("symbol","?")
+        if k not in seen:
+            seen.add(k)
+            unique.append(t)
+
+    _mentioned_tokens = (unique + _mentioned_tokens)[:20]
+    return unique
+
+
+def meme_signal(token_data: dict) -> dict:
+    """
+    Signal de trading pour un memecoin basé sur :
+    1. Variation 5min (pump détecté)
+    2. Variation 1h (tendance)
+    3. Volume relatif
+    4. Liquidité suffisante (évite les rug pulls)
+    5. Mention par un trader influent (bonus)
+    """
+    try:
+        change5m  = token_data.get("change5m", 0)
+        change1h  = token_data.get("change1h", 0)
+        change24h = token_data.get("change24h", 0)
+        volume    = token_data.get("volume24h", 0)
+        liquidity = token_data.get("liquidity", 0)
+        mentioned = bool(token_data.get("mentioned_by"))
+
+        score = 0
+
+        # Sécurité minimale
+        if liquidity < 10000:
+            return {"signal":"HOLD","score":0,"conf":0,"reason":"liquidité insuffisante"}
+        if volume < 20000:
+            return {"signal":"HOLD","score":0,"conf":0,"reason":"volume insuffisant"}
+
+        # Pump 5min
+        if change5m > 10:   score += 3
+        elif change5m > 5:  score += 2
+        elif change5m > 2:  score += 1
+        elif change5m < -10: score -= 3
+        elif change5m < -5:  score -= 2
+
+        # Tendance 1h
+        if change1h > 20:   score += 2
+        elif change1h > 10: score += 1
+        elif change1h < -20: score -= 2
+        elif change1h < -10: score -= 1
+
+        # Momentum 24h (évite d'acheter après un pump de 200%)
+        if change24h > 200: score -= 2  # déjà trop pompé
+        elif change24h > 50: score += 1
+
+        # Bonus mention trader
+        if mentioned: score += 2
+
+        # Volume élevé = signal plus fiable
+        if volume > 500000: score += 1
+
+        if score >= 4:
+            conf   = min(85, 50 + score * 8)
+            reason = (f"+{change5m:.1f}% en 5min, +{change1h:.1f}% en 1h"
+                      f"{', mentionné par @'+token_data['mentioned_by'] if mentioned else ''}")
+            return {"signal":"BUY","score":score,"conf":conf,"reason":reason}
+
+        return {"signal":"HOLD","score":score,"conf":0,"reason":f"score={score}"}
+
+    except Exception as e:
+        return {"signal":"HOLD","score":0,"conf":0,"reason":str(e)}
+
+
+def open_meme_trade(token_data: dict, sig: dict, send_fn) -> dict | None:
+    """Ouvre un trade simulé sur un memecoin via DexScreener."""
+    symbol    = token_data.get("symbol","?")
+    price     = token_data.get("price", 0)
+    chain     = token_data.get("chain","solana")
+    name      = token_data.get("name", symbol)
+    mentioned = token_data.get("mentioned_by","")
+
+    if not price or price <= 0:
+        return None
+    if sim["cash"] < 15:
+        return None
+
+    # Vérifie pas déjà en position sur ce token
+    if any(p.get("symbol")==f"MEME_{symbol}" for p in sim["positions"].values()):
+        return None
+
+    # Max 2 meme positions simultanées
+    meme_count = sum(1 for p in sim["positions"].values()
+                     if p.get("trade_type")=="MEME")
+    if meme_count >= 2:
+        return None
+
+    amount = sim["cash"] * MEME_MAX_PCT
+    qty    = amount / price
+    sim["cash"] -= amount
+
+    trade = {
+        "id":           len(sim["trades"]) + 1,
+        "symbol":       f"MEME_{symbol}",
+        "market":       "MEME",
+        "side":         "LONG",
+        "trade_type":   "MEME",
+        "price_in":     price,
+        "price_out":    None,
+        "qty":          qty,
+        "amount_usd":   amount,
+        "confidence":   sig["conf"],
+        "reason":       sig["reason"],
+        "exit_reason":  None,
+        "time_in":      datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "time_out":     None,
+        "pnl":          None,
+        "pnl_pct":      None,
+        "duration_min": None,
+        "patterns":     [f"meme_{chain}"],
+        "leverage":     1,
+        "peak_price":   price,
+        "open_time":    time.time(),
+        "chain":        chain,
+        "dex_address":  token_data.get("address",""),
+        "dex_url":      token_data.get("url",""),
+    }
+
+    pos_key = f"MEME_{symbol}_{trade['id']}"
+    sim["trades"].append(trade)
+    sim["positions"][pos_key] = {**trade, "pos_key": pos_key}
+    db_save_trade(trade)
+    bot_state["trades_today"] += 1
+
+    chain_emoji = "🟣" if chain=="solana" else "🔷" if chain=="ethereum" else "🔵"
+    mentioned_str = f"\n  👤 Mentionné par @{mentioned}" if mentioned else ""
+
+    c5m = token_data.get("change5m",0)
+    c1h = token_data.get("change1h",0)
+    liq = token_data.get("liquidity",0)
+    dex = token_data.get("dex","?")
+    msg = (
+        f"🎯 MEMECOIN {chain_emoji} {name} (${symbol})\n"
+        f"━━━━━━━━━━━━━━━━━━━\n"
+        f"💵 Prix: ${price:.8f}\n"
+        f"💰 Mise: ${amount:.2f} ({MEME_MAX_PCT*100:.0f}% cash)\n"
+        f"📈 +{c5m:.1f}%/5min | +{c1h:.1f}%/1h\n"
+        f"💧 Liq: ${liq:,.0f}\n"
+        f"🛑 SL:-{MEME_SL_PCT*100:.0f}% TP:+{MEME_TP_PCT*100:.0f}%{mentioned_str}\n"
+        f"🔗 {dex} | Timeout {MEME_MAX_DURATION//60}min"
+    )
+    send_fn(msg)
+    return trade
+
+
+def monitor_meme_positions(send_fn):
+    """Surveille les positions memecoins via DexScreener."""
+    now = time.time()
+    for pos_key, pos in list(sim["positions"].items()):
+        if pos.get("trade_type") != "MEME":
+            continue
+
+        addr    = pos.get("dex_address","")
+        chain   = pos.get("chain","solana")
+        entry   = pos["price_in"]
+        elapsed = now - pos.get("open_time", now)
+
+        # Récupère le prix actuel via DexScreener
+        data = get_dex_price(addr, chain) if addr else {}
+        price = data.get("price", entry) if data else entry
+        if not price:
+            continue
+
+        pos["peak_price"] = max(pos.get("peak_price", entry), price)
+        change   = (price - entry) / entry
+        trailing = (pos["peak_price"] - price) / pos["peak_price"]
+
+        reason = None
+        if change <= -MEME_SL_PCT:
+            reason = f"🛑 MEME SL ({change*100:+.1f}%)"
+        elif change >= MEME_TP_PCT:
+            reason = f"🎯 MEME TP ({change*100:+.1f}%)"
+        elif change > 0.03 and trailing >= MEME_TRAILING_PCT:
+            reason = f"📐 MEME TRAIL (pic -{trailing*100:.1f}%)"
+        elif elapsed >= MEME_MAX_DURATION:
+            reason = f"⏱ TIMEOUT {int(elapsed//60)}min"
+
+        if reason:
+            pnl     = (price - entry) / entry * pos["amount_usd"]
+            pnl_pct = (price - entry) / entry * 100
+            sim["cash"] += pos["amount_usd"] + pnl
+
+            trade = next((t for t in reversed(sim["trades"])
+                          if t["id"] == pos["id"]), None)
+            if trade:
+                trade.update({
+                    "price_out":    price,
+                    "time_out":     datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "pnl":          round(pnl, 6),
+                    "pnl_pct":      round(pnl_pct, 2),
+                    "exit_reason":  reason,
+                    "duration_min": max(1, int(elapsed/60)),
+                })
+                db_save_trade(trade)
+                learn_from_trade(trade, send_fn=None)
+
+            del sim["positions"][pos_key]
+            save_data()
+
+            e  = "✅" if pnl > 0 else "❌"
+            sym = pos["symbol"].replace("MEME_","")
+            send_fn(
+                f"{e} MEME {sym} fermé\n"
+                f"  ${pnl:+.4f} ({pnl_pct:+.1f}%) | {reason}"
+            )
+            if pnl > 0:
+                memory["total_wins"]   = memory.get("total_wins",0) + 1
+            else:
+                memory["total_losses"] = memory.get("total_losses",0) + 1
+
+
+def run_meme_cycle(send_fn):
+    """
+    Cycle memecoin toutes les 45s :
+    1. Scrape mentions traders (AlxCooks, Murad, Ansem...)
+    2. Récupère tokens trendés DexScreener
+    3. Analyse signal + ouvre si opportunité
+    """
+    # Surveillance positions ouvertes
+    monitor_meme_positions(send_fn)
+
+    # Collecte tokens mentionnés (en alternance pour économiser les requêtes)
+    cycle = bot_state.get("meme_cycle", 0)
+    bot_state["meme_cycle"] = cycle + 1
+
+    candidates = []
+
+    # Toutes les 4 cycles : scrape les traders
+    if cycle % 4 == 0:
+        mentioned = scan_trader_mentions()
+        candidates.extend(mentioned)
+
+    # Toutes les 2 cycles : trending DexScreener
+    if cycle % 2 == 0:
+        try:
+            trending = get_trending_dex_tokens()
+            candidates.extend(trending)
+        except Exception as e:
+            print(f"[MEME-TREND] {e}")
+
+    # Déduplique
+    seen = set()
+    unique = []
+    for t in candidates:
+        k = t.get("symbol","?")
+        if k not in seen and t.get("price",0) > 0:
+            seen.add(k)
+            unique.append(t)
+
+    if not unique:
+        return
+
+    # Analyse signal + trade
+    for token in unique[:5]:
+        sig = meme_signal(token)
+        if sig["signal"] == "BUY" and sig["conf"] >= 55:
+            # Notification si token mentionné par un trader
+            if token.get("mentioned_by"):
+                mb  = token["mentioned_by"]
+                sym = token["symbol"]
+                c5m = token.get("change5m",0)
+                vol = token.get("volume24h",0)/1000
+                send_fn(
+                    f"📡 Signal memecoin\n"
+                    f"  @{mb} mentionne ${sym}\n"
+                    f"  +{c5m:.1f}%/5min Vol:${vol:.0f}k\n"
+                    f"  Score:{sig['score']:+d} Conf:{sig['conf']}%"
+                )
+            open_meme_trade(token, sig, send_fn)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -1360,6 +1845,447 @@ JSON strict (sans backticks):
 
 
 # ═══════════════════════════════════════════════════════════════
+#  MODULE MEMECOINS — DexScreener + Surveillance AlxCooks
+# ═══════════════════════════════════════════════════════════════
+
+_meme_price_cache: dict = {}
+_meme_positions:   dict = {}   # pos_key → position memecoin
+_seen_tokens:      set  = set()  # tokens déjà analysés
+
+# Regex pour détecter les tickers crypto dans du texte
+TICKER_REGEX = re.compile(r'\$([A-Z]{2,10})\b')
+
+
+def dex_get_price(token_address: str) -> dict:
+    """Prix d'un token via DexScreener par adresse contrat."""
+    try:
+        r = requests.get(
+            f"{DEXSCREENER_API}/tokens/{token_address}",
+            timeout=6, headers={"User-Agent": "Mozilla/5.0"}
+        )
+        data = r.json()
+        pairs = data.get("pairs", [])
+        if not pairs:
+            return {}
+        # Prend la paire avec le plus de liquidité
+        best = max(pairs, key=lambda p: float(p.get("liquidity",{}).get("usd",0) or 0))
+        return {
+            "symbol":   best.get("baseToken",{}).get("symbol","?"),
+            "price":    float(best.get("priceUsd", 0) or 0),
+            "change5m": float(best.get("priceChange",{}).get("m5", 0) or 0),
+            "change1h": float(best.get("priceChange",{}).get("h1", 0) or 0),
+            "change24h":float(best.get("priceChange",{}).get("h24", 0) or 0),
+            "volume24h":float(best.get("volume",{}).get("h24", 0) or 0),
+            "liquidity":float(best.get("liquidity",{}).get("usd", 0) or 0),
+            "fdv":      float(best.get("fdv", 0) or 0),
+            "chain":    best.get("chainId","unknown"),
+            "dex":      best.get("dexId","unknown"),
+            "address":  token_address,
+        }
+    except Exception:
+        return {}
+
+
+def dex_search_token(symbol: str) -> dict:
+    """Cherche un token par symbole sur DexScreener."""
+    try:
+        r = requests.get(
+            f"{DEXSCREENER_API}/search?q={symbol}",
+            timeout=6, headers={"User-Agent": "Mozilla/5.0"}
+        )
+        pairs = r.json().get("pairs", [])
+        if not pairs:
+            return {}
+        # Filtre par symbole exact et prend le plus liquide
+        exact = [p for p in pairs
+                 if p.get("baseToken",{}).get("symbol","").upper() == symbol.upper()]
+        pool  = exact if exact else pairs
+        best  = max(pool, key=lambda p: float(p.get("liquidity",{}).get("usd",0) or 0))
+        liq   = float(best.get("liquidity",{}).get("usd",0) or 0)
+        if liq < 10000:  # ignore si liquidité < $10k
+            return {}
+        return {
+            "symbol":   best.get("baseToken",{}).get("symbol","?"),
+            "price":    float(best.get("priceUsd", 0) or 0),
+            "change5m": float(best.get("priceChange",{}).get("m5", 0) or 0),
+            "change1h": float(best.get("priceChange",{}).get("h1", 0) or 0),
+            "change24h":float(best.get("priceChange",{}).get("h24", 0) or 0),
+            "volume24h":float(best.get("volume",{}).get("h24", 0) or 0),
+            "liquidity":liq,
+            "chain":    best.get("chainId","unknown"),
+            "address":  best.get("baseToken",{}).get("address",""),
+        }
+    except Exception:
+        return {}
+
+
+def dex_get_trending() -> list:
+    """
+    Top tokens trendés sur DexScreener (boosts + nouveaux).
+    Retourne les tokens avec le plus gros momentum récent.
+    """
+    trending = []
+    try:
+        # Tokens boostés (payé pour être mis en avant = attention = potentiel pump)
+        r = requests.get(DEXSCREENER_NEW, timeout=8,
+                         headers={"User-Agent": "Mozilla/5.0"})
+        boosts = r.json() if isinstance(r.json(), list) else []
+        for b in boosts[:20]:
+            sym = b.get("tokenAddress","")
+            if sym and sym not in _seen_tokens:
+                d = dex_get_price(sym)
+                if d and d.get("liquidity",0) > 50000:  # min $50k liquidité
+                    d["boost"] = True
+                    trending.append(d)
+                    _seen_tokens.add(sym)
+    except Exception:
+        pass
+
+    # Nouveaux tokens Solana avec fort volume
+    try:
+        r = requests.get(
+            f"{DEXSCREENER_API}/search?q=solana",
+            timeout=8, headers={"User-Agent": "Mozilla/5.0"}
+        )
+        pairs = r.json().get("pairs", [])
+        for p in pairs[:30]:
+            vol = float(p.get("volume",{}).get("h24",0) or 0)
+            liq = float(p.get("liquidity",{}).get("usd",0) or 0)
+            age_h = float(p.get("pairCreatedAt", 0) or 0)
+            chg1h = float(p.get("priceChange",{}).get("h1",0) or 0)
+            # Critères : liquidité ok + volume élevé + hausse récente
+            if liq > 30000 and vol > 100000 and chg1h > 10:
+                sym = p.get("baseToken",{}).get("symbol","")
+                if sym and sym not in _seen_tokens:
+                    trending.append({
+                        "symbol":   sym,
+                        "price":    float(p.get("priceUsd",0) or 0),
+                        "change1h": chg1h,
+                        "change24h":float(p.get("priceChange",{}).get("h24",0) or 0),
+                        "volume24h":vol,
+                        "liquidity":liq,
+                        "chain":    "solana",
+                        "address":  p.get("baseToken",{}).get("address",""),
+                    })
+                    _seen_tokens.add(sym)
+    except Exception:
+        pass
+
+    return trending[:10]
+
+
+def extract_tickers_from_text(text: str) -> list:
+    """Extrait les tickers $TOKEN mentionnés dans un texte."""
+    found = TICKER_REGEX.findall(text.upper())
+    # Filtre les faux positifs (mots courants)
+    ignore = {"THE","FOR","AND","WITH","YOU","ARE","NOT","ALL",
+              "NEW","GET","BUY","NOW","USD","ETH","SOL","BTC"}
+    return [t for t in set(found) if t not in ignore and len(t) >= 2]
+
+
+def scan_meme_traders() -> list:
+    """
+    Surveille les traders memecoins (AlxCooks, Murad, Ansem...).
+    Détecte les tokens mentionnés et les analyse sur DexScreener.
+    """
+    signals = []
+    # Comptes memecoins spécifiques
+    meme_accounts = [
+        "AlxCooks_off", "MustStopMurad", "blknoiz06",
+        "Degentraland", "CryptoGodJohn", "solbigbrain"
+    ]
+
+    for account in meme_accounts[:3]:  # max 3 par cycle
+        try:
+            for instance in NITTER_INSTANCES:
+                try:
+                    url  = f"https://{instance}/{account}/rss"
+                    feed = feedparser.parse(url)
+                    if not feed.entries:
+                        continue
+                    for entry in feed.entries[:5]:
+                        text = re.sub(r'<[^>]+>', '', entry.get("summary","") + " " + entry.get("title",""))
+                        tickers = extract_tickers_from_text(text)
+                        for ticker in tickers[:3]:
+                            h = _signal_hash(ticker + text[:50])
+                            if h in _signal_cache:
+                                continue
+                            _signal_cache.add(h)
+                            # Cherche le token sur DexScreener
+                            token_data = dex_search_token(ticker)
+                            if token_data:
+                                signals.append({
+                                    "source":   "MemeTrader",
+                                    "author":   account,
+                                    "ticker":   ticker,
+                                    "text":     text[:150],
+                                    "token":    token_data,
+                                    "ts":       datetime.now().strftime("%H:%M"),
+                                })
+                    break
+                except Exception:
+                    continue
+        except Exception:
+            pass
+
+    return signals
+
+
+def meme_signal_score(token: dict) -> int:
+    """
+    Score d'opportunité pour un memecoin (0-10).
+    Basé sur momentum, volume et liquidité.
+    """
+    score = 0
+    c1h   = token.get("change1h", 0)
+    c5m   = token.get("change5m", 0)
+    vol   = token.get("volume24h", 0)
+    liq   = token.get("liquidity", 0)
+
+    # Momentum haussier
+    if c1h > 50:   score += 4
+    elif c1h > 20: score += 3
+    elif c1h > 10: score += 2
+    elif c1h > 5:  score += 1
+
+    # Momentum très récent (5min)
+    if c5m > 10:   score += 3
+    elif c5m > 5:  score += 2
+    elif c5m > 2:  score += 1
+
+    # Volume suffisant
+    if vol > 1000000:  score += 2
+    elif vol > 100000: score += 1
+
+    # Liquidité suffisante (sécurité)
+    if liq < 20000:    score -= 3  # trop risqué
+    elif liq < 50000:  score -= 1
+
+    # Penalise si baisse
+    if c1h < -20: score -= 4
+    elif c1h < -5: score -= 1
+
+    return max(0, min(10, score))
+
+
+def open_meme_trade(token: dict, reason: str, send_fn) -> dict | None:
+    """Ouvre un trade simulé sur un memecoin via DexScreener."""
+    symbol = token.get("symbol","?")
+    price  = token.get("price", 0)
+    chain  = token.get("chain","solana")
+    if not price or price <= 0:
+        return None
+    if sim["cash"] < 20:
+        return None
+    # Max 2 positions memecoins simultanées
+    meme_count = sum(1 for p in sim["positions"].values()
+                     if p.get("trade_type")=="MEME")
+    if meme_count >= 2:
+        return None
+
+    amount = sim["cash"] * MEME_MAX_PCT
+    qty    = amount / price
+    sim["cash"] -= amount
+
+    trade = {
+        "id":           len(sim["trades"]) + 1,
+        "symbol":       symbol,
+        "market":       f"MEME-{chain.upper()}",
+        "side":         "LONG",
+        "trade_type":   "MEME",
+        "price_in":     price,
+        "price_out":    None,
+        "qty":          qty,
+        "amount_usd":   amount,
+        "confidence":   75,
+        "reason":       reason[:100],
+        "exit_reason":  None,
+        "time_in":      datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "time_out":     None,
+        "pnl":          None,
+        "pnl_pct":      None,
+        "duration_min": None,
+        "patterns":     ["memecoin"],
+        "leverage":     1,
+        "peak_price":   price,
+        "trough_price": price,
+        "open_time":    time.time(),
+        "token_address":token.get("address",""),
+        "chain":        chain,
+        "liq_at_entry": token.get("liquidity",0),
+    }
+
+    pos_key = f"MEME_{symbol}_{trade['id']}"
+    sim["trades"].append(trade)
+    sim["positions"][pos_key] = {**trade, "pos_key": pos_key}
+    db_save_trade(trade)
+    bot_state["trades_today"] += 1
+
+    send_fn(
+        f"🐸 MEMECOIN SIMULÉ — {symbol}\n"
+        f"  Chain: {chain.upper()} | ${price:.8f}\n"
+        f"  Mise: ${amount:.2f} | Liq: ${token.get('liquidity',0):,.0f}\n"
+        f"  📈 1h:{token.get('change1h',0):+.1f}% 5m:{token.get('change5m',0):+.1f}%\n"
+        f"  💡 {reason[:80]}"
+    )
+    return trade
+
+
+def monitor_meme_positions(send_fn):
+    """Surveillance des positions memecoins — fermeture rapide."""
+    now    = time.time()
+    for pos_key, pos in list(sim["positions"].items()):
+        if pos.get("trade_type") != "MEME":
+            continue
+        symbol  = pos["symbol"]
+        entry   = pos["price_in"]
+        elapsed = now - pos.get("open_time", now)
+
+        # Récupère prix actuel via DexScreener
+        addr  = pos.get("token_address","")
+        token = dex_get_price(addr) if addr else dex_search_token(symbol)
+        price = token.get("price", 0) if token else 0
+
+        if not price:
+            # Si on ne trouve plus le prix après 5min → ferme (rugpull?)
+            if elapsed > 300:
+                price = entry * 0.9  # assume -10%
+            else:
+                continue
+
+        pos["peak_price"] = max(pos.get("peak_price", entry), price)
+        change   = (price - entry) / entry
+        trailing = (pos["peak_price"] - price) / pos["peak_price"] if pos["peak_price"] > 0 else 0
+
+        reason = None
+        if change <= -MEME_SL_PCT:
+            reason = f"🛑 SL Meme ({change*100:+.1f}%)"
+        elif change >= MEME_TP_PCT:
+            reason = f"🎯 TP Meme ({change*100:+.1f}%)"
+        elif change > 0.05 and trailing >= MEME_TRAILING_PCT:
+            reason = f"📐 Trail Meme ({trailing*100:.1f}% du pic)"
+        elif elapsed >= MEME_MAX_DURATION:
+            reason = f"⏱ Timeout {int(elapsed)}s"
+
+        if reason:
+            pnl     = (price - entry) / entry * pos["amount_usd"]
+            pnl_pct = (price - entry) / entry * 100
+            sim["cash"] += pos["amount_usd"] + pnl
+
+            trade = next((t for t in reversed(sim["trades"]) if t["id"]==pos["id"]), None)
+            if trade:
+                trade.update({
+                    "price_out":    price,
+                    "time_out":     datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "pnl":          round(pnl, 6),
+                    "pnl_pct":      round(pnl_pct, 2),
+                    "exit_reason":  reason,
+                    "duration_min": max(1, int(elapsed/60)),
+                })
+                db_save_trade(trade)
+                learn_from_trade(trade, send_fn=None)
+
+            del sim["positions"][pos_key]
+            save_data()
+
+            e = "✅" if pnl > 0 else "❌"
+            send_fn(
+                f"{e} MEME {symbol} fermé\n"
+                f"  ${entry:.8f}→${price:.8f} ({change*100:+.2f}%)\n"
+                f"  {'🤑' if pnl>0 else '💸'} ${pnl:+.4f} | {reason}"
+            )
+            if pnl > 0:
+                memory["total_wins"]   = memory.get("total_wins",0) + 1
+            else:
+                memory["total_losses"] = memory.get("total_losses",0) + 1
+
+
+def run_meme_cycle(send_fn):
+    """
+    Cycle memecoin complet :
+    1. Surveille les traders (AlxCooks, Murad, Ansem)
+    2. Détecte les tokens mentionnés → DexScreener
+    3. Scanne les tokens trendés sur Solana
+    4. Ouvre des trades simulés sur les meilleurs signaux
+    """
+    # Surveille les positions memecoins en cours
+    monitor_meme_positions(send_fn)
+
+    if sim["cash"] < 20:
+        return
+
+    candidates = []
+
+    # ── Source 1 : Tokens mentionnés par les traders ─────────────
+    trader_signals = scan_meme_traders()
+    for sig in trader_signals:
+        token = sig["token"]
+        score = meme_signal_score(token)
+        if score >= 5:
+            token["score"]  = score
+            token["reason"] = f"@{sig['author']} mentionne ${sig['ticker']} | {token.get('change1h',0):+.1f}%1h"
+            token["source"] = "trader"
+            candidates.append(token)
+
+    # ── Source 2 : Trending DexScreener ──────────────────────────
+    trending = dex_get_trending()
+    for token in trending:
+        score = meme_signal_score(token)
+        if score >= 6:  # seuil plus haut pour trending (moins fiable)
+            token["score"]  = score
+            token["reason"] = f"Trending DexScreener | {token.get('change1h',0):+.1f}%1h vol${token.get('volume24h',0)/1000:.0f}k"
+            token["source"] = "trending"
+            candidates.append(token)
+
+    # ── Source 3 : Memecoins Bybit classiques ────────────────────
+    prices = get_prices_batch()
+    for sym in MEMECOIN_SOLANA + MEMECOIN_ETH:
+        price = prices.get(sym, 0)
+        if not price:
+            continue
+        closes = get_klines(sym, "5", 30)
+        if len(closes) < 10:
+            continue
+        ind = compute_indicators(closes)
+        if not ind:
+            continue
+        # Score simple pour memecoins Bybit
+        score = 0
+        if ind.get("rsi",50) < 35: score += 3
+        if ind.get("mom5",0) > 3:  score += 3
+        if ind.get("macd_h",0) > 0: score += 2
+        if score >= 6:
+            candidates.append({
+                "symbol":   sym.replace("USDT",""),
+                "price":    price,
+                "change1h": ind.get("mom5",0),
+                "change5m": 0,
+                "volume24h":0,
+                "liquidity":999999,
+                "chain":    "bybit",
+                "address":  "",
+                "score":    score,
+                "reason":   f"Bybit memecoin RSI={ind.get('rsi',0):.0f} mom={ind.get('mom5',0):+.1f}%",
+                "source":   "bybit",
+            })
+
+    if not candidates:
+        return
+
+    # Trie par score et prend le meilleur
+    candidates.sort(key=lambda x: x.get("score",0), reverse=True)
+    best = candidates[0]
+
+    # Vérifie qu'on n'a pas déjà ce token
+    if any(p["symbol"]==best["symbol"] for p in sim["positions"].values()):
+        return
+
+    # N'ouvre que si signal vraiment fort
+    if best.get("score",0) >= 5:
+        open_meme_trade(best, best.get("reason",""), send_fn)
+
+
+# ═══════════════════════════════════════════════════════════════
 #  MOTEUR MICRO-TRADING (sub-minute)
 #  Logique purement algorithmique — pas d'appel IA pour la vitesse
 #  Décision en <500ms sur signaux purs : tick, EMA, RSI, volume
@@ -2061,6 +2987,390 @@ def test_strategy_variation(send_fn):
         )
 
 
+
+# ═══════════════════════════════════════════════════════════════
+#  MOTEUR MEMECOIN — DexScreener + Surveillance Traders
+# ═══════════════════════════════════════════════════════════════
+
+_dex_cache: dict = {}   # symbol/address → (ts, data)
+_trending_cache: list = []
+_trending_ts: float = 0
+_mentioned_tokens: dict = {}  # token → {source, ts, score}
+
+def dex_get_pair(query: str) -> dict:
+    """Prix et stats d'un token via DexScreener (gratuit)."""
+    now = time.time()
+    if query in _dex_cache:
+        ts, d = _dex_cache[query]
+        if now - ts < 15:
+            return d
+    try:
+        url = f"https://api.dexscreener.com/latest/dex/search?q={query}"
+        r   = requests.get(url, timeout=8, headers={"User-Agent":"Mozilla/5.0"})
+        pairs = r.json().get("pairs", [])
+        if not pairs:
+            return {}
+        # Prend la paire la plus liquide
+        best = max(pairs, key=lambda p: float(p.get("liquidity",{}).get("usd",0) or 0))
+        d = {
+            "symbol":    best.get("baseToken",{}).get("symbol","?"),
+            "name":      best.get("baseToken",{}).get("name","?"),
+            "address":   best.get("baseToken",{}).get("address",""),
+            "price":     float(best.get("priceUsd",0) or 0),
+            "price_native": float(best.get("priceNative",0) or 0),
+            "change_5m":  float(best.get("priceChange",{}).get("m5",0) or 0),
+            "change_1h":  float(best.get("priceChange",{}).get("h1",0) or 0),
+            "change_24h": float(best.get("priceChange",{}).get("h24",0) or 0),
+            "volume_5m":  float(best.get("volume",{}).get("m5",0) or 0),
+            "volume_1h":  float(best.get("volume",{}).get("h1",0) or 0),
+            "liquidity":  float(best.get("liquidity",{}).get("usd",0) or 0),
+            "mktcap":     float(best.get("marketCap",0) or 0),
+            "chain":      best.get("chainId","?"),
+            "dex":        best.get("dexId","?"),
+            "url":        best.get("url",""),
+            "txns_5m":    (best.get("txns",{}).get("m5",{}).get("buys",0) or 0) +
+                          (best.get("txns",{}).get("m5",{}).get("sells",0) or 0),
+            "age_h":      _pair_age_hours(best),
+        }
+        _dex_cache[query] = (now, d)
+        return d
+    except Exception as e:
+        print(f"[DEX] {e}")
+        return {}
+
+
+def _pair_age_hours(pair: dict) -> float:
+    """Âge de la paire en heures."""
+    try:
+        created = pair.get("pairCreatedAt", 0)
+        if created:
+            return (time.time() - created/1000) / 3600
+    except Exception:
+        pass
+    return 999
+
+
+def dex_get_trending_solana() -> list:
+    """Top tokens Solana en tendance sur DexScreener."""
+    global _trending_cache, _trending_ts
+    now = time.time()
+    if now - _trending_ts < 120 and _trending_cache:
+        return _trending_cache
+    try:
+        # Top boosted tokens
+        r = requests.get(
+            "https://api.dexscreener.com/token-boosts/latest/v1",
+            timeout=8, headers={"User-Agent":"Mozilla/5.0"})
+        tokens = r.json() if isinstance(r.json(), list) else []
+
+        # Filtre Solana + liquidity minimum
+        results = []
+        for t in tokens[:20]:
+            if t.get("chainId") != "solana":
+                continue
+            addr = t.get("tokenAddress","")
+            if not addr:
+                continue
+            data = dex_get_pair(addr)
+            if not data or data.get("liquidity",0) < 50000:
+                continue
+            if data.get("mktcap",0) > 500_000_000:
+                continue  # trop gros = pas un memecoin
+            results.append(data)
+            if len(results) >= 8:
+                break
+
+        _trending_cache = results
+        _trending_ts    = now
+        return results
+    except Exception as e:
+        print(f"[DEX-TREND] {e}")
+        return []
+
+
+def dex_scan_new_tokens() -> list:
+    """Nouveaux tokens lancés dans les <48h avec fort volume."""
+    try:
+        r = requests.get(
+            "https://api.dexscreener.com/latest/dex/tokens/solana",
+            timeout=10, headers={"User-Agent":"Mozilla/5.0"})
+        # Cherche tokens récents avec volume
+        all_pairs = r.json().get("pairs", [])
+        new_tokens = []
+        for p in all_pairs:
+            age = _pair_age_hours(p)
+            if age > 48:
+                continue
+            vol1h = float(p.get("volume",{}).get("h1",0) or 0)
+            liq   = float(p.get("liquidity",{}).get("usd",0) or 0)
+            if vol1h < 10000 or liq < 20000:
+                continue
+            chg1h = float(p.get("priceChange",{}).get("h1",0) or 0)
+            if chg1h < 20:
+                continue  # besoin d'au moins +20% en 1h
+            new_tokens.append({
+                "symbol":   p.get("baseToken",{}).get("symbol","?"),
+                "address":  p.get("baseToken",{}).get("address",""),
+                "price":    float(p.get("priceUsd",0) or 0),
+                "change_1h": chg1h,
+                "volume_1h": vol1h,
+                "liquidity": liq,
+                "age_h":    round(age, 1),
+                "chain":    "solana",
+                "name":     p.get("baseToken",{}).get("name","?"),
+                "url":      p.get("url",""),
+            })
+        new_tokens.sort(key=lambda x: x["change_1h"], reverse=True)
+        return new_tokens[:5]
+    except Exception as e:
+        print(f"[DEX-NEW] {e}")
+        return []
+
+
+def extract_token_mentions(text: str) -> list:
+    """Extrait les mentions de tokens ($TOKEN) d'un texte."""
+    tokens = re.findall(r"\$([A-Z]{2,10})\b", text.upper())
+    # Filtre les mots communs
+    ignore = {"THE","AND","FOR","NOT","BUT","ARE","USD","SOL","ETH","BTC","USDT"}
+    return [t for t in tokens if t not in ignore]
+
+
+def process_trader_signal_for_meme(signal: dict, send_fn) -> None:
+    """
+    Quand un trader mentionne un token, on le vérifie sur DexScreener
+    et on ouvre une position simulée si les conditions sont bonnes.
+    """
+    tokens_mentioned = extract_token_mentions(signal.get("content",""))
+    if not tokens_mentioned:
+        return
+
+    for token in tokens_mentioned[:2]:  # max 2 par signal
+        try:
+            data = dex_get_pair(token)
+            if not data or data.get("price", 0) <= 0:
+                continue
+            if data.get("liquidity", 0) < 30000:
+                continue  # trop peu de liquidité
+
+            # Score du signal memecoin
+            score = 0
+            if data["change_5m"] > 5:    score += 3
+            if data["change_1h"] > 20:   score += 2
+            if data["volume_5m"] > 5000: score += 2
+            if signal.get("strength", 1) >= 2: score += 2
+
+            if score < 4:
+                continue
+
+            author = signal.get("author","?")
+            print(f"[MEME-SIGNAL] @{author} mentionne ${token} score={score}")
+
+            # Vérifie si déjà en position
+            pos_key_check = f"MEME_{token}"
+            already_in = any(p.get("meme_symbol")==token
+                             for p in sim["positions"].values())
+            if already_in:
+                continue
+
+            # Ouvre un trade memecoin simulé
+            open_meme_trade(data, score, author, send_fn)
+
+        except Exception as e:
+            print(f"[MEME-PROCESS] {e}")
+
+
+def open_meme_trade(data: dict, score: int, source: str, send_fn) -> dict | None:
+    """Ouvre un trade memecoin simulé avec paramètres adaptés."""
+    symbol  = data["symbol"]
+    price   = data["price"]
+    chain   = data.get("chain","solana")
+
+    if sim["cash"] < 20:
+        return None
+    if len(sim["positions"]) >= MAX_POSITIONS + 2:  # 2 slots supplémentaires pour memes
+        return None
+
+    amount = sim["cash"] * MEME_MAX_PCT
+    qty    = amount / price if price > 0 else 0
+    sim["cash"] -= amount
+
+    trade = {
+        "id":           len(sim["trades"]) + 1,
+        "symbol":       symbol,
+        "market":       "MEME",
+        "side":         "LONG",
+        "trade_type":   "MEME",
+        "meme_symbol":  symbol,
+        "price_in":     price,
+        "price_out":    None,
+        "qty":          qty,
+        "amount_usd":   amount,
+        "confidence":   min(95, 50 + score * 7),
+        "reason":       f"Signal @{source} | {data.get('change_1h',0):+.1f}%/1h | liq ${data.get('liquidity',0)/1000:.0f}k",
+        "exit_reason":  None,
+        "time_in":      datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "time_out":     None,
+        "pnl":          None,
+        "pnl_pct":      None,
+        "duration_min": None,
+        "patterns":     [f"meme_signal_score={score}"],
+        "leverage":     1,
+        "peak_price":   price,
+        "trough_price": price,
+        "open_time":    time.time(),
+        "chain":        chain,
+        "dex_url":      data.get("url",""),
+    }
+
+    pos_key = f"MEME_{symbol}_{trade['id']}"
+    sim["trades"].append(trade)
+    sim["positions"][pos_key] = {**trade, "pos_key": pos_key}
+    db_save_trade(trade)
+    bot_state["trades_today"] += 1
+
+    sl = price * (1 - MEME_SL_PCT)
+    tp = price * (1 + MEME_TP_PCT)
+
+    send_fn(
+        f"🎰 MEMECOIN ${symbol} ({chain.upper()})\n"
+        f"💵 ${price:.8f} | Liquidité: ${data.get('liquidity',0)/1000:.0f}k\n"
+        f"📈 +{data.get('change_1h',0):.1f}%/1h | Vol: ${data.get('volume_1h',0)/1000:.0f}k\n"
+        f"📡 Source: @{source} | Score: {score}/9\n"
+        f"💰 Mise: ${amount:.2f} ({MEME_MAX_PCT*100:.0f}% cash)\n"
+        f"🛑 SL: ${sl:.8f} (-{MEME_SL_PCT*100:.0f}%) | 🎯 TP: ${tp:.8f} (+{MEME_TP_PCT*100:.0f}%)"
+    )
+    return trade
+
+
+def monitor_meme_positions(send_fn):
+    """Surveille les positions memecoins — ferme sur SL/TP/timeout."""
+    now    = time.time()
+    for pos_key, pos in list(sim["positions"].items()):
+        if pos.get("trade_type") != "MEME":
+            continue
+
+        symbol  = pos["meme_symbol"]
+        entry   = pos["price_in"]
+        elapsed = now - pos.get("open_time", now)
+
+        # Récupère prix actuel via DexScreener
+        try:
+            data  = dex_get_pair(symbol)
+            price = data.get("price", 0)
+            if not price:
+                continue
+        except Exception:
+            continue
+
+        change = (price - entry) / entry if entry > 0 else 0
+        pos["peak_price"] = max(pos.get("peak_price", entry), price)
+        trailing = (pos["peak_price"] - price) / pos["peak_price"] if pos["peak_price"] > 0 else 0
+
+        reason = None
+        if change <= -MEME_SL_PCT:
+            reason = f"🛑 MEME SL ({change*100:+.1f}%)"
+        elif change >= MEME_TP_PCT:
+            reason = f"🎯 MEME TP ({change*100:+.1f}%)"
+        elif change > 0.05 and trailing >= MEME_TRAILING_PCT:
+            reason = f"📐 MEME TRAIL ({trailing*100:.1f}% du pic)"
+        elif elapsed >= MEME_MAX_DURATION:
+            reason = f"⏱ MEME TIMEOUT {int(elapsed)}s"
+
+        if reason:
+            amt  = pos["amount_usd"]
+            pnl  = change * amt
+            sim["cash"] += amt + pnl
+
+            trade = next((t for t in reversed(sim["trades"])
+                          if t["id"]==pos["id"]), None)
+            if trade:
+                trade.update({
+                    "price_out":    price,
+                    "time_out":     datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "pnl":          round(pnl, 6),
+                    "pnl_pct":      round(change*100, 3),
+                    "exit_reason":  reason,
+                    "duration_min": max(1, int(elapsed/60)),
+                })
+                db_save_trade(trade)
+                learn_from_trade(trade, send_fn=None)
+
+            del sim["positions"][pos_key]
+            save_data()
+
+            e = "✅" if pnl>0 else "❌"
+            send_fn(
+                f"{e} MEME ${symbol} fermé\n"
+                f"${entry:.8f}→${price:.8f} ({change*100:+.2f}%)\n"
+                f"{'🤑' if pnl>0 else '💸'} ${pnl:+.4f} | {reason}"
+            )
+            if pnl > 0:
+                memory["total_wins"]   = memory.get("total_wins",0) + 1
+            else:
+                memory["total_losses"] = memory.get("total_losses",0) + 1
+
+
+def run_meme_cycle(send_fn):
+    """
+    Cycle memecoin toutes les 45s :
+    1. Vérifie les tokens mentionnés par les traders suivis
+    2. Scanne les trending Solana via DexScreener
+    3. Cherche les nouveaux tokens avec fort momentum
+    """
+    # 1. Tokens mentionnés par les traders
+    for sig in list(_mentioned_tokens.values()):
+        if time.time() - sig.get("ts", 0) > 1800:  # ignore si >30min
+            continue
+        if sig.get("processed"):
+            continue
+        process_trader_signal_for_meme(sig, send_fn)
+        sig["processed"] = True
+
+    # 2. Trending Solana
+    trending = dex_get_trending_solana()
+    for data in trending[:3]:
+        if not data or data.get("price", 0) <= 0:
+            continue
+        symbol   = data["symbol"]
+        already  = any(p.get("meme_symbol")==symbol
+                       for p in sim["positions"].values())
+        if already:
+            continue
+
+        # Signal fort = +5% en 5min ET volume élevé
+        if data.get("change_5m", 0) > 5 and data.get("volume_5m", 0) > 5000:
+            score = 5
+            if data.get("change_1h", 0) > 30: score += 2
+            if data.get("txns_5m", 0) > 50:   score += 1
+            open_meme_trade(data, score, "DexScreener-Trending", send_fn)
+
+    # 3. Nouveaux tokens (<48h)
+    if bot_state.get("cycle_count", 0) % 10 == 0:  # toutes les 10 cycles
+        new_tokens = dex_scan_new_tokens()
+        for data in new_tokens[:1]:  # max 1 nouveau token par scan
+            already = any(p.get("meme_symbol")==data["symbol"]
+                         for p in sim["positions"].values())
+            if already:
+                continue
+            if data.get("change_1h", 0) > 50 and data.get("liquidity", 0) > 50000:
+                open_meme_trade(data, 6, f"NewToken-{data['age_h']:.0f}h", send_fn)
+
+
+def register_trader_mention(signal: dict):
+    """Enregistre un token mentionné par un trader pour traitement."""
+    tokens = extract_token_mentions(signal.get("content",""))
+    for token in tokens:
+        _mentioned_tokens[token] = {
+            "token":    token,
+            "source":   signal.get("author","?"),
+            "content":  signal.get("content",""),
+            "strength": signal.get("strength", 1),
+            "ts":       time.time(),
+            "processed": False,
+        }
+        print(f"[MEME-MENTION] ${token} par @{signal.get('author','?')}")
+
+
 # ═══════════════════════════════════════════════════════════════
 #  BOUCLE CONTINUE
 # ═══════════════════════════════════════════════════════════════
@@ -2099,6 +3409,14 @@ def trading_loop(send_fn):
             except Exception as e:
                 print(f"[MICRO] {e}")
             bot_state["last_micro"] = now
+
+        # ══ 45s : MEMECOINS (DexScreener + traders) ═══════════
+        if now - bot_state.get("last_meme", 0) >= CYCLE_MEME:
+            try:
+                run_meme_cycle(send_fn)
+            except Exception as e:
+                print(f"[MEME] {e}")
+            bot_state["last_meme"] = now
 
         # ══ 15s : Surveillance SL/TP classique ════════════════
         if now - bot_state["last_monitor"] >= CYCLE_MONITOR:
@@ -2185,12 +3503,34 @@ def trading_loop(send_fn):
 
             bot_state["last_scalp"] = now
 
+        # ══ 45s : MEMECOINS (DexScreener + traders) ═══════════
+        if now - bot_state.get("last_meme", 0) >= CYCLE_MEME:
+            try:
+                run_meme_cycle(send_fn)
+            except Exception as e:
+                print(f"[MEME] {e}")
+            bot_state["last_meme"] = now
+
+        # ══ 45s : Cycle MEMECOIN ══════════════════════════════
+        if now - bot_state.get("last_meme", 0) >= CYCLE_MEME:
+            try:
+                monitor_meme_positions(send_fn)
+                run_meme_cycle(send_fn)
+            except Exception as e:
+                print(f"[MEME] {e}")
+            bot_state["last_meme"] = now
+
         # ══ 5min : Analyse profonde + traders + auto-learning ═══
         if now - bot_state["last_deep"] >= CYCLE_DEEP:
             try:
                 _deep_futures(send_fn, fear_greed)
-                # Collecte traders en arrière-plan
-                threading.Thread(target=get_trader_intelligence, daemon=True).start()
+                # Collecte traders en arrière-plan + enregistre mentions memecoins
+                def _collect_and_process():
+                    intel = get_trader_intelligence()
+                    # Passe les signaux au moteur memecoin
+                    for sig in intel.get("bullish", []) + intel.get("bearish", []):
+                        register_trader_mention(sig)
+                threading.Thread(target=_collect_and_process, daemon=True).start()
                 # Auto-ajustement SL/TP
                 auto_adjust_sl_tp()
                 # Règles auto-générées tous les 10 trades
@@ -2988,7 +4328,8 @@ async def cmd_help(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         f"\n━━━━━━━━━━━━━━━━━━━\n"
         f"🔍 Surveillance & apprentissage :\n"
         f"  /signaux   — Derniers signaux des traders Twitter/YouTube\n"
-        f"  /regles    — Règles de trading auto-générées par le bot"
+        f"  /regles    — Règles de trading auto-générées par le bot\n"
+        f"  /memes     — Memecoins trending + positions ouvertes"
     )
 
 
@@ -3042,6 +4383,51 @@ async def cmd_marches(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                      f"{len(STOCKS_SYMBOLS)} actions + "
                      f"{len(FOREX_SYMBOLS)} forex + "
                      f"{len(COMMODITY_SYMBOLS)} commodités")
+        await update.message.reply_text("\n".join(lines))
+    except Exception as e:
+        await update.message.reply_text(f"Erreur: {e}")
+
+
+async def cmd_memes(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Affiche les positions memecoins ouvertes + trending Solana."""
+    if not _auth(update): return
+    await update.message.reply_text("🎰 Scan memecoins en cours...")
+    try:
+        lines = ["🎰 MEMECOINS — DexScreener\n━━━━━━━━━━━━━"]
+
+        # Positions ouvertes
+        meme_pos = [p for p in sim["positions"].values()
+                    if p.get("trade_type")=="MEME"]
+        if meme_pos:
+            lines.append("📍 Positions ouvertes:")
+            for p in meme_pos:
+                data = dex_get_pair(p["meme_symbol"])
+                price = data.get("price", p["price_in"])
+                chg   = (price - p["price_in"]) / p["price_in"] * 100 if p["price_in"] else 0
+                e     = "📈" if chg>0 else "📉"
+                lines.append(f"  {e} ${p['meme_symbol']} {chg:+.1f}% | ${p['amount_usd']:.2f}")
+
+        # Trending Solana
+        lines.append("\n🔥 Trending Solana (DexScreener):")
+        trending = dex_get_trending_solana()
+        if trending:
+            for d in trending[:5]:
+                e = "🚀" if d.get("change_1h",0)>20 else "📈"
+                lines.append(
+                    f"  {e} ${d['symbol']} {d.get('change_1h',0):+.1f}%/1h "
+                    f"| Vol ${d.get('volume_1h',0)/1000:.0f}k "
+                    f"| Liq ${d.get('liquidity',0)/1000:.0f}k"
+                )
+        else:
+            lines.append("  Aucun trending disponible")
+
+        # Tokens mentionnés
+        if _mentioned_tokens:
+            lines.append("\n📡 Tokens mentionnés par les traders:")
+            for t, info in list(_mentioned_tokens.items())[-5:]:
+                age = int((time.time() - info.get("ts",0)) / 60)
+                lines.append(f"  💬 ${t} par @{info['source']} (il y a {age}min)")
+
         await update.message.reply_text("\n".join(lines))
     except Exception as e:
         await update.message.reply_text(f"Erreur: {e}")
@@ -3101,6 +4487,98 @@ async def cmd_regles(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"Erreur: {e}")
 
 
+async def cmd_memes(update, ctx):
+    """Affiche les memecoins surveillés et les dernières opportunités."""
+    if not _auth(update): return
+    await update.message.reply_text("🐸 Scan memecoins en cours...")
+    try:
+        # Trending DexScreener
+        trending = dex_get_trending()
+        lines = ["🐸 MEMECOINS — Trending maintenant\n━━━━━━━━━━━━━"]
+
+        for t in trending[:5]:
+            score = meme_signal_score(t)
+            e = "🔥" if score >= 7 else "📈" if score >= 5 else "📊"
+            lines.append(
+                f"{e} {t.get('symbol','?')} ({t.get('chain','?').upper()})\n"
+                f"  ${t.get('price',0):.8f} | "
+                f"1h:{t.get('change1h',0):+.1f}% 5m:{t.get('change5m',0):+.1f}%\n"
+                f"  Liq:${t.get('liquidity',0)/1000:.0f}k "
+                f"Vol:${t.get('volume24h',0)/1000:.0f}k | Score:{score}/10"
+            )
+
+        # Traders memecoins
+        lines.append("\n👥 Traders surveillés:")
+        lines.append("  @AlxCooks_off @MustStopMurad @blknoiz06")
+        lines.append("  @Degentraland @CryptoGodJohn")
+
+        # Positions memecoins ouvertes
+        meme_pos = [p for p in sim["positions"].values() if p.get("trade_type")=="MEME"]
+        if meme_pos:
+            lines.append(f"\n📍 Positions memecoins: {len(meme_pos)}")
+            for p in meme_pos:
+                lines.append(f"  🐸 {p['symbol']} | ${p['price_in']:.8f}")
+
+        await update.message.reply_text("\n".join(lines))
+    except Exception as e:
+        await update.message.reply_text(f"Erreur: {e}")
+
+
+async def cmd_memecoins(update, ctx):
+    """Affiche les tokens memecoins détectés et les mentions des traders."""
+    if not _auth(update): return
+    await update.message.reply_text("🔍 Scan memecoins en cours...")
+    try:
+        # Trending DexScreener
+        trending = get_trending_dex_tokens()
+        # Mentions traders récentes
+        mentioned = _mentioned_tokens[:5]
+
+        lines = ["🎯 MEMECOINS — Détection en temps réel\n━━━━━━━━━━━━━"]
+
+        if trending:
+            lines.append("📈 TRENDING (DexScreener):")
+            for t in trending[:4]:
+                chain_e = "🟣" if t.get("chain")=="solana" else "🔷"
+                lines.append(
+                    f"  {chain_e} ${t['symbol']} +{t.get('change5m',0):.1f}%/5m "
+                    f"+{t.get('change1h',0):.1f}%/1h "
+                    f"Vol:${t.get('volume24h',0)/1000:.0f}k"
+                )
+
+        if mentioned:
+            lines.append("\n👤 MENTIONNÉS PAR DES TRADERS:")
+            for t in mentioned[:4]:
+                lines.append(
+                    f"  @{t.get('mentioned_by','?')} → ${t['symbol']} "
+                    f"${t.get('price',0):.6f} "
+                    f"+{t.get('change5m',0):.1f}%/5m"
+                )
+
+        # Positions meme ouvertes
+        meme_pos = [p for p in sim["positions"].values()
+                    if p.get("trade_type")=="MEME"]
+        if meme_pos:
+            lines.append("\n📍 POSITIONS MEME OUVERTES:")
+            for p in meme_pos:
+                sym = p["symbol"].replace("MEME_","")
+                addr = p.get("dex_address","")
+                data = get_dex_price(addr, p.get("chain","solana")) if addr else {}
+                price = data.get("price", p["price_in"])
+                chg   = (price - p["price_in"]) / p["price_in"] * 100
+                e     = "📈" if chg > 0 else "📉"
+                lines.append(f"  {e} ${sym}: {chg:+.1f}% | ${p['amount_usd']:.2f}")
+
+        if not trending and not mentioned:
+            lines.append("Aucun signal memecoin pour l'instant.")
+            lines.append("Le bot surveille en continu AlxCooks, Murad, Ansem...")
+
+        lines.append(f"\n🔄 Prochain scan dans {CYCLE_MEME}s")
+        await update.message.reply_text("\n".join(lines))
+    except Exception as e:
+        await update.message.reply_text(f"Erreur: {e}")
+
+
 # ═══════════════════════════════════════════════════════════════
 #  APPLICATION TELEGRAM (webhook)
 # ═══════════════════════════════════════════════════════════════
@@ -3134,6 +4612,7 @@ async def run_telegram():
         ("help",      cmd_help),
         ("signaux",   cmd_signaux),
         ("regles",    cmd_regles),
+        ("memes",     cmd_memes),
     ]:
         _app.add_handler(CommandHandler(cmd, fn))
 
