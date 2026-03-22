@@ -1,16 +1,13 @@
 """
-Trading Bot v4 — Simulation Pure sur Marché Réel
+Trading Bot v5 — Simulation Pure sur Marché Réel
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Le bot observe les vrais prix en temps réel (Bybit API)
-et simule ses propres trades avec $1000 virtuels.
-Il prend ses décisions seul, apprend de chaque résultat,
-et tourne en continu 24h/24.
-
-Architecture :
-  • 30s  → surveillance SL/TP/trailing sur positions ouvertes
-  • 2min → scan + scalping sur 20 cryptos
-  • 5min → analyse profonde + positions simulées long/short
-  • 15min → bilan complet Telegram
+Nouveautés v5 :
+  • Kelly Criterion avancé (taille optimale des trades)
+  • Liquidations en temps réel (CoinGlass)
+  • Données on-chain (CoinGecko)
+  • Détection d'arbitrage inter-exchanges
+  • Whale alerts (gros mouvements détectés)
+  • Scanner Polymarket (API publique, sans compte)
 """
 
 import os, time, threading, feedparser, requests, asyncio
@@ -21,7 +18,6 @@ from datetime import datetime, timedelta
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 from collections import Counter, deque
-from urllib.parse import quote_plus
 
 from groq import Groq
 from pybit.unified_trading import HTTP
@@ -41,192 +37,117 @@ WEBHOOK_URL      = os.environ.get("WEBHOOK_URL", "")
 WEBHOOK_PATH     = "/webhook"
 WEBHOOK_PORT     = 8000
 
-# ── Simulation ─────────────────────────────────────────────────
-CAPITAL_INITIAL   = 1000.0   # portefeuille de départ
-MAX_POSITIONS     = 4        # max trades simultanés
-MAX_PCT_PER_TRADE = 0.25     # max 25% du cash par trade
-STOP_LOSS_PCT     = 0.025    # -2.5%
-TAKE_PROFIT_PCT   = 0.04     # +4%
-TRAILING_PCT      = 0.015    # trailing stop -1.5% du pic
-LEVERAGE_SIM      = 2        # levier simulé x2 sur "futures"
+CAPITAL_INITIAL   = 1000.0
+MAX_POSITIONS     = 4
+MAX_PCT_PER_TRADE = 0.25
+STOP_LOSS_PCT     = 0.025
+TAKE_PROFIT_PCT   = 0.04
+TRAILING_PCT      = 0.015
+LEVERAGE_SIM      = 2
 
-# ── Seuils IA ─────────────────────────────────────────────────
 CONFIDENCE_BASE = 65
 CONFIDENCE_MIN  = 55
 CONFIDENCE_MAX  = 82
 
-# ── Mode apprentissage (voir config complète plus bas) ──────
+CYCLE_MONITOR = 15
+CYCLE_SCALP   = 300
+CYCLE_DEEP    = 300
+CYCLE_STATUS  = 900
+CYCLE_MICRO   = 8
+CYCLE_MEME    = 45
 
-# ── Fréquences ────────────────────────────────────────────────
-CYCLE_MICRO   = 8     # micro-trades : toutes les 8s
-CYCLE_MONITOR = 15    # surveillance SL/TP : toutes les 15s
-CYCLE_SCALP   = 300   # scalping IA : toutes les 5min (économise tokens Groq)
-CYCLE_DEEP    = 300   # analyse profonde : toutes les 5min
-CYCLE_STATUS  = 900   # bilan : toutes les 15min
+MICRO_SL_PCT        = 0.008
+MICRO_TP_PCT        = 0.012
+MICRO_TRAILING_PCT  = 0.005
+MICRO_MAX_DURATION  = 90
+MICRO_MAX_PCT       = 0.10
+MICRO_CONF_MIN      = 72
+MAX_MICRO_POSITIONS = 3
 
-# ── Micro-trading : paramètres spéciaux ──────────────────────
-MICRO_SL_PCT       = 0.008   # stop-loss micro : -0.8%
-MICRO_TP_PCT       = 0.012   # take-profit micro : +1.2%
-MICRO_TRAILING_PCT = 0.005   # trailing micro : -0.5% du pic
-MICRO_MAX_DURATION = 90      # ferme le micro-trade après 90s max
-MICRO_MAX_PCT      = 0.10    # max 10% du cash par micro-trade
-MICRO_CONF_MIN     = 72      # seuil plus élevé (signal très fort requis)
-MAX_MICRO_POSITIONS = 3      # max 3 micro-trades simultanés
+MEME_SL_PCT       = 0.05
+MEME_TP_PCT       = 0.15
+MEME_TRAILING_PCT = 0.07
+MEME_MAX_PCT      = 0.05
+MEME_MAX_DURATION = 300
 
-# ── Indicateurs micro-trading (sur bougies 1min) ──────────────
-# Signaux utilisés : EMA cross 1min, RSI divergence, spike volume,
-# momentum 3 bougies, Bollinger squeeze, VWAP approximé
+LEARN_MODE_ENABLED  = True
+LEARN_MODE_CONF_MIN = 45
+LEARN_MODE_MAX_PCT  = 0.05
+LEARNING_MAX_PCT    = 0.05
 
-# ── Crypto majeurs + small caps Bybit ────────────────────────
+AI_CALLS_PER_HOUR_MAX = 10
+AI_CYCLE_MIN_INTERVAL = 360
+
+GROQ_PRIMARY_MODEL   = "llama-3.1-8b-instant"
+GROQ_SECONDARY_MODEL = "llama-3.1-8b-instant"
+GROQ_FAST_MODEL      = "llama-3.1-8b-instant"
+
+DB_FILE   = "sim_v5.db"
+DATA_FILE = Path("sim_portfolio_v5.json")
+
 CRYPTO_SYMBOLS = [
-    # Majeurs
     "BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT","XRPUSDT",
     "DOGEUSDT","ADAUSDT","AVAXUSDT","MATICUSDT","LINKUSDT",
     "DOTUSDT","UNIUSDT","ATOMUSDT","LTCUSDT","NEARUSDT",
     "APTUSDT","ARBUSDT","OPUSDT","INJUSDT","SUIUSDT",
-    # Small caps
     "FETUSDT","RENDERUSDT","WLDUSDT","STRKUSDT","PYTHUSDT",
-    "JUPUSDT","TIAUSDT","SEIUSDT","ALTUSDT","ZKUSDT",
-    "EIGENUSDT","MNTUSDT","WUSDT","ONDOUSDT","ENAUSDT",
-    "REZUSDT","BBUSDT","NOTUSDT","TURBOUSDT","CATIUSDT",
+    "JUPUSDT","TIAUSDT","SEIUSDT","ENAUSDT","EIGENUSDT",
 ]
 
-# Actions US — via Yahoo Finance (gratuit)
-STOCKS_SYMBOLS = {
-    "AAPL":  "Apple",   "TSLA":  "Tesla",   "NVDA":  "NVIDIA",
-    "META":  "Meta",    "MSFT":  "Microsoft","GOOGL": "Google",
-    "AMZN":  "Amazon",  "AMD":   "AMD",      "NFLX":  "Netflix",
-    "COIN":  "Coinbase","MSTR":  "MicroStrategy",
-}
-
-# Forex — via Yahoo Finance
-FOREX_SYMBOLS = {
-    "EURUSD=X": "EUR/USD", "GBPUSD=X": "GBP/USD",
-    "USDJPY=X": "USD/JPY", "AUDUSD=X": "AUD/USD",
-    "USDCHF=X": "USD/CHF", "BTCUSD=X": "BTC/USD",
-}
-
-# Matières premières — via Yahoo Finance
-COMMODITY_SYMBOLS = {
-    "GC=F":  "Or",      "SI=F":  "Argent",
-    "CL=F":  "Pétrole", "NG=F":  "Gaz naturel",
-    "HG=F":  "Cuivre",
-}
-
-ALL_SYMBOLS = CRYPTO_SYMBOLS  # Bybit pour les prix temps réel
-
-# Sous-ensemble pour micro-trading (les plus liquides)
 MICRO_SYMBOLS = [
     "BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT","XRPUSDT",
     "DOGEUSDT","AVAXUSDT","LINKUSDT","ARBUSDT","APTUSDT",
     "FETUSDT","INJUSDT","NEARUSDT","SUIUSDT","OPUSDT",
 ]
 
-# Mode apprentissage forcé
-LEARN_MODE_ENABLED     = True   # trade même avec signal faible
-LEARN_MODE_CONF_MIN = 45     # seuil minimal en mode apprentissage
-LEARN_MODE_MAX_PCT  = 0.05   # max 5% du cash par trade en mode apprentissage
-
-DB_FILE   = "sim_v4.db"
-DATA_FILE = Path("sim_portfolio.json")
-
-# ── Modèles Groq actifs 2025 ─────────────────────────────────
-# Seul llama-3.1-8b-instant est utilisé — 6x moins de tokens
-# L'IA confirme ou infirme les signaux algo pur, elle ne les génère pas
-AI_MODELS = ["llama-3.1-8b-instant"]
-GROQ_PRIMARY_MODEL   = "llama-3.1-8b-instant"
-GROQ_SECONDARY_MODEL = "llama-3.1-8b-instant"
-GROQ_FAST_MODEL      = "llama-3.1-8b-instant"
-
-# Budget IA : max 10 appels par heure (largement suffisant)
-# 10 appels × 300 tokens × 24h = ~72k tokens/jour
-AI_CALLS_PER_HOUR_MAX = 10
-AI_CYCLE_MIN_INTERVAL = 360  # minimum 6 min entre 2 analyses IA
-
-# ── Surveillance traders en temps réel ───────────────────────
-TRADER_TWITTER_ACCOUNTS = [
-    # Macro crypto
-    "michael_saylor", "CathieDWood", "APompliano",
-    "WClementeIII", "CryptoKaleo", "RaoulGMI",
-    # Memecoins traders (AlxCooks + influents)
-    "AlxCooks_off",      # Memecoin trader TikTok/Twitch
-    "MustStopMurad",     # Murad — memecoin bull reconnu
-    "blknoiz06",         # Ansem — Solana memecoins
-    "Degentraland",      # Memecoin alpha
-    "CryptoGodJohn",     # Solana memecoin trader
-    "solbigbrain",       # Solana alpha
+MEMECOIN_SYMBOLS = [
+    "BONKUSDT","WIFUSDT","POPCATUSDT","SHIBUSDT",
+    "FLOKIUSDT","PEPEUSDT","DOGEUSDT",
 ]
 
-# ── Memecoins Solana (Bybit) ──────────────────────────────────
-MEMECOIN_SOLANA = [
-    "BONKUSDT","WIFUSDT","POPCATUSDT","JUPUSDT",
-    "MEWUSDT","BRETTUSDT","MOTHERUSDT","MIGGLESUSDT",
-]
-
-# ── Memecoins Ethereum (Bybit) ────────────────────────────────
-MEMECOIN_ETH = [
-    "SHIBUSDT","FLOKIUSDT","PEPEUSDT","MOGUSDT",
-    "DOGEUSDT","BABYDOGEUSDT",
-]
-
-# ── Paramètres memecoins (plus agressifs) ─────────────────────
-MEME_SL_PCT       = 0.05   # -5% (memecoins = volatils)
-MEME_TP_PCT       = 0.15   # +15% (pumps rapides)
-MEME_TRAILING_PCT = 0.07   # trailing -7% du pic
-MEME_MAX_PCT      = 0.05   # max 5% du capital (risque élevé)
-MEME_MAX_DURATION = 300    # ferme après 5min si pas de mouvement
-CYCLE_MEME        = 45     # scan memecoins toutes les 45s
-
-# ── DexScreener API (gratuit, pas de clé) ─────────────────────
-DEXSCREENER_API = "https://api.dexscreener.com/latest/dex"
-DEXSCREENER_NEW = "https://api.dexscreener.com/token-boosts/latest/v1"
-
-# Chaînes YouTube à surveiller (ID de chaîne)
-YOUTUBE_CHANNELS = {
-    "Benjamin Cowen":    "UCRvqjQPSeaWn-uEx-w0XOIg",
-    "Coin Bureau":       "UCqK_GSMbpiV8spgD3ZGloSw",
-    "Andrei Jikh":       "UCGn_PEBIgFj_zB4Jnz3bnmA",
-    "InvestAnswers":     "UCnMn36GT_H0X-w5_ckLtlgQ",
+STOCKS_SYMBOLS = {
+    "AAPL":"Apple","TSLA":"Tesla","NVDA":"NVIDIA",
+    "META":"Meta","MSFT":"Microsoft","GOOGL":"Google",
+    "AMZN":"Amazon","AMD":"AMD","COIN":"Coinbase","MSTR":"MicroStrategy",
 }
 
-# Nitter instances publiques (miroir Twitter gratuit)
+FOREX_SYMBOLS = {
+    "EURUSD=X":"EUR/USD","GBPUSD=X":"GBP/USD",
+    "USDJPY=X":"USD/JPY","AUDUSD=X":"AUD/USD",
+}
+
+COMMODITY_SYMBOLS = {
+    "GC=F":"Or","SI=F":"Argent","CL=F":"Pétrole","HG=F":"Cuivre",
+}
+
+ALL_SYMBOLS = CRYPTO_SYMBOLS
+
 NITTER_INSTANCES = [
     "nitter.privacydev.net",
     "nitter.poast.org",
     "nitter.1d4.us",
 ]
 
-# ── Philosophies des traders légendaires ──────────────────────
-# Injectées dans le prompt IA pour guider les décisions
+TRADER_TWITTER_ACCOUNTS = [
+    "michael_saylor","CathieDWood","APompliano",
+    "WClementeIII","CryptoKaleo","RaoulGMI",
+    "AlxCooks_off","MustStopMurad","blknoiz06",
+    "Degentraland","CryptoGodJohn","solbigbrain",
+]
+
+YOUTUBE_CHANNELS = {
+    "Benjamin Cowen":  "UCRvqjQPSeaWn-uEx-w0XOIg",
+    "Coin Bureau":     "UCqK_GSMbpiV8spgD3ZGloSw",
+    "InvestAnswers":   "UCnMn36GT_H0X-w5_ckLtlgQ",
+}
+
 TRADER_PHILOSOPHIES = """
-RÈGLES INSPIRÉES DES MEILLEURS TRADERS :
-
-1. MICHAEL SAYLOR (accumulation) :
-   - Fear&Greed < 20 = opportunité rare → augmenter la taille de position
-   - Ne jamais vendre en panique, les baisses sont des cadeaux
-   - BTC et grandes caps = conviction forte même en bear market
-
-2. CATHIE WOOD (growth/innovation) :
-   - Favoriser les tokens avec fort potentiel disruptif (AI, DeFi, L2)
-   - Acheter les corrections sur les tendances de fond haussières
-   - RSI bas sur un token innovant = point d'entrée, pas de danger
-
-3. PAUL TUDOR JONES (macro/protection) :
-   - JAMAIS perdre plus de 2% du capital sur un seul trade
-   - Si Fear&Greed < 15 ET macro bearish → réduire les positions
-   - Le risque de ruine prime sur le gain → toujours protéger le capital
-
-4. JESSE LIVERMORE (momentum/scalping) :
-   - "The trend is your friend" → trader dans le sens de la tendance
-   - Ne jamais moyenner à la baisse sur un perdant
-   - Quand un trade est gagnant, laisser courir → trailing stop large
-   - Volume élevé confirme le mouvement → signal plus fiable
-
-5. WARREN BUFFETT (valeur/patience) :
-   - N'entrer que sur des signaux de très haute conviction (conf > 75%)
-   - "Be fearful when others are greedy, greedy when others are fearful"
-   - Fear&Greed < 25 → context d'achat exceptionnel
-   - La patience est un avantage compétitif
+RÈGLES DES MEILLEURS TRADERS :
+1. SAYLOR : Fear&Greed<20 = opportunité rare. Ne jamais vendre en panique.
+2. CATHIE WOOD : Favoriser tokens innovants (AI, DeFi, L2). RSI bas = entrée.
+3. PAUL TUDOR JONES : JAMAIS perdre >2% du capital par trade.
+4. LIVERMORE : Trader dans le sens de la tendance. Volume confirme.
+5. BUFFETT : N'entrer que sur signaux haute conviction (conf>75%).
 """
 
 # ═══════════════════════════════════════════════════════════════
@@ -239,60 +160,524 @@ bybit       = HTTP(api_key=BYBIT_KEY, api_secret=BYBIT_SECRET)
 #  ÉTAT GLOBAL
 # ═══════════════════════════════════════════════════════════════
 sim = {
-    "cash":      CAPITAL_INITIAL,
-    "initial":   CAPITAL_INITIAL,
-    "positions": {},   # pos_key → position dict
-    "trades":    [],
-    "equity_history": [],  # [(timestamp, equity)]
+    "cash": CAPITAL_INITIAL, "initial": CAPITAL_INITIAL,
+    "positions": {}, "trades": [], "equity_history": [],
+    "session": 1,
 }
 
 memory = {
-    "lessons":            [],
-    "patterns_to_avoid":  [],
+    "lessons": [], "patterns_to_avoid": [],
     "patterns_that_work": [],
     "confidence_threshold": CONFIDENCE_BASE,
-    "total_wins":   0,
-    "total_losses": 0,
+    "total_wins": 0, "total_losses": 0,
 }
 
 bot_state = {
-    "running":      False,
-    "last_heartbeat": None,
-    "cycle_count":  0,
-    "trades_today": 0,
-    "last_monitor": 0,
-    "last_scalp":   0,
-    "last_deep":    0,
-    "last_status":  0,
-    "nitter_idx":   0,
-    "yt_idx":       0,
-    "last_micro":   0,
+    "running": False, "last_heartbeat": None,
+    "cycle_count": 0, "trades_today": 0,
+    "last_monitor": 0, "last_scalp": 0,
+    "last_deep": 0, "last_status": 0,
+    "last_micro": 0, "last_meme": 0,
+    "nitter_idx": 0, "yt_idx": 0,
+    "micro_count": 0,
 }
 
 _main_loop = None
 _app       = None
+_signal_cache: set = set()
+_price_cache: dict = {}
+_yahoo_cache: dict = {}
+_dex_cache:   dict = {}
+_mentioned_tokens: dict = {}
 
 # ═══════════════════════════════════════════════════════════════
-#  BASE DE DONNÉES SQLite
+#  KELLY CRITERION AVANCÉ
+# ═══════════════════════════════════════════════════════════════
+def kelly_criterion(n_recent: int = 30) -> float:
+    """
+    Kelly Criterion complet basé sur l'historique réel.
+    f* = (p * b - q) / b
+    p = probabilité de gain, q = 1-p, b = ratio gain/perte moyen
+    Retourne la fraction Kelly divisée par 4 (quart-Kelly = plus sûr)
+    """
+    closed = [t for t in sim["trades"] if t.get("pnl") is not None]
+    if len(closed) < 5:
+        return 0.10  # défaut conservateur si pas assez d'historique
+
+    recent = closed[-n_recent:]
+    wins   = [t for t in recent if t["pnl"] > 0]
+    losses = [t for t in recent if t["pnl"] <= 0]
+
+    if not wins or not losses:
+        return 0.08
+
+    p = len(wins) / len(recent)
+    q = 1 - p
+
+    avg_win  = sum(t["pnl_pct"] for t in wins) / len(wins) / 100
+    avg_loss = abs(sum(t["pnl_pct"] for t in losses) / len(losses)) / 100
+
+    if avg_loss == 0:
+        return MAX_PCT_PER_TRADE
+
+    b = avg_win / avg_loss  # ratio gain/perte
+
+    kelly = (p * b - q) / b
+
+    # Quart-Kelly pour limiter le risque (plus conservateur)
+    quarter_kelly = kelly / 4
+
+    return round(max(0.03, min(MAX_PCT_PER_TRADE, quarter_kelly)), 3)
+
+
+def dynamic_position_size(confidence: int, market: str, symbol: str) -> float:
+    """
+    Taille de position dynamique combinant Kelly + confiance IA + contexte marché.
+    """
+    base_kelly = kelly_criterion(30)
+
+    # Ajustement selon la confiance IA
+    conf_multiplier = 0.5 + (confidence - 55) / 90
+
+    # Ajustement selon le marché
+    market_multiplier = 0.6 if market == "FUTURES" else 1.0
+    if market == "MEME":
+        market_multiplier = 0.4
+
+    # Ajustement selon la volatilité du symbole
+    vol_multiplier = 1.0
+    try:
+        closes = get_klines(symbol, "5", 30)
+        if not closes.empty:
+            vol = float(closes.pct_change().dropna().std() * 100)
+            if vol > 3:
+                vol_multiplier = 0.7
+            elif vol < 1:
+                vol_multiplier = 1.2
+    except Exception:
+        pass
+
+    size = base_kelly * conf_multiplier * market_multiplier * vol_multiplier
+    return round(max(0.03, min(MAX_PCT_PER_TRADE, size)), 3)
+
+
+# ═══════════════════════════════════════════════════════════════
+#  NOUVELLES SOURCES DE DONNÉES
+# ═══════════════════════════════════════════════════════════════
+
+# ── CoinGlass : Liquidations en temps réel ──────────────────
+_liquidations_cache = {"data": None, "ts": 0}
+
+def get_liquidations() -> dict:
+    """
+    Récupère les liquidations récentes via CoinGlass API publique.
+    Grosse liquidation SHORT = signal haussier (shorts squeezés).
+    Grosse liquidation LONG  = signal baissier (longs liquidés).
+    """
+    now = time.time()
+    if now - _liquidations_cache["ts"] < 60:
+        return _liquidations_cache["data"] or {}
+
+    try:
+        # API publique CoinGlass (pas de clé requise pour les données basiques)
+        url = "https://open-api.coinglass.com/public/v2/liquidation_history"
+        r   = requests.get(url, timeout=8, headers={
+            "User-Agent": "Mozilla/5.0",
+            "Accept": "application/json"
+        })
+        if r.status_code == 200:
+            data = r.json().get("data", {})
+            _liquidations_cache["data"] = data
+            _liquidations_cache["ts"]   = now
+            return data
+    except Exception:
+        pass
+
+    # Fallback : estimation via Bybit funding rates
+    try:
+        result = {}
+        for sym in ["BTCUSDT", "ETHUSDT", "SOLUSDT"]:
+            r = bybit.get_funding_rate_history(
+                category="linear", symbol=sym, limit=1)
+            items = r.get("result", {}).get("list", [])
+            if items:
+                rate = float(items[0].get("fundingRate", 0))
+                result[sym] = {
+                    "funding_rate": rate,
+                    "signal": "bearish" if rate > 0.001 else "bullish" if rate < -0.001 else "neutral"
+                }
+        _liquidations_cache["data"] = result
+        _liquidations_cache["ts"]   = now
+        return result
+    except Exception as e:
+        print(f"[LIQ] {e}")
+        return {}
+
+
+def interpret_liquidations(liq_data: dict) -> str:
+    """Traduit les données de liquidation en signal texte pour le prompt IA."""
+    if not liq_data:
+        return "Liquidations: données indisponibles"
+
+    lines = ["💥 Liquidations récentes:"]
+    for sym, data in list(liq_data.items())[:3]:
+        if isinstance(data, dict):
+            rate    = data.get("funding_rate", 0)
+            signal  = data.get("signal", "neutral")
+            emoji   = "🟢" if signal == "bullish" else "🔴" if signal == "bearish" else "⚪"
+            coin    = sym.replace("USDT","")
+            lines.append(f"  {emoji} {coin}: funding={rate*100:.4f}% ({signal})")
+
+    return "\n".join(lines)
+
+
+# ── CoinGecko : Données on-chain ────────────────────────────
+_coingecko_cache = {"data": None, "ts": 0}
+
+def get_onchain_data() -> dict:
+    """
+    Données on-chain via CoinGecko API gratuite.
+    - Dominance BTC
+    - Volume global 24h
+    - Market cap total
+    - Tendance DeFi/NFT
+    """
+    now = time.time()
+    if now - _coingecko_cache["ts"] < 300:  # cache 5min
+        return _coingecko_cache["data"] or {}
+
+    try:
+        # Global market data
+        r = requests.get(
+            "https://api.coingecko.com/api/v3/global",
+            timeout=10,
+            headers={"User-Agent": "Mozilla/5.0"}
+        )
+        if r.status_code == 200:
+            d = r.json().get("data", {})
+            result = {
+                "btc_dominance":    round(d.get("market_cap_percentage", {}).get("btc", 0), 1),
+                "eth_dominance":    round(d.get("market_cap_percentage", {}).get("eth", 0), 1),
+                "total_mcap":       d.get("total_market_cap", {}).get("usd", 0),
+                "total_volume_24h": d.get("total_volume", {}).get("usd", 0),
+                "mcap_change_24h":  round(d.get("market_cap_change_percentage_24h_usd", 0), 2),
+                "active_cryptos":   d.get("active_cryptocurrencies", 0),
+            }
+            _coingecko_cache["data"] = result
+            _coingecko_cache["ts"]   = now
+            return result
+    except Exception as e:
+        print(f"[GECKO] {e}")
+
+    return {}
+
+
+def format_onchain(data: dict) -> str:
+    if not data:
+        return "On-chain: données indisponibles"
+    mcap_b = data.get("total_mcap", 0) / 1e9
+    vol_b  = data.get("total_volume_24h", 0) / 1e9
+    chg    = data.get("mcap_change_24h", 0)
+    emoji  = "📈" if chg > 0 else "📉"
+    return (
+        f"🔗 On-chain: MCap=${mcap_b:.0f}B ({chg:+.1f}%) {emoji} "
+        f"Vol=${vol_b:.0f}B | BTC dom={data.get('btc_dominance',0)}%"
+    )
+
+
+# ── Whale Alert : Gros mouvements ───────────────────────────
+_whale_cache = {"alerts": [], "ts": 0}
+
+def get_whale_alerts() -> list:
+    """
+    Détecte les gros mouvements de fonds via des sources publiques.
+    Utilise Whale Alert RSS et CryptoQuant signaux publics.
+    """
+    now = time.time()
+    if now - _whale_cache["ts"] < 120:
+        return _whale_cache["alerts"]
+
+    alerts = []
+    try:
+        # Whale Alert via leur flux RSS public
+        feed = feedparser.parse("https://api.whale-alert.io/v1/transactions?api_key=&min_value=1000000")
+        for entry in feed.entries[:5]:
+            alerts.append({
+                "title":   entry.get("title",""),
+                "summary": entry.get("summary","")[:100],
+                "ts":      datetime.now().strftime("%H:%M"),
+            })
+    except Exception:
+        pass
+
+    # Fallback : gros volumes détectés sur Bybit
+    try:
+        prices = get_prices_batch()
+        for sym in ["BTCUSDT","ETHUSDT"]:
+            vols = get_volume_data(sym, "5", 5)
+            if len(vols) >= 2:
+                ratio = vols[-1] / (sum(vols[:-1])/max(len(vols)-1,1))
+                if ratio > 3:
+                    coin = sym.replace("USDT","")
+                    alerts.append({
+                        "title":   f"Volume spike {coin}",
+                        "summary": f"Volume x{ratio:.1f} la moyenne sur {coin}",
+                        "ts":      datetime.now().strftime("%H:%M"),
+                        "symbol":  sym,
+                        "type":    "volume_spike",
+                    })
+    except Exception as e:
+        print(f"[WHALE] {e}")
+
+    _whale_cache["alerts"] = alerts
+    _whale_cache["ts"]     = now
+    return alerts
+
+
+def format_whale_alerts(alerts: list) -> str:
+    if not alerts:
+        return "🐋 Whales: aucun mouvement détecté"
+    lines = ["🐋 Mouvements whale:"]
+    for a in alerts[:3]:
+        lines.append(f"  ⚠️ {a.get('summary','')[:60]} ({a.get('ts','')})")
+    return "\n".join(lines)
+
+
+# ── Polymarket : Scanner les marchés de prédiction ──────────
+_polymarket_cache = {"markets": [], "ts": 0}
+
+def get_polymarket_markets() -> list:
+    """
+    Scanne les marchés Polymarket via leur API publique (pas de compte requis).
+    Détecte les marchés avec des prix inefficaces vs probabilité réelle.
+    Note : lecture seule, aucun trade réel sur Polymarket.
+    """
+    now = time.time()
+    if now - _polymarket_cache["ts"] < 300:
+        return _polymarket_cache["markets"]
+
+    try:
+        # API CLOB publique Polymarket
+        r = requests.get(
+            "https://clob.polymarket.com/markets",
+            timeout=10,
+            params={"active": "true", "limit": 20},
+            headers={"User-Agent": "Mozilla/5.0"}
+        )
+        if r.status_code == 200:
+            markets = r.json().get("data", [])
+            processed = []
+            for m in markets[:20]:
+                tokens = m.get("tokens", [])
+                if len(tokens) < 2:
+                    continue
+                question = m.get("question","")
+                yes_price = float(tokens[0].get("price", 0.5))
+                no_price  = float(tokens[1].get("price", 0.5))
+
+                # Détecte inefficacité : sum ≠ 1 ou écart vs probabilité évidente
+                total = yes_price + no_price
+                if abs(total - 1.0) > 0.02:  # inefficacité détectée
+                    processed.append({
+                        "question":   question[:80],
+                        "yes_price":  yes_price,
+                        "no_price":   no_price,
+                        "total":      round(total, 3),
+                        "inefficiency": round(abs(total - 1.0) * 100, 2),
+                        "volume":     m.get("volume", 0),
+                        "end_date":   m.get("end_date_iso",""),
+                    })
+
+            # Trie par inefficacité
+            processed.sort(key=lambda x: x["inefficiency"], reverse=True)
+            _polymarket_cache["markets"] = processed
+            _polymarket_cache["ts"]      = now
+            return processed[:5]
+    except Exception as e:
+        print(f"[POLY] {e}")
+
+    return []
+
+
+def format_polymarket(markets: list) -> str:
+    if not markets:
+        return "Polymarket: aucune inefficacité détectée"
+    lines = ["🎯 Polymarket — Inefficacités:"]
+    for m in markets[:3]:
+        ineff = m["inefficiency"]
+        lines.append(
+            f"  ⚡ {m['question']}\n"
+            f"    YES:{m['yes_price']:.2f} NO:{m['no_price']:.2f} "
+            f"(ineff:{ineff:.1f}%)"
+        )
+    return "\n".join(lines)
+
+
+# ── Arbitrage inter-exchanges ────────────────────────────────
+_arb_cache = {"opportunities": [], "ts": 0}
+
+def detect_arbitrage() -> list:
+    """
+    Détecte les opportunités d'arbitrage en comparant les prix
+    entre Bybit et d'autres sources (Binance public API, Kraken).
+    """
+    now = time.time()
+    if now - _arb_cache["ts"] < 30:
+        return _arb_cache["opportunities"]
+
+    opportunities = []
+    bybit_prices  = get_prices_batch()
+
+    # Compare avec Binance (API publique, pas de clé)
+    try:
+        r = requests.get(
+            "https://api.binance.com/api/v3/ticker/price",
+            timeout=8,
+            headers={"User-Agent": "Mozilla/5.0"}
+        )
+        if r.status_code == 200:
+            binance_prices = {item["symbol"]: float(item["price"])
+                              for item in r.json()}
+
+            for sym in ["BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT","XRPUSDT"]:
+                bybit_p   = bybit_prices.get(sym, 0)
+                binance_p = binance_prices.get(sym, 0)
+
+                if not bybit_p or not binance_p:
+                    continue
+
+                spread_pct = abs(bybit_p - binance_p) / bybit_p * 100
+
+                if spread_pct > 0.15:  # spread > 0.15% = opportunité
+                    opportunities.append({
+                        "symbol":     sym,
+                        "bybit":      bybit_p,
+                        "binance":    binance_p,
+                        "spread_pct": round(spread_pct, 3),
+                        "direction":  "BUY_BYBIT" if bybit_p < binance_p else "BUY_BINANCE",
+                        "profit_est": round(spread_pct - 0.10, 3),  # moins les frais
+                    })
+
+    except Exception as e:
+        print(f"[ARB] Binance: {e}")
+
+    # Compare avec Kraken (API publique)
+    try:
+        r = requests.get(
+            "https://api.kraken.com/0/public/Ticker?pair=XBTUSD,ETHUSD",
+            timeout=8
+        )
+        if r.status_code == 200:
+            kraken_data = r.json().get("result", {})
+            kraken_btc  = float(kraken_data.get("XXBTZUSD", {}).get("c", [0])[0])
+            bybit_btc   = bybit_prices.get("BTCUSDT", 0)
+
+            if kraken_btc and bybit_btc:
+                spread = abs(bybit_btc - kraken_btc) / bybit_btc * 100
+                if spread > 0.2:
+                    opportunities.append({
+                        "symbol":     "BTCUSDT",
+                        "bybit":      bybit_btc,
+                        "kraken":     kraken_btc,
+                        "spread_pct": round(spread, 3),
+                        "direction":  "BUY_BYBIT" if bybit_btc < kraken_btc else "BUY_KRAKEN",
+                        "profit_est": round(spread - 0.15, 3),
+                    })
+    except Exception as e:
+        print(f"[ARB] Kraken: {e}")
+
+    opportunities.sort(key=lambda x: x["spread_pct"], reverse=True)
+    _arb_cache["opportunities"] = opportunities
+    _arb_cache["ts"]            = now
+    return opportunities
+
+
+def format_arbitrage(opps: list) -> str:
+    if not opps:
+        return "Arbitrage: aucune opportunité détectée"
+    lines = ["⚡ Arbitrage détecté:"]
+    for o in opps[:3]:
+        coin = o["symbol"].replace("USDT","")
+        lines.append(
+            f"  💰 {coin}: spread {o['spread_pct']:.2f}% "
+            f"→ profit net ~{o['profit_est']:.2f}%"
+        )
+    return "\n".join(lines)
+
+
+# ── Options : Put/Call Ratio ─────────────────────────────────
+_options_cache = {"data": None, "ts": 0}
+
+def get_options_data() -> dict:
+    """
+    Récupère le put/call ratio via Deribit API publique.
+    Put/Call > 1 = sentiment bearish (plus de puts que de calls).
+    Put/Call < 0.7 = sentiment bullish.
+    """
+    now = time.time()
+    if now - _options_cache["ts"] < 300:
+        return _options_cache["data"] or {}
+
+    try:
+        # Deribit API publique (pas de clé requise pour les données de marché)
+        r = requests.get(
+            "https://deribit.com/api/v2/public/get_book_summary_by_currency",
+            params={"currency": "BTC", "kind": "option"},
+            timeout=10,
+            headers={"User-Agent": "Mozilla/5.0"}
+        )
+        if r.status_code == 200:
+            instruments = r.json().get("result", [])
+            calls = sum(1 for i in instruments if "-C" in i.get("instrument_name",""))
+            puts  = sum(1 for i in instruments if "-P" in i.get("instrument_name",""))
+
+            put_call_ratio = round(puts / calls, 2) if calls > 0 else 1.0
+            total_oi = sum(i.get("open_interest",0) for i in instruments)
+
+            result = {
+                "put_call_ratio": put_call_ratio,
+                "calls":          calls,
+                "puts":           puts,
+                "total_oi":       total_oi,
+                "sentiment":      "bearish" if put_call_ratio > 1.2
+                                  else "bullish" if put_call_ratio < 0.7
+                                  else "neutral",
+            }
+            _options_cache["data"] = result
+            _options_cache["ts"]   = now
+            return result
+    except Exception as e:
+        print(f"[OPT] {e}")
+
+    return {}
+
+
+def format_options(data: dict) -> str:
+    if not data:
+        return "Options: données indisponibles"
+    pcr = data.get("put_call_ratio", 1)
+    sent= data.get("sentiment","neutral")
+    e   = "🐻" if sent=="bearish" else "🐂" if sent=="bullish" else "➡️"
+    return f"📊 Options BTC: P/C={pcr} {e} ({sent})"
+
+
+# ═══════════════════════════════════════════════════════════════
+#  BASE DE DONNÉES
 # ═══════════════════════════════════════════════════════════════
 def init_db():
     con = sqlite3.connect(DB_FILE)
     c   = con.cursor()
     c.execute("""CREATE TABLE IF NOT EXISTS trades(
-        id INTEGER PRIMARY KEY,
-        symbol TEXT, market TEXT, side TEXT,
-        price_in REAL, price_out REAL,
-        qty REAL, amount_usd REAL,
-        pnl REAL, pnl_pct REAL,
-        confidence INTEGER, reason TEXT, exit_reason TEXT,
-        duration_min INTEGER, time_in TEXT, time_out TEXT,
-        patterns TEXT, leverage INTEGER
+        id INTEGER PRIMARY KEY, symbol TEXT, market TEXT, side TEXT,
+        price_in REAL, price_out REAL, qty REAL, amount_usd REAL,
+        pnl REAL, pnl_pct REAL, confidence INTEGER, reason TEXT,
+        exit_reason TEXT, duration_min INTEGER, time_in TEXT, time_out TEXT,
+        patterns TEXT, leverage INTEGER, kelly_pct REAL
     )""")
     c.execute("""CREATE TABLE IF NOT EXISTS lessons(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        trade_id INTEGER, symbol TEXT, market TEXT,
-        pnl REAL, lecon TEXT, pattern TEXT,
-        action_future TEXT, type TEXT, date TEXT
+        trade_id INTEGER, symbol TEXT, market TEXT, pnl REAL,
+        lecon TEXT, pattern TEXT, action_future TEXT, type TEXT, date TEXT
     )""")
     c.execute("""CREATE TABLE IF NOT EXISTS equity(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -303,40 +688,37 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         rule TEXT, condition TEXT, action TEXT,
         win_rate REAL, sample_size INTEGER,
-        created_date TEXT, last_updated TEXT,
-        active INTEGER DEFAULT 1
+        created_date TEXT, last_updated TEXT, active INTEGER DEFAULT 1
     )""")
     c.execute("""CREATE TABLE IF NOT EXISTS trader_signals(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        source TEXT, author TEXT, content TEXT,
-        sentiment TEXT, symbol TEXT, strength INTEGER,
-        timestamp TEXT, url TEXT, hash TEXT UNIQUE
+        source TEXT, author TEXT, content TEXT, sentiment TEXT,
+        symbol TEXT, strength INTEGER, timestamp TEXT, url TEXT, hash TEXT UNIQUE
     )""")
-    c.execute("""CREATE TABLE IF NOT EXISTS strategy_tests(
+    c.execute("""CREATE TABLE IF NOT EXISTS arbitrage_log(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        strategy_name TEXT, params TEXT,
-        trades INTEGER, win_rate REAL, total_pnl REAL,
-        sharpe REAL, tested_date TEXT, active INTEGER DEFAULT 0
+        timestamp TEXT, symbol TEXT, exchange1 TEXT, price1 REAL,
+        exchange2 TEXT, price2 REAL, spread_pct REAL, profit_est REAL
     )""")
-    con.commit(); con.close()
+    con.commit()
+    con.close()
 
 
 def db_save_trade(t: dict):
     try:
         con = sqlite3.connect(DB_FILE)
         con.execute("""INSERT OR REPLACE INTO trades VALUES
-            (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", (
+            (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", (
             t["id"], t["symbol"], t["market"], t["side"],
-            t["price_in"], t.get("price_out"),
-            t["qty"], t["amount_usd"],
-            t.get("pnl"), t.get("pnl_pct"),
-            t["confidence"], t["reason"], t.get("exit_reason"),
-            t.get("duration_min"),
+            t["price_in"], t.get("price_out"), t["qty"], t["amount_usd"],
+            t.get("pnl"), t.get("pnl_pct"), t["confidence"],
+            t["reason"], t.get("exit_reason"), t.get("duration_min"),
             t["time_in"], t.get("time_out"),
             json.dumps(t.get("patterns", [])),
-            t.get("leverage", 1),
+            t.get("leverage", 1), t.get("kelly_pct", 0),
         ))
-        con.commit(); con.close()
+        con.commit()
+        con.close()
     except Exception as e:
         print(f"[DB] {e}")
 
@@ -351,24 +733,28 @@ def db_save_lesson(l: dict):
             l.get("pnl"), l.get("lecon"), l.get("pattern"),
             l.get("action_future"), l.get("type"), l.get("date"),
         ))
-        con.commit(); con.close()
+        con.commit()
+        con.close()
     except Exception as e:
         print(f"[DB-L] {e}")
 
 
-def db_save_equity(equity, cash, open_pos, daily_pnl):
+def db_save_arb(opp: dict):
     try:
         con = sqlite3.connect(DB_FILE)
-        con.execute("""INSERT INTO equity
-            (timestamp,equity,cash,open_positions,daily_pnl)
-            VALUES(?,?,?,?,?)""", (
+        ex2 = "binance" if "binance" in opp else "kraken"
+        con.execute("""INSERT INTO arbitrage_log
+            (timestamp,symbol,exchange1,price1,exchange2,price2,spread_pct,profit_est)
+            VALUES(?,?,?,?,?,?,?,?)""", (
             datetime.now().strftime("%Y-%m-%d %H:%M"),
-            round(equity,2), round(cash,2),
-            open_pos, round(daily_pnl,2),
+            opp["symbol"], "bybit", opp["bybit"],
+            ex2, opp.get("binance", opp.get("kraken",0)),
+            opp["spread_pct"], opp["profit_est"],
         ))
-        con.commit(); con.close()
-    except Exception:
-        pass
+        con.commit()
+        con.close()
+    except Exception as e:
+        print(f"[ARB-DB] {e}")
 
 
 def db_win_rate(n=30) -> float:
@@ -376,8 +762,10 @@ def db_win_rate(n=30) -> float:
         con  = sqlite3.connect(DB_FILE)
         rows = con.execute(
             "SELECT pnl FROM trades WHERE pnl IS NOT NULL ORDER BY id DESC LIMIT ?", (n,)
-        ).fetchall(); con.close()
-        if not rows: return 50.0
+        ).fetchall()
+        con.close()
+        if not rows:
+            return 50.0
         return round(sum(1 for r in rows if r[0]>0)/len(rows)*100, 1)
     except Exception:
         return 50.0
@@ -391,10 +779,10 @@ def db_symbol_stats() -> list:
                    SUM(CASE WHEN pnl>0 THEN 1 ELSE 0 END)*100.0/COUNT(*) wr
             FROM trades WHERE pnl IS NOT NULL
             GROUP BY symbol ORDER BY avg_pnl DESC LIMIT 5
-        """).fetchall(); con.close()
-        return [{"s": r[0].replace("USDT",""),
-                 "n": r[1], "pnl": round(r[2],2),
-                 "wr": round(r[3],0)} for r in rows]
+        """).fetchall()
+        con.close()
+        return [{"s": r[0].replace("USDT",""), "n": r[1],
+                 "pnl": round(r[2],2), "wr": round(r[3],0)} for r in rows]
     except Exception:
         return []
 
@@ -403,10 +791,10 @@ def db_best_patterns(symbol: str) -> list:
     try:
         con  = sqlite3.connect(DB_FILE)
         rows = con.execute("""
-            SELECT pattern FROM lessons
-            WHERE symbol=? AND type='succes'
+            SELECT pattern FROM lessons WHERE symbol=? AND type='succes'
             GROUP BY pattern ORDER BY COUNT(*) DESC LIMIT 5
-        """, (symbol,)).fetchall(); con.close()
+        """, (symbol,)).fetchall()
+        con.close()
         return [r[0] for r in rows if r[0]]
     except Exception:
         return []
@@ -416,13 +804,47 @@ def db_worst_patterns(symbol: str) -> list:
     try:
         con  = sqlite3.connect(DB_FILE)
         rows = con.execute("""
-            SELECT pattern FROM lessons
-            WHERE symbol=? AND type='erreur'
+            SELECT pattern FROM lessons WHERE symbol=? AND type='erreur'
             GROUP BY pattern ORDER BY COUNT(*) DESC LIMIT 5
-        """, (symbol,)).fetchall(); con.close()
+        """, (symbol,)).fetchall()
+        con.close()
         return [r[0] for r in rows if r[0]]
     except Exception:
         return []
+
+
+def get_active_rules() -> str:
+    try:
+        con  = sqlite3.connect(DB_FILE)
+        rows = con.execute("""
+            SELECT rule FROM trading_rules WHERE active=1
+            ORDER BY win_rate DESC LIMIT 5
+        """).fetchall()
+        con.close()
+        if not rows:
+            return ""
+        return "MES RÈGLES:\n" + "\n".join(f"• {r[0]}" for r in rows)
+    except Exception:
+        return ""
+
+
+def get_db_trader_signals_summary() -> str:
+    try:
+        con  = sqlite3.connect(DB_FILE)
+        rows = con.execute("""
+            SELECT author, sentiment, symbol, timestamp
+            FROM trader_signals ORDER BY id DESC LIMIT 8
+        """).fetchall()
+        con.close()
+        if not rows:
+            return "Aucun signal collecté"
+        lines = []
+        for r in rows:
+            e = "📈" if r[1]=="bullish" else "📉" if r[1]=="bearish" else "➡️"
+            lines.append(f"{e} @{r[0]} [{r[2]}] ({r[3][11:16]})")
+        return "\n".join(lines)
+    except Exception:
+        return ""
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -431,8 +853,7 @@ def db_worst_patterns(symbol: str) -> list:
 def save_data():
     try:
         DATA_FILE.write_text(
-            json.dumps({"sim": sim, "memory": memory},
-                       indent=2, default=str))
+            json.dumps({"sim": sim, "memory": memory}, indent=2, default=str))
     except Exception as e:
         print(f"[SAVE] {e}")
 
@@ -446,7 +867,7 @@ def load_data():
             memory = d.get("memory", {})
             for k, v in {
                 "cash": CAPITAL_INITIAL, "initial": CAPITAL_INITIAL,
-                "positions": {}, "trades": [], "equity_history": []
+                "positions": {}, "trades": [], "equity_history": [], "session": 1,
             }.items():
                 sim.setdefault(k, v)
             for k, v in {
@@ -456,25 +877,21 @@ def load_data():
                 "total_wins": 0, "total_losses": 0,
             }.items():
                 memory.setdefault(k, v)
-            n = len(sim["trades"])
-            print(f"[LOAD] {n} trades | {len(memory['lessons'])} leçons")
+            print(f"[LOAD] {len(sim['trades'])} trades | {len(memory['lessons'])} leçons")
             return
         except Exception as e:
             print(f"[LOAD] {e}")
     sim    = {"cash": CAPITAL_INITIAL, "initial": CAPITAL_INITIAL,
-              "positions": {}, "trades": [], "equity_history": []}
+              "positions": {}, "trades": [], "equity_history": [], "session": 1}
     memory = {"lessons": [], "patterns_to_avoid": [],
               "patterns_that_work": [],
               "confidence_threshold": CONFIDENCE_BASE,
               "total_wins": 0, "total_losses": 0}
-    print(f"[LOAD] Nouveau portefeuille ${CAPITAL_INITIAL:,.0f}")
 
 
 # ═══════════════════════════════════════════════════════════════
-#  DONNÉES DE MARCHÉ EN TEMPS RÉEL
+#  DONNÉES DE MARCHÉ
 # ═══════════════════════════════════════════════════════════════
-_price_cache: dict = {}
-
 def get_price(symbol: str, force=False) -> float:
     now = time.time()
     if not force and symbol in _price_cache:
@@ -509,8 +926,7 @@ def get_klines(symbol: str, interval: str, limit=100) -> pd.Series:
         r = bybit.get_kline(category="spot", symbol=symbol,
                             interval=interval, limit=limit)
         return pd.Series(
-            [float(c[4]) for c in reversed(r["result"]["list"])],
-            dtype=float)
+            [float(c[4]) for c in reversed(r["result"]["list"])], dtype=float)
     except Exception:
         return pd.Series(dtype=float)
 
@@ -538,32 +954,22 @@ def get_order_book(symbol: str) -> dict:
         bids  = sum(float(b[1]) for b in ob["result"]["b"])
         asks  = sum(float(a[1]) for a in ob["result"]["a"])
         ratio = round(bids/asks, 2) if asks > 0 else 1.0
-        return {
-            "ratio":    ratio,
-            "pressure": "acheteurs" if ratio>1.3 else "vendeurs" if ratio<0.77 else "neutre"
-        }
+        return {"ratio": ratio,
+                "pressure": "acheteurs" if ratio>1.3 else "vendeurs" if ratio<0.77 else "neutre"}
     except Exception:
         return {"ratio": 1.0, "pressure": "N/A"}
 
 
-# ═══════════════════════════════════════════════════════════════
-#  PRIX YAHOO FINANCE (Actions US, Forex, Matières premières)
-# ═══════════════════════════════════════════════════════════════
-_yahoo_cache: dict = {}
-
 def get_yahoo_price(ticker: str) -> float:
-    """Prix temps réel via Yahoo Finance (gratuit, pas d'API key)."""
     now = time.time()
     if ticker in _yahoo_cache:
         ts, p = _yahoo_cache[ticker]
-        if now - ts < 30:  # cache 30s
+        if now - ts < 30:
             return p
     try:
         url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}?interval=1m&range=1d"
-        r   = requests.get(url, timeout=8,
-                           headers={"User-Agent": "Mozilla/5.0"})
-        d   = r.json()
-        p   = float(d["chart"]["result"][0]["meta"]["regularMarketPrice"])
+        r   = requests.get(url, timeout=8, headers={"User-Agent": "Mozilla/5.0"})
+        p   = float(r.json()["chart"]["result"][0]["meta"]["regularMarketPrice"])
         _yahoo_cache[ticker] = (now, p)
         return p
     except Exception:
@@ -571,520 +977,13 @@ def get_yahoo_price(ticker: str) -> float:
 
 
 def get_yahoo_closes(ticker: str, interval="1m", range_="1d") -> pd.Series:
-    """Historique de prix Yahoo Finance pour calcul d'indicateurs."""
     try:
         url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}?interval={interval}&range={range_}"
-        r   = requests.get(url, timeout=10,
-                           headers={"User-Agent": "Mozilla/5.0"})
-        d   = r.json()
-        closes = d["chart"]["result"][0]["indicators"]["quote"][0]["close"]
+        r   = requests.get(url, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
+        closes = r.json()["chart"]["result"][0]["indicators"]["quote"][0]["close"]
         return pd.Series([c for c in closes if c is not None], dtype=float)
     except Exception:
         return pd.Series(dtype=float)
-
-
-def scan_yahoo_market(market_dict: dict, market_name: str) -> list:
-    """Scanne actions/forex/commodités et retourne les opportunités."""
-    opps = []
-    for ticker, name in market_dict.items():
-        try:
-            closes = get_yahoo_closes(ticker, "5m", "1d")
-            if len(closes) < 27:
-                continue
-            ind   = compute_indicators(closes)
-            if not ind:
-                continue
-            price = get_yahoo_price(ticker)
-            if not price:
-                continue
-
-            score = 0
-            if ind["rsi"] < 35:   score += 3
-            elif ind["rsi"] < 45: score += 1
-            if ind["rsi"] > 70:   score -= 3
-            if ind["macd_h"] > 0: score += 2
-            else:                 score -= 1
-            if ind["mom5"] > 0.5: score += 2
-            elif ind["mom5"] < -0.5: score -= 2
-
-            if abs(score) >= 2:
-                opps.append({
-                    "symbol":    ticker,
-                    "name":      name,
-                    "market_type": market_name,
-                    "price":     price,
-                    "score":     score,
-                    "direction": "BUY" if score > 0 else "SELL",
-                    "ind":       ind,
-                    "patterns":  [],
-                    "has_alert": False,
-                })
-        except Exception as e:
-            print(f"[YAHOO] {ticker}: {e}")
-    opps.sort(key=lambda x: abs(x["score"]), reverse=True)
-    return opps[:3]
-
-
-# ═══════════════════════════════════════════════════════════════
-#  MODULE MEMECOINS — DexScreener + Surveillance Traders
-# ═══════════════════════════════════════════════════════════════
-
-_dex_cache: dict = {}        # cache prix DexScreener
-_trending_tokens: list = []  # tokens trendés détectés
-_mentioned_tokens: list = [] # tokens mentionnés par les traders
-
-def get_dex_price(token_address: str, chain: str = "solana") -> dict:
-    """Prix d'un token via DexScreener (gratuit, sans clé API)."""
-    now = time.time()
-    key = f"{chain}:{token_address}"
-    if key in _dex_cache:
-        ts, data = _dex_cache[key]
-        if now - ts < 15:
-            return data
-    try:
-        url  = f"{DEXSCREENER_API}/tokens/{token_address}"
-        r    = requests.get(url, timeout=8, headers={"User-Agent": "Mozilla/5.0"})
-        data = r.json()
-        pairs = data.get("pairs", [])
-        if not pairs:
-            return {}
-        # Prend la paire avec le plus de liquidité
-        best  = max(pairs, key=lambda p: float(p.get("liquidity",{}).get("usd",0) or 0))
-        result = {
-            "symbol":    best.get("baseToken",{}).get("symbol","?"),
-            "name":      best.get("baseToken",{}).get("name","?"),
-            "price":     float(best.get("priceUsd", 0) or 0),
-            "change5m":  float(best.get("priceChange",{}).get("m5",0) or 0),
-            "change1h":  float(best.get("priceChange",{}).get("h1",0) or 0),
-            "change24h": float(best.get("priceChange",{}).get("h24",0) or 0),
-            "volume24h": float(best.get("volume",{}).get("h24",0) or 0),
-            "liquidity": float(best.get("liquidity",{}).get("usd",0) or 0),
-            "mcap":      float(best.get("marketCap",0) or 0),
-            "chain":     best.get("chainId","?"),
-            "address":   token_address,
-            "dex":       best.get("dexId","?"),
-            "url":       best.get("url",""),
-        }
-        _dex_cache[key] = (now, result)
-        return result
-    except Exception as e:
-        print(f"[DEX] {e}")
-        return {}
-
-
-def get_trending_dex_tokens() -> list:
-    """
-    Récupère les tokens en tendance sur DexScreener.
-    Filtre : volume > $50k, liquidité > $20k, age < 48h.
-    """
-    try:
-        # Token boosts (tokens promus/trendés)
-        r1 = requests.get(DEXSCREENER_NEW, timeout=8,
-                          headers={"User-Agent": "Mozilla/5.0"})
-        boosts = r1.json() if r1.status_code == 200 else []
-
-        # Search trending sur Solana
-        r2 = requests.get(
-            f"{DEXSCREENER_API}/search?q=SOL",
-            timeout=8, headers={"User-Agent": "Mozilla/5.0"})
-        search_data = r2.json().get("pairs", []) if r2.status_code == 200 else []
-
-        tokens = []
-
-        # Analyse les boosts
-        for item in (boosts if isinstance(boosts, list) else [])[:20]:
-            addr = item.get("tokenAddress","")
-            chain = item.get("chainId","solana")
-            if addr and chain in ("solana","ethereum","base"):
-                data = get_dex_price(addr, chain)
-                if data and data.get("liquidity",0) > 20000 and data.get("volume24h",0) > 50000:
-                    data["source"] = "boost"
-                    tokens.append(data)
-
-        # Analyse search Solana - filtre les pumps récents
-        for pair in search_data[:30]:
-            change5m = float(pair.get("priceChange",{}).get("m5",0) or 0)
-            change1h = float(pair.get("priceChange",{}).get("h1",0) or 0)
-            vol24    = float(pair.get("volume",{}).get("h24",0) or 0)
-            liq      = float(pair.get("liquidity",{}).get("usd",0) or 0)
-            # Signal : pump fort sur 5min + volume + liquidité correcte
-            if change5m > 5 and vol24 > 30000 and liq > 15000:
-                addr = pair.get("baseToken",{}).get("address","")
-                if addr:
-                    tokens.append({
-                        "symbol":    pair.get("baseToken",{}).get("symbol","?"),
-                        "name":      pair.get("baseToken",{}).get("name","?"),
-                        "price":     float(pair.get("priceUsd",0) or 0),
-                        "change5m":  change5m,
-                        "change1h":  change1h,
-                        "change24h": float(pair.get("priceChange",{}).get("h24",0) or 0),
-                        "volume24h": vol24,
-                        "liquidity": liq,
-                        "chain":     pair.get("chainId","solana"),
-                        "address":   addr,
-                        "dex":       pair.get("dexId","?"),
-                        "url":       pair.get("url",""),
-                        "source":    "trending",
-                    })
-
-        # Trie par variation 5min
-        tokens.sort(key=lambda x: x.get("change5m",0), reverse=True)
-        return tokens[:10]
-
-    except Exception as e:
-        print(f"[TREND] {e}")
-        return []
-
-
-def extract_token_from_text(text: str) -> list:
-    """
-    Extrait les mentions de tokens depuis un tweet/post.
-    Détecte : $BONK $WIF $NOTHING ou adresses Solana.
-    """
-    tokens = []
-    # Pattern $TOKEN (majuscules)
-    import re
-    cashtags = re.findall(r'\$([A-Z]{2,10})', text.upper())
-    tokens.extend(cashtags)
-    # Adresses Solana (base58, 32-44 chars)
-    sol_addrs = re.findall(r'[1-9A-HJ-NP-Za-km-z]{32,44}', text)
-    tokens.extend(sol_addrs[:2])  # max 2 adresses par post
-    return list(set(tokens))
-
-
-def scan_trader_mentions() -> list:
-    """
-    Scrape les derniers posts des traders memecoins et extrait
-    les tokens mentionnés avec leur contexte.
-    """
-    global _mentioned_tokens
-    found = []
-
-    # Traders memecoins à surveiller en priorité
-    meme_traders = [
-        "AlxCooks_off", "MustStopMurad", "blknoiz06",
-        "Degentraland", "CryptoGodJohn", "solbigbrain",
-    ]
-
-    # Rotation : 2 traders par cycle
-    idx    = bot_state.get("meme_trader_idx", 0)
-    batch  = meme_traders[idx % len(meme_traders):(idx % len(meme_traders)) + 2]
-    bot_state["meme_trader_idx"] = idx + 2
-
-    for trader in batch:
-        try:
-            signals = scrape_nitter(trader)
-            for sig in signals[:3]:
-                text   = sig.get("content","")
-                tokens = extract_token_from_text(text)
-                for token in tokens:
-                    # Cherche le token sur DexScreener
-                    if len(token) > 10:
-                        # Adresse Solana
-                        data = get_dex_price(token, "solana")
-                    else:
-                        # Cherche par symbole
-                        try:
-                            r = requests.get(
-                                f"{DEXSCREENER_API}/search?q={token}",
-                                timeout=6,
-                                headers={"User-Agent": "Mozilla/5.0"})
-                            pairs = r.json().get("pairs",[])
-                            if pairs:
-                                best = max(pairs,
-                                    key=lambda p: float(p.get("volume",{}).get("h24",0) or 0))
-                                addr = best.get("baseToken",{}).get("address","")
-                                data = get_dex_price(addr, best.get("chainId","solana"))
-                            else:
-                                data = {}
-                        except Exception:
-                            data = {}
-
-                    if data and data.get("price",0) > 0:
-                        data["mentioned_by"] = trader
-                        data["tweet"]        = text[:100]
-                        found.append(data)
-        except Exception as e:
-            print(f"[MEME-SCAN] {trader}: {e}")
-
-    # Garde les 20 dernières mentions uniques
-    seen = set()
-    unique = []
-    for t in found:
-        k = t.get("symbol","?")
-        if k not in seen:
-            seen.add(k)
-            unique.append(t)
-
-    _mentioned_tokens = (unique + _mentioned_tokens)[:20]
-    return unique
-
-
-def meme_signal(token_data: dict) -> dict:
-    """
-    Signal de trading pour un memecoin basé sur :
-    1. Variation 5min (pump détecté)
-    2. Variation 1h (tendance)
-    3. Volume relatif
-    4. Liquidité suffisante (évite les rug pulls)
-    5. Mention par un trader influent (bonus)
-    """
-    try:
-        change5m  = token_data.get("change5m", 0)
-        change1h  = token_data.get("change1h", 0)
-        change24h = token_data.get("change24h", 0)
-        volume    = token_data.get("volume24h", 0)
-        liquidity = token_data.get("liquidity", 0)
-        mentioned = bool(token_data.get("mentioned_by"))
-
-        score = 0
-
-        # Sécurité minimale
-        if liquidity < 10000:
-            return {"signal":"HOLD","score":0,"conf":0,"reason":"liquidité insuffisante"}
-        if volume < 20000:
-            return {"signal":"HOLD","score":0,"conf":0,"reason":"volume insuffisant"}
-
-        # Pump 5min
-        if change5m > 10:   score += 3
-        elif change5m > 5:  score += 2
-        elif change5m > 2:  score += 1
-        elif change5m < -10: score -= 3
-        elif change5m < -5:  score -= 2
-
-        # Tendance 1h
-        if change1h > 20:   score += 2
-        elif change1h > 10: score += 1
-        elif change1h < -20: score -= 2
-        elif change1h < -10: score -= 1
-
-        # Momentum 24h (évite d'acheter après un pump de 200%)
-        if change24h > 200: score -= 2  # déjà trop pompé
-        elif change24h > 50: score += 1
-
-        # Bonus mention trader
-        if mentioned: score += 2
-
-        # Volume élevé = signal plus fiable
-        if volume > 500000: score += 1
-
-        if score >= 4:
-            conf   = min(85, 50 + score * 8)
-            reason = (f"+{change5m:.1f}% en 5min, +{change1h:.1f}% en 1h"
-                      f"{', mentionné par @'+token_data['mentioned_by'] if mentioned else ''}")
-            return {"signal":"BUY","score":score,"conf":conf,"reason":reason}
-
-        return {"signal":"HOLD","score":score,"conf":0,"reason":f"score={score}"}
-
-    except Exception as e:
-        return {"signal":"HOLD","score":0,"conf":0,"reason":str(e)}
-
-
-def open_meme_trade(token_data: dict, sig: dict, send_fn) -> dict | None:
-    """Ouvre un trade simulé sur un memecoin via DexScreener."""
-    symbol    = token_data.get("symbol","?")
-    price     = token_data.get("price", 0)
-    chain     = token_data.get("chain","solana")
-    name      = token_data.get("name", symbol)
-    mentioned = token_data.get("mentioned_by","")
-
-    if not price or price <= 0:
-        return None
-    if sim["cash"] < 15:
-        return None
-
-    # Vérifie pas déjà en position sur ce token
-    if any(p.get("symbol")==f"MEME_{symbol}" for p in sim["positions"].values()):
-        return None
-
-    # Max 2 meme positions simultanées
-    meme_count = sum(1 for p in sim["positions"].values()
-                     if p.get("trade_type")=="MEME")
-    if meme_count >= 2:
-        return None
-
-    amount = sim["cash"] * MEME_MAX_PCT
-    qty    = amount / price
-    sim["cash"] -= amount
-
-    trade = {
-        "id":           len(sim["trades"]) + 1,
-        "symbol":       f"MEME_{symbol}",
-        "market":       "MEME",
-        "side":         "LONG",
-        "trade_type":   "MEME",
-        "price_in":     price,
-        "price_out":    None,
-        "qty":          qty,
-        "amount_usd":   amount,
-        "confidence":   sig["conf"],
-        "reason":       sig["reason"],
-        "exit_reason":  None,
-        "time_in":      datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "time_out":     None,
-        "pnl":          None,
-        "pnl_pct":      None,
-        "duration_min": None,
-        "patterns":     [f"meme_{chain}"],
-        "leverage":     1,
-        "peak_price":   price,
-        "open_time":    time.time(),
-        "chain":        chain,
-        "dex_address":  token_data.get("address",""),
-        "dex_url":      token_data.get("url",""),
-    }
-
-    pos_key = f"MEME_{symbol}_{trade['id']}"
-    sim["trades"].append(trade)
-    sim["positions"][pos_key] = {**trade, "pos_key": pos_key}
-    db_save_trade(trade)
-    bot_state["trades_today"] += 1
-
-    chain_emoji = "🟣" if chain=="solana" else "🔷" if chain=="ethereum" else "🔵"
-    mentioned_str = f"\n  👤 Mentionné par @{mentioned}" if mentioned else ""
-
-    c5m = token_data.get("change5m",0)
-    c1h = token_data.get("change1h",0)
-    liq = token_data.get("liquidity",0)
-    dex = token_data.get("dex","?")
-    msg = (
-        f"🎯 MEMECOIN {chain_emoji} {name} (${symbol})\n"
-        f"━━━━━━━━━━━━━━━━━━━\n"
-        f"💵 Prix: ${price:.8f}\n"
-        f"💰 Mise: ${amount:.2f} ({MEME_MAX_PCT*100:.0f}% cash)\n"
-        f"📈 +{c5m:.1f}%/5min | +{c1h:.1f}%/1h\n"
-        f"💧 Liq: ${liq:,.0f}\n"
-        f"🛑 SL:-{MEME_SL_PCT*100:.0f}% TP:+{MEME_TP_PCT*100:.0f}%{mentioned_str}\n"
-        f"🔗 {dex} | Timeout {MEME_MAX_DURATION//60}min"
-    )
-    send_fn(msg)
-    return trade
-
-
-def monitor_meme_positions(send_fn):
-    """Surveille les positions memecoins via DexScreener."""
-    now = time.time()
-    for pos_key, pos in list(sim["positions"].items()):
-        if pos.get("trade_type") != "MEME":
-            continue
-
-        addr    = pos.get("dex_address","")
-        chain   = pos.get("chain","solana")
-        entry   = pos["price_in"]
-        elapsed = now - pos.get("open_time", now)
-
-        # Récupère le prix actuel via DexScreener
-        data = get_dex_price(addr, chain) if addr else {}
-        price = data.get("price", entry) if data else entry
-        if not price:
-            continue
-
-        pos["peak_price"] = max(pos.get("peak_price", entry), price)
-        change   = (price - entry) / entry
-        trailing = (pos["peak_price"] - price) / pos["peak_price"]
-
-        reason = None
-        if change <= -MEME_SL_PCT:
-            reason = f"🛑 MEME SL ({change*100:+.1f}%)"
-        elif change >= MEME_TP_PCT:
-            reason = f"🎯 MEME TP ({change*100:+.1f}%)"
-        elif change > 0.03 and trailing >= MEME_TRAILING_PCT:
-            reason = f"📐 MEME TRAIL (pic -{trailing*100:.1f}%)"
-        elif elapsed >= MEME_MAX_DURATION:
-            reason = f"⏱ TIMEOUT {int(elapsed//60)}min"
-
-        if reason:
-            pnl     = (price - entry) / entry * pos["amount_usd"]
-            pnl_pct = (price - entry) / entry * 100
-            sim["cash"] += pos["amount_usd"] + pnl
-
-            trade = next((t for t in reversed(sim["trades"])
-                          if t["id"] == pos["id"]), None)
-            if trade:
-                trade.update({
-                    "price_out":    price,
-                    "time_out":     datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "pnl":          round(pnl, 6),
-                    "pnl_pct":      round(pnl_pct, 2),
-                    "exit_reason":  reason,
-                    "duration_min": max(1, int(elapsed/60)),
-                })
-                db_save_trade(trade)
-                learn_from_trade(trade, send_fn=None)
-
-            del sim["positions"][pos_key]
-            save_data()
-
-            e  = "✅" if pnl > 0 else "❌"
-            sym = pos["symbol"].replace("MEME_","")
-            send_fn(
-                f"{e} MEME {sym} fermé\n"
-                f"  ${pnl:+.4f} ({pnl_pct:+.1f}%) | {reason}"
-            )
-            if pnl > 0:
-                memory["total_wins"]   = memory.get("total_wins",0) + 1
-            else:
-                memory["total_losses"] = memory.get("total_losses",0) + 1
-
-
-def run_meme_cycle(send_fn):
-    """
-    Cycle memecoin toutes les 45s :
-    1. Scrape mentions traders (AlxCooks, Murad, Ansem...)
-    2. Récupère tokens trendés DexScreener
-    3. Analyse signal + ouvre si opportunité
-    """
-    # Surveillance positions ouvertes
-    monitor_meme_positions(send_fn)
-
-    # Collecte tokens mentionnés (en alternance pour économiser les requêtes)
-    cycle = bot_state.get("meme_cycle", 0)
-    bot_state["meme_cycle"] = cycle + 1
-
-    candidates = []
-
-    # Toutes les 4 cycles : scrape les traders
-    if cycle % 4 == 0:
-        mentioned = scan_trader_mentions()
-        candidates.extend(mentioned)
-
-    # Toutes les 2 cycles : trending DexScreener
-    if cycle % 2 == 0:
-        try:
-            trending = get_trending_dex_tokens()
-            candidates.extend(trending)
-        except Exception as e:
-            print(f"[MEME-TREND] {e}")
-
-    # Déduplique
-    seen = set()
-    unique = []
-    for t in candidates:
-        k = t.get("symbol","?")
-        if k not in seen and t.get("price",0) > 0:
-            seen.add(k)
-            unique.append(t)
-
-    if not unique:
-        return
-
-    # Analyse signal + trade
-    for token in unique[:5]:
-        sig = meme_signal(token)
-        if sig["signal"] == "BUY" and sig["conf"] >= 55:
-            # Notification si token mentionné par un trader
-            if token.get("mentioned_by"):
-                mb  = token["mentioned_by"]
-                sym = token["symbol"]
-                c5m = token.get("change5m",0)
-                vol = token.get("volume24h",0)/1000
-                send_fn(
-                    f"📡 Signal memecoin\n"
-                    f"  @{mb} mentionne ${sym}\n"
-                    f"  +{c5m:.1f}%/5min Vol:${vol:.0f}k\n"
-                    f"  Score:{sig['score']:+d} Conf:{sig['conf']}%"
-                )
-            open_meme_trade(token, sig, send_fn)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -1094,7 +993,6 @@ def compute_indicators(closes: pd.Series) -> dict:
     if len(closes) < 27:
         return {}
     try:
-        # RSI
         delta = closes.diff()
         gain  = delta.clip(lower=0)
         loss  = (-delta).clip(lower=0)
@@ -1102,12 +1000,10 @@ def compute_indicators(closes: pd.Series) -> dict:
                  loss.ewm(com=13, adjust=False).mean().replace(0, np.nan))
         rsi   = float((100 - 100/(1+rs)).iloc[-1])
 
-        # EMAs
         ema9  = float(closes.ewm(span=9,  adjust=False).mean().iloc[-1])
         ema20 = float(closes.ewm(span=20, adjust=False).mean().iloc[-1])
         ema50 = float(closes.ewm(span=50, adjust=False).mean().iloc[-1])
 
-        # MACD
         macd_l = float((closes.ewm(span=12,adjust=False).mean() -
                         closes.ewm(span=26,adjust=False).mean()).iloc[-1])
         macd_s = float((closes.ewm(span=12,adjust=False).mean() -
@@ -1115,7 +1011,6 @@ def compute_indicators(closes: pd.Series) -> dict:
                        .ewm(span=9,adjust=False).mean().iloc[-1])
         macd_h = round(macd_l - macd_s, 6)
 
-        # Bollinger
         sma20  = closes.rolling(20).mean()
         std20  = closes.rolling(20).std()
         bb_up  = float((sma20 + 2*std20).iloc[-1])
@@ -1123,30 +1018,22 @@ def compute_indicators(closes: pd.Series) -> dict:
         bb_pct = round((float(closes.iloc[-1])-bb_low)/(bb_up-bb_low)*100, 1) \
                  if bb_up != bb_low else 50.0
 
-        # Momentum
         mom5  = float((closes.iloc[-1]-closes.iloc[-6])/closes.iloc[-6]*100) \
                 if len(closes)>=6 else 0.0
         mom15 = float((closes.iloc[-1]-closes.iloc[-16])/closes.iloc[-16]*100) \
                 if len(closes)>=16 else 0.0
+        vol   = float(closes.pct_change().dropna().iloc[-10:].std()*100) \
+                if len(closes)>=10 else 0.0
 
-        # Volatilité
-        vol = float(closes.pct_change().dropna().iloc[-10:].std()*100) \
-              if len(closes)>=10 else 0.0
-
-        price = float(closes.iloc[-1])
         return {
-            "rsi":      round(rsi, 1),
-            "ema9":     round(ema9, 6),
-            "ema20":    round(ema20, 6),
-            "ema50":    round(ema50, 6),
-            "macd_h":   macd_h,
-            "bb_pct":   bb_pct,
-            "mom5":     round(mom5, 3),
-            "mom15":    round(mom15, 3),
-            "vol":      round(vol, 3),
-            "trend":    "↑" if ema20>ema50 else "↓",
+            "rsi": round(rsi, 1), "ema9": round(ema9, 6),
+            "ema20": round(ema20, 6), "ema50": round(ema50, 6),
+            "macd_h": macd_h, "bb_pct": bb_pct,
+            "mom5": round(mom5, 3), "mom15": round(mom15, 3),
+            "vol": round(vol, 3),
+            "trend": "↑" if ema20>ema50 else "↓",
             "ema_cross": "BULL" if ema9>ema20 else "BEAR",
-            "price":    price,
+            "price": float(closes.iloc[-1]),
         }
     except Exception as e:
         print(f"[IND] {e}")
@@ -1154,7 +1041,6 @@ def compute_indicators(closes: pd.Series) -> dict:
 
 
 def get_multi_tf(symbol: str) -> dict:
-    """Indicateurs sur 1min, 5min, 15min."""
     result = {}
     for interval, label in [("1","1m"), ("5","5m"), ("15","15m")]:
         closes = get_klines(symbol, interval, 80)
@@ -1166,7 +1052,6 @@ def get_multi_tf(symbol: str) -> dict:
 
 
 def tf_score(mtf: dict) -> dict:
-    """Score de confluence -9 à +9."""
     score = 0
     sigs  = []
     for tf, ind in mtf.items():
@@ -1193,13 +1078,9 @@ def tf_score(mtf: dict) -> dict:
     return {"score": score, "direction": direction, "signals": sigs[:6]}
 
 
-# ═══════════════════════════════════════════════════════════════
-#  DÉTECTION DE PATTERNS
-# ═══════════════════════════════════════════════════════════════
 def detect_patterns(symbol: str, ind: dict, vols: list) -> list:
     patterns = []
     try:
-        price    = ind.get("price", 0)
         rsi      = ind.get("rsi", 50)
         mom5     = ind.get("mom5", 0)
         mom15    = ind.get("mom15", 0)
@@ -1211,63 +1092,30 @@ def detect_patterns(symbol: str, ind: dict, vols: list) -> list:
         last_vol = vols[-1] if vols else 0
         vol_ratio= last_vol/avg_vol if avg_vol>0 else 1
 
-        # Survente extrême
         if rsi < 28 and bb_pct < 5:
-            patterns.append({"name":"Survente extrême","signal":"BUY",
-                              "strength":"fort","score":3})
-
-        # Surachat extrême
+            patterns.append({"name":"Survente extrême","signal":"BUY","strength":"fort","score":3})
         elif rsi > 72 and bb_pct > 95:
-            patterns.append({"name":"Surachat extrême","signal":"SELL",
-                              "strength":"fort","score":3})
+            patterns.append({"name":"Surachat extrême","signal":"SELL","strength":"fort","score":3})
 
-        # Breakout haussier
         if mom5 > 1.2 and vol_ratio > 2.0 and macd_h > 0:
-            patterns.append({"name":"Breakout haussier","signal":"BUY",
-                              "strength":"fort","score":3})
-
-        # Breakdown baissier
+            patterns.append({"name":"Breakout haussier","signal":"BUY","strength":"fort","score":3})
         elif mom5 < -1.2 and vol_ratio > 2.0 and macd_h < 0:
-            patterns.append({"name":"Breakdown baissier","signal":"SELL",
-                              "strength":"fort","score":3})
+            patterns.append({"name":"Breakdown baissier","signal":"SELL","strength":"fort","score":3})
 
-        # EMA cross haussier
         if ema_cross == "BULL" and macd_h > 0 and rsi < 60:
-            patterns.append({"name":"EMA Cross Bull","signal":"BUY",
-                              "strength":"modéré","score":2})
-
-        # EMA cross baissier
+            patterns.append({"name":"EMA Cross Bull","signal":"BUY","strength":"modéré","score":2})
         elif ema_cross == "BEAR" and macd_h < 0 and rsi > 40:
-            patterns.append({"name":"EMA Cross Bear","signal":"SELL",
-                              "strength":"modéré","score":2})
+            patterns.append({"name":"EMA Cross Bear","signal":"SELL","strength":"modéré","score":2})
 
-        # Momentum continu
-        if mom5 > 0.8 and mom15 > 2.0:
-            patterns.append({"name":"Momentum haussier continu","signal":"BUY",
-                              "strength":"modéré","score":2})
-        elif mom5 < -0.8 and mom15 < -2.0:
-            patterns.append({"name":"Momentum baissier continu","signal":"SELL",
-                              "strength":"modéré","score":2})
-
-        # ⚠️ Pump & Dump
         if abs(mom5) > 4 and vol_ratio > 5:
-            patterns.append({"name":"⚠️ Pump/Dump","signal":"HOLD",
-                              "strength":"ALERTE",
+            patterns.append({"name":"⚠️ Pump/Dump","signal":"HOLD","strength":"ALERTE",
                               "desc":f"{mom5:+.1f}% en 5min, vol x{vol_ratio:.1f}"})
-
     except Exception as e:
         print(f"[PAT] {e}")
     return patterns
 
 
-# ═══════════════════════════════════════════════════════════════
-#  SCAN D'OPPORTUNITÉS
-# ═══════════════════════════════════════════════════════════════
 def scan_market() -> list:
-    """
-    Scanne tous les symboles, retourne les top opportunités
-    triées par score de signal.
-    """
     opps   = []
     prices = get_prices_batch()
 
@@ -1285,84 +1133,63 @@ def scan_market() -> list:
             vols = get_volume_data(symbol, "5", 15)
             pats = detect_patterns(symbol, ind, vols)
 
-            # Score total
             score = 0
-            if ind["rsi"] < 35:   score += 3
-            elif ind["rsi"] < 45: score += 1
-            if ind["rsi"] > 70:   score -= 3
-            elif ind["rsi"] > 60: score -= 1
-            if ind["macd_h"] > 0: score += 2
-            else:                 score -= 1
-            if ind["mom5"] > 1:   score += 2
-            elif ind["mom5"] < -1:score -= 2
+            if ind["rsi"] < 35:    score += 3
+            elif ind["rsi"] < 45:  score += 1
+            if ind["rsi"] > 70:    score -= 3
+            elif ind["rsi"] > 60:  score -= 1
+            if ind["macd_h"] > 0:  score += 2
+            else:                  score -= 1
+            if ind["mom5"] > 1:    score += 2
+            elif ind["mom5"] < -1: score -= 2
             if ind["ema_cross"] == "BULL": score += 1
             else:                          score -= 1
 
-            direction = "BUY" if score > 0 else "SELL"
-
-            # Bloque si alerte P&D
             has_alert = any(p["signal"]=="HOLD" for p in pats)
-
             opps.append({
-                "symbol":    symbol,
-                "price":     price,
-                "score":     score,
-                "direction": direction,
-                "ind":       ind,
-                "patterns":  pats,
-                "has_alert": has_alert,
+                "symbol": symbol, "price": price, "score": score,
+                "direction": "BUY" if score > 0 else "SELL",
+                "ind": ind, "patterns": pats, "has_alert": has_alert,
             })
         except Exception:
             pass
 
     opps.sort(key=lambda x: abs(x["score"]), reverse=True)
     return opps[:10]
-
-
 # ═══════════════════════════════════════════════════════════════
-#  VOTE MAJORITAIRE IA
+#  IA — VOTE MAJORITAIRE
 # ═══════════════════════════════════════════════════════════════
-# Compteur d'appels IA par heure (remplace compteur tokens)
 _ai_calls = {"count": 0, "window_start": time.time(), "last_call": 0}
 
 def _can_call_ai() -> bool:
-    """Max 10 appels IA par heure + 6 min entre chaque appel."""
     now = time.time()
-    # Reset horaire
     if now - _ai_calls["window_start"] > 3600:
         _ai_calls["count"]        = 0
         _ai_calls["window_start"] = now
-    # Vérifie quota horaire
     if _ai_calls["count"] >= AI_CALLS_PER_HOUR_MAX:
         return False
-    # Vérifie intervalle minimum
     if now - _ai_calls["last_call"] < AI_CYCLE_MIN_INTERVAL:
         return False
     return True
 
 def _register_ai_call():
-    _ai_calls["count"]     += 1
-    _ai_calls["last_call"]  = time.time()
+    _ai_calls["count"]    += 1
+    _ai_calls["last_call"] = time.time()
 
 
 def ask_model_single(prompt: str, model: str = None) -> dict:
-    """Appel IA unique avec llama-3.1-8b-instant. Court et rapide."""
     if not _can_call_ai():
         return {"signal":"HOLD","confidence":0,"reason":"quota_horaire","risk":"HIGH"}
-
     if model is None:
         model = GROQ_FAST_MODEL
-
     for m in [model, GROQ_SECONDARY_MODEL]:
         try:
             _register_ai_call()
             r = groq_client.chat.completions.create(
-                model=m,
-                max_tokens=60,
-                temperature=0.1,
+                model=m, max_tokens=80, temperature=0.1,
                 messages=[
                     {"role":"system","content":"JSON: {signal,confidence,reason,risk,market}"},
-                    {"role":"user","content":prompt[:400]}
+                    {"role":"user","content":prompt[:500]}
                 ],
             )
             t = r.choices[0].message.content.strip()
@@ -1379,62 +1206,44 @@ def ask_model_single(prompt: str, model: str = None) -> dict:
         except Exception as ex:
             err = str(ex)
             if "rate_limit" in err or "429" in err:
-                print(f"[AI] Rate limit {m} — pause 5min")
-                _ai_calls["count"] = AI_CALLS_PER_HOUR_MAX  # bloque temporairement
+                _ai_calls["count"] = AI_CALLS_PER_HOUR_MAX
                 return {"signal":"HOLD","confidence":0,"reason":"rate_limit","risk":"HIGH"}
             if "decommissioned" in err or "400" in err:
                 continue
-            print(f"[AI-ERR] {err[:60]}")
             return {"signal":"HOLD","confidence":0,"reason":"api_error","risk":"HIGH"}
-
     return {"signal":"HOLD","confidence":0,"reason":"all_failed","risk":"HIGH"}
 
+
 def vote(prompt: str) -> dict:
-    """
-    1 seul appel IA avec le modèle rapide 8B.
-    Économise ~6x les tokens vs llama-70b.
-    Signal fort (>60%) → validation par le 70b.
-    """
     r1 = ask_model_single(prompt, GROQ_FAST_MODEL)
-
-    if r1.get("reason") in ("budget_epuise", "all_models_failed"):
-        return {**r1, "votes": [r1["signal"]], "consensus": "0/1"}
-
-    if r1["signal"] == "HOLD" or r1.get("confidence", 0) < 60:
-        return {**r1, "votes": [r1["signal"]], "consensus": "1/1"}
-
-    # Signal fort → validation par le modèle puissant
+    if r1.get("reason") in ("quota_horaire","all_failed"):
+        return {**r1, "votes":[r1["signal"]],"consensus":"0/1"}
+    if r1["signal"] == "HOLD" or r1.get("confidence",0) < 60:
+        return {**r1, "votes":[r1["signal"]],"consensus":"1/1"}
     r2 = ask_model_single(prompt, GROQ_PRIMARY_MODEL)
-
     if r2["signal"] == r1["signal"]:
-        conf = min(95, round((r1.get("confidence",0) + r2.get("confidence",0))/2) + 5)
+        conf = min(95, round((r1.get("confidence",0)+r2.get("confidence",0))/2)+5)
         return {
-            "signal":     r1["signal"],
-            "confidence": conf,
-            "reason":     r2.get("reason", r1.get("reason","")),
-            "risk":       r1.get("risk","MEDIUM"),
-            "market":     r1.get("market","SPOT"),
-            "votes":      [r1["signal"], r2["signal"]],
-            "consensus":  "2/2",
+            "signal": r1["signal"], "confidence": conf,
+            "reason": r2.get("reason", r1.get("reason","")),
+            "risk":   r1.get("risk","MEDIUM"), "market": r1.get("market","SPOT"),
+            "votes":  [r1["signal"],r2["signal"]], "consensus": "2/2",
         }
     return {
         "signal":"HOLD","confidence":0,
         "reason":f"Désaccord ({r1['signal']}/{r2['signal']})",
-        "risk":"HIGH",
-        "votes":[r1["signal"],r2["signal"]],
-        "consensus":"0/2",
+        "risk":"HIGH","votes":[r1["signal"],r2["signal"]],"consensus":"0/2",
     }
 
 
 # ═══════════════════════════════════════════════════════════════
-#  ANALYSE COMPLÈTE D'UN SYMBOLE
+#  ANALYSE COMPLÈTE AVEC NOUVELLES SOURCES
 # ═══════════════════════════════════════════════════════════════
 def analyze(opp: dict, fear_greed: str) -> dict:
     symbol = opp["symbol"]
     price  = opp["price"]
     ind    = opp["ind"]
     pats   = opp["patterns"]
-    score  = opp["score"]
 
     mtf    = get_multi_tf(symbol)
     conf   = tf_score(mtf)
@@ -1445,83 +1254,120 @@ def analyze(opp: dict, fear_greed: str) -> dict:
     worst_p = db_worst_patterns(symbol)
     thresh  = memory.get("confidence_threshold", CONFIDENCE_BASE)
 
-    pat_names_buy  = [p["name"] for p in pats if p["signal"]=="BUY"]
-    pat_names_sell = [p["name"] for p in pats if p["signal"]=="SELL"]
-    pat_alerts     = [p for p in pats if p["signal"]=="HOLD"]
+    # Nouvelles sources de données
+    liq_data   = get_liquidations()
+    onchain    = get_onchain_data()
+    whales     = get_whale_alerts()
+    arb_opps   = detect_arbitrage()
+    options    = get_options_data()
+    poly_mkts  = get_polymarket_markets()
 
-    # Règles auto-générées par le bot
-    my_rules = get_active_rules()
+    liq_str  = interpret_liquidations(liq_data)
+    chain_str= format_onchain(onchain)
+    whale_str= format_whale_alerts(whales)
+    arb_str  = format_arbitrage(arb_opps)
+    opt_str  = format_options(options)
+    poly_str = format_polymarket(poly_mkts)
 
-    # Extraire valeur Fear&Greed pour appliquer règles Saylor/Buffett
+    # Kelly pour ce symbole
+    kelly_pct = dynamic_position_size(70, "SPOT", symbol)
+
+    # Signaux traders DB
+    trader_sigs = get_db_trader_signals_summary()
+    my_rules    = get_active_rules()
+
+    # Fear & Greed value
     fg_value = 50
     try:
         fg_value = int(fear_greed.split(":")[1].split("/")[0].strip())
     except Exception:
         pass
 
-    # Règle Saylor/Buffett : Fear&Greed bas = opportunité
     fg_context = ""
     if fg_value < 20:
-        fg_context = "⚠️ EXTREME FEAR → Saylor/Buffett disent : C'EST LE MOMENT D'ACHETER"
+        fg_context = "⚠️ EXTREME FEAR → Opportunité rare selon Saylor/Buffett"
     elif fg_value < 35:
-        fg_context = "Fear élevé → opportunité selon Buffett (sois avide quand les autres ont peur)"
-
-    # Signaux traders récents depuis la DB
-    trader_sigs = get_db_trader_signals_summary()
+        fg_context = "Fear élevé → opportunité selon Buffett"
 
     prompt = f"""{symbol} ${price:.4f}
-RSI:{ind.get('rsi','?')} MACD:{ind.get('macd_h','?')} mom5:{ind.get('mom5','?')}% BB:{ind.get('bb_pct','?')}% trend:{ind.get('trend','?')}
+RSI:{ind.get('rsi','?')} MACD:{ind.get('macd_h','?')} mom5:{ind.get('mom5','?')}% trend:{ind.get('trend','?')}
 OB:{ob['pressure']} TFscore:{conf['score']}/9
 {fear_greed} {fg_context}
-Historique gains:{best_p[:2]} erreurs:{worst_p[:2]}
 
-SIGNAUX TRADERS EN TEMPS RÉEL:
-{trader_sigs[:400] if trader_sigs else 'Aucun signal collecté'}
+NOUVELLES SOURCES:
+{liq_str}
+{chain_str}
+{whale_str}
+{arb_str}
+{opt_str}
+{poly_str}
 
+SIGNAUX TRADERS: {trader_sigs[:200]}
+HISTORIQUE: gains:{best_p[:2]} erreurs:{worst_p[:2]}
 {my_rules}
+{TRADER_PHILOSOPHIES[:200]}
 
-Règles de trading universelles: {TRADER_PHILOSOPHIES[:300]}
+Kelly calculé: {kelly_pct*100:.1f}% du capital
+En position: {'OUI' if in_pos else 'NON'}
 
-Décide BUY/SELL/HOLD. BUY=spot, SELL=futures short.
-JSON: {{"signal":"BUY/SELL/HOLD","confidence":0-100,"reason":"raison courte","risk":"LOW/MEDIUM/HIGH","market":"SPOT/FUTURES"}}"""
+BUY=spot long, SELL=futures short.
+JSON: {{"signal":"BUY/SELL/HOLD","confidence":0-100,"reason":"raison","risk":"LOW/MEDIUM/HIGH","market":"SPOT/FUTURES"}}"""
 
     result = vote(prompt)
-    result["symbol"]   = symbol
-    result["price"]    = price
-    result["patterns"] = pats
-    result["confluence"] = conf
-    result["ob"]       = ob
-    result["ind"]      = ind
+    result.update({
+        "symbol": symbol, "price": price, "patterns": pats,
+        "confluence": conf, "ob": ob, "ind": ind, "kelly_pct": kelly_pct,
+        "arb_opportunities": arb_opps,
+    })
     return result
 
 
 # ═══════════════════════════════════════════════════════════════
-#  GESTION DES POSITIONS SIMULÉES
+#  GESTION DES POSITIONS
 # ═══════════════════════════════════════════════════════════════
-def calc_position_size(confidence: int, market: str) -> float:
-    """Kelly criterion simplifié → % du cash."""
-    wr  = db_win_rate(20) / 100
-    wr  = max(0.4, wr)
-    r   = TAKE_PROFIT_PCT / STOP_LOSS_PCT
-    k   = max(0.05, min(MAX_PCT_PER_TRADE, wr - (1-wr)/r))
-    k  *= (0.5 + 0.5 * (confidence-55)/30)
-    if market == "FUTURES": k *= 0.6
-    return round(min(MAX_PCT_PER_TRADE, max(0.05, k)), 2)
+def get_equity() -> float:
+    prices = get_prices_batch()
+    equity = sim["cash"]
+    for pos in sim["positions"].values():
+        p = prices.get(pos["symbol"], pos["price_in"])
+        if pos["side"] == "LONG":
+            equity += pos["amount_usd"] + (p-pos["price_in"])/pos["price_in"] * pos["amount_usd"] * pos.get("leverage",1)
+        else:
+            equity += pos["amount_usd"] + (pos["price_in"]-p)/pos["price_in"] * pos["amount_usd"] * pos.get("leverage",1)
+    return equity
+
+
+def get_stats() -> dict:
+    closed = [t for t in sim["trades"] if t.get("pnl") is not None]
+    if not closed:
+        return {"total":0,"wins":0,"losses":0,"win_rate":0,"best":0,"worst":0,"total_pnl":0,"avg_dur":0}
+    pnls = [t["pnl"] for t in closed]
+    wins = [p for p in pnls if p>0]
+    durs = [t.get("duration_min",0) for t in closed if t.get("duration_min")]
+    return {
+        "total":     len(closed),
+        "wins":      len(wins),
+        "losses":    len(closed)-len(wins),
+        "win_rate":  round(len(wins)/len(closed)*100, 1),
+        "best":      round(max(pnls), 4),
+        "worst":     round(min(pnls), 4),
+        "total_pnl": round(sum(pnls), 4),
+        "avg_dur":   round(sum(durs)/len(durs), 1) if durs else 0,
+    }
 
 
 def open_trade(analysis: dict, send_fn) -> dict | None:
-    symbol    = analysis["symbol"]
-    price     = analysis["price"]
-    signal    = analysis["signal"]
-    conf      = analysis["confidence"]
-    reason    = analysis["reason"]
-    market    = analysis.get("market", "SPOT")
-    pats      = analysis.get("patterns", [])
-    side      = "LONG" if signal=="BUY" else "SHORT"
+    symbol  = analysis["symbol"]
+    price   = analysis["price"]
+    signal  = analysis["signal"]
+    conf    = analysis["confidence"]
+    reason  = analysis["reason"]
+    market  = analysis.get("market", "SPOT")
+    pats    = analysis.get("patterns", [])
+    side    = "LONG" if signal=="BUY" else "SHORT"
 
-    # Vérifications
     if signal == "SELL" and market == "SPOT":
-        return None  # pas de short sur spot
+        return None
     if any(p["symbol"]==symbol for p in sim["positions"].values()):
         return None
     if len(sim["positions"]) >= MAX_POSITIONS:
@@ -1529,15 +1375,14 @@ def open_trade(analysis: dict, send_fn) -> dict | None:
     if sim["cash"] < 20:
         return None
 
-    leverage = LEVERAGE_SIM if market=="FUTURES" else 1
-    # Mode apprentissage forcé → taille réduite
+    # Utilise Kelly Criterion pour la taille
+    kelly_pct = analysis.get("kelly_pct") or dynamic_position_size(conf, market, symbol)
     if analysis.get("_forced_pct"):
-        pct = analysis["_forced_pct"]
-    else:
-        pct = calc_position_size(conf, market)
-    amount   = sim["cash"] * pct
-    qty      = amount / price
+        kelly_pct = analysis["_forced_pct"]
 
+    leverage = LEVERAGE_SIM if market=="FUTURES" else 1
+    amount   = sim["cash"] * kelly_pct
+    qty      = amount / price
     sim["cash"] -= amount
 
     trade = {
@@ -1559,8 +1404,9 @@ def open_trade(analysis: dict, send_fn) -> dict | None:
         "duration_min": None,
         "patterns":    [p["name"] for p in pats if p.get("signal")!="HOLD"],
         "leverage":    leverage,
-        "peak_price":  price,  # pour trailing stop LONG
-        "trough_price": price, # pour trailing stop SHORT
+        "peak_price":  price,
+        "trough_price": price,
+        "kelly_pct":   kelly_pct,
     }
 
     pos_key = f"{market}_{symbol}_{side}_{trade['id']}"
@@ -1570,34 +1416,20 @@ def open_trade(analysis: dict, send_fn) -> dict | None:
     save_data()
     bot_state["trades_today"] += 1
 
-    # Calcul niveaux
-    sl = price*(1-STOP_LOSS_PCT)    if side=="LONG" else price*(1+STOP_LOSS_PCT)
-    tp = price*(1+TAKE_PROFIT_PCT)  if side=="LONG" else price*(1-TAKE_PROFIT_PCT)
-    m_emoji = "📊" if market=="FUTURES" else "💱"
-    s_emoji = "🟢" if side=="LONG" else "🔴"
-
-    coin     = symbol.replace("USDT","")
-    name     = analysis.get("name", coin)   # nom lisible si dispo
-    learning = "🎓 APPRENTISSAGE" if analysis.get("_forced_pct") else ""
-    mtype    = analysis.get("market_type", market)
-
-    if mtype in ("STOCK","FOREX","COMMODITY"):
-        asset_label = f"{name} ({mtype})"
-    else:
-        asset_label = f"{coin} (Crypto)"
+    sl   = price*(1-STOP_LOSS_PCT)   if side=="LONG" else price*(1+STOP_LOSS_PCT)
+    tp   = price*(1+TAKE_PROFIT_PCT) if side=="LONG" else price*(1-TAKE_PROFIT_PCT)
+    coin = symbol.replace("USDT","")
+    learning = "🎓" if analysis.get("_forced_pct") else ""
 
     send_fn(
-        f"{s_emoji} J'achète {asset_label} {learning}\n"
+        f"{'🟢' if side=='LONG' else '🔴'} {learning} J'achète {coin} ({market})\n"
         f"━━━━━━━━━━━━━━━━━━━\n"
-        f"💵 Prix actuel    : ${price:.4f}\n"
-        f"💰 Mise simulée   : ${amount:.2f} sur ${sim['cash']+amount:.2f} dispo\n"
-        f"━━━━━━━━━━━━━━━━━━━\n"
-        f"🛑 Je coupe si ça descend à ${sl:.4f} (-{STOP_LOSS_PCT*100:.1f}%)\n"
-        f"🎯 Je prends mes gains à ${tp:.4f} (+{TAKE_PROFIT_PCT*100:.1f}%)\n"
-        f"━━━━━━━━━━━━━━━━━━━\n"
-        f"🧠 Pourquoi      : {reason[:120]}\n"
-        f"🔒 Niveau de confiance : {conf}%\n"
-        f"🆔 Trade #{trade['id']}"
+        f"💵 Prix     : ${price:.4f}\n"
+        f"💰 Mise     : ${amount:.2f} (Kelly {kelly_pct*100:.1f}%)\n"
+        f"🛑 SL       : ${sl:.4f} (-{STOP_LOSS_PCT*100:.1f}%)\n"
+        f"🎯 TP       : ${tp:.4f} (+{TAKE_PROFIT_PCT*100:.1f}%)\n"
+        f"🧠 Raison   : {reason[:100]}\n"
+        f"🔒 Confiance: {conf}% | Trade #{trade['id']}"
     )
     return trade
 
@@ -1607,10 +1439,10 @@ def close_trade(pos_key: str, price: float, reason: str, send_fn) -> dict | None
     if not pos:
         return None
 
-    side   = pos["side"]
-    entry  = pos["price_in"]
-    amt    = pos["amount_usd"]
-    lev    = pos.get("leverage", 1)
+    side  = pos["side"]
+    entry = pos["price_in"]
+    amt   = pos["amount_usd"]
+    lev   = pos.get("leverage", 1)
 
     if side == "LONG":
         pnl     = (price - entry) / entry * amt * lev
@@ -1621,7 +1453,6 @@ def close_trade(pos_key: str, price: float, reason: str, send_fn) -> dict | None
 
     sim["cash"] += amt + pnl
 
-    # Durée
     duration = 0
     try:
         t_in     = datetime.strptime(pos["time_in"], "%Y-%m-%d %H:%M:%S")
@@ -1629,9 +1460,7 @@ def close_trade(pos_key: str, price: float, reason: str, send_fn) -> dict | None
     except Exception:
         pass
 
-    # Màj trade
-    trade = next((t for t in reversed(sim["trades"])
-                  if t["id"]==pos["id"]), None)
+    trade = next((t for t in reversed(sim["trades"]) if t["id"]==pos["id"]), None)
     if trade:
         trade.update({
             "price_out":    price,
@@ -1645,56 +1474,33 @@ def close_trade(pos_key: str, price: float, reason: str, send_fn) -> dict | None
         learn_from_trade(trade, send_fn=send_fn)
 
     if pnl > 0:
-        memory["total_wins"] = memory.get("total_wins",0) + 1
+        memory["total_wins"]   = memory.get("total_wins",0) + 1
     else:
         memory["total_losses"] = memory.get("total_losses",0) + 1
 
     save_data()
 
-    e_pnl  = "🤑" if pnl>0 else "💸"
-    e_main = "✅" if pnl>0 else "❌"
-    chg    = (price-entry)/entry*100
-
-    coin       = pos["symbol"].replace("USDT","")
-    name       = pos.get("name", coin)
-    dur_str    = f"{duration} min" if duration >= 1 else f"{int((datetime.now()-datetime.strptime(pos['time_in'],'%Y-%m-%d %H:%M:%S')).total_seconds())}s"
     equity_now = get_equity()
     pnl_total  = equity_now - sim["initial"]
-
-    verdict = (
-        f"Excellent ! +${pnl:.2f} en {dur_str} 🚀" if pnl_pct > 3 else
-        f"Bon trade ! +${pnl:.2f} en {dur_str} 👍" if pnl > 0 else
-        f"Petit gain +${pnl:.2f} en {dur_str} 🙂" if pnl > 0 else
-        f"Petite perte ${pnl:.2f} — j'apprends 📚" if pnl > -5 else
-        f"Stop-loss déclenché ${pnl:.2f} — capital protégé 🛡️"
-    )
+    coin = pos["symbol"].replace("USDT","")
+    chg  = (price-entry)/entry*100
 
     send_fn(
-        f"{e_main} {name} vendu — Trade #{pos['id']}\n"
-        f"━━━━━━━━━━━━━━━━━━━\n"
-        f"  Acheté à  : ${entry:.4f}\n"
-        f"  Vendu à   : ${price:.4f} ({chg:+.2f}%)\n"
-        f"  Durée     : {dur_str}\n"
-        f"━━━━━━━━━━━━━━━━━━━\n"
-        f"{e_pnl} Résultat   : ${pnl:+.4f}\n"
-        f"  {verdict}\n"
-        f"━━━━━━━━━━━━━━━━━━━\n"
-        f"💰 Capital total : ${equity_now:.2f} ({pnl_total:+.2f} depuis le début)\n"
-        f"📌 Raison sortie : {reason}\n"
-        f"⏳ J'analyse ce trade pour m'améliorer..."
+        f"{'✅' if pnl>0 else '❌'} {coin} fermé — Trade #{pos['id']}\n"
+        f"  ${entry:.4f} → ${price:.4f} ({chg:+.2f}%)\n"
+        f"  {'🤑' if pnl>0 else '💸'} ${pnl:+.4f} | {reason}\n"
+        f"  Capital: ${equity_now:.2f} (total: ${pnl_total:+.2f})"
     )
     return trade
 
 
-# ═══════════════════════════════════════════════════════════════
-#  SURVEILLANCE POSITIONS (30s)
-# ═══════════════════════════════════════════════════════════════
 def monitor_positions(send_fn):
     if not sim["positions"]:
         return
     prices = get_prices_batch()
-
     for pos_key, pos in list(sim["positions"].items()):
+        if pos.get("trade_type") in ("MICRO","MEME"):
+            continue
         symbol = pos["symbol"]
         side   = pos["side"]
         entry  = pos["price_in"]
@@ -1703,599 +1509,33 @@ def monitor_positions(send_fn):
         if not price:
             continue
 
-        # Màj trailing
         if side == "LONG":
             pos["peak_price"] = max(pos.get("peak_price", entry), price)
-            change = (price - entry) / entry
+            change   = (price - entry) / entry
             trailing = (pos["peak_price"] - price) / pos["peak_price"]
         else:
             pos["trough_price"] = min(pos.get("trough_price", entry), price)
-            change = (entry - price) / entry
+            change   = (entry - price) / entry
             trailing = (price - pos["trough_price"]) / pos["trough_price"]
 
         reason = None
         if change * lev <= -STOP_LOSS_PCT:
-            reason = f"🛑 STOP-LOSS ({change*100*lev:+.2f}%)"
+            reason = f"🛑 SL ({change*100*lev:+.2f}%)"
         elif change * lev >= TAKE_PROFIT_PCT:
-            reason = f"🎯 TAKE-PROFIT ({change*100*lev:+.2f}%)"
+            reason = f"🎯 TP ({change*100*lev:+.2f}%)"
         elif change * lev > 0.008 and trailing >= TRAILING_PCT:
-            reason = f"📐 TRAILING ({trailing*100:.2f}% du pic)"
+            reason = f"📐 TRAIL ({trailing*100:.2f}%)"
 
         if reason:
             close_trade(pos_key, price, reason, send_fn)
 
 
 # ═══════════════════════════════════════════════════════════════
-#  ÉQUITÉ EN TEMPS RÉEL
+#  MICRO-TRADING
 # ═══════════════════════════════════════════════════════════════
-def get_equity() -> float:
-    prices = get_prices_batch()
-    equity = sim["cash"]
-    for pos in sim["positions"].values():
-        p = prices.get(pos["symbol"], pos["price_in"])
-        if pos["side"] == "LONG":
-            equity += pos["amount_usd"] + (p-pos["price_in"])/pos["price_in"] * pos["amount_usd"] * pos.get("leverage",1)
-        else:
-            equity += pos["amount_usd"] + (pos["price_in"]-p)/pos["price_in"] * pos["amount_usd"] * pos.get("leverage",1)
-    return equity
-
-
-def get_stats() -> dict:
-    closed = [t for t in sim["trades"] if t.get("pnl") is not None]
-    if not closed:
-        return {"total":0,"wins":0,"losses":0,"win_rate":0,
-                "best":0,"worst":0,"total_pnl":0,"avg_dur":0}
-    pnls = [t["pnl"] for t in closed]
-    wins = [p for p in pnls if p>0]
-    durs = [t.get("duration_min",0) for t in closed if t.get("duration_min")]
-    return {
-        "total":    len(closed),
-        "wins":     len(wins),
-        "losses":   len(closed)-len(wins),
-        "win_rate": round(len(wins)/len(closed)*100, 1),
-        "best":     round(max(pnls), 4),
-        "worst":    round(min(pnls), 4),
-        "total_pnl":round(sum(pnls), 4),
-        "avg_dur":  round(sum(durs)/len(durs), 1) if durs else 0,
-    }
-
-
-# ═══════════════════════════════════════════════════════════════
-#  AUTO-AJUSTEMENT DU SEUIL
-# ═══════════════════════════════════════════════════════════════
-def auto_adjust():
-    wr  = db_win_rate(20)
-    cur = memory.get("confidence_threshold", CONFIDENCE_BASE)
-    if wr > 62 and cur > CONFIDENCE_MIN:
-        new = max(CONFIDENCE_MIN, cur-2)
-    elif wr < 40 and cur < CONFIDENCE_MAX:
-        new = min(CONFIDENCE_MAX, cur+3)
-    else:
-        new = cur
-    memory["confidence_threshold"] = new
-    return new
-
-
-# ═══════════════════════════════════════════════════════════════
-#  APPRENTISSAGE
-# ═══════════════════════════════════════════════════════════════
-def learn_from_trade(trade: dict, send_fn=None):
-    if trade.get("pnl") is None:
-        return
-    try:
-        verdict = "PERDANT" if trade["pnl"]<0 else "GAGNANT"
-        prompt  = f"""Analyse ce trade simulé et tire une leçon précise.
-
-{trade['symbol']} {trade['market']} {trade['side']}
-${trade['price_in']:.6f} → ${trade['price_out']:.6f}
-PnL: ${trade['pnl']:+.4f} ({trade.get('pnl_pct',0):+.2f}%) — {verdict}
-Durée: {trade.get('duration_min',0)} min
-Raison entrée: {trade['reason']}
-Raison sortie: {trade.get('exit_reason','')}
-Patterns: {trade.get('patterns',[])}
-Confiance: {trade['confidence']}%
-
-JSON strict (sans backticks):
-{{"lecon":"leçon courte et actionnable","pattern":"pattern clé","action_future":"règle concrète","type":"erreur ou succes"}}"""
-
-        r = groq_client.chat.completions.create(
-            model=GROQ_FAST_MODEL, max_tokens=100, temperature=0.2,
-            messages=[{"role":"user","content":prompt}],
-        )
-        lesson = json.loads(
-            r.choices[0].message.content
-            .replace("```json","").replace("```","").strip()
-        )
-        lesson.update({
-            "trade_id": trade["id"],
-            "pnl":      trade["pnl"],
-            "symbol":   trade["symbol"],
-            "market":   trade.get("market","SPOT"),
-            "date":     datetime.now().strftime("%Y-%m-%d %H:%M"),
-        })
-        memory["lessons"].append(lesson)
-        db_save_lesson(lesson)
-
-        key = "patterns_that_work" if lesson["type"]=="succes" else "patterns_to_avoid"
-        memory[key].append(lesson["pattern"])
-        memory["lessons"]           = memory["lessons"][-60:]
-        memory["patterns_that_work"]= memory["patterns_that_work"][-25:]
-        memory["patterns_to_avoid"] = memory["patterns_to_avoid"][-25:]
-
-        new_thresh = auto_adjust()
-        save_data()
-        print(f"[LEARN] {lesson['lecon']}")
-
-        if send_fn:
-            stats = get_stats()
-            e     = "✅" if lesson["type"]=="succes" else "❌"
-            coin  = trade["symbol"].replace("USDT","")
-            send_fn(
-                f"📚 Leçon #{len(memory['lessons'])} — {coin}\n"
-                f"{e} Ce que j'ai appris :\n"
-                f"  {lesson['lecon']}\n"
-                f"📌 Prochaine fois :\n"
-                f"  {lesson['action_future']}\n"
-                f"📊 Score global : {stats['win_rate']}% de trades gagnants "
-                f"({stats['wins']}✅ / {stats['losses']}❌)"
-            )
-    except Exception as e:
-        print(f"[LEARN] {e}")
-
-
-
-# ═══════════════════════════════════════════════════════════════
-#  MODULE MEMECOINS — DexScreener + Surveillance AlxCooks
-# ═══════════════════════════════════════════════════════════════
-
-_meme_price_cache: dict = {}
-_meme_positions:   dict = {}   # pos_key → position memecoin
-_seen_tokens:      set  = set()  # tokens déjà analysés
-
-# Regex pour détecter les tickers crypto dans du texte
-TICKER_REGEX = re.compile(r'\$([A-Z]{2,10})\b')
-
-
-def dex_get_price(token_address: str) -> dict:
-    """Prix d'un token via DexScreener par adresse contrat."""
-    try:
-        r = requests.get(
-            f"{DEXSCREENER_API}/tokens/{token_address}",
-            timeout=6, headers={"User-Agent": "Mozilla/5.0"}
-        )
-        data = r.json()
-        pairs = data.get("pairs", [])
-        if not pairs:
-            return {}
-        # Prend la paire avec le plus de liquidité
-        best = max(pairs, key=lambda p: float(p.get("liquidity",{}).get("usd",0) or 0))
-        return {
-            "symbol":   best.get("baseToken",{}).get("symbol","?"),
-            "price":    float(best.get("priceUsd", 0) or 0),
-            "change5m": float(best.get("priceChange",{}).get("m5", 0) or 0),
-            "change1h": float(best.get("priceChange",{}).get("h1", 0) or 0),
-            "change24h":float(best.get("priceChange",{}).get("h24", 0) or 0),
-            "volume24h":float(best.get("volume",{}).get("h24", 0) or 0),
-            "liquidity":float(best.get("liquidity",{}).get("usd", 0) or 0),
-            "fdv":      float(best.get("fdv", 0) or 0),
-            "chain":    best.get("chainId","unknown"),
-            "dex":      best.get("dexId","unknown"),
-            "address":  token_address,
-        }
-    except Exception:
-        return {}
-
-
-def dex_search_token(symbol: str) -> dict:
-    """Cherche un token par symbole sur DexScreener."""
-    try:
-        r = requests.get(
-            f"{DEXSCREENER_API}/search?q={symbol}",
-            timeout=6, headers={"User-Agent": "Mozilla/5.0"}
-        )
-        pairs = r.json().get("pairs", [])
-        if not pairs:
-            return {}
-        # Filtre par symbole exact et prend le plus liquide
-        exact = [p for p in pairs
-                 if p.get("baseToken",{}).get("symbol","").upper() == symbol.upper()]
-        pool  = exact if exact else pairs
-        best  = max(pool, key=lambda p: float(p.get("liquidity",{}).get("usd",0) or 0))
-        liq   = float(best.get("liquidity",{}).get("usd",0) or 0)
-        if liq < 10000:  # ignore si liquidité < $10k
-            return {}
-        return {
-            "symbol":   best.get("baseToken",{}).get("symbol","?"),
-            "price":    float(best.get("priceUsd", 0) or 0),
-            "change5m": float(best.get("priceChange",{}).get("m5", 0) or 0),
-            "change1h": float(best.get("priceChange",{}).get("h1", 0) or 0),
-            "change24h":float(best.get("priceChange",{}).get("h24", 0) or 0),
-            "volume24h":float(best.get("volume",{}).get("h24", 0) or 0),
-            "liquidity":liq,
-            "chain":    best.get("chainId","unknown"),
-            "address":  best.get("baseToken",{}).get("address",""),
-        }
-    except Exception:
-        return {}
-
-
-def dex_get_trending() -> list:
-    """
-    Top tokens trendés sur DexScreener (boosts + nouveaux).
-    Retourne les tokens avec le plus gros momentum récent.
-    """
-    trending = []
-    try:
-        # Tokens boostés (payé pour être mis en avant = attention = potentiel pump)
-        r = requests.get(DEXSCREENER_NEW, timeout=8,
-                         headers={"User-Agent": "Mozilla/5.0"})
-        boosts = r.json() if isinstance(r.json(), list) else []
-        for b in boosts[:20]:
-            sym = b.get("tokenAddress","")
-            if sym and sym not in _seen_tokens:
-                d = dex_get_price(sym)
-                if d and d.get("liquidity",0) > 50000:  # min $50k liquidité
-                    d["boost"] = True
-                    trending.append(d)
-                    _seen_tokens.add(sym)
-    except Exception:
-        pass
-
-    # Nouveaux tokens Solana avec fort volume
-    try:
-        r = requests.get(
-            f"{DEXSCREENER_API}/search?q=solana",
-            timeout=8, headers={"User-Agent": "Mozilla/5.0"}
-        )
-        pairs = r.json().get("pairs", [])
-        for p in pairs[:30]:
-            vol = float(p.get("volume",{}).get("h24",0) or 0)
-            liq = float(p.get("liquidity",{}).get("usd",0) or 0)
-            age_h = float(p.get("pairCreatedAt", 0) or 0)
-            chg1h = float(p.get("priceChange",{}).get("h1",0) or 0)
-            # Critères : liquidité ok + volume élevé + hausse récente
-            if liq > 30000 and vol > 100000 and chg1h > 10:
-                sym = p.get("baseToken",{}).get("symbol","")
-                if sym and sym not in _seen_tokens:
-                    trending.append({
-                        "symbol":   sym,
-                        "price":    float(p.get("priceUsd",0) or 0),
-                        "change1h": chg1h,
-                        "change24h":float(p.get("priceChange",{}).get("h24",0) or 0),
-                        "volume24h":vol,
-                        "liquidity":liq,
-                        "chain":    "solana",
-                        "address":  p.get("baseToken",{}).get("address",""),
-                    })
-                    _seen_tokens.add(sym)
-    except Exception:
-        pass
-
-    return trending[:10]
-
-
-def extract_tickers_from_text(text: str) -> list:
-    """Extrait les tickers $TOKEN mentionnés dans un texte."""
-    found = TICKER_REGEX.findall(text.upper())
-    # Filtre les faux positifs (mots courants)
-    ignore = {"THE","FOR","AND","WITH","YOU","ARE","NOT","ALL",
-              "NEW","GET","BUY","NOW","USD","ETH","SOL","BTC"}
-    return [t for t in set(found) if t not in ignore and len(t) >= 2]
-
-
-def scan_meme_traders() -> list:
-    """
-    Surveille les traders memecoins (AlxCooks, Murad, Ansem...).
-    Détecte les tokens mentionnés et les analyse sur DexScreener.
-    """
-    signals = []
-    # Comptes memecoins spécifiques
-    meme_accounts = [
-        "AlxCooks_off", "MustStopMurad", "blknoiz06",
-        "Degentraland", "CryptoGodJohn", "solbigbrain"
-    ]
-
-    for account in meme_accounts[:3]:  # max 3 par cycle
-        try:
-            for instance in NITTER_INSTANCES:
-                try:
-                    url  = f"https://{instance}/{account}/rss"
-                    feed = feedparser.parse(url)
-                    if not feed.entries:
-                        continue
-                    for entry in feed.entries[:5]:
-                        text = re.sub(r'<[^>]+>', '', entry.get("summary","") + " " + entry.get("title",""))
-                        tickers = extract_tickers_from_text(text)
-                        for ticker in tickers[:3]:
-                            h = _signal_hash(ticker + text[:50])
-                            if h in _signal_cache:
-                                continue
-                            _signal_cache.add(h)
-                            # Cherche le token sur DexScreener
-                            token_data = dex_search_token(ticker)
-                            if token_data:
-                                signals.append({
-                                    "source":   "MemeTrader",
-                                    "author":   account,
-                                    "ticker":   ticker,
-                                    "text":     text[:150],
-                                    "token":    token_data,
-                                    "ts":       datetime.now().strftime("%H:%M"),
-                                })
-                    break
-                except Exception:
-                    continue
-        except Exception:
-            pass
-
-    return signals
-
-
-def meme_signal_score(token: dict) -> int:
-    """
-    Score d'opportunité pour un memecoin (0-10).
-    Basé sur momentum, volume et liquidité.
-    """
-    score = 0
-    c1h   = token.get("change1h", 0)
-    c5m   = token.get("change5m", 0)
-    vol   = token.get("volume24h", 0)
-    liq   = token.get("liquidity", 0)
-
-    # Momentum haussier
-    if c1h > 50:   score += 4
-    elif c1h > 20: score += 3
-    elif c1h > 10: score += 2
-    elif c1h > 5:  score += 1
-
-    # Momentum très récent (5min)
-    if c5m > 10:   score += 3
-    elif c5m > 5:  score += 2
-    elif c5m > 2:  score += 1
-
-    # Volume suffisant
-    if vol > 1000000:  score += 2
-    elif vol > 100000: score += 1
-
-    # Liquidité suffisante (sécurité)
-    if liq < 20000:    score -= 3  # trop risqué
-    elif liq < 50000:  score -= 1
-
-    # Penalise si baisse
-    if c1h < -20: score -= 4
-    elif c1h < -5: score -= 1
-
-    return max(0, min(10, score))
-
-
-def open_meme_trade(token: dict, reason: str, send_fn) -> dict | None:
-    """Ouvre un trade simulé sur un memecoin via DexScreener."""
-    symbol = token.get("symbol","?")
-    price  = token.get("price", 0)
-    chain  = token.get("chain","solana")
-    if not price or price <= 0:
-        return None
-    if sim["cash"] < 20:
-        return None
-    # Max 2 positions memecoins simultanées
-    meme_count = sum(1 for p in sim["positions"].values()
-                     if p.get("trade_type")=="MEME")
-    if meme_count >= 2:
-        return None
-
-    amount = sim["cash"] * MEME_MAX_PCT
-    qty    = amount / price
-    sim["cash"] -= amount
-
-    trade = {
-        "id":           len(sim["trades"]) + 1,
-        "symbol":       symbol,
-        "market":       f"MEME-{chain.upper()}",
-        "side":         "LONG",
-        "trade_type":   "MEME",
-        "price_in":     price,
-        "price_out":    None,
-        "qty":          qty,
-        "amount_usd":   amount,
-        "confidence":   75,
-        "reason":       reason[:100],
-        "exit_reason":  None,
-        "time_in":      datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "time_out":     None,
-        "pnl":          None,
-        "pnl_pct":      None,
-        "duration_min": None,
-        "patterns":     ["memecoin"],
-        "leverage":     1,
-        "peak_price":   price,
-        "trough_price": price,
-        "open_time":    time.time(),
-        "token_address":token.get("address",""),
-        "chain":        chain,
-        "liq_at_entry": token.get("liquidity",0),
-    }
-
-    pos_key = f"MEME_{symbol}_{trade['id']}"
-    sim["trades"].append(trade)
-    sim["positions"][pos_key] = {**trade, "pos_key": pos_key}
-    db_save_trade(trade)
-    bot_state["trades_today"] += 1
-
-    send_fn(
-        f"🐸 MEMECOIN SIMULÉ — {symbol}\n"
-        f"  Chain: {chain.upper()} | ${price:.8f}\n"
-        f"  Mise: ${amount:.2f} | Liq: ${token.get('liquidity',0):,.0f}\n"
-        f"  📈 1h:{token.get('change1h',0):+.1f}% 5m:{token.get('change5m',0):+.1f}%\n"
-        f"  💡 {reason[:80]}"
-    )
-    return trade
-
-
-def monitor_meme_positions(send_fn):
-    """Surveillance des positions memecoins — fermeture rapide."""
-    now    = time.time()
-    for pos_key, pos in list(sim["positions"].items()):
-        if pos.get("trade_type") != "MEME":
-            continue
-        symbol  = pos["symbol"]
-        entry   = pos["price_in"]
-        elapsed = now - pos.get("open_time", now)
-
-        # Récupère prix actuel via DexScreener
-        addr  = pos.get("token_address","")
-        token = dex_get_price(addr) if addr else dex_search_token(symbol)
-        price = token.get("price", 0) if token else 0
-
-        if not price:
-            # Si on ne trouve plus le prix après 5min → ferme (rugpull?)
-            if elapsed > 300:
-                price = entry * 0.9  # assume -10%
-            else:
-                continue
-
-        pos["peak_price"] = max(pos.get("peak_price", entry), price)
-        change   = (price - entry) / entry
-        trailing = (pos["peak_price"] - price) / pos["peak_price"] if pos["peak_price"] > 0 else 0
-
-        reason = None
-        if change <= -MEME_SL_PCT:
-            reason = f"🛑 SL Meme ({change*100:+.1f}%)"
-        elif change >= MEME_TP_PCT:
-            reason = f"🎯 TP Meme ({change*100:+.1f}%)"
-        elif change > 0.05 and trailing >= MEME_TRAILING_PCT:
-            reason = f"📐 Trail Meme ({trailing*100:.1f}% du pic)"
-        elif elapsed >= MEME_MAX_DURATION:
-            reason = f"⏱ Timeout {int(elapsed)}s"
-
-        if reason:
-            pnl     = (price - entry) / entry * pos["amount_usd"]
-            pnl_pct = (price - entry) / entry * 100
-            sim["cash"] += pos["amount_usd"] + pnl
-
-            trade = next((t for t in reversed(sim["trades"]) if t["id"]==pos["id"]), None)
-            if trade:
-                trade.update({
-                    "price_out":    price,
-                    "time_out":     datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "pnl":          round(pnl, 6),
-                    "pnl_pct":      round(pnl_pct, 2),
-                    "exit_reason":  reason,
-                    "duration_min": max(1, int(elapsed/60)),
-                })
-                db_save_trade(trade)
-                learn_from_trade(trade, send_fn=None)
-
-            del sim["positions"][pos_key]
-            save_data()
-
-            e = "✅" if pnl > 0 else "❌"
-            send_fn(
-                f"{e} MEME {symbol} fermé\n"
-                f"  ${entry:.8f}→${price:.8f} ({change*100:+.2f}%)\n"
-                f"  {'🤑' if pnl>0 else '💸'} ${pnl:+.4f} | {reason}"
-            )
-            if pnl > 0:
-                memory["total_wins"]   = memory.get("total_wins",0) + 1
-            else:
-                memory["total_losses"] = memory.get("total_losses",0) + 1
-
-
-def run_meme_cycle(send_fn):
-    """
-    Cycle memecoin complet :
-    1. Surveille les traders (AlxCooks, Murad, Ansem)
-    2. Détecte les tokens mentionnés → DexScreener
-    3. Scanne les tokens trendés sur Solana
-    4. Ouvre des trades simulés sur les meilleurs signaux
-    """
-    # Surveille les positions memecoins en cours
-    monitor_meme_positions(send_fn)
-
-    if sim["cash"] < 20:
-        return
-
-    candidates = []
-
-    # ── Source 1 : Tokens mentionnés par les traders ─────────────
-    trader_signals = scan_meme_traders()
-    for sig in trader_signals:
-        token = sig["token"]
-        score = meme_signal_score(token)
-        if score >= 5:
-            token["score"]  = score
-            token["reason"] = f"@{sig['author']} mentionne ${sig['ticker']} | {token.get('change1h',0):+.1f}%1h"
-            token["source"] = "trader"
-            candidates.append(token)
-
-    # ── Source 2 : Trending DexScreener ──────────────────────────
-    trending = dex_get_trending()
-    for token in trending:
-        score = meme_signal_score(token)
-        if score >= 6:  # seuil plus haut pour trending (moins fiable)
-            token["score"]  = score
-            token["reason"] = f"Trending DexScreener | {token.get('change1h',0):+.1f}%1h vol${token.get('volume24h',0)/1000:.0f}k"
-            token["source"] = "trending"
-            candidates.append(token)
-
-    # ── Source 3 : Memecoins Bybit classiques ────────────────────
-    prices = get_prices_batch()
-    for sym in MEMECOIN_SOLANA + MEMECOIN_ETH:
-        price = prices.get(sym, 0)
-        if not price:
-            continue
-        closes = get_klines(sym, "5", 30)
-        if len(closes) < 10:
-            continue
-        ind = compute_indicators(closes)
-        if not ind:
-            continue
-        # Score simple pour memecoins Bybit
-        score = 0
-        if ind.get("rsi",50) < 35: score += 3
-        if ind.get("mom5",0) > 3:  score += 3
-        if ind.get("macd_h",0) > 0: score += 2
-        if score >= 6:
-            candidates.append({
-                "symbol":   sym.replace("USDT",""),
-                "price":    price,
-                "change1h": ind.get("mom5",0),
-                "change5m": 0,
-                "volume24h":0,
-                "liquidity":999999,
-                "chain":    "bybit",
-                "address":  "",
-                "score":    score,
-                "reason":   f"Bybit memecoin RSI={ind.get('rsi',0):.0f} mom={ind.get('mom5',0):+.1f}%",
-                "source":   "bybit",
-            })
-
-    if not candidates:
-        return
-
-    # Trie par score et prend le meilleur
-    candidates.sort(key=lambda x: x.get("score",0), reverse=True)
-    best = candidates[0]
-
-    # Vérifie qu'on n'a pas déjà ce token
-    if any(p["symbol"]==best["symbol"] for p in sim["positions"].values()):
-        return
-
-    # N'ouvre que si signal vraiment fort
-    if best.get("score",0) >= 5:
-        open_meme_trade(best, best.get("reason",""), send_fn)
-
-
-# ═══════════════════════════════════════════════════════════════
-#  MOTEUR MICRO-TRADING (sub-minute)
-#  Logique purement algorithmique — pas d'appel IA pour la vitesse
-#  Décision en <500ms sur signaux purs : tick, EMA, RSI, volume
-# ═══════════════════════════════════════════════════════════════
-
-# Cache des klines 1min pour éviter les appels répétés
-_kline_cache_1m: dict = {}   # symbol → (timestamp, closes)
+_kline_cache_1m: dict = {}
 
 def get_klines_1m_cached(symbol: str) -> pd.Series:
-    """Klines 1min avec cache de 5s."""
     now = time.time()
     if symbol in _kline_cache_1m:
         ts, closes = _kline_cache_1m[symbol]
@@ -2307,329 +1547,420 @@ def get_klines_1m_cached(symbol: str) -> pd.Series:
 
 
 def micro_signal(symbol: str, price: float) -> dict:
-    """
-    Signal micro-trading purement algorithmique — décision en <200ms.
-    Aucun appel IA. Basé sur :
-      1. EMA cross 1min (EMA5 vs EMA13)
-      2. RSI 7 périodes (réactif)
-      3. Spike de volume (x2.5 avg)
-      4. Momentum 3 bougies
-      5. Bollinger squeeze (prix près d'une bande)
-      6. VWAP approximé (prix vs moyenne pondérée)
-    Score de -6 à +6 → seuil ±4 pour trader
-    """
     try:
         closes = get_klines_1m_cached(symbol)
         if len(closes) < 14:
-            return {"signal": "HOLD", "score": 0, "conf": 0}
+            return {"signal":"HOLD","score":0,"conf":0}
 
-        # EMA5 / EMA13 cross
         ema5  = float(closes.ewm(span=5,  adjust=False).mean().iloc[-1])
         ema13 = float(closes.ewm(span=13, adjust=False).mean().iloc[-1])
         ema5_prev  = float(closes.ewm(span=5,  adjust=False).mean().iloc[-2])
         ema13_prev = float(closes.ewm(span=13, adjust=False).mean().iloc[-2])
 
-        # RSI 7
         delta = closes.diff()
         gain  = delta.clip(lower=0).ewm(com=6, adjust=False).mean()
         loss  = (-delta).clip(lower=0).ewm(com=6, adjust=False).mean()
-        rsi7  = float((100 - 100/(1 + gain/loss.replace(0, np.nan))).iloc[-1])
+        rsi7  = float((100 - 100/(1+gain/loss.replace(0,np.nan))).iloc[-1])
 
-        # Momentum 3 bougies
-        mom3 = (float(closes.iloc[-1]) - float(closes.iloc[-4]))                / float(closes.iloc[-4]) * 100
+        mom3  = float((closes.iloc[-1]-closes.iloc[-4])/closes.iloc[-4]*100) \
+                if len(closes)>=4 else 0
 
-        # Bollinger 10 périodes
         sma10 = closes.rolling(10).mean()
         std10 = closes.rolling(10).std()
-        bb_up = float((sma10 + 1.5*std10).iloc[-1])
-        bb_lo = float((sma10 - 1.5*std10).iloc[-1])
-        bb_pct = (price - bb_lo) / (bb_up - bb_lo) * 100 if bb_up != bb_lo else 50
+        bb_up = float((sma10+1.5*std10).iloc[-1])
+        bb_lo = float((sma10-1.5*std10).iloc[-1])
+        bb_pct= (price-bb_lo)/(bb_up-bb_lo)*100 if bb_up!=bb_lo else 50
 
-        # Volumes (on utilise le cache 1min pour dériver une estimate)
-        vols = get_volume_data(symbol, "1", 10)
+        vols      = get_volume_data(symbol, "1", 10)
         avg_vol   = sum(vols[:-1])/max(len(vols)-1,1) if len(vols)>1 else 1
         vol_ratio = vols[-1]/avg_vol if avg_vol>0 else 1.0
 
-        # ── Scoring ─────────────────────────────────────────────
         score = 0
+        if ema5_prev<=ema13_prev and ema5>ema13:   score += 2
+        elif ema5_prev>=ema13_prev and ema5<ema13: score -= 2
 
-        # 1. EMA cross (signal le plus fort)
-        if ema5_prev <= ema13_prev and ema5 > ema13:
-            score += 2   # golden cross 1min
-        elif ema5_prev >= ema13_prev and ema5 < ema13:
-            score -= 2   # death cross 1min
-
-        # 2. RSI7 zone
         if rsi7 < 28:   score += 2
         elif rsi7 < 40: score += 1
         elif rsi7 > 72: score -= 2
         elif rsi7 > 60: score -= 1
 
-        # 3. Momentum 3 bougies
         if mom3 > 0.6:    score += 1
         elif mom3 < -0.6: score -= 1
 
-        # 4. Position dans les Bollinger
-        if bb_pct < 8:    score += 1   # près de la bande basse → rebond probable
-        elif bb_pct > 92: score -= 1   # près de la bande haute → recul probable
+        if bb_pct < 8:    score += 1
+        elif bb_pct > 92: score -= 1
 
-        # 5. Volume spike confirme le signal
         if vol_ratio > 2.5 and score > 0: score += 1
         if vol_ratio > 2.5 and score < 0: score -= 1
 
-        # ── Décision ────────────────────────────────────────────
         if score >= 4:
-            signal = "BUY"
-            conf   = min(95, 60 + score * 7)
+            return {"signal":"BUY","score":score,"conf":min(95,60+score*7),
+                    "rsi7":round(rsi7,1),"mom3":round(mom3,3),
+                    "reason":f"EMA{'↑' if ema5>ema13 else '↓'} RSI7={rsi7:.0f} mom={mom3:+.2f}% vol={vol_ratio:.1f}x"}
         elif score <= -4:
-            signal = "SELL"
-            conf   = min(95, 60 + abs(score) * 7)
-        else:
-            signal = "HOLD"
-            conf   = 0
-
-        return {
-            "signal":   signal,
-            "score":    score,
-            "conf":     conf,
-            "rsi7":     round(rsi7, 1),
-            "ema_cross": "BULL" if ema5>ema13 else "BEAR",
-            "mom3":     round(mom3, 3),
-            "bb_pct":   round(bb_pct, 1),
-            "vol_ratio": round(vol_ratio, 2),
-            "reason":   (f"EMA{'↑' if ema5>ema13 else '↓'} RSI7={rsi7:.0f} "
-                         f"mom={mom3:+.2f}% bb={bb_pct:.0f}% vol={vol_ratio:.1f}x"),
-        }
-
+            return {"signal":"SELL","score":score,"conf":min(95,60+abs(score)*7),
+                    "rsi7":round(rsi7,1),"mom3":round(mom3,3),
+                    "reason":f"EMA{'↑' if ema5>ema13 else '↓'} RSI7={rsi7:.0f} mom={mom3:+.2f}%"}
+        return {"signal":"HOLD","score":score,"conf":0}
     except Exception as e:
-        print(f"[MICRO] {symbol}: {e}")
-        return {"signal": "HOLD", "score": 0, "conf": 0}
+        return {"signal":"HOLD","score":0,"conf":0}
 
 
 def open_micro_trade(symbol: str, price: float, signal: dict, send_fn) -> dict | None:
-    """Ouvre un micro-trade simulé avec SL/TP ultra-serrés."""
-    side    = "LONG" if signal["signal"]=="BUY" else "SHORT"
-    conf    = signal["conf"]
-    reason  = signal.get("reason","")
-    score   = signal.get("score",0)
-
-    # Pas de short sur spot en micro (trop risqué sans levier)
-    if side == "SHORT":
+    if signal["signal"] == "SHORT":
         return None
-
-    # Vérifications rapides
-    micro_count = sum(1 for p in sim["positions"].values()
-                      if p.get("trade_type")=="MICRO")
+    micro_count = sum(1 for p in sim["positions"].values() if p.get("trade_type")=="MICRO")
     if micro_count >= MAX_MICRO_POSITIONS:
         return None
-    if any(p["symbol"]==symbol and p.get("trade_type")=="MICRO"
-           for p in sim["positions"].values()):
+    if any(p["symbol"]==symbol and p.get("trade_type")=="MICRO" for p in sim["positions"].values()):
         return None
     if sim["cash"] < 15:
         return None
 
-    # Mode apprentissage : petit capital même à faible confiance
-    is_learn = LEARN_MODE_ENABLED and signal["conf"] < MICRO_CONF_MIN
-    amount_pct = LEARN_MODE_MAX_PCT if is_learn else MICRO_MAX_PCT
-    amount = sim["cash"] * amount_pct
+    amount = sim["cash"] * MICRO_MAX_PCT
     qty    = amount / price
     sim["cash"] -= amount
 
     trade = {
-        "id":           len(sim["trades"]) + 1,
-        "symbol":       symbol,
-        "market":       "MICRO",
-        "side":         side,
-        "trade_type":   "MICRO",
-        "price_in":     price,
-        "price_out":    None,
-        "qty":          qty,
-        "amount_usd":   amount,
-        "confidence":   conf,
-        "reason":       reason,
-        "exit_reason":  None,
-        "time_in":      datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "time_out":     None,
-        "pnl":          None,
-        "pnl_pct":      None,
-        "duration_min": None,
-        "patterns":     [f"score={score}"],
-        "leverage":     1,
-        "peak_price":   price,
-        "trough_price": price,
-        "micro_score":  score,
-        "open_time":    time.time(),  # pour timeout 90s
+        "id": len(sim["trades"]) + 1, "symbol": symbol,
+        "market": "MICRO", "side": "LONG", "trade_type": "MICRO",
+        "price_in": price, "price_out": None, "qty": qty,
+        "amount_usd": amount, "confidence": signal["conf"],
+        "reason": signal.get("reason",""), "exit_reason": None,
+        "time_in": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "time_out": None, "pnl": None, "pnl_pct": None,
+        "duration_min": None, "patterns": [f"score={signal['score']}"],
+        "leverage": 1, "peak_price": price, "open_time": time.time(),
+        "kelly_pct": MICRO_MAX_PCT,
     }
 
-    pos_key = f"MICRO_{symbol}_{side}_{trade['id']}"
+    pos_key = f"MICRO_{symbol}_{trade['id']}"
     sim["trades"].append(trade)
     sim["positions"][pos_key] = {**trade, "pos_key": pos_key}
     db_save_trade(trade)
     bot_state["trades_today"] += 1
-    bot_state["micro_count"]  = bot_state.get("micro_count", 0) + 1
-
-    sl = price * (1 - MICRO_SL_PCT)
-    tp = price * (1 + MICRO_TP_PCT)
+    bot_state["micro_count"] = bot_state.get("micro_count",0) + 1
 
     coin = symbol.replace("USDT","")
     send_fn(
-        f"⚡ Micro-trade {coin} — #{trade['id']}\n"
-        f"  J'achète à ${price:.4f}\n"
-        f"  Mise: ${amount:.2f} | Durée max: {MICRO_MAX_DURATION}s\n"
-        f"  Signal algo: {reason[:70]}"
+        f"⚡ Micro {coin} #{trade['id']}\n"
+        f"  ${price:.4f} | ${amount:.2f} | {signal.get('reason','')[:60]}"
     )
     return trade
 
 
 def monitor_micro_positions(send_fn):
-    """
-    Surveillance ultra-rapide des micro-trades.
-    - SL -0.8% / TP +1.2% / Trailing -0.5%
-    - Timeout 90s : ferme automatiquement si trop long
-    - Fermeture sur signal contraire
-    """
-    now = time.time()
+    now    = time.time()
     prices = get_prices_batch()
-
     for pos_key, pos in list(sim["positions"].items()):
         if pos.get("trade_type") != "MICRO":
             continue
-
-        symbol = pos["symbol"]
-        price  = prices.get(symbol) or get_price(symbol, force=True)
+        symbol  = pos["symbol"]
+        price   = prices.get(symbol) or get_price(symbol, force=True)
         if not price:
             continue
-
         entry   = pos["price_in"]
         change  = (price - entry) / entry
         elapsed = now - pos.get("open_time", now)
-
-        # Trailing stop
-        pos["peak_price"] = max(pos.get("peak_price", entry), price)
-        trailing = (pos["peak_price"] - price) / pos["peak_price"]
+        pos["peak_price"] = max(pos.get("peak_price",entry), price)
+        trailing = (pos["peak_price"]-price)/pos["peak_price"]
 
         reason = None
-
-        # SL
         if change <= -MICRO_SL_PCT:
             reason = f"🛑 MICRO SL ({change*100:+.2f}%)"
-
-        # TP
         elif change >= MICRO_TP_PCT:
             reason = f"🎯 MICRO TP ({change*100:+.2f}%)"
-
-        # Trailing stop (si déjà en profit)
         elif change > 0.003 and trailing >= MICRO_TRAILING_PCT:
-            reason = f"📐 MICRO TRAIL ({trailing*100:.2f}% du pic)"
-
-        # Timeout
+            reason = f"📐 MICRO TRAIL ({trailing*100:.2f}%)"
         elif elapsed >= MICRO_MAX_DURATION:
-            pnl_now = change * pos["amount_usd"]
-            reason  = f"⏱ TIMEOUT {int(elapsed)}s (PnL: ${pnl_now:+.4f})"
-
-        # Signal contraire rapide
-        elif elapsed > 20:
-            sig = micro_signal(symbol, price)
-            if sig["signal"] == "SELL" and pos["side"] == "LONG" and sig["score"] <= -4:
-                reason = f"🔄 Signal contraire (score={sig['score']})"
+            reason = f"⏱ TIMEOUT {int(elapsed)}s"
 
         if reason:
-            # Fermeture rapide
-            side   = pos["side"]
-            amt    = pos["amount_usd"]
-            pnl    = (price - entry) / entry * amt
-            pnl_pct= (price - entry) / entry * 100
-            sim["cash"] += amt + pnl
-
-            trade = next((t for t in reversed(sim["trades"])
-                          if t["id"] == pos["id"]), None)
+            pnl     = change * pos["amount_usd"]
+            pnl_pct = change * 100
+            sim["cash"] += pos["amount_usd"] + pnl
+            trade = next((t for t in reversed(sim["trades"]) if t["id"]==pos["id"]), None)
             if trade:
-                dur = int(elapsed / 60 * 10) / 10  # durée en minutes
                 trade.update({
                     "price_out":    price,
                     "time_out":     datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "pnl":          round(pnl, 6),
-                    "pnl_pct":      round(pnl_pct, 3),
+                    "pnl":          round(pnl,6),
+                    "pnl_pct":      round(pnl_pct,3),
                     "exit_reason":  reason,
-                    "duration_min": max(1, int(elapsed / 60)),
+                    "duration_min": max(1,int(elapsed/60)),
                 })
                 db_save_trade(trade)
-                learn_from_trade(trade, send_fn=None)  # apprentissage silencieux
-
+                learn_from_trade(trade, send_fn=None)
             del sim["positions"][pos_key]
             save_data()
-
-            e     = "✅" if pnl>0 else "❌"
-            coin  = symbol.replace("USDT","")
-            chg   = (price-entry)/entry*100
-            result_str = f"Gagné ${pnl:+.4f}" if pnl>0 else f"Perdu ${pnl:.4f}"
-            send_fn(
-                f"{e} Micro {coin} fermé — {result_str}\n"
-                f"  ${entry:.4f} → ${price:.4f} ({chg:+.3f}%) | {reason}"
-            )
-
-            if pnl > 0:
-                memory["total_wins"]   = memory.get("total_wins",0) + 1
-            else:
-                memory["total_losses"] = memory.get("total_losses",0) + 1
+            coin = symbol.replace("USDT","")
+            send_fn(f"{'✅' if pnl>0 else '❌'} Micro {coin}: ${pnl:+.4f} | {reason}")
+            if pnl > 0: memory["total_wins"]   = memory.get("total_wins",0)+1
+            else:        memory["total_losses"] = memory.get("total_losses",0)+1
 
 
 def run_micro_cycle(send_fn):
-    """
-    Cycle micro-trading : toutes les 8 secondes.
-    Scanne MICRO_SYMBOLS avec l'algo pur (pas d'IA).
-    Ultra-rapide, décision en <500ms par symbole.
-    """
     prices = get_prices_batch()
-
     for symbol in MICRO_SYMBOLS:
         if not bot_state["running"]:
             break
         price = prices.get(symbol, 0)
         if not price:
             continue
-
-        # Skip si déjà trop de positions micro
-        micro_count = sum(1 for p in sim["positions"].values()
-                          if p.get("trade_type")=="MICRO")
+        micro_count = sum(1 for p in sim["positions"].values() if p.get("trade_type")=="MICRO")
         if micro_count >= MAX_MICRO_POSITIONS:
             break
-
-        # Skip si déjà une position micro sur ce symbole
-        if any(p["symbol"]==symbol and p.get("trade_type")=="MICRO"
-               for p in sim["positions"].values()):
+        if any(p["symbol"]==symbol and p.get("trade_type")=="MICRO" for p in sim["positions"].values()):
             continue
-
-        # Signal algorithmique pur
         sig = micro_signal(symbol, price)
-
         if sig["signal"] != "HOLD" and sig["conf"] >= MICRO_CONF_MIN:
             open_micro_trade(symbol, price, sig, send_fn)
 
 
 # ═══════════════════════════════════════════════════════════════
-#  SURVEILLANCE TRADERS EN TEMPS RÉEL
+#  MEMECOINS
 # ═══════════════════════════════════════════════════════════════
+def get_dex_pair(query: str) -> dict:
+    now = time.time()
+    if query in _dex_cache:
+        ts, d = _dex_cache[query]
+        if now - ts < 15:
+            return d
+    try:
+        url = f"https://api.dexscreener.com/latest/dex/search?q={query}"
+        r   = requests.get(url, timeout=8, headers={"User-Agent":"Mozilla/5.0"})
+        pairs = r.json().get("pairs",[])
+        if not pairs:
+            return {}
+        best = max(pairs, key=lambda p: float(p.get("liquidity",{}).get("usd",0) or 0))
+        d = {
+            "symbol":    best.get("baseToken",{}).get("symbol","?"),
+            "price":     float(best.get("priceUsd",0) or 0),
+            "change_5m": float(best.get("priceChange",{}).get("m5",0) or 0),
+            "change_1h": float(best.get("priceChange",{}).get("h1",0) or 0),
+            "volume_1h": float(best.get("volume",{}).get("h1",0) or 0),
+            "liquidity": float(best.get("liquidity",{}).get("usd",0) or 0),
+            "chain":     best.get("chainId","?"),
+            "address":   best.get("baseToken",{}).get("address",""),
+            "url":       best.get("url",""),
+        }
+        _dex_cache[query] = (now, d)
+        return d
+    except Exception:
+        return {}
 
-_signal_cache: set = set()  # hashes déjà vus
 
+def run_meme_cycle(send_fn):
+    """Cycle memecoin simplifié."""
+    prices = get_prices_batch()
+    for sym in MEMECOIN_SYMBOLS:
+        price = prices.get(sym, 0)
+        if not price:
+            continue
+        already = any(p["symbol"]==sym for p in sim["positions"].values())
+        if already:
+            continue
+        closes = get_klines(sym, "5", 30)
+        if len(closes) < 10:
+            continue
+        ind = compute_indicators(closes)
+        if not ind:
+            continue
+        score = 0
+        if ind.get("rsi",50) < 30: score += 3
+        if ind.get("mom5",0) > 4:  score += 3
+        if ind.get("macd_h",0) > 0: score += 2
+        if score >= 6 and sim["cash"] > 20:
+            meme_count = sum(1 for p in sim["positions"].values() if p.get("trade_type")=="MEME")
+            if meme_count < 2:
+                amount = sim["cash"] * MEME_MAX_PCT
+                qty    = amount / price
+                sim["cash"] -= amount
+                trade = {
+                    "id": len(sim["trades"])+1, "symbol": sym,
+                    "market": "MEME", "side": "LONG", "trade_type": "MEME",
+                    "price_in": price, "price_out": None, "qty": qty,
+                    "amount_usd": amount, "confidence": min(85, 50+score*5),
+                    "reason": f"Meme score={score} RSI={ind.get('rsi',0):.0f}",
+                    "exit_reason": None,
+                    "time_in": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "time_out": None, "pnl": None, "pnl_pct": None,
+                    "duration_min": None, "patterns": ["memecoin"],
+                    "leverage": 1, "peak_price": price, "open_time": time.time(),
+                    "kelly_pct": MEME_MAX_PCT,
+                }
+                pos_key = f"MEME_{sym}_{trade['id']}"
+                sim["trades"].append(trade)
+                sim["positions"][pos_key] = {**trade, "pos_key": pos_key}
+                db_save_trade(trade)
+                coin = sym.replace("USDT","")
+                send_fn(f"🎰 Meme {coin} #{trade['id']} | ${price:.6f} | score={score}")
+
+    # Surveille les positions meme
+    now    = time.time()
+    prices2 = get_prices_batch()
+    for pos_key, pos in list(sim["positions"].items()):
+        if pos.get("trade_type") != "MEME":
+            continue
+        symbol  = pos["symbol"]
+        price   = prices2.get(symbol, pos["price_in"])
+        entry   = pos["price_in"]
+        elapsed = now - pos.get("open_time", now)
+        change  = (price-entry)/entry
+        pos["peak_price"] = max(pos.get("peak_price",entry), price)
+        trailing = (pos["peak_price"]-price)/pos["peak_price"]
+
+        reason = None
+        if change <= -MEME_SL_PCT:     reason = f"🛑 MEME SL ({change*100:+.1f}%)"
+        elif change >= MEME_TP_PCT:    reason = f"🎯 MEME TP ({change*100:+.1f}%)"
+        elif elapsed >= MEME_MAX_DURATION: reason = f"⏱ MEME TIMEOUT"
+
+        if reason:
+            pnl = change * pos["amount_usd"]
+            sim["cash"] += pos["amount_usd"] + pnl
+            trade = next((t for t in reversed(sim["trades"]) if t["id"]==pos["id"]), None)
+            if trade:
+                trade.update({
+                    "price_out": price,
+                    "time_out":  datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "pnl":       round(pnl,4),
+                    "pnl_pct":   round(change*100,2),
+                    "exit_reason": reason,
+                    "duration_min": max(1,int(elapsed/60)),
+                })
+                db_save_trade(trade)
+                learn_from_trade(trade, send_fn=None)
+            del sim["positions"][pos_key]
+            save_data()
+            coin = symbol.replace("USDT","")
+            send_fn(f"{'✅' if pnl>0 else '❌'} Meme {coin}: ${pnl:+.4f} | {reason}")
+
+
+# ═══════════════════════════════════════════════════════════════
+#  APPRENTISSAGE
+# ═══════════════════════════════════════════════════════════════
+def learn_from_trade(trade: dict, send_fn=None):
+    if trade.get("pnl") is None:
+        return
+    try:
+        verdict = "PERDANT" if trade["pnl"]<0 else "GAGNANT"
+        prompt  = f"""Trade simulé {trade['symbol']} {trade['market']}
+${trade['price_in']:.6f}→${trade.get('price_out',0):.6f}
+PnL: ${trade['pnl']:+.4f} ({trade.get('pnl_pct',0):+.2f}%) — {verdict}
+Durée: {trade.get('duration_min',0)}min
+Kelly utilisé: {trade.get('kelly_pct',0)*100:.1f}%
+Raison entrée: {trade['reason']}
+Raison sortie: {trade.get('exit_reason','')}
+
+JSON: {{"lecon":"leçon courte","pattern":"pattern clé","action_future":"règle concrète","type":"erreur ou succes"}}"""
+
+        r = groq_client.chat.completions.create(
+            model=GROQ_FAST_MODEL, max_tokens=100, temperature=0.2,
+            messages=[{"role":"user","content":prompt}],
+        )
+        lesson = json.loads(
+            r.choices[0].message.content.replace("```json","").replace("```","").strip()
+        )
+        lesson.update({
+            "trade_id": trade["id"], "pnl": trade["pnl"],
+            "symbol":   trade["symbol"], "market": trade.get("market","SPOT"),
+            "date":     datetime.now().strftime("%Y-%m-%d %H:%M"),
+        })
+        memory["lessons"].append(lesson)
+        db_save_lesson(lesson)
+
+        key = "patterns_that_work" if lesson["type"]=="succes" else "patterns_to_avoid"
+        memory[key].append(lesson["pattern"])
+        memory["lessons"]           = memory["lessons"][-60:]
+        memory["patterns_that_work"]= memory["patterns_that_work"][-25:]
+        memory["patterns_to_avoid"] = memory["patterns_to_avoid"][-25:]
+
+        auto_adjust()
+        save_data()
+        print(f"[LEARN] {lesson['lecon']}")
+
+        if send_fn:
+            stats = get_stats()
+            e     = "✅" if lesson["type"]=="succes" else "❌"
+            coin  = trade["symbol"].replace("USDT","")
+            send_fn(
+                f"📚 Leçon #{len(memory['lessons'])} — {coin}\n"
+                f"{e} {lesson['lecon']}\n"
+                f"→ {lesson['action_future']}\n"
+                f"📊 WR global: {stats['win_rate']}% ({stats['wins']}✅/{stats['losses']}❌)"
+            )
+    except Exception as e:
+        print(f"[LEARN] {e}")
+
+
+def auto_adjust():
+    wr  = db_win_rate(20)
+    cur = memory.get("confidence_threshold", CONFIDENCE_BASE)
+    if wr > 62 and cur > CONFIDENCE_MIN:
+        memory["confidence_threshold"] = max(CONFIDENCE_MIN, cur-2)
+    elif wr < 40 and cur < CONFIDENCE_MAX:
+        memory["confidence_threshold"] = min(CONFIDENCE_MAX, cur+3)
+
+
+def generate_trading_rules():
+    closed = [t for t in sim["trades"] if t.get("pnl") is not None]
+    if len(closed) < 10 or len(closed) % 10 != 0:
+        return None
+    try:
+        recent = closed[-20:]
+        wins   = [t for t in recent if t["pnl"] > 0]
+        losses = [t for t in recent if t["pnl"] <= 0]
+        avg_win_conf  = round(sum(t["confidence"] for t in wins)/max(len(wins),1),1)
+        avg_loss_conf = round(sum(t["confidence"] for t in losses)/max(len(losses),1),1)
+        kelly_vals    = [t.get("kelly_pct",0)*100 for t in recent if t.get("kelly_pct")]
+        avg_kelly     = round(sum(kelly_vals)/len(kelly_vals),1) if kelly_vals else 0
+
+        prompt = f"""Analyse {len(recent)} trades simulés et génère 3 règles.
+WR: {len(wins)}/{len(recent)} ({len(wins)/len(recent)*100:.0f}%)
+Conf gagnants: {avg_win_conf}% | perdants: {avg_loss_conf}%
+Kelly moyen utilisé: {avg_kelly}%
+SL={STOP_LOSS_PCT*100:.1f}% TP={TAKE_PROFIT_PCT*100:.1f}%
+
+JSON: {{"rules":["règle1","règle2","règle3"],"sl_pct":2.5,"tp_pct":4.0,"insight":"insight"}}"""
+
+        r = ask_model_single(prompt)
+        rules = r.get("rules",[])
+        for rule in rules:
+            try:
+                con = sqlite3.connect(DB_FILE)
+                con.execute("""INSERT INTO trading_rules
+                    (rule,condition,action,win_rate,sample_size,created_date,last_updated)
+                    VALUES(?,?,?,?,?,?,?)""", (
+                    rule, "auto", "appliquer",
+                    len(wins)/len(recent)*100, len(recent),
+                    datetime.now().strftime("%Y-%m-%d"),
+                    datetime.now().strftime("%Y-%m-%d %H:%M"),
+                ))
+                con.commit(); con.close()
+            except Exception:
+                pass
+        return r
+    except Exception as e:
+        print(f"[RULES] {e}")
+        return None
+
+
+# ═══════════════════════════════════════════════════════════════
+#  SURVEILLANCE TRADERS
+# ═══════════════════════════════════════════════════════════════
 def _signal_hash(content: str) -> str:
     return hashlib.md5(content.encode()).hexdigest()[:12]
 
 
 def scrape_nitter(username: str) -> list:
-    """Scrape les derniers tweets via Nitter (miroir gratuit Twitter)."""
     signals = []
     for instance in NITTER_INSTANCES:
         try:
-            url  = f"https://{instance}/{username}/rss"
-            feed = feedparser.parse(url)
+            feed = feedparser.parse(f"https://{instance}/{username}/rss")
             if not feed.entries:
                 continue
             for entry in feed.entries[:3]:
-                text = entry.get("summary", entry.get("title", ""))
-                # Nettoie le HTML
-                text = re.sub(r'<[^>]+>', '', text).strip()
+                text = re.sub(r'<[^>]+>', '', entry.get("summary","")).strip()
                 if len(text) < 20:
                     continue
                 h = _signal_hash(text)
@@ -2637,38 +1968,30 @@ def scrape_nitter(username: str) -> list:
                     continue
                 _signal_cache.add(h)
                 signals.append({
-                    "source":  "Twitter",
-                    "author":  username,
-                    "content": text[:300],
-                    "url":     entry.get("link",""),
-                    "hash":    h,
-                    "ts":      datetime.now().strftime("%Y-%m-%d %H:%M"),
+                    "source": "Twitter", "author": username,
+                    "content": text[:300], "url": entry.get("link",""),
+                    "hash": h, "ts": datetime.now().strftime("%Y-%m-%d %H:%M"),
                 })
-            break  # succès, pas besoin d'essayer d'autres instances
+            break
         except Exception:
             continue
     return signals
 
 
 def scrape_youtube_titles(channel_id: str, channel_name: str) -> list:
-    """Récupère les derniers titres de vidéos YouTube via RSS public."""
     signals = []
     try:
-        url  = f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}"
-        feed = feedparser.parse(url)
+        feed = feedparser.parse(f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}")
         for entry in feed.entries[:2]:
-            title = entry.get("title", "")
+            title = entry.get("title","")
             h     = _signal_hash(title)
             if h in _signal_cache or not title:
                 continue
             _signal_cache.add(h)
             signals.append({
-                "source":  "YouTube",
-                "author":  channel_name,
-                "content": title,
-                "url":     entry.get("link",""),
-                "hash":    h,
-                "ts":      datetime.now().strftime("%Y-%m-%d %H:%M"),
+                "source": "YouTube", "author": channel_name,
+                "content": title, "url": entry.get("link",""),
+                "hash": h, "ts": datetime.now().strftime("%Y-%m-%d %H:%M"),
             })
     except Exception:
         pass
@@ -2676,20 +1999,10 @@ def scrape_youtube_titles(channel_id: str, channel_name: str) -> list:
 
 
 def analyze_signal_sentiment(signal: dict) -> dict:
-    """Analyse le sentiment d'un signal trader avec l'IA."""
     try:
-        text = signal["content"]
-        prompt = f"""Analyse ce message d'un trader crypto ({signal['author']}).
-
-Message: "{text}"
-
-Détermine:
-1. Le sentiment (bullish/bearish/neutral)
-2. Le symbole mentionné (BTC/ETH/etc ou GENERAL)
-3. La force du signal (1=faible, 2=modéré, 3=fort)
-
-JSON strict: {{"sentiment":"bullish/bearish/neutral","symbol":"BTC","strength":2,"summary":"résumé 1 phrase"}}"""
-
+        prompt = f"""Analyse ce message d'un trader crypto (@{signal['author']}).
+"{signal['content']}"
+JSON: {{"sentiment":"bullish/bearish/neutral","symbol":"BTC","strength":2,"summary":"résumé"}}"""
         r = ask_model_single(prompt)
         signal.update({
             "sentiment": r.get("sentiment","neutral"),
@@ -2699,8 +2012,6 @@ JSON strict: {{"sentiment":"bullish/bearish/neutral","symbol":"BTC","strength":2
         })
     except Exception:
         signal.update({"sentiment":"neutral","symbol":"GENERAL","strength":1})
-
-    # Sauvegarde en DB
     try:
         con = sqlite3.connect(DB_FILE)
         con.execute("""INSERT OR IGNORE INTO trader_signals
@@ -2713,687 +2024,58 @@ JSON strict: {{"sentiment":"bullish/bearish/neutral","symbol":"BTC","strength":2
         con.commit(); con.close()
     except Exception:
         pass
-
     return signal
 
 
 def get_trader_intelligence() -> dict:
-    """
-    Collecte les signaux des traders en temps réel.
-    Retourne un résumé utilisable dans le prompt d'analyse.
-    """
     all_signals = []
-
-    # Twitter via Nitter (2 comptes par cycle pour limiter les requêtes)
     accounts_batch = TRADER_TWITTER_ACCOUNTS[
-        bot_state.get("nitter_idx", 0) % len(TRADER_TWITTER_ACCOUNTS):
-        bot_state.get("nitter_idx", 0) % len(TRADER_TWITTER_ACCOUNTS) + 2
+        bot_state.get("nitter_idx",0)%len(TRADER_TWITTER_ACCOUNTS):
+        bot_state.get("nitter_idx",0)%len(TRADER_TWITTER_ACCOUNTS)+2
     ]
-    bot_state["nitter_idx"] = bot_state.get("nitter_idx", 0) + 2
-
+    bot_state["nitter_idx"] = bot_state.get("nitter_idx",0)+2
     for account in accounts_batch:
         try:
-            signals = scrape_nitter(account)
-            all_signals.extend(signals)
+            all_signals.extend(scrape_nitter(account))
         except Exception:
             pass
-
-    # YouTube (1 chaîne par cycle)
     yt_items = list(YOUTUBE_CHANNELS.items())
-    yt_idx   = bot_state.get("yt_idx", 0) % len(yt_items)
-    bot_state["yt_idx"] = yt_idx + 1
+    yt_idx   = bot_state.get("yt_idx",0) % len(yt_items)
+    bot_state["yt_idx"] = yt_idx+1
     ch_name, ch_id = yt_items[yt_idx]
     try:
-        yt_signals = scrape_youtube_titles(ch_id, ch_name)
-        all_signals.extend(yt_signals)
+        all_signals.extend(scrape_youtube_titles(ch_id, ch_name))
     except Exception:
         pass
-
-    # Analyse sentiment sur les nouveaux signaux
     analyzed = []
-    for s in all_signals[:4]:  # max 4 analyses IA par cycle
+    for s in all_signals[:3]:
         analyzed.append(analyze_signal_sentiment(s))
-
-    if not analyzed:
-        return {"bullish": [], "bearish": [], "summary": ""}
-
     bullish = [s for s in analyzed if s["sentiment"]=="bullish"]
     bearish = [s for s in analyzed if s["sentiment"]=="bearish"]
-
-    # Résumé texte pour le prompt
-    parts = []
+    parts   = []
     for s in analyzed[:3]:
         e = "📈" if s["sentiment"]=="bullish" else "📉" if s["sentiment"]=="bearish" else "➡️"
-        parts.append(f"{e} @{s['author']}: {s.get('summary', s['content'][:80])}")
-
-    return {
-        "bullish":  bullish,
-        "bearish":  bearish,
-        "summary":  "\n".join(parts),
-        "count":    len(analyzed),
-    }
-
-
-def get_db_trader_signals_summary() -> str:
-    """Résumé des derniers signaux traders depuis la DB."""
-    try:
-        con  = sqlite3.connect(DB_FILE)
-        rows = con.execute("""
-            SELECT author, sentiment, symbol, summary, timestamp
-            FROM trader_signals
-            ORDER BY id DESC LIMIT 10
-        """).fetchall()
-        con.close()
-        if not rows:
-            return "Aucun signal collecté"
-        lines = []
-        for r in rows:
-            e = "📈" if r[1]=="bullish" else "📉" if r[1]=="bearish" else "➡️"
-            lines.append(f"{e} @{r[0]} [{r[2]}]: {r[3] or '...'} ({r[4][11:16]})")
-        return "\n".join(lines)
-    except Exception:
-        return "Erreur DB signaux"
+        parts.append(f"{e} @{s['author']}: {s.get('summary',s['content'][:60])}")
+    return {"bullish":bullish,"bearish":bearish,"summary":"\n".join(parts),"count":len(analyzed)}
 
 
 # ═══════════════════════════════════════════════════════════════
-#  AUTO-APPRENTISSAGE AVANCÉ
-# ═══════════════════════════════════════════════════════════════
-
-def generate_trading_rules():
-    """
-    Après chaque 10 trades, l'IA analyse les résultats et génère
-    ses propres règles de trading basées sur ce qui a marché.
-    """
-    global STOP_LOSS_PCT, TAKE_PROFIT_PCT
-    closed = [t for t in sim["trades"] if t.get("pnl") is not None]
-    if len(closed) < 10 or len(closed) % 10 != 0:
-        return None
-
-    try:
-        # Prépare un résumé des trades récents
-        recent = closed[-20:]
-        wins   = [t for t in recent if t["pnl"] > 0]
-        losses = [t for t in recent if t["pnl"] <= 0]
-
-        win_patterns  = Counter([p for t in wins   for p in t.get("patterns",[])])
-        loss_patterns = Counter([p for t in losses  for p in t.get("patterns",[])])
-
-        avg_win_conf   = round(sum(t["confidence"] for t in wins)/max(len(wins),1),1)
-        avg_loss_conf  = round(sum(t["confidence"] for t in losses)/max(len(losses),1),1)
-        avg_win_dur    = round(sum(t.get("duration_min",0) for t in wins)/max(len(wins),1),1)
-        avg_loss_dur   = round(sum(t.get("duration_min",0) for t in losses)/max(len(losses),1),1)
-
-        prompt = f"""Tu es un expert en trading algorithmique. Analyse ces {len(recent)} trades simulés et génère des règles précises.
-
-RÉSULTATS :
-- Win Rate: {len(wins)}/{len(recent)} ({len(wins)/len(recent)*100:.0f}%)
-- Confiance moyenne gagnants: {avg_win_conf}% | perdants: {avg_loss_conf}%
-- Durée moyenne gagnants: {avg_win_dur}min | perdants: {avg_loss_dur}min
-- Patterns gagnants fréquents: {dict(win_patterns.most_common(3))}
-- Patterns perdants fréquents: {dict(loss_patterns.most_common(3))}
-
-RÈGLES ACTUELLES SL/TP: SL={STOP_LOSS_PCT*100:.1f}% TP={TAKE_PROFIT_PCT*100:.1f}%
-
-Génère 3 règles concrètes et 1 recommandation SL/TP optimale.
-JSON strict: {{"rules":["règle1","règle2","règle3"],"sl_pct":2.5,"tp_pct":4.0,"insight":"insight principal"}}"""
-
-        r = ask_model_single(prompt, GROQ_FAST_MODEL)
-        rules   = r.get("rules", [])
-        sl_new  = float(r.get("sl_pct", STOP_LOSS_PCT*100)) / 100
-        tp_new  = float(r.get("tp_pct", TAKE_PROFIT_PCT*100)) / 100
-        insight = r.get("insight","")
-
-        # Sauvegarde les règles en DB
-        for rule in rules:
-            try:
-                con = sqlite3.connect(DB_FILE)
-                con.execute("""INSERT INTO trading_rules
-                    (rule, condition, action, win_rate, sample_size, created_date, last_updated)
-                    VALUES(?,?,?,?,?,?,?)""", (
-                    rule, "auto-générée", "appliquer",
-                    len(wins)/len(recent)*100, len(recent),
-                    datetime.now().strftime("%Y-%m-%d"),
-                    datetime.now().strftime("%Y-%m-%d %H:%M"),
-                ))
-                con.commit(); con.close()
-            except Exception:
-                pass
-
-        # Mise à jour des paramètres si amélioration significative
-        if 0.01 <= sl_new <= 0.05 and sl_new != STOP_LOSS_PCT:
-            old_sl = STOP_LOSS_PCT
-            STOP_LOSS_PCT = sl_new
-            print(f"[AUTO-LEARN] SL ajusté: {old_sl*100:.1f}% → {sl_new*100:.1f}%")
-        if 0.02 <= tp_new <= 0.08 and tp_new != TAKE_PROFIT_PCT:
-            old_tp = TAKE_PROFIT_PCT
-            TAKE_PROFIT_PCT = tp_new
-            print(f"[AUTO-LEARN] TP ajusté: {old_tp*100:.1f}% → {tp_new*100:.1f}%")
-
-        return {"rules": rules, "sl": sl_new, "tp": tp_new, "insight": insight}
-
-    except Exception as e:
-        print(f"[RULES] {e}")
-        return None
-
-
-def auto_adjust_sl_tp():
-    """
-    Ajuste SL/TP automatiquement selon les statistiques récentes.
-    - Trop de SL déclenchés → élargir SL
-    - Trop de TP manqués (reversal) → resserrer TP
-    """
-    global STOP_LOSS_PCT, TAKE_PROFIT_PCT
-    closed = [t for t in sim["trades"] if t.get("pnl") is not None]
-    if len(closed) < 15:
-        return
-
-    recent = closed[-15:]
-    sl_hits = sum(1 for t in recent if "STOP-LOSS" in (t.get("exit_reason","") or ""))
-    tp_hits = sum(1 for t in recent if "TAKE-PROFIT" in (t.get("exit_reason","") or ""))
-    total   = len(recent)
-
-    # Trop de SL → le SL est trop serré
-    if sl_hits / total > 0.5 and STOP_LOSS_PCT < 0.04:
-        STOP_LOSS_PCT = round(min(0.04, STOP_LOSS_PCT + 0.003), 3)
-        print(f"[AUTO-SL] SL élargi → {STOP_LOSS_PCT*100:.1f}%")
-
-    # Peu de TP mais beaucoup de profits → TP trop serré, laisser courir
-    avg_pnl_pct = sum(t.get("pnl_pct",0) for t in recent if t["pnl"]>0) / max(tp_hits,1)
-    if tp_hits/total < 0.2 and avg_pnl_pct > TAKE_PROFIT_PCT*100*1.5:
-        TAKE_PROFIT_PCT = round(min(0.07, TAKE_PROFIT_PCT + 0.005), 3)
-        print(f"[AUTO-TP] TP élargi → {TAKE_PROFIT_PCT*100:.1f}%")
-
-
-def get_active_rules() -> str:
-    """Récupère les règles actives depuis la DB pour les injecter dans le prompt."""
-    try:
-        con  = sqlite3.connect(DB_FILE)
-        rows = con.execute("""
-            SELECT rule FROM trading_rules
-            WHERE active=1 ORDER BY win_rate DESC LIMIT 5
-        """).fetchall()
-        con.close()
-        if not rows:
-            return ""
-        return "MES RÈGLES AUTO-GÉNÉRÉES:\n" + "\n".join(f"• {r[0]}" for r in rows)
-    except Exception:
-        return ""
-
-
-def test_strategy_variation(send_fn):
-    """
-    Teste périodiquement des variations de stratégie en simulation
-    et garde celle qui performe le mieux.
-    """
-    closed = [t for t in sim["trades"] if t.get("pnl") is not None]
-    if len(closed) < 20:
-        return
-
-    # Test : la stratégie actuelle vs une variation plus agressive
-    current_wr = db_win_rate(20)
-
-    strategies = [
-        {"name": "conservateur", "sl": 0.02, "tp": 0.03, "conf": 75},
-        {"name": "équilibré",    "sl": 0.025,"tp": 0.04, "conf": 65},
-        {"name": "agressif",     "sl": 0.035,"tp": 0.06, "conf": 55},
-    ]
-
-    recent = closed[-20:]
-    best_wr  = 0
-    best_strat = None
-
-    for strat in strategies:
-        # Simule le résultat avec ces paramètres sur les trades passés
-        simulated_wins = 0
-        for t in recent:
-            pct = t.get("pnl_pct", 0)
-            if pct >= strat["tp"]*100:
-                simulated_wins += 1
-            elif pct > -strat["sl"]*100:
-                simulated_wins += 0.5  # neutre
-        wr = simulated_wins / len(recent) * 100
-        if wr > best_wr:
-            best_wr    = wr
-            best_strat = strat
-
-    if best_strat and best_wr > current_wr + 5:
-        # Applique la meilleure stratégie trouvée
-        global STOP_LOSS_PCT, TAKE_PROFIT_PCT, CONFIDENCE_BASE
-        STOP_LOSS_PCT   = best_strat["sl"]
-        TAKE_PROFIT_PCT = best_strat["tp"]
-        memory["confidence_threshold"] = best_strat["conf"]
-        print(f"[STRAT] Stratégie '{best_strat['name']}' adoptée (WR simulé {best_wr:.0f}%)")
-
-        # Sauvegarde en DB
-        try:
-            con = sqlite3.connect(DB_FILE)
-            con.execute("""INSERT INTO strategy_tests
-                (strategy_name,params,trades,win_rate,total_pnl,tested_date,active)
-                VALUES(?,?,?,?,?,?,1)""", (
-                best_strat["name"], json.dumps(best_strat),
-                len(recent), best_wr,
-                sum(t.get("pnl",0) for t in recent),
-                datetime.now().strftime("%Y-%m-%d %H:%M"),
-            ))
-            con.commit(); con.close()
-        except Exception:
-            pass
-
-        send_fn(
-            f"🧬 ÉVOLUTION STRATÉGIE\n"
-            f"Nouvelle stratégie : {best_strat['name']}\n"
-            f"SL:{best_strat['sl']*100:.1f}% TP:{best_strat['tp']*100:.1f}%\n"
-            f"WR simulé:{best_wr:.0f}% vs {current_wr:.0f}%"
-        )
-
-
-
-# ═══════════════════════════════════════════════════════════════
-#  MOTEUR MEMECOIN — DexScreener + Surveillance Traders
-# ═══════════════════════════════════════════════════════════════
-
-_dex_cache: dict = {}   # symbol/address → (ts, data)
-_trending_cache: list = []
-_trending_ts: float = 0
-_mentioned_tokens: dict = {}  # token → {source, ts, score}
-
-def dex_get_pair(query: str) -> dict:
-    """Prix et stats d'un token via DexScreener (gratuit)."""
-    now = time.time()
-    if query in _dex_cache:
-        ts, d = _dex_cache[query]
-        if now - ts < 15:
-            return d
-    try:
-        url = f"https://api.dexscreener.com/latest/dex/search?q={query}"
-        r   = requests.get(url, timeout=8, headers={"User-Agent":"Mozilla/5.0"})
-        pairs = r.json().get("pairs", [])
-        if not pairs:
-            return {}
-        # Prend la paire la plus liquide
-        best = max(pairs, key=lambda p: float(p.get("liquidity",{}).get("usd",0) or 0))
-        d = {
-            "symbol":    best.get("baseToken",{}).get("symbol","?"),
-            "name":      best.get("baseToken",{}).get("name","?"),
-            "address":   best.get("baseToken",{}).get("address",""),
-            "price":     float(best.get("priceUsd",0) or 0),
-            "price_native": float(best.get("priceNative",0) or 0),
-            "change_5m":  float(best.get("priceChange",{}).get("m5",0) or 0),
-            "change_1h":  float(best.get("priceChange",{}).get("h1",0) or 0),
-            "change_24h": float(best.get("priceChange",{}).get("h24",0) or 0),
-            "volume_5m":  float(best.get("volume",{}).get("m5",0) or 0),
-            "volume_1h":  float(best.get("volume",{}).get("h1",0) or 0),
-            "liquidity":  float(best.get("liquidity",{}).get("usd",0) or 0),
-            "mktcap":     float(best.get("marketCap",0) or 0),
-            "chain":      best.get("chainId","?"),
-            "dex":        best.get("dexId","?"),
-            "url":        best.get("url",""),
-            "txns_5m":    (best.get("txns",{}).get("m5",{}).get("buys",0) or 0) +
-                          (best.get("txns",{}).get("m5",{}).get("sells",0) or 0),
-            "age_h":      _pair_age_hours(best),
-        }
-        _dex_cache[query] = (now, d)
-        return d
-    except Exception as e:
-        print(f"[DEX] {e}")
-        return {}
-
-
-def _pair_age_hours(pair: dict) -> float:
-    """Âge de la paire en heures."""
-    try:
-        created = pair.get("pairCreatedAt", 0)
-        if created:
-            return (time.time() - created/1000) / 3600
-    except Exception:
-        pass
-    return 999
-
-
-def dex_get_trending_solana() -> list:
-    """Top tokens Solana en tendance sur DexScreener."""
-    global _trending_cache, _trending_ts
-    now = time.time()
-    if now - _trending_ts < 120 and _trending_cache:
-        return _trending_cache
-    try:
-        # Top boosted tokens
-        r = requests.get(
-            "https://api.dexscreener.com/token-boosts/latest/v1",
-            timeout=8, headers={"User-Agent":"Mozilla/5.0"})
-        tokens = r.json() if isinstance(r.json(), list) else []
-
-        # Filtre Solana + liquidity minimum
-        results = []
-        for t in tokens[:20]:
-            if t.get("chainId") != "solana":
-                continue
-            addr = t.get("tokenAddress","")
-            if not addr:
-                continue
-            data = dex_get_pair(addr)
-            if not data or data.get("liquidity",0) < 50000:
-                continue
-            if data.get("mktcap",0) > 500_000_000:
-                continue  # trop gros = pas un memecoin
-            results.append(data)
-            if len(results) >= 8:
-                break
-
-        _trending_cache = results
-        _trending_ts    = now
-        return results
-    except Exception as e:
-        print(f"[DEX-TREND] {e}")
-        return []
-
-
-def dex_scan_new_tokens() -> list:
-    """Nouveaux tokens lancés dans les <48h avec fort volume."""
-    try:
-        r = requests.get(
-            "https://api.dexscreener.com/latest/dex/tokens/solana",
-            timeout=10, headers={"User-Agent":"Mozilla/5.0"})
-        # Cherche tokens récents avec volume
-        all_pairs = r.json().get("pairs", [])
-        new_tokens = []
-        for p in all_pairs:
-            age = _pair_age_hours(p)
-            if age > 48:
-                continue
-            vol1h = float(p.get("volume",{}).get("h1",0) or 0)
-            liq   = float(p.get("liquidity",{}).get("usd",0) or 0)
-            if vol1h < 10000 or liq < 20000:
-                continue
-            chg1h = float(p.get("priceChange",{}).get("h1",0) or 0)
-            if chg1h < 20:
-                continue  # besoin d'au moins +20% en 1h
-            new_tokens.append({
-                "symbol":   p.get("baseToken",{}).get("symbol","?"),
-                "address":  p.get("baseToken",{}).get("address",""),
-                "price":    float(p.get("priceUsd",0) or 0),
-                "change_1h": chg1h,
-                "volume_1h": vol1h,
-                "liquidity": liq,
-                "age_h":    round(age, 1),
-                "chain":    "solana",
-                "name":     p.get("baseToken",{}).get("name","?"),
-                "url":      p.get("url",""),
-            })
-        new_tokens.sort(key=lambda x: x["change_1h"], reverse=True)
-        return new_tokens[:5]
-    except Exception as e:
-        print(f"[DEX-NEW] {e}")
-        return []
-
-
-def extract_token_mentions(text: str) -> list:
-    """Extrait les mentions de tokens ($TOKEN) d'un texte."""
-    tokens = re.findall(r"\$([A-Z]{2,10})\b", text.upper())
-    # Filtre les mots communs
-    ignore = {"THE","AND","FOR","NOT","BUT","ARE","USD","SOL","ETH","BTC","USDT"}
-    return [t for t in tokens if t not in ignore]
-
-
-def process_trader_signal_for_meme(signal: dict, send_fn) -> None:
-    """
-    Quand un trader mentionne un token, on le vérifie sur DexScreener
-    et on ouvre une position simulée si les conditions sont bonnes.
-    """
-    tokens_mentioned = extract_token_mentions(signal.get("content",""))
-    if not tokens_mentioned:
-        return
-
-    for token in tokens_mentioned[:2]:  # max 2 par signal
-        try:
-            data = dex_get_pair(token)
-            if not data or data.get("price", 0) <= 0:
-                continue
-            if data.get("liquidity", 0) < 30000:
-                continue  # trop peu de liquidité
-
-            # Score du signal memecoin
-            score = 0
-            if data["change_5m"] > 5:    score += 3
-            if data["change_1h"] > 20:   score += 2
-            if data["volume_5m"] > 5000: score += 2
-            if signal.get("strength", 1) >= 2: score += 2
-
-            if score < 4:
-                continue
-
-            author = signal.get("author","?")
-            print(f"[MEME-SIGNAL] @{author} mentionne ${token} score={score}")
-
-            # Vérifie si déjà en position
-            pos_key_check = f"MEME_{token}"
-            already_in = any(p.get("meme_symbol")==token
-                             for p in sim["positions"].values())
-            if already_in:
-                continue
-
-            # Ouvre un trade memecoin simulé
-            open_meme_trade(data, score, author, send_fn)
-
-        except Exception as e:
-            print(f"[MEME-PROCESS] {e}")
-
-
-def open_meme_trade(data: dict, score: int, source: str, send_fn) -> dict | None:
-    """Ouvre un trade memecoin simulé avec paramètres adaptés."""
-    symbol  = data["symbol"]
-    price   = data["price"]
-    chain   = data.get("chain","solana")
-
-    if sim["cash"] < 20:
-        return None
-    if len(sim["positions"]) >= MAX_POSITIONS + 2:  # 2 slots supplémentaires pour memes
-        return None
-
-    amount = sim["cash"] * MEME_MAX_PCT
-    qty    = amount / price if price > 0 else 0
-    sim["cash"] -= amount
-
-    trade = {
-        "id":           len(sim["trades"]) + 1,
-        "symbol":       symbol,
-        "market":       "MEME",
-        "side":         "LONG",
-        "trade_type":   "MEME",
-        "meme_symbol":  symbol,
-        "price_in":     price,
-        "price_out":    None,
-        "qty":          qty,
-        "amount_usd":   amount,
-        "confidence":   min(95, 50 + score * 7),
-        "reason":       f"Signal @{source} | {data.get('change_1h',0):+.1f}%/1h | liq ${data.get('liquidity',0)/1000:.0f}k",
-        "exit_reason":  None,
-        "time_in":      datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "time_out":     None,
-        "pnl":          None,
-        "pnl_pct":      None,
-        "duration_min": None,
-        "patterns":     [f"meme_signal_score={score}"],
-        "leverage":     1,
-        "peak_price":   price,
-        "trough_price": price,
-        "open_time":    time.time(),
-        "chain":        chain,
-        "dex_url":      data.get("url",""),
-    }
-
-    pos_key = f"MEME_{symbol}_{trade['id']}"
-    sim["trades"].append(trade)
-    sim["positions"][pos_key] = {**trade, "pos_key": pos_key}
-    db_save_trade(trade)
-    bot_state["trades_today"] += 1
-
-    sl = price * (1 - MEME_SL_PCT)
-    tp = price * (1 + MEME_TP_PCT)
-
-    send_fn(
-        f"🎰 MEMECOIN ${symbol} ({chain.upper()})\n"
-        f"💵 ${price:.8f} | Liquidité: ${data.get('liquidity',0)/1000:.0f}k\n"
-        f"📈 +{data.get('change_1h',0):.1f}%/1h | Vol: ${data.get('volume_1h',0)/1000:.0f}k\n"
-        f"📡 Source: @{source} | Score: {score}/9\n"
-        f"💰 Mise: ${amount:.2f} ({MEME_MAX_PCT*100:.0f}% cash)\n"
-        f"🛑 SL: ${sl:.8f} (-{MEME_SL_PCT*100:.0f}%) | 🎯 TP: ${tp:.8f} (+{MEME_TP_PCT*100:.0f}%)"
-    )
-    return trade
-
-
-def monitor_meme_positions(send_fn):
-    """Surveille les positions memecoins — ferme sur SL/TP/timeout."""
-    now    = time.time()
-    for pos_key, pos in list(sim["positions"].items()):
-        if pos.get("trade_type") != "MEME":
-            continue
-
-        symbol  = pos["meme_symbol"]
-        entry   = pos["price_in"]
-        elapsed = now - pos.get("open_time", now)
-
-        # Récupère prix actuel via DexScreener
-        try:
-            data  = dex_get_pair(symbol)
-            price = data.get("price", 0)
-            if not price:
-                continue
-        except Exception:
-            continue
-
-        change = (price - entry) / entry if entry > 0 else 0
-        pos["peak_price"] = max(pos.get("peak_price", entry), price)
-        trailing = (pos["peak_price"] - price) / pos["peak_price"] if pos["peak_price"] > 0 else 0
-
-        reason = None
-        if change <= -MEME_SL_PCT:
-            reason = f"🛑 MEME SL ({change*100:+.1f}%)"
-        elif change >= MEME_TP_PCT:
-            reason = f"🎯 MEME TP ({change*100:+.1f}%)"
-        elif change > 0.05 and trailing >= MEME_TRAILING_PCT:
-            reason = f"📐 MEME TRAIL ({trailing*100:.1f}% du pic)"
-        elif elapsed >= MEME_MAX_DURATION:
-            reason = f"⏱ MEME TIMEOUT {int(elapsed)}s"
-
-        if reason:
-            amt  = pos["amount_usd"]
-            pnl  = change * amt
-            sim["cash"] += amt + pnl
-
-            trade = next((t for t in reversed(sim["trades"])
-                          if t["id"]==pos["id"]), None)
-            if trade:
-                trade.update({
-                    "price_out":    price,
-                    "time_out":     datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "pnl":          round(pnl, 6),
-                    "pnl_pct":      round(change*100, 3),
-                    "exit_reason":  reason,
-                    "duration_min": max(1, int(elapsed/60)),
-                })
-                db_save_trade(trade)
-                learn_from_trade(trade, send_fn=None)
-
-            del sim["positions"][pos_key]
-            save_data()
-
-            e = "✅" if pnl>0 else "❌"
-            send_fn(
-                f"{e} MEME ${symbol} fermé\n"
-                f"${entry:.8f}→${price:.8f} ({change*100:+.2f}%)\n"
-                f"{'🤑' if pnl>0 else '💸'} ${pnl:+.4f} | {reason}"
-            )
-            if pnl > 0:
-                memory["total_wins"]   = memory.get("total_wins",0) + 1
-            else:
-                memory["total_losses"] = memory.get("total_losses",0) + 1
-
-
-def run_meme_cycle(send_fn):
-    """
-    Cycle memecoin toutes les 45s :
-    1. Vérifie les tokens mentionnés par les traders suivis
-    2. Scanne les trending Solana via DexScreener
-    3. Cherche les nouveaux tokens avec fort momentum
-    """
-    # 1. Tokens mentionnés par les traders
-    for sig in list(_mentioned_tokens.values()):
-        if time.time() - sig.get("ts", 0) > 1800:  # ignore si >30min
-            continue
-        if sig.get("processed"):
-            continue
-        process_trader_signal_for_meme(sig, send_fn)
-        sig["processed"] = True
-
-    # 2. Trending Solana
-    trending = dex_get_trending_solana()
-    for data in trending[:3]:
-        if not data or data.get("price", 0) <= 0:
-            continue
-        symbol   = data["symbol"]
-        already  = any(p.get("meme_symbol")==symbol
-                       for p in sim["positions"].values())
-        if already:
-            continue
-
-        # Signal fort = +5% en 5min ET volume élevé
-        if data.get("change_5m", 0) > 5 and data.get("volume_5m", 0) > 5000:
-            score = 5
-            if data.get("change_1h", 0) > 30: score += 2
-            if data.get("txns_5m", 0) > 50:   score += 1
-            open_meme_trade(data, score, "DexScreener-Trending", send_fn)
-
-    # 3. Nouveaux tokens (<48h)
-    if bot_state.get("cycle_count", 0) % 10 == 0:  # toutes les 10 cycles
-        new_tokens = dex_scan_new_tokens()
-        for data in new_tokens[:1]:  # max 1 nouveau token par scan
-            already = any(p.get("meme_symbol")==data["symbol"]
-                         for p in sim["positions"].values())
-            if already:
-                continue
-            if data.get("change_1h", 0) > 50 and data.get("liquidity", 0) > 50000:
-                open_meme_trade(data, 6, f"NewToken-{data['age_h']:.0f}h", send_fn)
-
-
-def register_trader_mention(signal: dict):
-    """Enregistre un token mentionné par un trader pour traitement."""
-    tokens = extract_token_mentions(signal.get("content",""))
-    for token in tokens:
-        _mentioned_tokens[token] = {
-            "token":    token,
-            "source":   signal.get("author","?"),
-            "content":  signal.get("content",""),
-            "strength": signal.get("strength", 1),
-            "ts":       time.time(),
-            "processed": False,
-        }
-        print(f"[MEME-MENTION] ${token} par @{signal.get('author','?')}")
-
-
-# ═══════════════════════════════════════════════════════════════
-#  BOUCLE CONTINUE
+#  BOUCLE PRINCIPALE
 # ═══════════════════════════════════════════════════════════════
 def trading_loop(send_fn):
-    equity = get_equity()
-    bot_state["micro_count"] = 0
+    kelly_init = kelly_criterion()
     send_fn(
-        f"🚀 SIMULATION DÉMARRÉE — Mode Micro-Trading\n"
+        f"🚀 BOT v5 DÉMARRÉ\n"
         f"━━━━━━━━━━━━━━━━━━━\n"
-        f"💰 Capital      : ${CAPITAL_INITIAL:,.2f} (virtuel)\n"
-        f"🪙 Cryptos total: {len(ALL_SYMBOLS)} | Micro: {len(MICRO_SYMBOLS)}\n"
-        f"━━━━━━━━━━━━━━━━━━━\n"
-        f"⚡ MICRO-TRADES  (algo pur, <1min)\n"
-        f"  Cycle : {CYCLE_MICRO}s | SL: {MICRO_SL_PCT*100:.1f}% | TP: {MICRO_TP_PCT*100:.1f}%\n"
-        f"  Trailing: {MICRO_TRAILING_PCT*100:.1f}% | Timeout: {MICRO_MAX_DURATION}s\n"
-        f"━━━━━━━━━━━━━━━━━━━\n"
-        f"🔍 SCALP CLASSIQUE (IA, ~1-5min)\n"
-        f"  Cycle : {CYCLE_SCALP}s | SL: {STOP_LOSS_PCT*100:.1f}% | TP: {TAKE_PROFIT_PCT*100:.1f}%\n"
-        f"━━━━━━━━━━━━━━━━━━━\n"
-        f"🔬 ANALYSE PROFONDE (IA multi-TF, ~5-30min)\n"
-        f"  Cycle : {CYCLE_DEEP}s | Levier x{LEVERAGE_SIM}\n"
-        f"━━━━━━━━━━━━━━━━━━━\n"
-        f"🤖 3 niveaux actifs en parallèle — décisions autonomes."
+        f"💰 Capital    : ${CAPITAL_INITIAL:,.2f} (virtuel)\n"
+        f"📊 Kelly init : {kelly_init*100:.1f}% par trade\n"
+        f"⚡ Micro SL/TP: -{MICRO_SL_PCT*100:.1f}%/+{MICRO_TP_PCT*100:.1f}%\n"
+        f"🔍 Scalp SL/TP: -{STOP_LOSS_PCT*100:.1f}%/+{TAKE_PROFIT_PCT*100:.1f}%\n"
+        f"🎯 Polymarket  : scanner actif\n"
+        f"🔗 Arbitrage   : Bybit vs Binance vs Kraken\n"
+        f"💥 Liquidations: CoinGlass actif\n"
+        f"📊 On-chain    : CoinGecko actif\n"
+        f"📈 Options     : Deribit P/C ratio actif"
     )
 
     fear_greed = get_fear_greed()
@@ -3401,8 +2083,8 @@ def trading_loop(send_fn):
     while bot_state["running"]:
         now = time.time()
 
-        # ══ 8s : MICRO-TRADING (algo pur, sub-minute) ═════════
-        if now - bot_state.get("last_micro", 0) >= CYCLE_MICRO:
+        # ══ 8s : MICRO-TRADING ═══════════════════════════════
+        if now - bot_state.get("last_micro",0) >= CYCLE_MICRO:
             try:
                 monitor_micro_positions(send_fn)
                 run_micro_cycle(send_fn)
@@ -3410,15 +2092,15 @@ def trading_loop(send_fn):
                 print(f"[MICRO] {e}")
             bot_state["last_micro"] = now
 
-        # ══ 45s : MEMECOINS (DexScreener + traders) ═══════════
-        if now - bot_state.get("last_meme", 0) >= CYCLE_MEME:
+        # ══ 45s : MEMECOINS ══════════════════════════════════
+        if now - bot_state.get("last_meme",0) >= CYCLE_MEME:
             try:
                 run_meme_cycle(send_fn)
             except Exception as e:
                 print(f"[MEME] {e}")
             bot_state["last_meme"] = now
 
-        # ══ 15s : Surveillance SL/TP classique ════════════════
+        # ══ 15s : SURVEILLANCE SL/TP ════════════════════════
         if now - bot_state["last_monitor"] >= CYCLE_MONITOR:
             try:
                 monitor_positions(send_fn)
@@ -3426,137 +2108,166 @@ def trading_loop(send_fn):
                 print(f"[MON] {e}")
             bot_state["last_monitor"] = now
 
-        # ══ 2min : Scan + Scalping ════════════════════════════
+        # ══ 5min : SCAN + SCALP ══════════════════════════════
         if now - bot_state["last_scalp"] >= CYCLE_SCALP:
             bot_state["cycle_count"] += 1
-            cycle = bot_state["cycle_count"]
             try:
                 fear_greed = get_fear_greed()
                 threshold  = memory.get("confidence_threshold", CONFIDENCE_BASE)
-                equity     = get_equity()
-                pnl_tot    = equity - sim["initial"]
 
-                # Scan silencieux — pas de message sauf trade ou bilan
+                # Arbitrage — log si détecté
+                arb_opps = detect_arbitrage()
+                for opp in arb_opps:
+                    if opp["profit_est"] > 0.05:
+                        db_save_arb(opp)
+                        coin = opp["symbol"].replace("USDT","")
+                        send_fn(
+                            f"⚡ ARBITRAGE {coin}\n"
+                            f"  Bybit: ${opp['bybit']:.2f} vs "
+                            f"autre: ${opp.get('binance',opp.get('kraken',0)):.2f}\n"
+                            f"  Spread: {opp['spread_pct']:.3f}% | "
+                            f"Profit net: ~{opp['profit_est']:.3f}%"
+                        )
+
+                # Polymarket — affiche inefficacités
+                poly_mkts = get_polymarket_markets()
+                if poly_mkts:
+                    best = poly_mkts[0]
+                    if best["inefficiency"] > 2:
+                        send_fn(
+                            f"🎯 Polymarket inefficacité\n"
+                            f"  {best['question']}\n"
+                            f"  YES:{best['yes_price']:.2f} NO:{best['no_price']:.2f} "
+                            f"(écart {best['inefficiency']:.1f}%)"
+                        )
+
                 opps = scan_market()
-
                 if opps:
-                    # Analyse silencieuse — on n'envoie rien sauf si trade réel
-                    # IA seulement si score algo fort ET quota dispo
                     top_opps = [o for o in opps[:5] if abs(o["score"]) >= 4]
-                    if not top_opps or not _can_call_ai():
-                        # Sans IA : décision 100% algo sur score >= 5
-                        for opp in opps[:3]:
-                            if abs(opp["score"]) < 5: continue
+                    if top_opps and _can_call_ai():
+                        for opp in top_opps[:2]:
+                            if not bot_state["running"]: break
                             if opp["has_alert"]: continue
-                            in_pos = any(p["symbol"]==opp["symbol"]
-                                         for p in sim["positions"].values())
-                            if not in_pos and len(sim["positions"]) < MAX_POSITIONS:
-                                fake = {
-                                    "signal": "BUY" if opp["score"]>0 else "SELL",
-                                    "confidence": min(80, 50+abs(opp["score"])*5),
-                                    "reason": f"Algo pur score={opp['score']}",
-                                    "risk": "MEDIUM", "market": "SPOT",
-                                    "symbol": opp["symbol"], "price": opp["price"],
-                                    "patterns": opp["patterns"], "ind": opp["ind"],
-                                }
-                                open_trade(fake, send_fn)
-                        continue  # passe au prochain cycle
-
-                    for opp in top_opps[:2]:  # max 2 analyses IA par cycle
-                        if not bot_state["running"]: break
-                        if opp["has_alert"]: continue
-
-                        result = analyze(opp, fear_greed)
-                        signal = result["signal"]
-                        conf   = result["confidence"]
-                        risk   = result["risk"]
-                        in_pos = any(p["symbol"]==opp["symbol"]
-                                     for p in sim["positions"].values())
-
-                        if signal == "HOLD": continue
-
-                        if in_pos and signal in ("BUY","SELL"):
-                            for pk, pos in list(sim["positions"].items()):
-                                if (pos["symbol"]==opp["symbol"] and
-                                        ((pos["side"]=="LONG" and signal=="SELL") or
-                                         (pos["side"]=="SHORT" and signal=="BUY"))):
-                                    close_trade(pk, opp["price"],
-                                                f"Signal contraire {conf}%", send_fn)
-                            continue
-
-                        if not in_pos:
+                            result = analyze(opp, fear_greed)
+                            signal = result["signal"]
+                            conf   = result["confidence"]
+                            risk   = result["risk"]
+                            in_pos = any(p["symbol"]==opp["symbol"] for p in sim["positions"].values())
+                            if signal == "HOLD" or in_pos: continue
                             if conf >= threshold and risk in ("LOW","MEDIUM"):
                                 open_trade(result, send_fn)
                             elif LEARN_MODE_ENABLED and conf >= LEARN_MODE_CONF_MIN:
-                                result["_learning"] = True
-                                result["_forced_pct"] = LEARNING_MAX_PCT
+                                result["_forced_pct"] = LEARN_MODE_MAX_PCT
                                 open_trade(result, send_fn)
-                            else:
-                                send_fn(
-                                    f"⏸ {coin} ignoré — conf={conf}% "
-                                    f"(seuil={threshold}%, min={LEARN_MODE_CONF_MIN}%)"
-                                )
-
             except Exception as e:
                 print(f"[SCALP] {e}")
-                send_fn(f"⚠️ Erreur cycle #{cycle}: {str(e)[:80]}")
-
             bot_state["last_scalp"] = now
 
-        # ══ 45s : MEMECOINS (DexScreener + traders) ═══════════
-        if now - bot_state.get("last_meme", 0) >= CYCLE_MEME:
-            try:
-                run_meme_cycle(send_fn)
-            except Exception as e:
-                print(f"[MEME] {e}")
-            bot_state["last_meme"] = now
-
-        # ══ 45s : Cycle MEMECOIN ══════════════════════════════
-        if now - bot_state.get("last_meme", 0) >= CYCLE_MEME:
-            try:
-                monitor_meme_positions(send_fn)
-                run_meme_cycle(send_fn)
-            except Exception as e:
-                print(f"[MEME] {e}")
-            bot_state["last_meme"] = now
-
-        # ══ 5min : Analyse profonde + traders + auto-learning ═══
+        # ══ 5min : ANALYSE PROFONDE ══════════════════════════
         if now - bot_state["last_deep"] >= CYCLE_DEEP:
             try:
-                _deep_futures(send_fn, fear_greed)
-                # Collecte traders en arrière-plan + enregistre mentions memecoins
-                def _collect_and_process():
-                    intel = get_trader_intelligence()
-                    # Passe les signaux au moteur memecoin
-                    for sig in intel.get("bullish", []) + intel.get("bearish", []):
-                        register_trader_mention(sig)
-                threading.Thread(target=_collect_and_process, daemon=True).start()
-                # Auto-ajustement SL/TP
-                auto_adjust_sl_tp()
-                # Règles auto-générées tous les 10 trades
+                fear_greed = get_fear_greed()
+                thresh     = memory.get("confidence_threshold", CONFIDENCE_BASE)
+
+                # On-chain summary
+                onchain = get_onchain_data()
+                options = get_options_data()
+                liq     = get_liquidations()
+                whales  = get_whale_alerts()
+
+                info_lines = [
+                    format_onchain(onchain),
+                    format_options(options),
+                    interpret_liquidations(liq),
+                    format_whale_alerts(whales),
+                ]
+                send_fn("🔬 Analyse profonde\n" + "\n".join(info_lines))
+
+                # Futures sur top tokens
+                for symbol in ["BTCUSDT","ETHUSDT","SOLUSDT"]:
+                    try:
+                        mtf  = get_multi_tf(symbol)
+                        conf = tf_score(mtf)
+                        if abs(conf["score"]) < 5:
+                            continue
+                        price = get_price(symbol)
+                        ind5m = mtf.get("5m", {})
+                        ob    = get_order_book(symbol)
+                        in_pos= any(p["symbol"]==symbol for p in sim["positions"].values())
+                        if in_pos: continue
+
+                        kelly_pct = dynamic_position_size(70, "FUTURES", symbol)
+                        direction = "BUY" if conf["direction"]=="LONG" else "SELL"
+
+                        prompt = f"""{symbol} FUTURES x{LEVERAGE_SIM} ${price:.2f}
+TF:{conf['score']}/9→{conf['direction']} RSI:{ind5m.get('rsi','?')}
+OB:{ob['pressure']} {fear_greed}
+Kelly:{kelly_pct*100:.1f}%
+JSON: {{"signal":"{direction}/HOLD","confidence":0-100,"reason":"raison","risk":"LOW/MEDIUM/HIGH","market":"FUTURES"}}"""
+
+                        result = vote(prompt)
+                        result.update({
+                            "symbol": symbol, "price": price,
+                            "patterns": [], "confluence": conf,
+                            "ob": ob, "ind": ind5m, "market": "FUTURES",
+                            "kelly_pct": kelly_pct,
+                        })
+                        if (result["signal"] in ("BUY","SELL") and
+                                result["confidence"] >= thresh and
+                                result["risk"] in ("LOW","MEDIUM")):
+                            open_trade(result, send_fn)
+                    except Exception as e:
+                        print(f"[DEEP] {symbol}: {e}")
+
+                # Collecte traders
+                def _collect():
+                    get_trader_intelligence()
+                threading.Thread(target=_collect, daemon=True).start()
+
+                # Auto-règles
                 rules = generate_trading_rules()
                 if rules:
+                    rule_list = rules.get("rules",[])
                     send_fn(
-                        f"🧠 RÈGLES AUTO-GÉNÉRÉES ({len(sim['trades'])} trades)\n"
-                        + "\n".join(f"• {r}" for r in rules.get("rules",[])[:3]) +
-                        f"\nSL:{rules['sl']*100:.1f}% TP:{rules['tp']*100:.1f}% | {rules.get('insight','')[:80]}"
+                        f"🧠 Règles auto ({len(sim['trades'])} trades)\n"
+                        + "\n".join(f"• {r}" for r in rule_list[:3])
                     )
-                # Test stratégie tous les 50 trades
-                closed_n = len([t for t in sim["trades"] if t.get("pnl")])
-                if closed_n >= 20 and closed_n % 50 == 0:
-                    test_strategy_variation(send_fn)
             except Exception as e:
                 print(f"[DEEP] {e}")
             bot_state["last_deep"] = now
 
-        # ══ 15min : Bilan ══════════════════════════════════════
+        # ══ 15min : BILAN ════════════════════════════════════
         if now - bot_state["last_status"] >= CYCLE_STATUS:
             try:
-                _send_bilan(send_fn)
                 equity = get_equity()
-                db_save_equity(equity, sim["cash"],
-                               len(sim["positions"]),
-                               equity - sim["initial"])
+                pnl    = equity - sim["initial"]
+                stats  = get_stats()
+                kelly  = kelly_criterion()
+                sym_s  = db_symbol_stats()
+                sym_str= " | ".join(f"{s['s']}:{s['wr']:.0f}%WR" for s in sym_s) or "Aucun"
+                micro_c= bot_state.get("micro_count",0)
+
+                pos_lines = ""
+                if sim["positions"]:
+                    prices = get_prices_batch()
+                    for pos in sim["positions"].values():
+                        p   = prices.get(pos["symbol"], pos["price_in"])
+                        chg = (p-pos["price_in"])/pos["price_in"]*100 * pos.get("leverage",1)
+                        pos_lines += f"\n  {'📈' if chg>0 else '📉'} {pos['symbol'].replace('USDT',''):6s} {chg:+.2f}%"
+
+                send_fn(
+                    f"📊 BILAN — {datetime.now().strftime('%H:%M')}\n"
+                    f"━━━━━━━━━━━━━━━━━━━\n"
+                    f"💰 Capital  : ${equity:.2f} ({pnl/sim['initial']*100:+.1f}%)\n"
+                    f"📍 Positions: {len(sim['positions'])}/{MAX_POSITIONS}{pos_lines}\n"
+                    f"━━━━━━━━━━━━━━━━━━━\n"
+                    f"🏆 Win Rate : {stats['win_rate']}% ({stats['wins']}✅/{stats['losses']}❌)\n"
+                    f"⚡ Micro    : {micro_c} trades\n"
+                    f"📊 Kelly    : {kelly*100:.1f}% par trade (auto-ajusté)\n"
+                    f"🥇 Top coins: {sym_str}\n"
+                    f"📚 Leçons   : {len(memory['lessons'])}"
+                )
+                db_save_equity(equity, sim["cash"], len(sim["positions"]), pnl)
             except Exception as e:
                 print(f"[STATUS] {e}")
             bot_state["last_status"] = now
@@ -3565,251 +2276,18 @@ def trading_loop(send_fn):
         time.sleep(3)
 
 
-def _deep_futures(send_fn, fear_greed: str):
-    """Analyse profonde pour positions simulées FUTURES (levier x2)."""
-    thresh = memory.get("confidence_threshold", CONFIDENCE_BASE)
-    targets = ["BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT","XRPUSDT"]
-
-    send_fn(
-        f"🔬 ANALYSE PROFONDE FUTURES\n"
-        f"{fear_greed} | {len(sim['positions'])} positions ouvertes"
-    )
-
-    # ── Scan Yahoo : actions, forex, commodités ─────────────────
-    all_yahoo_opps = []
-    for market_dict, market_name in [
-        (STOCKS_SYMBOLS,    "STOCK"),
-        (FOREX_SYMBOLS,     "FOREX"),
-        (COMMODITY_SYMBOLS, "COMMODITY"),
-    ]:
-        try:
-            yahoo_opps = scan_yahoo_market(market_dict, market_name)
-            all_yahoo_opps.extend(yahoo_opps)
-        except Exception as e:
-            print(f"[YAHOO-SCAN] {market_name}: {e}")
-
-    if all_yahoo_opps:
-        thresh = memory.get("confidence_threshold", CONFIDENCE_BASE)
-        lines  = [f"📈 Marchés externes ({len(all_yahoo_opps)} signaux):"]
-        for o in all_yahoo_opps[:5]:
-            e = "🟢" if o["direction"]=="BUY" else "🔴"
-            lines.append(
-                f"  {e} {o['name']} ({o['market_type']}) "
-                f"score={o['score']:+d} RSI={o['ind'].get('rsi',0):.0f}"
-            )
-        send_fn("\n".join(lines))
-
-        for o in all_yahoo_opps[:3]:
-            if not bot_state["running"]: break
-            in_pos = any(p["symbol"]==o["symbol"] for p in sim["positions"].values())
-            if in_pos or len(sim["positions"]) >= MAX_POSITIONS:
-                continue
-            prompt = f"""Simulation trading {o['market_type']}.
-{o['name']} ({o['symbol']}) | ${o['price']:.4f}
-RSI: {o['ind'].get('rsi','?')} | Mom5: {o['ind'].get('mom5','?')}% | MACD: {o['ind'].get('macd_h','?')}
-Score opportunité: {o['score']:+d} vers {o['direction']}
-{fear_greed}
-Marché: {'ouvert' if o['market_type'] in ('STOCK','FOREX') else 'continu'}
-JSON strict: {{"signal":"{o['direction']} ou HOLD","confidence":0-100,"reason":"raison","risk":"LOW ou MEDIUM ou HIGH","market":"SPOT"}}"""
-            result = vote(prompt)
-            result.update({"symbol": o["symbol"], "price": o["price"],
-                            "patterns": [], "market": "SPOT",
-                            "name": o["name"], "market_type": o["market_type"]})
-            if (result["signal"] in ("BUY","SELL")
-                    and result["confidence"] >= thresh
-                    and result["risk"] in ("LOW","MEDIUM")):
-                send_fn(
-                    f"🎯 Signal {o['market_type']}: {o['name']}\n"
-                    f"  {result['signal']} {result['confidence']}% | {result.get('reason','')[:70]}"
-                )
-                open_trade(result, send_fn)
-
-    for symbol in targets:
-        try:
-            coin  = symbol.replace("USDT","")
-            mtf   = get_multi_tf(symbol)
-            conf  = tf_score(mtf)
-
-            if abs(conf["score"]) < 5:
-                continue  # confluence insuffisante
-
-            price = get_price(symbol)
-            ind5m = mtf.get("5m", {})
-            ob    = get_order_book(symbol)
-            in_pos= any(p["symbol"]==symbol for p in sim["positions"].values())
-
-            direction = "BUY" if conf["direction"]=="LONG" else "SELL"
-            prompt = f"""Simulation trading FUTURES court terme.
-
-{symbol} FUTURES sim (levier x{LEVERAGE_SIM}) | ${price:.2f}
-Confluence TF: {conf['score']}/9 → {conf['direction']}
-Signaux: {', '.join(conf['signals'][:4])}
-RSI 5m: {ind5m.get('rsi','?')} | MACD hist: {ind5m.get('macd_h','?')}
-Mom 5m: {ind5m.get('mom5','?')}% | BB%: {ind5m.get('bb_pct','?')}
-OrderBook: {ob['pressure']}
-{fear_greed}
-En position: {'OUI' if in_pos else 'NON'}
-
-Simulation pure — décide BUY (long) ou SELL (short) ou HOLD.
-SL={STOP_LOSS_PCT*100:.1f}% TP={TAKE_PROFIT_PCT*100:.1f}% lev={LEVERAGE_SIM}x
-
-JSON strict (sans backticks):
-{{"signal":"{direction} ou HOLD","confidence":0-100,"reason":"raison","risk":"LOW ou MEDIUM ou HIGH","market":"FUTURES"}}"""
-
-            result = vote(prompt)
-            result.update({"symbol":symbol,"price":price,
-                            "patterns":[],"confluence":conf,
-                            "ob":ob,"ind":ind5m,"market":"FUTURES"})
-
-            sig_e = {"BUY":"🟢","SELL":"🔴","HOLD":"⚪"}.get(result["signal"],"⚪")
-            send_fn(
-                f"{sig_e} FUTURES {coin}: {result['signal']} "
-                f"{result['confidence']}% [{result.get('consensus','?')}]\n"
-                f"  TF: {conf['score']}/9 | {result.get('reason','')[:70]}"
-            )
-
-            if (result["signal"] in ("BUY","SELL")
-                    and result["confidence"] >= thresh
-                    and result["risk"] in ("LOW","MEDIUM")
-                    and not in_pos):
-                open_trade(result, send_fn)
-
-        except Exception as e:
-            print(f"[DEEP] {symbol}: {e}")
-
-
-def _send_bilan(send_fn):
-    equity        = get_equity()
-    pnl           = equity - sim["initial"]
-    stats         = get_stats()
-    wr_db         = db_win_rate(30)
-    sym_stats     = db_symbol_stats()
-    thresh        = memory.get("confidence_threshold", CONFIDENCE_BASE)
-    fear_greed_str = get_fear_greed()
-
-    pos_lines = ""
-    if sim["positions"]:
-        prices = get_prices_batch()
-        for pos in sim["positions"].values():
-            p    = prices.get(pos["symbol"], pos["price_in"])
-            chg  = (p-pos["price_in"])/pos["price_in"]*100 * pos.get("leverage",1)
-            e    = "📈" if chg>0 else "📉"
-            pos_lines += (f"\n  {e} {pos['symbol'].replace('USDT',''):6s} "
-                          f"{pos['side']} {chg:+.2f}%")
-
-    sym_s   = sym_stats
-    sym_str = " | ".join(
-        f"{s['s']}:{s['wr']:.0f}%WR" for s in sym_stats
-    ) or "Aucun encore"
-
-    # Conseil inspiré des traders selon le contexte
-    fg_val = 50
+def db_save_equity(equity, cash, open_pos, daily_pnl):
     try:
-        fg_val = int(fear_greed_str.split(":")[1].split("/")[0].strip())
+        con = sqlite3.connect(DB_FILE)
+        con.execute("""INSERT INTO equity
+            (timestamp,equity,cash,open_positions,daily_pnl)
+            VALUES(?,?,?,?,?)""", (
+            datetime.now().strftime("%Y-%m-%d %H:%M"),
+            round(equity,2), round(cash,2), open_pos, round(daily_pnl,2),
+        ))
+        con.commit(); con.close()
     except Exception:
         pass
-    if fg_val < 20:
-        trader_tip = "💡 Saylor & Buffett : Fear extrême = opportunité rare. Accumule."
-    elif fg_val < 35:
-        trader_tip = "💡 Buffett : 'Sois avide quand les autres ont peur.'"
-    elif fg_val > 75:
-        trader_tip = "💡 Paul Tudor Jones : Marché euphorique → protège le capital."
-    elif stats['win_rate'] > 60:
-        trader_tip = "💡 Livermore : Tu es en forme, laisse courir les gagnants."
-    else:
-        trader_tip = "💡 Cathie Wood : Focus sur les tokens à fort momentum."
-
-    micro_count = bot_state.get("micro_count", 0)
-    send_fn(
-        f"📊 BILAN — {datetime.now().strftime('%H:%M')}\n"
-        f"━━━━━━━━━━━━━━━━━━━\n"
-        f"💰 Capital  : ${equity:.2f} ({pnl/sim['initial']*100:+.1f}%)\n"
-        f"📍 Positions: {len(sim['positions'])}/{MAX_POSITIONS}{pos_lines}\n"
-        f"━━━━━━━━━━━━━━━━━━━\n"
-        f"🏆 Win Rate : {stats['win_rate']}% ({stats['wins']}✅/{stats['losses']}❌)\n"
-        f"📊 Trades   : {stats['total']} | ⚡{micro_count} micro\n"
-        f"🥇 Top coins: {sym_str}\n"
-        f"━━━━━━━━━━━━━━━━━━━\n"
-        f"{trader_tip}"
-    )
-
-
-# ═══════════════════════════════════════════════════════════════
-#  WATCHDOG + RÉSUMÉ JOURNALIER
-# ═══════════════════════════════════════════════════════════════
-def watchdog(send_fn):
-    time.sleep(180)
-    alerted = False
-    while True:
-        time.sleep(60)
-        if not bot_state["running"]:
-            alerted = False; continue
-        last = bot_state.get("last_heartbeat")
-        if not last: continue
-        elapsed = (datetime.now()-last).total_seconds()
-        if elapsed > 300 and not alerted:
-            send_fn(
-                f"⚠️ WATCHDOG: Inactif {int(elapsed//60)} min\n"
-                f"Dernier signal: {last.strftime('%H:%M:%S')}"
-            )
-            alerted = True
-        elif elapsed <= 300:
-            alerted = False
-
-
-def daily_summary(send_fn):
-    while True:
-        now = datetime.now()
-        midnight = (now+timedelta(days=1)).replace(
-            hour=0, minute=0, second=5, microsecond=0)
-        time.sleep((midnight-now).total_seconds())
-        try:
-            equity = get_equity()
-            pnl    = equity - sim["initial"]
-            stats  = get_stats()
-            today  = now.strftime("%Y-%m-%d")
-            t_day  = [t for t in sim["trades"]
-                      if t.get("time_in","").startswith(today)]
-            pnl_day= sum(t["pnl"] for t in t_day if t.get("pnl"))
-            sym_s  = db_symbol_stats()
-            best3  = "\n".join(f"  🏅 {s['s']}: WR {s['wr']:.0f}% ({s['n']} trades)"
-                               for s in sym_s[:3]) or "  Aucun"
-            lessons= "\n".join(
-                f"  {'✅' if l['type']=='succes' else '❌'} {l['lecon']}"
-                for l in memory["lessons"][-3:]
-            ) or "  Aucune"
-            send_fn(
-                f"📊 RÉSUMÉ JOURNALIER — {now.strftime('%d/%m/%Y')}\n"
-                f"━━━━━━━━━━━━━━━━━━━\n"
-                f"💰 Capital  : ${equity:.2f} ({pnl/sim['initial']*100:+.1f}%)\n"
-                f"📈 PnL total: ${pnl:+.2f}\n"
-                f"📅 PnL jour : ${pnl_day:+.2f} ({len(t_day)} trades)\n"
-                f"━━━━━━━━━━━━━━━━━━━\n"
-                f"🏆 Win Rate : {stats['win_rate']}% ({stats['total']} trades)\n"
-                f"⏱ Durée moy: {stats['avg_dur']} min\n"
-                f"📚 Leçons   : {len(memory['lessons'])}\n"
-                f"━━━━━━━━━━━━━━━━━━━\n"
-                f"🥇 Top coins:\n{best3}\n"
-                f"━━━━━━━━━━━━━━━━━━━\n"
-                f"💡 Dernières leçons:\n{lessons}"
-            )
-        except Exception as e:
-            print(f"[DAILY] {e}")
-
-
-# ═══════════════════════════════════════════════════════════════
-#  SELF-PING (anti-sleep Koyeb Free)
-# ═══════════════════════════════════════════════════════════════
-def self_ping():
-    time.sleep(60)
-    while True:
-        try:
-            requests.get(
-                "https://junior-tick-1ever-6bf9cee7.koyeb.app/health",
-                timeout=10)
-        except Exception:
-            pass
-        time.sleep(270)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -3821,128 +2299,188 @@ def generate_dashboard() -> str:
     pnl    = equity - sim["initial"]
     pct    = pnl/sim["initial"]*100
     status = "🟢 EN MARCHE" if bot_state["running"] else "🔴 ARRÊTÉ"
+    kelly  = kelly_criterion()
+    wr_db  = db_win_rate(30)
+    sym_s  = db_symbol_stats()
     last   = bot_state.get("last_heartbeat")
     hb     = last.strftime("%H:%M:%S") if last else "—"
     thresh = memory.get("confidence_threshold", CONFIDENCE_BASE)
-    wr_db  = db_win_rate(30)
-    sym_s  = db_symbol_stats()
+
+    # Nouvelles données pour le dashboard
+    arb_opps  = detect_arbitrage()
+    poly_mkts = get_polymarket_markets()
+    options   = get_options_data()
+    onchain   = get_onchain_data()
 
     prices = get_prices_batch()
-
     pos_html = ""
     for pk, pos in sim["positions"].items():
         p     = prices.get(pos["symbol"], pos["price_in"])
         chg   = (p-pos["price_in"])/pos["price_in"]*100 * pos.get("leverage",1)
         color = "#2ecc71" if chg>=0 else "#e74c3c"
-        lev   = f" x{pos['leverage']}" if pos.get("leverage",1)>1 else ""
+        kelly_used = pos.get("kelly_pct",0)*100
         pos_html += (
             f"<tr><td>{pos['symbol'].replace('USDT','')}</td>"
-            f"<td>{pos['market']}{lev}</td><td>{pos['side']}</td>"
-            f"<td>${pos['price_in']:.6f}</td><td>${p:.6f}</td>"
+            f"<td>{pos['market']}</td><td>{pos['side']}</td>"
+            f"<td>${pos['price_in']:.4f}</td><td>${p:.4f}</td>"
             f'<td style="color:{color}">{chg:+.2f}%</td>'
-            f"<td>${pos['qty']*p:.2f}</td></tr>"
+            f"<td>{kelly_used:.1f}%</td></tr>"
         )
 
     trades_html = ""
-    for t in reversed(sim["trades"][-25:]):
+    for t in reversed(sim["trades"][-20:]):
         if t.get("pnl") is not None:
-            c = "#2ecc71" if t["pnl"]>0 else "#e74c3c"
-            ps = f'<span style="color:{c}">${t["pnl"]:+.4f} ({t.get("pnl_pct",0):+.2f}%)</span>'
+            c  = "#2ecc71" if t["pnl"]>0 else "#e74c3c"
+            ps = f'<span style="color:{c}">${t["pnl"]:+.4f}</span>'
         else:
             ps = '<span style="color:#f39c12">ouvert</span>'
-        po  = f"${t['price_out']:.6f}" if t.get("price_out") else "—"
-        dur = f"{t.get('duration_min','—')}m"
         trades_html += (
             f"<tr><td>{t['id']}</td>"
             f"<td>{t['symbol'].replace('USDT','')}</td>"
             f"<td>{t['market']}</td><td>{t['side']}</td>"
-            f"<td>${t['price_in']:.6f}</td><td>{po}</td>"
+            f"<td>${t['price_in']:.4f}</td>"
             f"<td>{ps}</td><td>{t['confidence']}%</td>"
-            f"<td>{dur}</td><td>{t['time_in'][11:16]}</td></tr>"
+            f"<td>{t.get('kelly_pct',0)*100:.1f}%</td>"
+            f"<td>{t['time_in'][11:16]}</td></tr>"
         )
 
     lessons_html = ""
-    for l in reversed(memory["lessons"][-12:]):
+    for l in reversed(memory["lessons"][-10:]):
         c = "#2ecc71" if l["type"]=="succes" else "#e74c3c"
-        e = "✅" if l["type"]=="succes" else "❌"
         lessons_html += (
-            f'<tr><td style="color:{c}">{e}</td>'
-            f"<td>{l.get('symbol','').replace('USDT','')}</td>"
+            f'<tr><td style="color:{c}">{"✅" if l["type"]=="succes" else "❌"}</td>'
             f'<td style="color:{c}">${l.get("pnl",0):+.4f}</td>'
             f"<td>{l['lecon'][:55]}</td>"
             f"<td>{l['action_future'][:50]}</td>"
             f"<td>{l['date']}</td></tr>"
         )
 
-    sym_html = "".join(
-        f"<span class='badge' style='color:#2ecc71'>"
-        f"{s['s']} WR:{s['wr']:.0f}% ({s['n']})</span>"
+    arb_html = ""
+    for o in arb_opps[:3]:
+        coin = o["symbol"].replace("USDT","")
+        color = "#2ecc71" if o["profit_est"] > 0 else "#e74c3c"
+        arb_html += (
+            f"<tr><td>{coin}</td>"
+            f"<td>${o['bybit']:.2f}</td>"
+            f"<td>${o.get('binance',o.get('kraken',0)):.2f}</td>"
+            f"<td>{o['spread_pct']:.3f}%</td>"
+            f'<td style="color:{color}">{o["profit_est"]:.3f}%</td></tr>'
+        )
+
+    poly_html = ""
+    for m in poly_mkts[:3]:
+        color = "#2ecc71" if m["inefficiency"] > 2 else "#f39c12"
+        poly_html += (
+            f"<tr><td>{m['question'][:50]}</td>"
+            f"<td>{m['yes_price']:.2f}</td>"
+            f"<td>{m['no_price']:.2f}</td>"
+            f'<td style="color:{color}">{m["inefficiency"]:.1f}%</td></tr>'
+        )
+
+    pcr     = options.get("put_call_ratio","N/A")
+    opt_sent= options.get("sentiment","N/A")
+    btc_dom = onchain.get("btc_dominance","N/A")
+    mcap_chg= onchain.get("mcap_change_24h",0)
+    sym_str = "".join(
+        f"<span style='background:#161b22;border-radius:5px;padding:2px 7px;"
+        f"font-size:.75em;margin:2px;display:inline-block;color:#2ecc71'>"
+        f"{s['s']} WR:{s['wr']:.0f}%</span>"
         for s in sym_s
-    ) or "<span style='color:#8b949e'>Données insuffisantes</span>"
+    ) or "<span style='color:#8b949e'>Aucun</span>"
 
     return f"""<!DOCTYPE html><html><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Sim Trading Bot v4</title>
+<title>Trading Bot v5</title>
 <style>
 body{{font-family:Arial,sans-serif;background:#0d1117;color:#c9d1d9;margin:0;padding:14px}}
-h1{{color:#58a6ff;text-align:center;font-size:1.25em;margin-bottom:2px}}
-h2{{color:#58a6ff;font-size:.88em;margin:12px 0 5px}}
-.grid{{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}}
+h1{{color:#58a6ff;text-align:center;font-size:1.2em;margin-bottom:2px}}
+h2{{color:#58a6ff;font-size:.85em;margin:10px 0 4px}}
+.grid{{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:10px}}
+.grid3{{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}}
 .card{{background:#161b22;border-radius:8px;padding:10px;text-align:center}}
 .label{{font-size:.68em;color:#8b949e;margin-bottom:2px}}
-.value{{font-size:1.1em;font-weight:bold}}
+.value{{font-size:1.05em;font-weight:bold}}
 .green{{color:#2ecc71}}.red{{color:#e74c3c}}.blue{{color:#58a6ff}}.yellow{{color:#f39c12}}
-.center{{text-align:center;font-size:.8em;color:#8b949e;margin:2px 0}}
-table{{width:100%;border-collapse:collapse;font-size:.7em;margin-bottom:16px}}
+.center{{text-align:center;font-size:.78em;color:#8b949e;margin:2px 0}}
+table{{width:100%;border-collapse:collapse;font-size:.7em;margin-bottom:12px}}
 th{{background:#21262d;padding:5px;text-align:left;color:#8b949e}}
 td{{padding:4px 5px;border-bottom:1px solid #21262d}}
-.badge{{background:#161b22;border-radius:5px;padding:2px 7px;font-size:.75em;margin:2px;display:inline-block}}
+.cmds{{background:#161b22;border-radius:8px;padding:10px;margin-bottom:10px;font-size:.78em;line-height:1.8}}
+code{{color:#58a6ff}}
 </style>
 <meta http-equiv="refresh" content="20">
 </head><body>
-<h1>🤖 Simulation Trading Bot v4</h1>
-<div class="center">{status} | Heartbeat: {hb} | Cycle #{bot_state['cycle_count']}</div>
-<div class="center">
-  Seuil: {thresh}% | WR(30): {wr_db}% | 
-  SL:{STOP_LOSS_PCT*100:.1f}% TP:{TAKE_PROFIT_PCT*100:.1f}% Trail:{TRAILING_PCT*100:.1f}% |
-  {len(ALL_SYMBOLS)} cryptos | Trades/jour: {bot_state['trades_today']}
-</div>
-<div class="center" style="margin:4px 0">{sym_html}</div>
+<h1>🤖 Trading Bot v5 — Kelly + Arbitrage + Polymarket</h1>
+<div class="center">{status} | {hb} | Cycle #{bot_state['cycle_count']} | Kelly:{kelly*100:.1f}%</div>
+<div class="center">{sym_str}</div>
+
 <div class="grid">
   <div class="card"><div class="label">Capital simulé</div>
     <div class="value blue">${equity:.2f}</div></div>
   <div class="card"><div class="label">PnL simulation</div>
     <div class="value {'green' if pnl>=0 else 'red'}">${pnl:+.2f} ({pct:+.1f}%)</div></div>
-  <div class="card"><div class="label">Cash disponible</div>
-    <div class="value">${sim['cash']:.2f}</div></div>
-  <div class="card"><div class="label">Positions ouvertes</div>
-    <div class="value yellow">{len(sim['positions'])}/{MAX_POSITIONS}</div></div>
   <div class="card"><div class="label">Win Rate</div>
     <div class="value yellow">{stats['win_rate']}%</div></div>
   <div class="card"><div class="label">Trades | Leçons</div>
     <div class="value">{stats['total']} | {len(memory['lessons'])}</div></div>
+  <div class="card"><div class="label">Kelly actuel</div>
+    <div class="value blue">{kelly*100:.1f}% / trade</div></div>
+  <div class="card"><div class="label">Options P/C | Sentiment</div>
+    <div class="value yellow">{pcr} | {opt_sent}</div></div>
 </div>
-<h2>Positions Simulées Ouvertes</h2>
+
+<div class="grid3">
+  <div class="card"><div class="label">BTC Dominance</div>
+    <div class="value">{btc_dom}%</div></div>
+  <div class="card"><div class="label">MCap 24h</div>
+    <div class="value {'green' if mcap_chg>=0 else 'red'}">{mcap_chg:+.1f}%</div></div>
+  <div class="card"><div class="label">Seuil IA</div>
+    <div class="value">{thresh}%</div></div>
+</div>
+
+<div class="cmds">
+<b>Commandes Telegram:</b> 
+<code>/start</code> <code>/stop</code> <code>/status</code> 
+<code>/portfolio</code> <code>/positions</code> <code>/lecons</code>
+<code>/scan</code> <code>/arbitrage</code> <code>/polymarket</code>
+<code>/kelly</code> <code>/fermer</code> <code>/reset</code> <code>/help</code>
+</div>
+
+<h2>Positions Ouvertes</h2>
 <table><thead><tr>
   <th>Coin</th><th>Marché</th><th>Sens</th>
-  <th>Entrée</th><th>Prix actuel</th><th>PnL%</th><th>Valeur</th>
+  <th>Entrée</th><th>Actuel</th><th>PnL%</th><th>Kelly%</th>
 </tr></thead><tbody>
-{pos_html or '<tr><td colspan="7" style="text-align:center;color:#8b949e">Aucune position ouverte</td></tr>'}
+{pos_html or '<tr><td colspan="7" style="text-align:center;color:#8b949e">Aucune position</td></tr>'}
 </tbody></table>
-<h2>Historique des Simulations</h2>
+
+<h2>Opportunités Arbitrage</h2>
+<table><thead><tr>
+  <th>Coin</th><th>Bybit</th><th>Autre</th><th>Spread</th><th>Profit net</th>
+</tr></thead><tbody>
+{arb_html or '<tr><td colspan="5" style="text-align:center;color:#8b949e">Aucun arbitrage détecté</td></tr>'}
+</tbody></table>
+
+<h2>Polymarket — Inefficacités</h2>
+<table><thead><tr>
+  <th>Question</th><th>YES</th><th>NO</th><th>Inefficacité</th>
+</tr></thead><tbody>
+{poly_html or '<tr><td colspan="4" style="text-align:center;color:#8b949e">Aucune inefficacité</td></tr>'}
+</tbody></table>
+
+<h2>Historique Trades</h2>
 <table><thead><tr>
   <th>#</th><th>Coin</th><th>Mkt</th><th>Sens</th>
-  <th>Entrée</th><th>Sortie</th><th>PnL</th>
-  <th>Conf</th><th>Durée</th><th>Heure</th>
+  <th>Entrée</th><th>PnL</th><th>Conf</th><th>Kelly%</th><th>Heure</th>
 </tr></thead><tbody>
-{trades_html or '<tr><td colspan="10" style="text-align:center;color:#8b949e">Aucun trade encore</td></tr>'}
+{trades_html or '<tr><td colspan="9" style="text-align:center;color:#8b949e">Aucun trade</td></tr>'}
 </tbody></table>
+
 <h2>Mémoire & Apprentissage</h2>
 <table><thead><tr>
-  <th>Type</th><th>Coin</th><th>PnL</th>
-  <th>Leçon</th><th>Action Future</th><th>Date</th>
+  <th>Type</th><th>PnL</th><th>Leçon</th><th>Action Future</th><th>Date</th>
 </tr></thead><tbody>
-{lessons_html or '<tr><td colspan="6" style="text-align:center;color:#8b949e">Aucune leçon encore</td></tr>'}
+{lessons_html or '<tr><td colspan="5" style="text-align:center;color:#8b949e">Aucune leçon</td></tr>'}
 </tbody></table>
 </body></html>"""
 
@@ -3988,7 +2526,7 @@ def run_server():
 
 
 # ═══════════════════════════════════════════════════════════════
-#  TELEGRAM HELPER
+#  TELEGRAM
 # ═══════════════════════════════════════════════════════════════
 def make_send(chat_id: str):
     def send(msg: str):
@@ -4006,9 +2544,6 @@ def _auth(update: Update) -> bool:
     return str(update.effective_chat.id) == TELEGRAM_CHAT_ID
 
 
-# ═══════════════════════════════════════════════════════════════
-#  COMMANDES TELEGRAM
-# ═══════════════════════════════════════════════════════════════
 async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
     if bot_state["running"]:
@@ -4016,12 +2551,10 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     bot_state.update({
         "running": True, "trades_today": 0, "cycle_count": 0,
         "last_heartbeat": None, "last_monitor": 0, "last_micro": 0,
-        "last_scalp": 0, "last_deep": 0, "last_status": 0,
+        "last_scalp": 0, "last_deep": 0, "last_status": 0, "last_meme": 0,
     })
     send = make_send(TELEGRAM_CHAT_ID)
-    threading.Thread(target=trading_loop,  args=(send,), daemon=True).start()
-    threading.Thread(target=watchdog,      args=(send,), daemon=True).start()
-    threading.Thread(target=daily_summary, args=(send,), daemon=True).start()
+    threading.Thread(target=trading_loop, args=(send,), daemon=True).start()
 
 
 async def cmd_stop(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -4030,10 +2563,9 @@ async def cmd_stop(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     equity = get_equity()
     stats  = get_stats()
     await update.message.reply_text(
-        f"🛑 Simulation arrêtée.\n"
+        f"🛑 Arrêté.\n"
         f"Capital: ${equity:.2f} | PnL: ${equity-sim['initial']:+.2f}\n"
-        f"Trades: {stats['total']} | WR: {stats['win_rate']}%\n"
-        f"Positions ouvertes conservées en mémoire."
+        f"Trades: {stats['total']} | WR: {stats['win_rate']}%"
     )
 
 
@@ -4042,52 +2574,83 @@ async def cmd_status(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     equity = get_equity()
     pnl    = equity - sim["initial"]
     stats  = get_stats()
-    wr_db  = db_win_rate(30)
+    kelly  = kelly_criterion()
     thresh = memory.get("confidence_threshold", CONFIDENCE_BASE)
     last   = bot_state.get("last_heartbeat")
-
-    pos_lines = ""
-    if sim["positions"]:
-        prices = get_prices_batch()
-        for pos in sim["positions"].values():
-            p   = prices.get(pos["symbol"], pos["price_in"])
-            chg = (p-pos["price_in"])/pos["price_in"]*100 * pos.get("leverage",1)
-            pos_lines += f"\n  {'📈' if chg>0 else '📉'} {pos['symbol'].replace('USDT','')} {pos['side']}: {chg:+.2f}%"
+    arb    = detect_arbitrage()
+    options= get_options_data()
 
     await update.message.reply_text(
         f"{'🟢' if bot_state['running'] else '🔴'} "
         f"{'EN MARCHE' if bot_state['running'] else 'ARRÊTÉ'}\n"
-        f"Heartbeat: {last.strftime('%H:%M:%S') if last else '—'} | Cycle #{bot_state['cycle_count']}\n"
         f"━━━━━━━━━━━━━\n"
-        f"💰 Capital sim: ${equity:.2f} ({pnl:+.2f})\n"
-        f"💵 Cash: ${sim['cash']:.2f}\n"
-        f"📍 Positions: {len(sim['positions'])}{pos_lines}\n"
+        f"💰 Capital: ${equity:.2f} ({pnl:+.2f})\n"
+        f"📊 Kelly  : {kelly*100:.1f}% par trade\n"
+        f"🏆 WR     : {stats['win_rate']}% ({stats['total']} trades)\n"
+        f"⚙️  Seuil  : {thresh}%\n"
         f"━━━━━━━━━━━━━\n"
-        f"📊 Trades: {stats['total']} | WR: {stats['win_rate']}%\n"
-        f"WR DB(30): {wr_db}% | Seuil: {thresh}%\n"
-        f"📚 Leçons: {len(memory['lessons'])}\n"
-        f"⏱ Durée moy: {stats['avg_dur']} min"
+        f"⚡ Arbitrage: {len(arb)} opportunité(s)\n"
+        f"📊 Options P/C: {options.get('put_call_ratio','N/A')} ({options.get('sentiment','N/A')})\n"
+        f"📚 Leçons: {len(memory['lessons'])}"
     )
 
 
-async def cmd_scan(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+async def cmd_kelly(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
-    await update.message.reply_text("🔍 Scan en cours...")
-    try:
-        opps  = scan_market()
-        lines = ["🎯 Scan marché — Top opportunités\n━━━━━━━━━━━━━"]
-        for o in opps[:7]:
-            e     = "🟢" if o["direction"]=="BUY" else "🔴"
-            alert = " ⚠️" if o["has_alert"] else ""
-            lines.append(
-                f"{e}{alert} {o['symbol'].replace('USDT',''):6s} | "
-                f"score={o['score']:+d} | RSI={o['ind'].get('rsi',0):.0f} | "
-                f"mom={o['ind'].get('mom5',0):+.1f}% | "
-                f"vol={o['ind'].get('vol',0):.2f}%"
-            )
-        await update.message.reply_text("\n".join(lines))
-    except Exception as e:
-        await update.message.reply_text(f"Erreur: {e}")
+    kelly  = kelly_criterion(30)
+    kelly10= kelly_criterion(10)
+    kelly50= kelly_criterion(50)
+    closed = [t for t in sim["trades"] if t.get("pnl") is not None]
+    wins   = [t for t in closed if t["pnl"] > 0]
+    losses = [t for t in closed if t["pnl"] <= 0]
+    await update.message.reply_text(
+        f"📐 KELLY CRITERION\n"
+        f"━━━━━━━━━━━━━\n"
+        f"Kelly (10 trades) : {kelly10*100:.1f}%\n"
+        f"Kelly (30 trades) : {kelly*100:.1f}% ← utilisé\n"
+        f"Kelly (50 trades) : {kelly50*100:.1f}%\n"
+        f"━━━━━━━━━━━━━\n"
+        f"Trades analysés   : {len(closed)}\n"
+        f"Wins: {len(wins)} | Losses: {len(losses)}\n"
+        f"Win Rate          : {len(wins)/max(len(closed),1)*100:.1f}%\n"
+        f"━━━━━━━━━━━━━\n"
+        f"Le Kelly s'ajuste automatiquement à chaque trade."
+    )
+
+
+async def cmd_arbitrage(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    if not _auth(update): return
+    await update.message.reply_text("🔍 Scan arbitrage en cours...")
+    opps = detect_arbitrage()
+    if not opps:
+        await update.message.reply_text("Aucune opportunité d'arbitrage détectée."); return
+    lines = ["⚡ ARBITRAGE DÉTECTÉ\n━━━━━━━━━━━━━"]
+    for o in opps:
+        coin = o["symbol"].replace("USDT","")
+        ex2  = "Binance" if "binance" in o else "Kraken"
+        lines.append(
+            f"💰 {coin}\n"
+            f"  Bybit: ${o['bybit']:.2f} | {ex2}: ${o.get('binance',o.get('kraken',0)):.2f}\n"
+            f"  Spread: {o['spread_pct']:.3f}% | Profit net: ~{o['profit_est']:.3f}%\n"
+            f"  Direction: {o['direction']}"
+        )
+    await update.message.reply_text("\n".join(lines))
+
+
+async def cmd_polymarket(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    if not _auth(update): return
+    await update.message.reply_text("🎯 Scan Polymarket en cours...")
+    markets = get_polymarket_markets()
+    if not markets:
+        await update.message.reply_text("Aucune inefficacité Polymarket détectée."); return
+    lines = ["🎯 POLYMARKET — Inefficacités\n━━━━━━━━━━━━━"]
+    for m in markets:
+        lines.append(
+            f"❓ {m['question']}\n"
+            f"  YES:{m['yes_price']:.2f} NO:{m['no_price']:.2f}\n"
+            f"  Inefficacité: {m['inefficiency']:.1f}%"
+        )
+    await update.message.reply_text("\n".join(lines))
 
 
 async def cmd_portfolio(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -4095,21 +2658,17 @@ async def cmd_portfolio(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     equity = get_equity()
     pnl    = equity - sim["initial"]
     stats  = get_stats()
+    kelly  = kelly_criterion()
     sym_s  = db_symbol_stats()
     sym_str= " | ".join(f"{s['s']}:{s['wr']:.0f}%WR" for s in sym_s) or "Aucun"
-    pos_str= "\n".join(
-        f"  {p['symbol'].replace('USDT','')} {p['market']} {p['side']}"
-        for p in sim["positions"].values()
-    ) or "  Aucune"
     await update.message.reply_text(
-        f"💼 Portefeuille Simulation\n"
-        f"Capital initial : ${sim['initial']:,.2f}\n"
-        f"Capital actuel  : ${equity:.2f} ({pnl:+.2f})\n"
-        f"Cash disponible : ${sim['cash']:.2f}\n"
+        f"💼 Portefeuille\n"
+        f"Initial : ${sim['initial']:,.2f}\n"
+        f"Actuel  : ${equity:.2f} ({pnl:+.2f})\n"
+        f"Cash    : ${sim['cash']:.2f}\n"
         f"━━━━━━━━━━━━━\n"
-        f"Positions:\n{pos_str}\n"
-        f"━━━━━━━━━━━━━\n"
-        f"Trades: {stats['total']} ({stats['wins']}W/{stats['losses']}L)\n"
+        f"Kelly   : {kelly*100:.1f}% par trade\n"
+        f"Trades  : {stats['total']} ({stats['wins']}W/{stats['losses']}L)\n"
         f"Win Rate: {stats['win_rate']}% | Durée moy: {stats['avg_dur']}min\n"
         f"Meilleur: +${stats['best']} | Pire: ${stats['worst']}\n"
         f"Top coins: {sym_str}"
@@ -4119,23 +2678,18 @@ async def cmd_portfolio(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 async def cmd_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
     if not sim["positions"]:
-        await update.message.reply_text("Aucune position simulée ouverte."); return
+        await update.message.reply_text("Aucune position ouverte."); return
     prices = get_prices_batch()
-    lines  = ["📍 Positions simulées ouvertes\n━━━━━━━━━━━━━"]
+    lines  = ["📍 Positions ouvertes\n━━━━━━━━━━━━━"]
     for pk, pos in sim["positions"].items():
         p    = prices.get(pos["symbol"], pos["price_in"])
         chg  = (p-pos["price_in"])/pos["price_in"]*100 * pos.get("leverage",1)
         e    = "📈" if chg>0 else "📉"
-        sl   = pos["price_in"]*(1-STOP_LOSS_PCT) if pos["side"]=="LONG" \
-               else pos["price_in"]*(1+STOP_LOSS_PCT)
-        tp   = pos["price_in"]*(1+TAKE_PROFIT_PCT) if pos["side"]=="LONG" \
-               else pos["price_in"]*(1-TAKE_PROFIT_PCT)
-        lev  = f" x{pos['leverage']}" if pos.get("leverage",1)>1 else ""
+        kelly_used = pos.get("kelly_pct",0)*100
         lines.append(
-            f"{e} {pos['symbol'].replace('USDT','')}{lev} {pos['market']} {pos['side']}\n"
-            f"  Entrée: ${pos['price_in']:.6f} → Actuel: ${p:.6f}\n"
-            f"  PnL sim: {chg:+.2f}%\n"
-            f"  🛑${sl:.6f} | 🎯${tp:.6f}"
+            f"{e} {pos['symbol'].replace('USDT','')} {pos['market']} {pos['side']}\n"
+            f"  ${pos['price_in']:.4f}→${p:.4f} ({chg:+.2f}%)\n"
+            f"  Kelly utilisé: {kelly_used:.1f}%"
         )
     await update.message.reply_text("\n".join(lines))
 
@@ -4143,444 +2697,152 @@ async def cmd_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 async def cmd_lecons(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
     if not memory["lessons"]:
-        await update.message.reply_text("Aucune leçon encore — laisse le bot trader !"); return
+        await update.message.reply_text("Aucune leçon encore."); return
     msg = f"📚 Leçons ({len(memory['lessons'])}):\n\n"
     for l in memory["lessons"][-5:]:
         e = "✅" if l["type"]=="succes" else "❌"
-        msg += f"{e} [{l.get('symbol','').replace('USDT','')}] ${l.get('pnl',0):+.4f}\n"
-        msg += f"  {l['lecon']}\n→ {l['action_future']}\n\n"
+        msg += f"{e} ${l.get('pnl',0):+.4f}\n{l['lecon']}\n→ {l['action_future']}\n\n"
     await update.message.reply_text(msg)
+
+
+async def cmd_scan(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    if not _auth(update): return
+    await update.message.reply_text("🔍 Scan en cours...")
+    opps  = scan_market()
+    lines = ["🎯 Top opportunités\n━━━━━━━━━━━━━"]
+    for o in opps[:7]:
+        e     = "🟢" if o["direction"]=="BUY" else "🔴"
+        alert = " ⚠️" if o["has_alert"] else ""
+        lines.append(
+            f"{e}{alert} {o['symbol'].replace('USDT',''):6s} "
+            f"score={o['score']:+d} RSI={o['ind'].get('rsi',0):.0f} "
+            f"mom={o['ind'].get('mom5',0):+.1f}%"
+        )
+    await update.message.reply_text("\n".join(lines))
 
 
 async def cmd_fermer(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
     if not sim["positions"]:
         await update.message.reply_text("Aucune position à fermer."); return
-    send  = make_send(TELEGRAM_CHAT_ID)
-    prices= get_prices_batch()
-    count = 0
+    send   = make_send(TELEGRAM_CHAT_ID)
+    prices = get_prices_batch()
+    count  = 0
     for pk in list(sim["positions"].keys()):
         pos   = sim["positions"].get(pk)
         if not pos: continue
         price = prices.get(pos["symbol"], pos["price_in"])
-        close_trade(pk, price, "Fermeture manuelle /fermer", send)
+        close_trade(pk, price, "Fermeture manuelle", send)
         count += 1
-    await update.message.reply_text(f"✅ {count} position(s) fermée(s) manuellement.")
-
-
-async def cmd_apprentissage(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Active/désactive le mode apprentissage forcé."""
-    if not _auth(update): return
-    global LEARN_MODE_ENABLED
-    LEARN_MODE_ENABLED = not LEARN_MODE_ENABLED
-    status = "✅ ACTIVÉ" if LEARN_MODE_ENABLED else "⏸ DÉSACTIVÉ"
-    stats  = get_stats()
-    await update.message.reply_text(
-        f"🎓 MODE APPRENTISSAGE : {status}\n"
-        f"━━━━━━━━━━━━━━━━━━━\n"
-        f"Seuil normal   : {memory.get('confidence_threshold', CONFIDENCE_BASE)}%\n"
-        f"Seuil apprenti.: {LEARN_MODE_CONF_MIN}% (signal faible accepté)\n"
-        f"Capital/trade  : {LEARN_MODE_MAX_PCT*100:.0f}% (réduit)\n"
-        f"━━━━━━━━━━━━━━━━━━━\n"
-        f"{'Activé : le bot trade même avec signaux faibles pour apprendre plus vite.' if LEARN_MODE_ENABLED else 'Désactivé : le bot trade uniquement avec signaux forts.'}"
-    )
-
-
-async def cmd_stats(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Stats complètes avec répartition par marché."""
-    if not _auth(update): return
-    stats   = get_stats()
-    wr_db   = db_win_rate(30)
-    sym_s   = db_symbol_stats()
-    equity  = get_equity()
-    pnl     = equity - sim["initial"]
-    session = sim.get("session", 1)
-    thresh  = memory.get("confidence_threshold", CONFIDENCE_BASE)
-
-    # Stats par type de marché
-    all_closed = [t for t in sim["trades"] if t.get("pnl") is not None]
-    learn_trades  = [t for t in all_closed if t.get("market")=="LEARN"]
-    micro_trades  = [t for t in all_closed if t.get("market")=="MICRO"]
-    normal_trades = [t for t in all_closed if t.get("market") not in ("LEARN","MICRO")]
-
-    def wr(trades):
-        if not trades: return 0
-        return round(sum(1 for t in trades if t["pnl"]>0)/len(trades)*100, 1)
-
-    sym_lines = "\n".join(
-        f"  {s['s']:8s} WR:{s['wr']:.0f}% ({s['n']} trades) avg:${s['pnl']:+.4f}"
-        for s in sym_s[:5]
-    ) or "  Données insuffisantes"
-
-    await update.message.reply_text(
-        f"📊 STATISTIQUES COMPLÈTES\n"
-        f"Session #{session} | Capital: ${equity:.2f} ({pnl:+.2f})\n"
-        f"━━━━━━━━━━━━━━━━━━━\n"
-        f"📈 Global: {stats['total']} trades | WR: {stats['win_rate']}%\n"
-        f"   DB(30): {wr_db}% | Seuil: {thresh}%\n"
-        f"━━━━━━━━━━━━━━━━━━━\n"
-        f"⚡ Micro    : {len(micro_trades)} trades | WR: {wr(micro_trades)}%\n"
-        f"🎓 Apprenti.: {len(learn_trades)} trades | WR: {wr(learn_trades)}%\n"
-        f"🔍 Classique: {len(normal_trades)} trades | WR: {wr(normal_trades)}%\n"
-        f"━━━━━━━━━━━━━━━━━━━\n"
-        f"🥇 Top coins:\n{sym_lines}\n"
-        f"━━━━━━━━━━━━━━━━━━━\n"
-        f"📚 Leçons: {len(memory['lessons'])} | "
-        f"✅ {len(memory['patterns_that_work'])} bons patterns\n"
-        f"❌ {len(memory['patterns_to_avoid'])} patterns à éviter"
-    )
+    await update.message.reply_text(f"✅ {count} position(s) fermée(s).")
 
 
 async def cmd_reset(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
-    bot_state.update({
-        "running": False, "cycle_count": 0, "trades_today": 0,
-        "last_monitor": 0, "last_scalp": 0, "last_deep": 0,
-        "last_status": 0, "last_micro": 0,
-    })
-    # ✅ Conserve TOUTES les leçons — depuis la RAM ET la base SQLite
-    # Recharge depuis DB pour récupérer les leçons des sessions précédentes
-    try:
-        con = sqlite3.connect(DB_FILE)
-        db_lessons = con.execute("""
-            SELECT trade_id, symbol, market, pnl, lecon, pattern,
-                   action_future, type, date
-            FROM lessons ORDER BY id DESC LIMIT 200
-        """).fetchall()
-        con.close()
-        lessons_from_db = [
-            {"trade_id": r[0], "symbol": r[1], "market": r[2],
-             "pnl": r[3], "lecon": r[4], "pattern": r[5],
-             "action_future": r[6], "type": r[7], "date": r[8]}
-            for r in db_lessons
-        ]
-    except Exception:
-        lessons_from_db = []
-
-    # Fusionne les leçons RAM + DB (dédupliquées)
-    lessons_ram   = memory.get("lessons", [])
-    all_lessons   = lessons_from_db if lessons_from_db else lessons_ram
-    patterns_work = memory.get("patterns_that_work", [])
-    patterns_avoid= memory.get("patterns_to_avoid", [])
+    bot_state["running"] = False
+    lessons_saved = memory.get("lessons",[])
+    patterns_work = memory.get("patterns_that_work",[])
+    patterns_avoid= memory.get("patterns_to_avoid",[])
     threshold     = memory.get("confidence_threshold", CONFIDENCE_BASE)
-
     sim.update({
         "cash": CAPITAL_INITIAL, "initial": CAPITAL_INITIAL,
         "positions": {}, "trades": [], "equity_history": [],
-        "session": sim.get("session", 0) + 1,
+        "session": sim.get("session",0)+1,
     })
     memory.update({
-        "lessons":             all_lessons,
-        "patterns_to_avoid":   patterns_avoid,
-        "patterns_that_work":  patterns_work,
+        "lessons": lessons_saved,
+        "patterns_to_avoid": patterns_avoid,
+        "patterns_that_work": patterns_work,
         "confidence_threshold": threshold,
         "total_wins": 0, "total_losses": 0,
-        "analysis_history": [],
     })
     save_data()
-    session = sim.get("session", 1)
+    kelly = kelly_criterion()
     await update.message.reply_text(
-        f"🔄 SESSION #{session} DÉMARRÉE\n"
-        f"━━━━━━━━━━━━━━━━━━━\n"
-        f"💰 Capital réinitialisé : ${CAPITAL_INITIAL:,.2f}\n"
-        f"━━━━━━━━━━━━━━━━━━━\n"
-        f"🧠 Leçons chargées (DB) : {len(all_lessons)}\n"
-        f"✅ Patterns gagnants    : {len(patterns_work)}\n"
-        f"❌ Patterns à éviter    : {len(patterns_avoid)}\n"
-        f"⚙️  Seuil confiance      : {threshold}%\n"
-        f"━━━━━━━━━━━━━━━━━━━\n"
-        f"Le bot repart avec TOUTE son expérience acquise.\n"
-        f"Mode apprentissage : {'✅ ACTIF' if LEARN_MODE_ENABLED else '⏸ INACTIF'}"
+        f"🔄 Session #{sim['session']} — ${CAPITAL_INITIAL:,.2f}\n"
+        f"📚 Leçons conservées : {len(lessons_saved)}\n"
+        f"📐 Kelly initial      : {kelly*100:.1f}%"
     )
 
 
 async def cmd_help(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
-    learning_status = "✅ ON" if LEARN_MODE_ENABLED else "⏸ OFF"
-    thresh = memory.get("confidence_threshold", CONFIDENCE_BASE)
+    kelly = kelly_criterion()
     await update.message.reply_text(
-        f"🤖 Tradbot — Toutes les commandes\n"
-        f"━━━━━━━━━━━━━━━━━━━\n"
-        f"▶️  /start      — Lance la simulation\n"
-        f"⏹  /stop       — Arrête la simulation\n"
-        f"🔄 /reset      — Nouveau capital $1000\n"
-        f"               (leçons conservées)\n"
-        f"━━━━━━━━━━━━━━━━━━━\n"
-        f"📊 /status     — État rapide du bot\n"
-        f"💼 /portfolio  — Capital, PnL, stats\n"
-        f"📍 /positions  — Trades en cours\n"
-        f"📚 /lecons     — Ce que j'ai appris\n"
-        f"🔍 /scan       — Meilleures opportunités\n"
-        f"📈 /marches    — Prix actions/forex/crypto\n"
-        f"━━━━━━━━━━━━━━━━━━━\n"
-        f"⚡ /fermer     — Ferme tous les trades\n"
-        f"🎓 /apprendre  — Mode apprentissage {learning_status}\n"
-        f"               (trade même sur signaux faibles)\n"
-        f"━━━━━━━━━━━━━━━━━━━\n"
-        f"⚙️  Paramètres actuels :\n"
-        f"  Seuil IA     : {thresh}% (auto-ajusté)\n"
-        f"  Stop-Loss    : -{STOP_LOSS_PCT*100:.1f}%\n"
-        f"  Take-Profit  : +{TAKE_PROFIT_PCT*100:.1f}%\n"
-        f"  Trailing SL  : -{TRAILING_PCT*100:.1f}%\n"
-        f"  Micro SL/TP  : -{MICRO_SL_PCT*100:.1f}% / +{MICRO_TP_PCT*100:.1f}%\n"
-        f"  Capital      : ${sim['cash']:.2f} dispo\n"
-        f"  Marchés      : {len(ALL_SYMBOLS)} cryptos + actions + forex + commodités"
-        f"\n━━━━━━━━━━━━━━━━━━━\n"
-        f"🔍 Surveillance & apprentissage :\n"
-        f"  /signaux   — Derniers signaux des traders Twitter/YouTube\n"
-        f"  /regles    — Règles de trading auto-générées par le bot\n"
-        f"  /memes     — Memecoins trending + positions ouvertes"
+        f"🤖 Trading Bot v5\n"
+        f"━━━━━━━━━━━━━\n"
+        f"▶️  /start       — Démarrer\n"
+        f"⏹  /stop        — Arrêter\n"
+        f"🔄 /reset       — Nouveau capital\n"
+        f"━━━━━━━━━━━━━\n"
+        f"📊 /status      — État rapide\n"
+        f"💼 /portfolio   — Capital & stats\n"
+        f"📍 /positions   — Trades en cours\n"
+        f"📚 /lecons      — Apprentissage\n"
+        f"🔍 /scan        — Opportunités\n"
+        f"━━━━━━━━━━━━━\n"
+        f"⚡ /arbitrage   — Opportunités arb\n"
+        f"🎯 /polymarket  — Inefficacités\n"
+        f"📐 /kelly       — Kelly Criterion\n"
+        f"⚡ /fermer      — Ferme tout\n"
+        f"━━━━━━━━━━━━━\n"
+        f"⚙️  SL:{STOP_LOSS_PCT*100:.1f}% TP:{TAKE_PROFIT_PCT*100:.1f}%\n"
+        f"📐 Kelly actuel: {kelly*100:.1f}%"
     )
-
-
-async def cmd_apprendre(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Active/désactive le mode apprentissage forcé."""
-    if not _auth(update): return
-    global LEARN_MODE_ENABLED
-    LEARN_MODE_ENABLED = not LEARN_MODE_ENABLED
-    status = "✅ ACTIVÉ" if LEARN_MODE_ENABLED else "⏸ DÉSACTIVÉ"
-    await update.message.reply_text(
-        f"🎓 Mode apprentissage forcé: {status}\n"
-        f"Seuil min: {LEARN_MODE_CONF_MIN}% (vs {memory.get('confidence_threshold', CONFIDENCE_BASE)}% normal)\n"
-        f"Taille trade: {LEARN_MODE_MAX_PCT*100:.0f}% du cash (vs {MAX_PCT_PER_TRADE*100:.0f}% normal)\n"
-        f"{'Le bot trade même avec signal faible pour apprendre.' if LEARN_MODE_ENABLED else 'Le bot trade uniquement sur signaux forts.'}"
-    )
-
-
-async def cmd_marches(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Affiche un aperçu des marchés disponibles et prix actuels."""
-    if not _auth(update): return
-    await update.message.reply_text("📊 Récupération des prix...")
-    try:
-        lines = ["📊 MARCHÉS DISPONIBLES\n━━━━━━━━━━━━━"]
-
-        # Crypto top 5
-        prices = get_prices_batch()
-        lines.append("🪙 CRYPTO (Bybit)")
-        for sym in ["BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT","XRPUSDT"]:
-            p = prices.get(sym, 0)
-            lines.append(f"  {sym.replace('USDT',''): <6} ${p:,.4f}")
-
-        # Actions top 5
-        lines.append("\n📈 ACTIONS US (Yahoo)")
-        for ticker, name in list(STOCKS_SYMBOLS.items())[:5]:
-            p = get_yahoo_price(ticker)
-            lines.append(f"  {name: <12} ${p:,.2f}")
-
-        # Forex
-        lines.append("\n💱 FOREX (Yahoo)")
-        for ticker, name in list(FOREX_SYMBOLS.items())[:4]:
-            p = get_yahoo_price(ticker)
-            lines.append(f"  {name: <10} {p:.4f}")
-
-        # Commodités
-        lines.append("\n🏅 MATIÈRES PREMIÈRES")
-        for ticker, name in COMMODITY_SYMBOLS.items():
-            p = get_yahoo_price(ticker)
-            lines.append(f"  {name: <12} ${p:,.2f}")
-
-        lines.append(f"\n📊 Total: {len(ALL_SYMBOLS)} cryptos + "
-                     f"{len(STOCKS_SYMBOLS)} actions + "
-                     f"{len(FOREX_SYMBOLS)} forex + "
-                     f"{len(COMMODITY_SYMBOLS)} commodités")
-        await update.message.reply_text("\n".join(lines))
-    except Exception as e:
-        await update.message.reply_text(f"Erreur: {e}")
-
-
-async def cmd_memes(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Affiche les positions memecoins ouvertes + trending Solana."""
-    if not _auth(update): return
-    await update.message.reply_text("🎰 Scan memecoins en cours...")
-    try:
-        lines = ["🎰 MEMECOINS — DexScreener\n━━━━━━━━━━━━━"]
-
-        # Positions ouvertes
-        meme_pos = [p for p in sim["positions"].values()
-                    if p.get("trade_type")=="MEME"]
-        if meme_pos:
-            lines.append("📍 Positions ouvertes:")
-            for p in meme_pos:
-                data = dex_get_pair(p["meme_symbol"])
-                price = data.get("price", p["price_in"])
-                chg   = (price - p["price_in"]) / p["price_in"] * 100 if p["price_in"] else 0
-                e     = "📈" if chg>0 else "📉"
-                lines.append(f"  {e} ${p['meme_symbol']} {chg:+.1f}% | ${p['amount_usd']:.2f}")
-
-        # Trending Solana
-        lines.append("\n🔥 Trending Solana (DexScreener):")
-        trending = dex_get_trending_solana()
-        if trending:
-            for d in trending[:5]:
-                e = "🚀" if d.get("change_1h",0)>20 else "📈"
-                lines.append(
-                    f"  {e} ${d['symbol']} {d.get('change_1h',0):+.1f}%/1h "
-                    f"| Vol ${d.get('volume_1h',0)/1000:.0f}k "
-                    f"| Liq ${d.get('liquidity',0)/1000:.0f}k"
-                )
-        else:
-            lines.append("  Aucun trending disponible")
-
-        # Tokens mentionnés
-        if _mentioned_tokens:
-            lines.append("\n📡 Tokens mentionnés par les traders:")
-            for t, info in list(_mentioned_tokens.items())[-5:]:
-                age = int((time.time() - info.get("ts",0)) / 60)
-                lines.append(f"  💬 ${t} par @{info['source']} (il y a {age}min)")
-
-        await update.message.reply_text("\n".join(lines))
-    except Exception as e:
-        await update.message.reply_text(f"Erreur: {e}")
-
-
-async def cmd_signaux(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Affiche les derniers signaux collectés des traders."""
-    if not _auth(update): return
-    summary = get_db_trader_signals_summary()
-    await update.message.reply_text(
-        f"📡 SIGNAUX TRADERS EN TEMPS RÉEL\n"
-        f"━━━━━━━━━━━━━━━━━━━\n"
-        f"{summary}\n"
-        f"━━━━━━━━━━━━━━━━━━━\n"
-        f"Sources: Twitter/Nitter + YouTube RSS\n"
-        f"Collecte: toutes les 5 min automatiquement"
-    )
-
-
-async def cmd_regles(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Affiche les règles de trading auto-générées par le bot."""
-    if not _auth(update): return
-    try:
-        con  = sqlite3.connect(DB_FILE)
-        rows = con.execute("""
-            SELECT rule, win_rate, sample_size, created_date
-            FROM trading_rules WHERE active=1
-            ORDER BY win_rate DESC LIMIT 10
-        """).fetchall()
-        # Récupère aussi la meilleure stratégie testée
-        strats = con.execute("""
-            SELECT strategy_name, win_rate, total_pnl
-            FROM strategy_tests ORDER BY win_rate DESC LIMIT 3
-        """).fetchall()
-        con.close()
-
-        if not rows:
-            await update.message.reply_text(
-                "🧠 Aucune règle auto-générée encore.\n"
-                f"Le bot génère ses règles tous les 10 trades.\n"
-                f"Trades actuels: {len([t for t in sim['trades'] if t.get('pnl')])}/10"
-            )
-            return
-
-        lines = [f"🧠 MES RÈGLES AUTO-GÉNÉRÉES ({len(rows)})\n━━━━━━━━━━━━━━━━━━━"]
-        for r in rows:
-            lines.append(f"• {r[0]}\n  WR: {r[1]:.0f}% sur {r[2]} trades ({r[3]})")
-
-        if strats:
-            lines.append("\n📊 STRATÉGIES TESTÉES:")
-            for s in strats:
-                lines.append(f"  {s[0]}: WR {s[1]:.0f}% | PnL ${s[2]:+.2f}")
-
-        lines.append(f"\n⚙️  SL actuel: {STOP_LOSS_PCT*100:.1f}% | TP: {TAKE_PROFIT_PCT*100:.1f}%")
-        await update.message.reply_text("\n".join(lines))
-    except Exception as e:
-        await update.message.reply_text(f"Erreur: {e}")
-
-
-async def cmd_memes(update, ctx):
-    """Affiche les memecoins surveillés et les dernières opportunités."""
-    if not _auth(update): return
-    await update.message.reply_text("🐸 Scan memecoins en cours...")
-    try:
-        # Trending DexScreener
-        trending = dex_get_trending()
-        lines = ["🐸 MEMECOINS — Trending maintenant\n━━━━━━━━━━━━━"]
-
-        for t in trending[:5]:
-            score = meme_signal_score(t)
-            e = "🔥" if score >= 7 else "📈" if score >= 5 else "📊"
-            lines.append(
-                f"{e} {t.get('symbol','?')} ({t.get('chain','?').upper()})\n"
-                f"  ${t.get('price',0):.8f} | "
-                f"1h:{t.get('change1h',0):+.1f}% 5m:{t.get('change5m',0):+.1f}%\n"
-                f"  Liq:${t.get('liquidity',0)/1000:.0f}k "
-                f"Vol:${t.get('volume24h',0)/1000:.0f}k | Score:{score}/10"
-            )
-
-        # Traders memecoins
-        lines.append("\n👥 Traders surveillés:")
-        lines.append("  @AlxCooks_off @MustStopMurad @blknoiz06")
-        lines.append("  @Degentraland @CryptoGodJohn")
-
-        # Positions memecoins ouvertes
-        meme_pos = [p for p in sim["positions"].values() if p.get("trade_type")=="MEME"]
-        if meme_pos:
-            lines.append(f"\n📍 Positions memecoins: {len(meme_pos)}")
-            for p in meme_pos:
-                lines.append(f"  🐸 {p['symbol']} | ${p['price_in']:.8f}")
-
-        await update.message.reply_text("\n".join(lines))
-    except Exception as e:
-        await update.message.reply_text(f"Erreur: {e}")
-
-
-async def cmd_memecoins(update, ctx):
-    """Affiche les tokens memecoins détectés et les mentions des traders."""
-    if not _auth(update): return
-    await update.message.reply_text("🔍 Scan memecoins en cours...")
-    try:
-        # Trending DexScreener
-        trending = get_trending_dex_tokens()
-        # Mentions traders récentes
-        mentioned = _mentioned_tokens[:5]
-
-        lines = ["🎯 MEMECOINS — Détection en temps réel\n━━━━━━━━━━━━━"]
-
-        if trending:
-            lines.append("📈 TRENDING (DexScreener):")
-            for t in trending[:4]:
-                chain_e = "🟣" if t.get("chain")=="solana" else "🔷"
-                lines.append(
-                    f"  {chain_e} ${t['symbol']} +{t.get('change5m',0):.1f}%/5m "
-                    f"+{t.get('change1h',0):.1f}%/1h "
-                    f"Vol:${t.get('volume24h',0)/1000:.0f}k"
-                )
-
-        if mentioned:
-            lines.append("\n👤 MENTIONNÉS PAR DES TRADERS:")
-            for t in mentioned[:4]:
-                lines.append(
-                    f"  @{t.get('mentioned_by','?')} → ${t['symbol']} "
-                    f"${t.get('price',0):.6f} "
-                    f"+{t.get('change5m',0):.1f}%/5m"
-                )
-
-        # Positions meme ouvertes
-        meme_pos = [p for p in sim["positions"].values()
-                    if p.get("trade_type")=="MEME"]
-        if meme_pos:
-            lines.append("\n📍 POSITIONS MEME OUVERTES:")
-            for p in meme_pos:
-                sym = p["symbol"].replace("MEME_","")
-                addr = p.get("dex_address","")
-                data = get_dex_price(addr, p.get("chain","solana")) if addr else {}
-                price = data.get("price", p["price_in"])
-                chg   = (price - p["price_in"]) / p["price_in"] * 100
-                e     = "📈" if chg > 0 else "📉"
-                lines.append(f"  {e} ${sym}: {chg:+.1f}% | ${p['amount_usd']:.2f}")
-
-        if not trending and not mentioned:
-            lines.append("Aucun signal memecoin pour l'instant.")
-            lines.append("Le bot surveille en continu AlxCooks, Murad, Ansem...")
-
-        lines.append(f"\n🔄 Prochain scan dans {CYCLE_MEME}s")
-        await update.message.reply_text("\n".join(lines))
-    except Exception as e:
-        await update.message.reply_text(f"Erreur: {e}")
 
 
 # ═══════════════════════════════════════════════════════════════
-#  APPLICATION TELEGRAM (webhook)
+#  AUTO-START + WATCHDOG
+# ═══════════════════════════════════════════════════════════════
+def watchdog(send_fn):
+    time.sleep(180)
+    alerted = False
+    while True:
+        time.sleep(60)
+        if not bot_state["running"]:
+            alerted = False; continue
+        last = bot_state.get("last_heartbeat")
+        if not last: continue
+        elapsed = (datetime.now()-last).total_seconds()
+        if elapsed > 300 and not alerted:
+            send_fn(f"⚠️ WATCHDOG: Inactif {int(elapsed//60)} min")
+            alerted = True
+        elif elapsed <= 300:
+            alerted = False
+
+
+def self_ping():
+    time.sleep(60)
+    while True:
+        try:
+            requests.get("https://junior-tick-1ever-6bf9cee7.koyeb.app/health", timeout=10)
+        except Exception:
+            pass
+        time.sleep(270)
+
+
+def auto_start():
+    time.sleep(5)
+    send = make_send(TELEGRAM_CHAT_ID)
+    if bot_state["running"]:
+        return
+    bot_state.update({
+        "running": True, "trades_today": 0, "cycle_count": 0,
+        "last_heartbeat": None, "last_monitor": 0, "last_micro": 0,
+        "last_scalp": 0, "last_deep": 0, "last_status": 0, "last_meme": 0,
+    })
+    kelly = kelly_criterion()
+    send(
+        f"🔄 Bot v5 redémarré automatiquement\n"
+        f"Kelly initial: {kelly*100:.1f}%\n"
+        f"/stop pour arrêter"
+    )
+    threading.Thread(target=trading_loop, args=(send,), daemon=True).start()
+    threading.Thread(target=watchdog,     args=(send,), daemon=True).start()
+
+
+# ═══════════════════════════════════════════════════════════════
+#  APPLICATION TELEGRAM
 # ═══════════════════════════════════════════════════════════════
 async def run_telegram():
     global _app, _main_loop
@@ -4598,21 +2860,19 @@ async def run_telegram():
     )
 
     for cmd, fn in [
-        ("start",     cmd_start),
-        ("stop",      cmd_stop),
-        ("status",    cmd_status),
-        ("scan",      cmd_scan),
-        ("portfolio", cmd_portfolio),
-        ("positions", cmd_positions),
-        ("lecons",    cmd_lecons),
-        ("fermer",    cmd_fermer),
-        ("reset",     cmd_reset),
-        ("apprendre", cmd_apprendre),
-        ("marches",   cmd_marches),
-        ("help",      cmd_help),
-        ("signaux",   cmd_signaux),
-        ("regles",    cmd_regles),
-        ("memes",     cmd_memes),
+        ("start",      cmd_start),
+        ("stop",       cmd_stop),
+        ("status",     cmd_status),
+        ("scan",       cmd_scan),
+        ("portfolio",  cmd_portfolio),
+        ("positions",  cmd_positions),
+        ("lecons",     cmd_lecons),
+        ("fermer",     cmd_fermer),
+        ("reset",      cmd_reset),
+        ("kelly",      cmd_kelly),
+        ("arbitrage",  cmd_arbitrage),
+        ("polymarket", cmd_polymarket),
+        ("help",       cmd_help),
     ]:
         _app.add_handler(CommandHandler(cmd, fn))
 
@@ -4621,15 +2881,13 @@ async def run_telegram():
 
     if WEBHOOK_URL:
         full = WEBHOOK_URL.rstrip("/") + WEBHOOK_PATH
-        await _app.bot.set_webhook(
-            url=full, drop_pending_updates=True,
-            allowed_updates=["message"])
+        await _app.bot.set_webhook(url=full, drop_pending_updates=True,
+                                   allowed_updates=["message"])
         print(f"Webhook: {full}")
     else:
-        print("⚠️  WEBHOOK_URL non définie")
+        print("⚠️ WEBHOOK_URL non définie")
 
-    print("Simulation Bot v4 prêt — /start pour lancer")
-
+    print("Bot v5 prêt")
     try:
         while True:
             await asyncio.sleep(1)
@@ -4643,34 +2901,12 @@ async def run_telegram():
 # ═══════════════════════════════════════════════════════════════
 #  ENTRYPOINT
 # ═══════════════════════════════════════════════════════════════
-def auto_start():
-    """Lance automatiquement la simulation au démarrage de Koyeb.
-    Plus besoin de /start manuellement après chaque redéploiement."""
-    time.sleep(5)  # attend que le webhook soit enregistré
-    send = make_send(TELEGRAM_CHAT_ID)
-    if bot_state["running"]:
-        return
-    bot_state.update({
-        "running": True, "trades_today": 0, "cycle_count": 0,
-        "last_heartbeat": None, "last_monitor": 0, "last_micro": 0,
-        "last_scalp": 0, "last_deep": 0, "last_status": 0,
-    })
-    send(
-        "🔄 Redémarrage automatique détecté\n"
-        "La simulation reprend automatiquement...\n"
-        "Tape /stop pour l'arrêter."
-    )
-    threading.Thread(target=trading_loop,  args=(send,), daemon=True).start()
-    threading.Thread(target=watchdog,      args=(send,), daemon=True).start()
-    threading.Thread(target=daily_summary, args=(send,), daemon=True).start()
-
-
 if __name__ == "__main__":
-    print("🚀 Simulation Trading Bot v4")
+    print("🚀 Trading Bot v5")
     init_db()
     load_data()
-    threading.Thread(target=run_server,  daemon=True).start()
-    threading.Thread(target=self_ping,   daemon=True).start()
-    threading.Thread(target=auto_start,  daemon=True).start()
+    threading.Thread(target=run_server, daemon=True).start()
+    threading.Thread(target=self_ping,  daemon=True).start()
+    threading.Thread(target=auto_start, daemon=True).start()
     print("Serveur HTTP port 8000")
     asyncio.run(run_telegram())
