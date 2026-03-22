@@ -1910,7 +1910,7 @@ RÈGLES ACTUELLES SL/TP: SL={STOP_LOSS_PCT*100:.1f}% TP={TAKE_PROFIT_PCT*100:.1f
 Génère 3 règles concrètes et 1 recommandation SL/TP optimale.
 JSON strict: {{"rules":["règle1","règle2","règle3"],"sl_pct":2.5,"tp_pct":4.0,"insight":"insight principal"}}"""
 
-        r = ask_model_single(prompt, "llama-3.3-70b-versatile")
+        r = ask_model_single(prompt, GROQ_FAST_MODEL)
         rules   = r.get("rules", [])
         sl_new  = float(r.get("sl_pct", STOP_LOSS_PCT*100)) / 100
         tp_new  = float(r.get("tp_pct", TAKE_PROFIT_PCT*100)) / 100
