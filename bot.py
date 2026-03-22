@@ -954,10 +954,76 @@ def get_db_trader_signals_summary() -> str:
 # ═══════════════════════════════════════════════════════════════
 def save_data():
     try:
-        DATA_FILE.write_text(
-            json.dumps({"sim":sim,"memory":memory,"epargne":epargne},
-                       indent=2,default=str))
+        data = json.dumps({"sim":sim,"memory":memory,"epargne":epargne},
+                          indent=2, default=str)
+        DATA_FILE.write_text(data)
+        # Sync vers GitHub si configuré
+        github_token = os.environ.get("GITHUB_TOKEN","")
+        github_repo  = os.environ.get("GITHUB_REPO","")
+        if github_token and github_repo:
+            import base64
+            headers = {"Authorization": f"token {github_token}",
+                       "Content-Type": "application/json"}
+            api_url = f"https://api.github.com/repos/{github_repo}/contents/sim_portfolio_v5.json"
+            # Récupère le SHA du fichier existant
+            r = requests.get(api_url, headers=headers, timeout=10)
+            sha = r.json().get("sha","") if r.status_code==200 else ""
+            # Upload le nouveau contenu
+            payload = {
+                "message": "auto: save bot state",
+                "content": base64.b64encode(data.encode()).decode(),
+                "branch": "main"
+            }
+            if sha: payload["sha"] = sha
+            requests.put(api_url, headers=headers,
+                        json=payload, timeout=15)
     except Exception as e: print(f"[SAVE] {e}")
+
+
+def load_data():
+    global sim, memory, epargne
+    # Essaie d'abord de charger depuis GitHub
+    github_token = os.environ.get("GITHUB_TOKEN","")
+    github_repo  = os.environ.get("GITHUB_REPO","")
+    loaded = False
+    if github_token and github_repo:
+        try:
+            import base64
+            headers = {"Authorization": f"token {github_token}"}
+            api_url = f"https://api.github.com/repos/{github_repo}/contents/sim_portfolio_v5.json"
+            r = requests.get(api_url, headers=headers, timeout=10)
+            if r.status_code == 200:
+                content = base64.b64decode(r.json()["content"]).decode()
+                d = json.loads(content)
+                sim    = d.get("sim",{})
+                memory = d.get("memory",{})
+                epargne_loaded = d.get("epargne",{})
+                if epargne_loaded: epargne.update(epargne_loaded)
+                loaded = True
+                print(f"[LOAD-GH] {len(sim.get('trades',[]))} trades | {len(memory.get('lessons',[]))} leçons")
+        except Exception as e:
+            print(f"[LOAD-GH] {e}")
+    # Fallback fichier local
+    if not loaded and DATA_FILE.exists():
+        try:
+            d = json.loads(DATA_FILE.read_text())
+            sim    = d.get("sim",{})
+            memory = d.get("memory",{})
+            epargne_loaded = d.get("epargne",{})
+            if epargne_loaded: epargne.update(epargne_loaded)
+            loaded = True
+            print(f"[LOAD-LOCAL] {len(sim.get('trades',[]))} trades")
+        except Exception as e:
+            print(f"[LOAD] {e}")
+    # Valeurs par défaut
+    for k,v in {"cash":CAPITAL_INITIAL,"initial":CAPITAL_INITIAL,
+                "positions":{},"trades":[],"equity_history":[],"session":1}.items():
+        sim.setdefault(k,v)
+    for k,v in {"lessons":[],"patterns_to_avoid":[],"patterns_that_work":[],
+                "confidence_threshold":CONFIDENCE_BASE,
+                "total_wins":0,"total_losses":0}.items():
+        memory.setdefault(k,v)
+
 
 
 def load_data():
