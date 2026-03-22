@@ -1,37 +1,8 @@
 {
   "sim": {
-    "cash": 9781.700645321751,
+    "cash": 10168.105052219204,
     "initial": 1000.0,
-    "positions": {
-      "MEME_INCOME_4": {
-        "id": 4,
-        "symbol": "INCOME",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "INCOME",
-        "price_in": 0.0002226,
-        "price_out": null,
-        "qty": 1016586.1796828556,
-        "amount_usd": 226.29208359740366,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-22 23:06:51",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0002226,
-        "open_time": 1774220811.6372514,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_INCOME_4"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
@@ -122,17 +93,17 @@
         "trade_type": "MEME",
         "meme_symbol": "INCOME",
         "price_in": 0.0002226,
-        "price_out": null,
+        "price_out": 0.0003801,
         "qty": 1016586.1796828556,
         "amount_usd": 226.29208359740366,
         "confidence": 85,
         "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
+        "exit_reason": "\ud83c\udfaf MEME TP (+70.8%)",
         "time_in": "2026-03-22 23:06:51",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-22 23:06:53",
+        "pnl": 160.112323,
+        "pnl_pct": 70.75,
+        "duration_min": 1,
         "patterns": [
           "memecoin"
         ],
@@ -150,7 +121,7 @@
     "patterns_to_avoid": [],
     "patterns_that_work": [],
     "confidence_threshold": 65,
-    "total_wins": 1,
+    "total_wins": 2,
     "total_losses": 0
   },
   "epargne": {
