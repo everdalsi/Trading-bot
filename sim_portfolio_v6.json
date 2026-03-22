@@ -112,8 +112,8 @@
     ],
     "equity_history": [],
     "session": 1,
-    "peak_equity": 999.49,
-    "daily_start_equity": 999.49,
+    "peak_equity": 2055.42,
+    "daily_start_equity": 2055.42,
     "daily_start_date": "2026-03-22"
   },
   "memory": {
@@ -122,15 +122,13 @@
     "patterns_that_work": [],
     "confidence_threshold": 65,
     "total_wins": 1,
-    "total_losses": 2,
+    "total_losses": 1,
     "symbol_scores": {
-      "FETUSDT": -3,
-      "NEARUSDT": -3
+      "FETUSDT": -3
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
-      "FETUSDT": 1,
-      "NEARUSDT": 1
+      "FETUSDT": 1
     }
   },
   "epargne": {
