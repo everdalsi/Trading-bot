@@ -60,7 +60,7 @@ CONFIDENCE_MAX  = 82
 # ── Fréquences ────────────────────────────────────────────────
 CYCLE_MICRO   = 8     # micro-trades : toutes les 8s
 CYCLE_MONITOR = 15    # surveillance SL/TP : toutes les 15s
-CYCLE_SCALP   = 60    # scalping classique : toutes les 60s
+CYCLE_SCALP   = 300   # scalping IA : toutes les 5min (économise tokens Groq)
 CYCLE_DEEP    = 300   # analyse profonde : toutes les 5min
 CYCLE_STATUS  = 900   # bilan : toutes les 15min
 
@@ -130,11 +130,19 @@ LEARN_MODE_MAX_PCT  = 0.05   # max 5% du cash par trade en mode apprentissage
 DB_FILE   = "sim_v4.db"
 DATA_FILE = Path("sim_portfolio.json")
 
+# Modèles Groq actifs en 2025 (mixtral + gemma2 désactivés)
 AI_MODELS = [
-    "llama-3.3-70b-versatile",
-    "mixtral-8x7b-32768",
-    "gemma2-9b-it",
+    "llama-3.3-70b-versatile",   # principal — rapide et fiable
+    "llama3-70b-8192",            # backup — même famille, quota séparé
+    "llama-3.1-8b-instant",       # ultra-rapide — pour validation légère
 ]
+
+# Limites Groq Free : 100k tokens/jour par modèle
+# Stratégie : utiliser llama-3.1-8b-instant pour les analyses répétitives
+# et réserver llama-3.3-70b pour les décisions importantes
+GROQ_PRIMARY_MODEL   = "llama-3.3-70b-versatile"
+GROQ_SECONDARY_MODEL = "llama3-70b-8192"
+GROQ_FAST_MODEL      = "llama-3.1-8b-instant"  # 8B = 6x moins de tokens
 
 # ── Surveillance traders en temps réel ───────────────────────
 # Comptes Nitter (miroir gratuit Twitter) à surveiller
@@ -830,77 +838,115 @@ def scan_market() -> list:
 # ═══════════════════════════════════════════════════════════════
 #  VOTE MAJORITAIRE IA
 # ═══════════════════════════════════════════════════════════════
-def ask_model_single(prompt: str, model: str = "llama-3.3-70b-versatile") -> dict:
+# Compteur de tokens pour éviter le rate limit
+_token_usage = {"count": 0, "reset_time": time.time()}
+
+def _check_token_budget() -> bool:
+    """Vérifie si on peut encore faire un appel IA aujourd'hui."""
+    now = time.time()
+    # Reset quotidien
+    if now - _token_usage["reset_time"] > 86400:
+        _token_usage["count"]      = 0
+        _token_usage["reset_time"] = now
+    # Budget conservateur : max 80k tokens/jour (marge de sécurité)
+    return _token_usage["count"] < 80000
+
+
+def ask_model_single(prompt: str, model: str = None) -> dict:
     """
-    1 seul appel IA — rapide et fiable.
-    On utilise llama-3.3-70b qui répond bien en JSON.
+    1 appel IA avec gestion intelligente du quota.
+    - Utilise le modèle rapide (8B) pour économiser les tokens
+    - Bascule sur le backup si rate limit atteint
+    - Retourne HOLD si budget épuisé
     """
-    try:
-        r = groq_client.chat.completions.create(
-            model=model,
-            max_tokens=120,
-            temperature=0.1,
-            messages=[
-                {"role":"system",
-                 "content":"Expert trading. JSON uniquement. Réponds SEULEMENT avec un objet JSON valide contenant: signal(BUY/SELL/HOLD), confidence(0-100), reason(texte court), risk(LOW/MEDIUM/HIGH), market(SPOT/FUTURES)."},
-                {"role":"user","content":prompt}
-            ],
-        )
-        t = r.choices[0].message.content.strip()
-        t = t.replace("```json","").replace("```","").strip()
-        s = t.find("{")
-        e = t.rfind("}") + 1
-        if s >= 0 and e > s:
-            t = t[s:e]
-        result = json.loads(t)
-        # Validation des champs obligatoires
-        if result.get("signal") not in ("BUY","SELL","HOLD"):
-            result["signal"] = "HOLD"
-        return result
-    except json.JSONDecodeError as e:
-        print(f"[AI-JSON] {e}")
-        return {"signal":"HOLD","confidence":0,"reason":"json_error","risk":"HIGH"}
-    except Exception as e:
-        err = str(e)[:60]
-        print(f"[AI-ERR] {err}")
-        return {"signal":"HOLD","confidence":0,"reason":"api_error","risk":"HIGH"}
+    if not _check_token_budget():
+        print("[AI] Budget tokens épuisé — HOLD forcé jusqu'à minuit")
+        return {"signal":"HOLD","confidence":0,"reason":"budget_epuise","risk":"HIGH"}
+
+    # Utilise le modèle rapide par défaut pour économiser les tokens
+    if model is None:
+        model = GROQ_FAST_MODEL
+
+    # Essaie 2 modèles en cas d'erreur
+    models_to_try = [model, GROQ_PRIMARY_MODEL if model != GROQ_PRIMARY_MODEL else GROQ_SECONDARY_MODEL]
+
+    for m in models_to_try:
+        try:
+            r = groq_client.chat.completions.create(
+                model=m,
+                max_tokens=80,   # réduit à 80 pour économiser tokens
+                temperature=0.1,
+                messages=[
+                    {"role":"system",
+                     "content":"Trading expert. JSON only: {signal,confidence,reason,risk,market}"},
+                    {"role":"user","content":prompt[:600]}  # limite prompt à 600 chars
+                ],
+            )
+            # Estime l'usage tokens
+            tokens_used = len(prompt[:600].split()) * 1.3 + 80
+            _token_usage["count"] += int(tokens_used)
+
+            t = r.choices[0].message.content.strip()
+            t = t.replace("```json","").replace("```","").strip()
+            s = t.find("{")
+            e = t.rfind("}") + 1
+            if s >= 0 and e > s:
+                t = t[s:e]
+            result = json.loads(t)
+            if result.get("signal") not in ("BUY","SELL","HOLD"):
+                result["signal"] = "HOLD"
+            return result
+        except json.JSONDecodeError:
+            return {"signal":"HOLD","confidence":0,"reason":"json_error","risk":"HIGH"}
+        except Exception as e:
+            err = str(e)
+            if "rate_limit" in err or "429" in err:
+                print(f"[AI-LIMIT] {m} rate limit — essai modèle suivant")
+                continue
+            if "decommissioned" in err or "400" in err:
+                print(f"[AI-OLD] {m} désactivé — essai modèle suivant")
+                continue
+            print(f"[AI-ERR] {m}: {err[:60]}")
+            return {"signal":"HOLD","confidence":0,"reason":"api_error","risk":"HIGH"}
+
+    return {"signal":"HOLD","confidence":0,"reason":"all_models_failed","risk":"HIGH"}
 
 
 def vote(prompt: str) -> dict:
     """
-    Vote simplifié : 1 appel principal + 1 appel de validation si signal fort.
-    Évite le rate limit Groq causé par 3×40 appels simultanés.
+    1 seul appel IA avec le modèle rapide 8B.
+    Économise ~6x les tokens vs llama-70b.
+    Signal fort (>60%) → validation par le 70b.
     """
-    # Appel 1 : modèle principal
-    r1 = ask_model_single(prompt, "llama-3.3-70b-versatile")
+    r1 = ask_model_single(prompt, GROQ_FAST_MODEL)
 
-    if r1["signal"] == "HOLD" or r1.get("confidence", 0) < 50:
+    if r1.get("reason") in ("budget_epuise", "all_models_failed"):
+        return {**r1, "votes": [r1["signal"]], "consensus": "0/1"}
+
+    if r1["signal"] == "HOLD" or r1.get("confidence", 0) < 60:
         return {**r1, "votes": [r1["signal"]], "consensus": "1/1"}
 
-    # Si signal fort → validation par un 2ème modèle
-    r2 = ask_model_single(prompt, "mixtral-8x7b-32768")
+    # Signal fort → validation par le modèle puissant
+    r2 = ask_model_single(prompt, GROQ_PRIMARY_MODEL)
 
     if r2["signal"] == r1["signal"]:
-        # Les 2 sont d'accord → signal fiable
         conf = min(95, round((r1.get("confidence",0) + r2.get("confidence",0))/2) + 5)
         return {
-            "signal":    r1["signal"],
+            "signal":     r1["signal"],
             "confidence": conf,
-            "reason":    r1.get("reason",""),
-            "risk":      r1.get("risk","MEDIUM"),
-            "market":    r1.get("market","SPOT"),
-            "votes":     [r1["signal"], r2["signal"]],
-            "consensus": "2/2",
+            "reason":     r2.get("reason", r1.get("reason","")),
+            "risk":       r1.get("risk","MEDIUM"),
+            "market":     r1.get("market","SPOT"),
+            "votes":      [r1["signal"], r2["signal"]],
+            "consensus":  "2/2",
         }
-    else:
-        # Désaccord → HOLD prudent
-        return {
-            "signal":"HOLD","confidence":0,
-            "reason":f"Désaccord ({r1['signal']}/{r2['signal']})",
-            "risk":"HIGH",
-            "votes":[r1["signal"],r2["signal"]],
-            "consensus":"0/2",
-        }
+    return {
+        "signal":"HOLD","confidence":0,
+        "reason":f"Désaccord ({r1['signal']}/{r2['signal']})",
+        "risk":"HIGH",
+        "votes":[r1["signal"],r2["signal"]],
+        "consensus":"0/2",
+    }
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -1276,7 +1322,7 @@ JSON strict (sans backticks):
 {{"lecon":"leçon courte et actionnable","pattern":"pattern clé","action_future":"règle concrète","type":"erreur ou succes"}}"""
 
         r = groq_client.chat.completions.create(
-            model=AI_MODELS[0], max_tokens=200, temperature=0.2,
+            model=GROQ_FAST_MODEL, max_tokens=100, temperature=0.2,
             messages=[{"role":"user","content":prompt}],
         )
         lesson = json.loads(
