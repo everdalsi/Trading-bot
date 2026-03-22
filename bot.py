@@ -1025,31 +1025,6 @@ def load_data():
         memory.setdefault(k,v)
 
 
-
-def load_data():
-    global sim,memory,epargne
-    if DATA_FILE.exists():
-        try:
-            d=json.loads(DATA_FILE.read_text())
-            sim=d.get("sim",{}); memory=d.get("memory",{})
-            epargne_loaded=d.get("epargne",{})
-            if epargne_loaded: epargne.update(epargne_loaded)
-            for k,v in {"cash":CAPITAL_INITIAL,"initial":CAPITAL_INITIAL,
-                        "positions":{},"trades":[],"equity_history":[],"session":1}.items():
-                sim.setdefault(k,v)
-            for k,v in {"lessons":[],"patterns_to_avoid":[],"patterns_that_work":[],
-                        "confidence_threshold":CONFIDENCE_BASE,
-                        "total_wins":0,"total_losses":0}.items():
-                memory.setdefault(k,v)
-            print(f"[LOAD] {len(sim['trades'])} trades | {len(memory['lessons'])} leçons")
-            return
-        except Exception as e: print(f"[LOAD] {e}")
-    sim={"cash":CAPITAL_INITIAL,"initial":CAPITAL_INITIAL,"positions":{},
-         "trades":[],"equity_history":[],"session":1}
-    memory={"lessons":[],"patterns_to_avoid":[],"patterns_that_work":[],
-            "confidence_threshold":CONFIDENCE_BASE,"total_wins":0,"total_losses":0}
-
-
 # ═══════════════════════════════════════════════════════════════
 #  DONNÉES DE MARCHÉ
 # ═══════════════════════════════════════════════════════════════
