@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 2055.4173778555664,
+    "cash": 5032.524900816239,
     "initial": 1000.0,
     "positions": {},
     "trades": [
@@ -108,12 +108,39 @@
         "peak_price": 0.0005696,
         "open_time": 1774223488.9158807,
         "kelly_pct": 0.05
+      },
+      {
+        "id": 5,
+        "symbol": "one",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "one",
+        "price_in": 0.0005696,
+        "price_out": 0.01707,
+        "qty": 180426.38499434397,
+        "amount_usd": 102.77086889277832,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": "\ud83c\udfaf MEME TP (+2896.8%)",
+        "time_in": "2026-03-22 23:52:26",
+        "time_out": "2026-03-22 23:52:27",
+        "pnl": 2977.107523,
+        "pnl_pct": 2896.84,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0005696,
+        "open_time": 1774223546.5933354,
+        "kelly_pct": 0.05
       }
     ],
     "equity_history": [],
     "session": 1,
-    "peak_equity": 2055.42,
-    "daily_start_equity": 2055.42,
+    "peak_equity": 999.49,
+    "daily_start_equity": 999.49,
     "daily_start_date": "2026-03-22"
   },
   "memory": {
@@ -122,13 +149,17 @@
     "patterns_that_work": [],
     "confidence_threshold": 65,
     "total_wins": 1,
-    "total_losses": 1,
+    "total_losses": 3,
     "symbol_scores": {
-      "FETUSDT": -3
+      "FETUSDT": -3,
+      "NEARUSDT": -3,
+      "APTUSDT": -3
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
-      "FETUSDT": 1
+      "FETUSDT": 1,
+      "NEARUSDT": 1,
+      "APTUSDT": 1
     }
   },
   "epargne": {
