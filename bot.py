@@ -14,13 +14,14 @@ Architecture :
 """
 
 import os, time, threading, feedparser, requests, asyncio
-import json, sqlite3
+import json, sqlite3, re, hashlib
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 from collections import Counter, deque
+from urllib.parse import quote_plus
 
 from groq import Groq
 from pybit.unified_trading import HTTP
@@ -54,14 +55,7 @@ CONFIDENCE_BASE = 65
 CONFIDENCE_MIN  = 55
 CONFIDENCE_MAX  = 82
 
-# ── Mode apprentissage forcé ──────────────────────────────────
-# Quand actif : trade même à faible confiance (≥40%) avec
-# petit capital (3% max) pour accumuler un max de données
-LEARN_MODE_ENABLED  = True   # actif par défaut
-LEARN_MODE_CONF_MIN = 40     # seuil minimal en mode apprentissage
-LEARN_MODE_MAX_PCT  = 0.03   # max 3% du cash par trade apprentissage
-LEARN_MODE_SL       = 0.015  # SL plus serré en mode apprentissage (-1.5%)
-LEARN_MODE_TP       = 0.025  # TP en mode apprentissage (+2.5%)
+# ── Mode apprentissage (voir config complète plus bas) ──────
 
 # ── Fréquences ────────────────────────────────────────────────
 CYCLE_MICRO   = 8     # micro-trades : toutes les 8s
@@ -142,6 +136,69 @@ AI_MODELS = [
     "gemma2-9b-it",
 ]
 
+# ── Surveillance traders en temps réel ───────────────────────
+# Comptes Nitter (miroir gratuit Twitter) à surveiller
+TRADER_TWITTER_ACCOUNTS = [
+    "michael_saylor",    # MicroStrategy - BTC maximaliste
+    "CathieDWood",       # ARK Invest - growth/innovation
+    "APompliano",        # Anthony Pompliano - crypto macro
+    "PeterSchiff",       # Bear crypto - bon pour contrarian
+    "WClementeIII",      # On-chain analyst
+    "DocumentingBTC",    # Bitcoin tracker
+    "AltcoinDailyio",    # Altcoin analysis
+    "CryptoKaleo",       # TA trader influent
+    "RaoulGMI",          # Macro crypto
+    "inversebrah",       # Crypto sentiment
+]
+
+# Chaînes YouTube à surveiller (ID de chaîne)
+YOUTUBE_CHANNELS = {
+    "Benjamin Cowen":    "UCRvqjQPSeaWn-uEx-w0XOIg",
+    "Coin Bureau":       "UCqK_GSMbpiV8spgD3ZGloSw",
+    "Andrei Jikh":       "UCGn_PEBIgFj_zB4Jnz3bnmA",
+    "InvestAnswers":     "UCnMn36GT_H0X-w5_ckLtlgQ",
+}
+
+# Nitter instances publiques (miroir Twitter gratuit)
+NITTER_INSTANCES = [
+    "nitter.privacydev.net",
+    "nitter.poast.org",
+    "nitter.1d4.us",
+]
+
+# ── Philosophies des traders légendaires ──────────────────────
+# Injectées dans le prompt IA pour guider les décisions
+TRADER_PHILOSOPHIES = """
+RÈGLES INSPIRÉES DES MEILLEURS TRADERS :
+
+1. MICHAEL SAYLOR (accumulation) :
+   - Fear&Greed < 20 = opportunité rare → augmenter la taille de position
+   - Ne jamais vendre en panique, les baisses sont des cadeaux
+   - BTC et grandes caps = conviction forte même en bear market
+
+2. CATHIE WOOD (growth/innovation) :
+   - Favoriser les tokens avec fort potentiel disruptif (AI, DeFi, L2)
+   - Acheter les corrections sur les tendances de fond haussières
+   - RSI bas sur un token innovant = point d'entrée, pas de danger
+
+3. PAUL TUDOR JONES (macro/protection) :
+   - JAMAIS perdre plus de 2% du capital sur un seul trade
+   - Si Fear&Greed < 15 ET macro bearish → réduire les positions
+   - Le risque de ruine prime sur le gain → toujours protéger le capital
+
+4. JESSE LIVERMORE (momentum/scalping) :
+   - "The trend is your friend" → trader dans le sens de la tendance
+   - Ne jamais moyenner à la baisse sur un perdant
+   - Quand un trade est gagnant, laisser courir → trailing stop large
+   - Volume élevé confirme le mouvement → signal plus fiable
+
+5. WARREN BUFFETT (valeur/patience) :
+   - N'entrer que sur des signaux de très haute conviction (conf > 75%)
+   - "Be fearful when others are greedy, greedy when others are fearful"
+   - Fear&Greed < 25 → context d'achat exceptionnel
+   - La patience est un avantage compétitif
+"""
+
 # ═══════════════════════════════════════════════════════════════
 #  CLIENTS
 # ═══════════════════════════════════════════════════════════════
@@ -177,6 +234,9 @@ bot_state = {
     "last_scalp":   0,
     "last_deep":    0,
     "last_status":  0,
+    "nitter_idx":   0,
+    "yt_idx":       0,
+    "last_micro":   0,
 }
 
 _main_loop = None
@@ -208,6 +268,25 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         timestamp TEXT, equity REAL, cash REAL,
         open_positions INTEGER, daily_pnl REAL
+    )""")
+    c.execute("""CREATE TABLE IF NOT EXISTS trading_rules(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        rule TEXT, condition TEXT, action TEXT,
+        win_rate REAL, sample_size INTEGER,
+        created_date TEXT, last_updated TEXT,
+        active INTEGER DEFAULT 1
+    )""")
+    c.execute("""CREATE TABLE IF NOT EXISTS trader_signals(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        source TEXT, author TEXT, content TEXT,
+        sentiment TEXT, symbol TEXT, strength INTEGER,
+        timestamp TEXT, url TEXT, hash TEXT UNIQUE
+    )""")
+    c.execute("""CREATE TABLE IF NOT EXISTS strategy_tests(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        strategy_name TEXT, params TEXT,
+        trades INTEGER, win_rate REAL, total_pnl REAL,
+        sharpe REAL, tested_date TEXT, active INTEGER DEFAULT 0
     )""")
     con.commit(); con.close()
 
@@ -751,73 +830,77 @@ def scan_market() -> list:
 # ═══════════════════════════════════════════════════════════════
 #  VOTE MAJORITAIRE IA
 # ═══════════════════════════════════════════════════════════════
-def ask_model(model: str, prompt: str) -> dict:
+def ask_model_single(prompt: str, model: str = "llama-3.3-70b-versatile") -> dict:
+    """
+    1 seul appel IA — rapide et fiable.
+    On utilise llama-3.3-70b qui répond bien en JSON.
+    """
     try:
         r = groq_client.chat.completions.create(
-            model=model, max_tokens=250, temperature=0.1,
+            model=model,
+            max_tokens=120,
+            temperature=0.1,
             messages=[
-                {"role":"system","content":"Tu es un expert trading. Réponds UNIQUEMENT en JSON valide, sans texte avant ou après, sans backticks."},
+                {"role":"system",
+                 "content":"Expert trading. JSON uniquement. Réponds SEULEMENT avec un objet JSON valide contenant: signal(BUY/SELL/HOLD), confidence(0-100), reason(texte court), risk(LOW/MEDIUM/HIGH), market(SPOT/FUTURES)."},
                 {"role":"user","content":prompt}
             ],
         )
         t = r.choices[0].message.content.strip()
-        # Nettoyage agressif
         t = t.replace("```json","").replace("```","").strip()
-        # Extrait uniquement le JSON si du texte parasite précède
-        start = t.find("{")
-        end   = t.rfind("}") + 1
-        if start >= 0 and end > start:
-            t = t[start:end]
-        return json.loads(t)
+        s = t.find("{")
+        e = t.rfind("}") + 1
+        if s >= 0 and e > s:
+            t = t[s:e]
+        result = json.loads(t)
+        # Validation des champs obligatoires
+        if result.get("signal") not in ("BUY","SELL","HOLD"):
+            result["signal"] = "HOLD"
+        return result
     except json.JSONDecodeError as e:
-        print(f"[AI-JSON] {model}: {e}")
+        print(f"[AI-JSON] {e}")
         return {"signal":"HOLD","confidence":0,"reason":"json_error","risk":"HIGH"}
     except Exception as e:
-        print(f"[AI-ERR] {model}: {e}")
+        err = str(e)[:60]
+        print(f"[AI-ERR] {err}")
         return {"signal":"HOLD","confidence":0,"reason":"api_error","risk":"HIGH"}
 
 
 def vote(prompt: str) -> dict:
-    results = []
-    lock    = threading.Lock()
+    """
+    Vote simplifié : 1 appel principal + 1 appel de validation si signal fort.
+    Évite le rate limit Groq causé par 3×40 appels simultanés.
+    """
+    # Appel 1 : modèle principal
+    r1 = ask_model_single(prompt, "llama-3.3-70b-versatile")
 
-    def worker(m):
-        r = ask_model(m, prompt)
-        with lock:
-            results.append(r)
+    if r1["signal"] == "HOLD" or r1.get("confidence", 0) < 50:
+        return {**r1, "votes": [r1["signal"]], "consensus": "1/1"}
 
-    threads = [threading.Thread(target=worker, args=(m,), daemon=True)
-               for m in AI_MODELS]
-    for t in threads: t.start()
-    for t in threads: t.join(timeout=18)
+    # Si signal fort → validation par un 2ème modèle
+    r2 = ask_model_single(prompt, "mixtral-8x7b-32768")
 
-    if not results:
-        return {"signal":"HOLD","confidence":0,"reason":"timeout",
-                "risk":"HIGH","votes":[],"consensus":"0/3"}
-
-    signals    = [r.get("signal","HOLD") for r in results]
-    vote_count = Counter(signals)
-    winner, n  = vote_count.most_common(1)[0]
-
-    if n < 2:
-        return {"signal":"HOLD","confidence":0,
-                "reason":f"Désaccord IA ({'/'.join(signals)})",
-                "risk":"HIGH","votes":signals,"consensus":"0/3"}
-
-    concordant = [r for r in results if r.get("signal")==winner]
-    conf = round(sum(r.get("confidence",0) for r in concordant)/len(concordant))
-    if n==3: conf = min(95, conf+5)
-    best = max(concordant, key=lambda r: r.get("confidence",0))
-
-    return {
-        "signal":    winner,
-        "confidence":conf,
-        "reason":    best.get("reason",""),
-        "risk":      best.get("risk","MEDIUM"),
-        "votes":     signals,
-        "consensus": f"{n}/3",
-        "market":    best.get("market","SPOT"),
-    }
+    if r2["signal"] == r1["signal"]:
+        # Les 2 sont d'accord → signal fiable
+        conf = min(95, round((r1.get("confidence",0) + r2.get("confidence",0))/2) + 5)
+        return {
+            "signal":    r1["signal"],
+            "confidence": conf,
+            "reason":    r1.get("reason",""),
+            "risk":      r1.get("risk","MEDIUM"),
+            "market":    r1.get("market","SPOT"),
+            "votes":     [r1["signal"], r2["signal"]],
+            "consensus": "2/2",
+        }
+    else:
+        # Désaccord → HOLD prudent
+        return {
+            "signal":"HOLD","confidence":0,
+            "reason":f"Désaccord ({r1['signal']}/{r2['signal']})",
+            "risk":"HIGH",
+            "votes":[r1["signal"],r2["signal"]],
+            "consensus":"0/2",
+        }
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -843,43 +926,41 @@ def analyze(opp: dict, fear_greed: str) -> dict:
     pat_names_sell = [p["name"] for p in pats if p["signal"]=="SELL"]
     pat_alerts     = [p for p in pats if p["signal"]=="HOLD"]
 
-    prompt = f"""Tu es un trader algorithmique expert en simulation.
-Tu dois décider si simuler un trade sur {symbol} en ce moment.
+    # Règles auto-générées par le bot
+    my_rules = get_active_rules()
 
-━━ DONNÉES TEMPS RÉEL ━━
-Prix: ${price:.6f}
-{fear_greed}
-OrderBook: {ob['pressure']} (ratio={ob['ratio']})
-Déjà en position: {'OUI' if in_pos else 'NON'}
+    # Extraire valeur Fear&Greed pour appliquer règles Saylor/Buffett
+    fg_value = 50
+    try:
+        fg_value = int(fear_greed.split(":")[1].split("/")[0].strip())
+    except Exception:
+        pass
 
-━━ INDICATEURS TECHNIQUES ━━
-RSI: {ind.get('rsi','?')} | MACD_hist: {ind.get('macd_h','?')}
-Momentum 5min: {ind.get('mom5','?')}% | 15min: {ind.get('mom15','?')}%
-BB%: {ind.get('bb_pct','?')} | Volatilité: {ind.get('vol','?')}%
-Trend EMA: {ind.get('trend','?')} | EMA Cross: {ind.get('ema_cross','?')}
+    # Règle Saylor/Buffett : Fear&Greed bas = opportunité
+    fg_context = ""
+    if fg_value < 20:
+        fg_context = "⚠️ EXTREME FEAR → Saylor/Buffett disent : C'EST LE MOMENT D'ACHETER"
+    elif fg_value < 35:
+        fg_context = "Fear élevé → opportunité selon Buffett (sois avide quand les autres ont peur)"
 
-━━ CONFLUENCE MULTI-TF ━━
-Score: {conf['score']}/9 → {conf['direction']}
-Signaux: {', '.join(conf['signals'][:5])}
+    # Signaux traders récents depuis la DB
+    trader_sigs = get_db_trader_signals_summary()
 
-━━ PATTERNS DÉTECTÉS ━━
-Haussiers: {pat_names_buy or 'Aucun'}
-Baissiers: {pat_names_sell or 'Aucun'}
+    prompt = f"""{symbol} ${price:.4f}
+RSI:{ind.get('rsi','?')} MACD:{ind.get('macd_h','?')} mom5:{ind.get('mom5','?')}% BB:{ind.get('bb_pct','?')}% trend:{ind.get('trend','?')}
+OB:{ob['pressure']} TFscore:{conf['score']}/9
+{fear_greed} {fg_context}
+Historique gains:{best_p[:2]} erreurs:{worst_p[:2]}
 
-━━ MÉMOIRE HISTORIQUE ━━
-Patterns gagnants {symbol}: {best_p or 'Aucun encore'}
-Patterns perdants {symbol}: {worst_p or 'Aucun encore'}
+SIGNAUX TRADERS EN TEMPS RÉEL:
+{trader_sigs[:400] if trader_sigs else 'Aucun signal collecté'}
 
-━━ RÈGLES SIMULATION ━━
-- Simulation pure: pas de vrai argent, apprentissage par l'exécution
-- BUY = simuler achat SPOT (prix monte → profit)
-- SELL+FUTURES = simuler short (prix baisse → profit, levier x{LEVERAGE_SIM})
-- Seuil minimum: {thresh}% de confiance ET risk LOW ou MEDIUM
-- JAMAIS trader si Pump/Dump détecté
-- Cherche RR minimum 1.5:1 (TP {TAKE_PROFIT_PCT*100:.0f}% vs SL {STOP_LOSS_PCT*100:.0f}%)
+{my_rules}
 
-JSON strict (sans backticks):
-{{"signal":"BUY ou SELL ou HOLD","confidence":0-100,"reason":"raison précise courte","risk":"LOW ou MEDIUM ou HIGH","market":"SPOT ou FUTURES"}}"""
+Règles de trading universelles: {TRADER_PHILOSOPHIES[:300]}
+
+Décide BUY/SELL/HOLD. BUY=spot, SELL=futures short.
+JSON: {{"signal":"BUY/SELL/HOLD","confidence":0-100,"reason":"raison courte","risk":"LOW/MEDIUM/HIGH","market":"SPOT/FUTURES"}}"""
 
     result = vote(prompt)
     result["symbol"]   = symbol
@@ -1563,6 +1644,386 @@ def run_micro_cycle(send_fn):
 
 
 # ═══════════════════════════════════════════════════════════════
+#  SURVEILLANCE TRADERS EN TEMPS RÉEL
+# ═══════════════════════════════════════════════════════════════
+
+_signal_cache: set = set()  # hashes déjà vus
+
+def _signal_hash(content: str) -> str:
+    return hashlib.md5(content.encode()).hexdigest()[:12]
+
+
+def scrape_nitter(username: str) -> list:
+    """Scrape les derniers tweets via Nitter (miroir gratuit Twitter)."""
+    signals = []
+    for instance in NITTER_INSTANCES:
+        try:
+            url  = f"https://{instance}/{username}/rss"
+            feed = feedparser.parse(url)
+            if not feed.entries:
+                continue
+            for entry in feed.entries[:3]:
+                text = entry.get("summary", entry.get("title", ""))
+                # Nettoie le HTML
+                text = re.sub(r'<[^>]+>', '', text).strip()
+                if len(text) < 20:
+                    continue
+                h = _signal_hash(text)
+                if h in _signal_cache:
+                    continue
+                _signal_cache.add(h)
+                signals.append({
+                    "source":  "Twitter",
+                    "author":  username,
+                    "content": text[:300],
+                    "url":     entry.get("link",""),
+                    "hash":    h,
+                    "ts":      datetime.now().strftime("%Y-%m-%d %H:%M"),
+                })
+            break  # succès, pas besoin d'essayer d'autres instances
+        except Exception:
+            continue
+    return signals
+
+
+def scrape_youtube_titles(channel_id: str, channel_name: str) -> list:
+    """Récupère les derniers titres de vidéos YouTube via RSS public."""
+    signals = []
+    try:
+        url  = f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}"
+        feed = feedparser.parse(url)
+        for entry in feed.entries[:2]:
+            title = entry.get("title", "")
+            h     = _signal_hash(title)
+            if h in _signal_cache or not title:
+                continue
+            _signal_cache.add(h)
+            signals.append({
+                "source":  "YouTube",
+                "author":  channel_name,
+                "content": title,
+                "url":     entry.get("link",""),
+                "hash":    h,
+                "ts":      datetime.now().strftime("%Y-%m-%d %H:%M"),
+            })
+    except Exception:
+        pass
+    return signals
+
+
+def analyze_signal_sentiment(signal: dict) -> dict:
+    """Analyse le sentiment d'un signal trader avec l'IA."""
+    try:
+        text = signal["content"]
+        prompt = f"""Analyse ce message d'un trader crypto ({signal['author']}).
+
+Message: "{text}"
+
+Détermine:
+1. Le sentiment (bullish/bearish/neutral)
+2. Le symbole mentionné (BTC/ETH/etc ou GENERAL)
+3. La force du signal (1=faible, 2=modéré, 3=fort)
+
+JSON strict: {{"sentiment":"bullish/bearish/neutral","symbol":"BTC","strength":2,"summary":"résumé 1 phrase"}}"""
+
+        r = ask_model_single(prompt)
+        signal.update({
+            "sentiment": r.get("sentiment","neutral"),
+            "symbol":    r.get("symbol","GENERAL"),
+            "strength":  r.get("strength",1),
+            "summary":   r.get("summary",""),
+        })
+    except Exception:
+        signal.update({"sentiment":"neutral","symbol":"GENERAL","strength":1})
+
+    # Sauvegarde en DB
+    try:
+        con = sqlite3.connect(DB_FILE)
+        con.execute("""INSERT OR IGNORE INTO trader_signals
+            (source,author,content,sentiment,symbol,strength,timestamp,url,hash)
+            VALUES(?,?,?,?,?,?,?,?,?)""", (
+            signal["source"], signal["author"], signal["content"],
+            signal["sentiment"], signal["symbol"], signal["strength"],
+            signal["ts"], signal["url"], signal["hash"],
+        ))
+        con.commit(); con.close()
+    except Exception:
+        pass
+
+    return signal
+
+
+def get_trader_intelligence() -> dict:
+    """
+    Collecte les signaux des traders en temps réel.
+    Retourne un résumé utilisable dans le prompt d'analyse.
+    """
+    all_signals = []
+
+    # Twitter via Nitter (2 comptes par cycle pour limiter les requêtes)
+    accounts_batch = TRADER_TWITTER_ACCOUNTS[
+        bot_state.get("nitter_idx", 0) % len(TRADER_TWITTER_ACCOUNTS):
+        bot_state.get("nitter_idx", 0) % len(TRADER_TWITTER_ACCOUNTS) + 2
+    ]
+    bot_state["nitter_idx"] = bot_state.get("nitter_idx", 0) + 2
+
+    for account in accounts_batch:
+        try:
+            signals = scrape_nitter(account)
+            all_signals.extend(signals)
+        except Exception:
+            pass
+
+    # YouTube (1 chaîne par cycle)
+    yt_items = list(YOUTUBE_CHANNELS.items())
+    yt_idx   = bot_state.get("yt_idx", 0) % len(yt_items)
+    bot_state["yt_idx"] = yt_idx + 1
+    ch_name, ch_id = yt_items[yt_idx]
+    try:
+        yt_signals = scrape_youtube_titles(ch_id, ch_name)
+        all_signals.extend(yt_signals)
+    except Exception:
+        pass
+
+    # Analyse sentiment sur les nouveaux signaux
+    analyzed = []
+    for s in all_signals[:4]:  # max 4 analyses IA par cycle
+        analyzed.append(analyze_signal_sentiment(s))
+
+    if not analyzed:
+        return {"bullish": [], "bearish": [], "summary": ""}
+
+    bullish = [s for s in analyzed if s["sentiment"]=="bullish"]
+    bearish = [s for s in analyzed if s["sentiment"]=="bearish"]
+
+    # Résumé texte pour le prompt
+    parts = []
+    for s in analyzed[:3]:
+        e = "📈" if s["sentiment"]=="bullish" else "📉" if s["sentiment"]=="bearish" else "➡️"
+        parts.append(f"{e} @{s['author']}: {s.get('summary', s['content'][:80])}")
+
+    return {
+        "bullish":  bullish,
+        "bearish":  bearish,
+        "summary":  "\n".join(parts),
+        "count":    len(analyzed),
+    }
+
+
+def get_db_trader_signals_summary() -> str:
+    """Résumé des derniers signaux traders depuis la DB."""
+    try:
+        con  = sqlite3.connect(DB_FILE)
+        rows = con.execute("""
+            SELECT author, sentiment, symbol, summary, timestamp
+            FROM trader_signals
+            ORDER BY id DESC LIMIT 10
+        """).fetchall()
+        con.close()
+        if not rows:
+            return "Aucun signal collecté"
+        lines = []
+        for r in rows:
+            e = "📈" if r[1]=="bullish" else "📉" if r[1]=="bearish" else "➡️"
+            lines.append(f"{e} @{r[0]} [{r[2]}]: {r[3] or '...'} ({r[4][11:16]})")
+        return "\n".join(lines)
+    except Exception:
+        return "Erreur DB signaux"
+
+
+# ═══════════════════════════════════════════════════════════════
+#  AUTO-APPRENTISSAGE AVANCÉ
+# ═══════════════════════════════════════════════════════════════
+
+def generate_trading_rules():
+    """
+    Après chaque 10 trades, l'IA analyse les résultats et génère
+    ses propres règles de trading basées sur ce qui a marché.
+    """
+    closed = [t for t in sim["trades"] if t.get("pnl") is not None]
+    if len(closed) < 10 or len(closed) % 10 != 0:
+        return None
+
+    try:
+        # Prépare un résumé des trades récents
+        recent = closed[-20:]
+        wins   = [t for t in recent if t["pnl"] > 0]
+        losses = [t for t in recent if t["pnl"] <= 0]
+
+        win_patterns  = Counter([p for t in wins   for p in t.get("patterns",[])])
+        loss_patterns = Counter([p for t in losses  for p in t.get("patterns",[])])
+
+        avg_win_conf   = round(sum(t["confidence"] for t in wins)/max(len(wins),1),1)
+        avg_loss_conf  = round(sum(t["confidence"] for t in losses)/max(len(losses),1),1)
+        avg_win_dur    = round(sum(t.get("duration_min",0) for t in wins)/max(len(wins),1),1)
+        avg_loss_dur   = round(sum(t.get("duration_min",0) for t in losses)/max(len(losses),1),1)
+
+        prompt = f"""Tu es un expert en trading algorithmique. Analyse ces {len(recent)} trades simulés et génère des règles précises.
+
+RÉSULTATS :
+- Win Rate: {len(wins)}/{len(recent)} ({len(wins)/len(recent)*100:.0f}%)
+- Confiance moyenne gagnants: {avg_win_conf}% | perdants: {avg_loss_conf}%
+- Durée moyenne gagnants: {avg_win_dur}min | perdants: {avg_loss_dur}min
+- Patterns gagnants fréquents: {dict(win_patterns.most_common(3))}
+- Patterns perdants fréquents: {dict(loss_patterns.most_common(3))}
+
+RÈGLES ACTUELLES SL/TP: SL={STOP_LOSS_PCT*100:.1f}% TP={TAKE_PROFIT_PCT*100:.1f}%
+
+Génère 3 règles concrètes et 1 recommandation SL/TP optimale.
+JSON strict: {{"rules":["règle1","règle2","règle3"],"sl_pct":2.5,"tp_pct":4.0,"insight":"insight principal"}}"""
+
+        r = ask_model_single(prompt, "llama-3.3-70b-versatile")
+        rules   = r.get("rules", [])
+        sl_new  = float(r.get("sl_pct", STOP_LOSS_PCT*100)) / 100
+        tp_new  = float(r.get("tp_pct", TAKE_PROFIT_PCT*100)) / 100
+        insight = r.get("insight","")
+
+        # Sauvegarde les règles en DB
+        for rule in rules:
+            try:
+                con = sqlite3.connect(DB_FILE)
+                con.execute("""INSERT INTO trading_rules
+                    (rule, condition, action, win_rate, sample_size, created_date, last_updated)
+                    VALUES(?,?,?,?,?,?,?)""", (
+                    rule, "auto-générée", "appliquer",
+                    len(wins)/len(recent)*100, len(recent),
+                    datetime.now().strftime("%Y-%m-%d"),
+                    datetime.now().strftime("%Y-%m-%d %H:%M"),
+                ))
+                con.commit(); con.close()
+            except Exception:
+                pass
+
+        # Mise à jour des paramètres si amélioration significative
+        global STOP_LOSS_PCT, TAKE_PROFIT_PCT
+        if 0.01 <= sl_new <= 0.05 and sl_new != STOP_LOSS_PCT:
+            old_sl = STOP_LOSS_PCT
+            STOP_LOSS_PCT = sl_new
+            print(f"[AUTO-LEARN] SL ajusté: {old_sl*100:.1f}% → {sl_new*100:.1f}%")
+        if 0.02 <= tp_new <= 0.08 and tp_new != TAKE_PROFIT_PCT:
+            old_tp = TAKE_PROFIT_PCT
+            TAKE_PROFIT_PCT = tp_new
+            print(f"[AUTO-LEARN] TP ajusté: {old_tp*100:.1f}% → {tp_new*100:.1f}%")
+
+        return {"rules": rules, "sl": sl_new, "tp": tp_new, "insight": insight}
+
+    except Exception as e:
+        print(f"[RULES] {e}")
+        return None
+
+
+def auto_adjust_sl_tp():
+    """
+    Ajuste SL/TP automatiquement selon les statistiques récentes.
+    - Trop de SL déclenchés → élargir SL
+    - Trop de TP manqués (reversal) → resserrer TP
+    """
+    global STOP_LOSS_PCT, TAKE_PROFIT_PCT
+    closed = [t for t in sim["trades"] if t.get("pnl") is not None]
+    if len(closed) < 15:
+        return
+
+    recent = closed[-15:]
+    sl_hits = sum(1 for t in recent if "STOP-LOSS" in (t.get("exit_reason","") or ""))
+    tp_hits = sum(1 for t in recent if "TAKE-PROFIT" in (t.get("exit_reason","") or ""))
+    total   = len(recent)
+
+    # Trop de SL → le SL est trop serré
+    if sl_hits / total > 0.5 and STOP_LOSS_PCT < 0.04:
+        STOP_LOSS_PCT = round(min(0.04, STOP_LOSS_PCT + 0.003), 3)
+        print(f"[AUTO-SL] SL élargi → {STOP_LOSS_PCT*100:.1f}%")
+
+    # Peu de TP mais beaucoup de profits → TP trop serré, laisser courir
+    avg_pnl_pct = sum(t.get("pnl_pct",0) for t in recent if t["pnl"]>0) / max(tp_hits,1)
+    if tp_hits/total < 0.2 and avg_pnl_pct > TAKE_PROFIT_PCT*100*1.5:
+        TAKE_PROFIT_PCT = round(min(0.07, TAKE_PROFIT_PCT + 0.005), 3)
+        print(f"[AUTO-TP] TP élargi → {TAKE_PROFIT_PCT*100:.1f}%")
+
+
+def get_active_rules() -> str:
+    """Récupère les règles actives depuis la DB pour les injecter dans le prompt."""
+    try:
+        con  = sqlite3.connect(DB_FILE)
+        rows = con.execute("""
+            SELECT rule FROM trading_rules
+            WHERE active=1 ORDER BY win_rate DESC LIMIT 5
+        """).fetchall()
+        con.close()
+        if not rows:
+            return ""
+        return "MES RÈGLES AUTO-GÉNÉRÉES:\n" + "\n".join(f"• {r[0]}" for r in rows)
+    except Exception:
+        return ""
+
+
+def test_strategy_variation(send_fn):
+    """
+    Teste périodiquement des variations de stratégie en simulation
+    et garde celle qui performe le mieux.
+    """
+    closed = [t for t in sim["trades"] if t.get("pnl") is not None]
+    if len(closed) < 20:
+        return
+
+    # Test : la stratégie actuelle vs une variation plus agressive
+    current_wr = db_win_rate(20)
+
+    strategies = [
+        {"name": "conservateur", "sl": 0.02, "tp": 0.03, "conf": 75},
+        {"name": "équilibré",    "sl": 0.025,"tp": 0.04, "conf": 65},
+        {"name": "agressif",     "sl": 0.035,"tp": 0.06, "conf": 55},
+    ]
+
+    recent = closed[-20:]
+    best_wr  = 0
+    best_strat = None
+
+    for strat in strategies:
+        # Simule le résultat avec ces paramètres sur les trades passés
+        simulated_wins = 0
+        for t in recent:
+            pct = t.get("pnl_pct", 0)
+            if pct >= strat["tp"]*100:
+                simulated_wins += 1
+            elif pct > -strat["sl"]*100:
+                simulated_wins += 0.5  # neutre
+        wr = simulated_wins / len(recent) * 100
+        if wr > best_wr:
+            best_wr    = wr
+            best_strat = strat
+
+    if best_strat and best_wr > current_wr + 5:
+        # Applique la meilleure stratégie trouvée
+        global STOP_LOSS_PCT, TAKE_PROFIT_PCT, CONFIDENCE_BASE
+        STOP_LOSS_PCT   = best_strat["sl"]
+        TAKE_PROFIT_PCT = best_strat["tp"]
+        memory["confidence_threshold"] = best_strat["conf"]
+        print(f"[STRAT] Stratégie '{best_strat['name']}' adoptée (WR simulé {best_wr:.0f}%)")
+
+        # Sauvegarde en DB
+        try:
+            con = sqlite3.connect(DB_FILE)
+            con.execute("""INSERT INTO strategy_tests
+                (strategy_name,params,trades,win_rate,total_pnl,tested_date,active)
+                VALUES(?,?,?,?,?,?,1)""", (
+                best_strat["name"], json.dumps(best_strat),
+                len(recent), best_wr,
+                sum(t.get("pnl",0) for t in recent),
+                datetime.now().strftime("%Y-%m-%d %H:%M"),
+            ))
+            con.commit(); con.close()
+        except Exception:
+            pass
+
+        send_fn(
+            f"🧬 ÉVOLUTION STRATÉGIE\n"
+            f"Nouvelle stratégie : {best_strat['name']}\n"
+            f"SL:{best_strat['sl']*100:.1f}% TP:{best_strat['tp']*100:.1f}%\n"
+            f"WR simulé:{best_wr:.0f}% vs {current_wr:.0f}%"
+        )
+
+
+# ═══════════════════════════════════════════════════════════════
 #  BOUCLE CONTINUE
 # ═══════════════════════════════════════════════════════════════
 def trading_loop(send_fn):
@@ -1619,74 +2080,26 @@ def trading_loop(send_fn):
                 equity     = get_equity()
                 pnl_tot    = equity - sim["initial"]
 
-                send_fn(
-                    f"⚡ CYCLE #{cycle} — "
-                    f"{datetime.now().strftime('%H:%M:%S')}\n"
-                    f"💰 ${equity:.2f} ({pnl_tot:+.2f}) | "
-                    f"Cash: ${sim['cash']:.2f}\n"
-                    f"📍 {len(sim['positions'])}/{MAX_POSITIONS} positions | "
-                    f"Seuil: {threshold}%\n"
-                    f"Scan de {len(ALL_SYMBOLS)} cryptos..."
-                )
-
+                # Scan silencieux — pas de message sauf trade ou bilan
                 opps = scan_market()
 
-                if not opps:
-                    send_fn("📭 Marché calme — aucune opportunité claire.")
-                else:
-                    # Résumé du scan
-                    scan_lines = []
-                    for o in opps[:5]:
-                        e = "🟢" if o["direction"]=="BUY" else "🔴"
-                        alert = " ⚠️" if o["has_alert"] else ""
-                        scan_lines.append(
-                            f"  {e}{alert} {o['symbol'].replace('USDT',''):6s} "
-                            f"score={o['score']:+d} RSI={o['ind'].get('rsi',0):.0f} "
-                            f"mom={o['ind'].get('mom5',0):+.1f}%"
-                        )
-                    send_fn("🎯 Top opportunités:\n" + "\n".join(scan_lines))
-
-                    # Analyse + décision sur les meilleures
-                    for opp in opps[:4]:
+                if opps:
+                    # Analyse silencieuse — on n'envoie rien sauf si trade réel
+                    for opp in opps[:3]:
                         if not bot_state["running"]: break
-                        if opp["has_alert"]:
-                            send_fn(
-                                f"🚨 {opp['symbol'].replace('USDT','')} ignoré\n"
-                                f"Manipulation détectée — sécurité avant tout."
-                            )
-                            continue
-
-                        coin = opp["symbol"].replace("USDT","")
-                        send_fn(f"🔍 Analyse {coin} (3 modèles IA en vote)...")
+                        if opp["has_alert"]: continue
 
                         result = analyze(opp, fear_greed)
                         signal = result["signal"]
                         conf   = result["confidence"]
                         risk   = result["risk"]
-                        votes  = result.get("votes", [])
-                        cns    = result.get("consensus","?")
                         reason = result.get("reason","")
-                        conf_tf= result.get("confluence",{})
-
-                        sig_e  = {"BUY":"🟢","SELL":"🔴","HOLD":"⚪"}.get(signal,"⚪")
                         in_pos = any(p["symbol"]==opp["symbol"]
                                      for p in sim["positions"].values())
 
-                        send_fn(
-                            f"{sig_e} {coin}: {signal} {conf}% [{cns}]\n"
-                            f"  Votes: {' / '.join(votes)}\n"
-                            f"  Conf TF: {conf_tf.get('score',0)}/9 → "
-                            f"{conf_tf.get('direction','?')}\n"
-                            f"  Risque: {risk}\n"
-                            f"  {reason[:90]}"
-                        )
-
-                        # ── Décision ────────────────────────────
-                        if signal == "HOLD":
-                            continue
+                        if signal == "HOLD": continue
 
                         if in_pos and signal in ("BUY","SELL"):
-                            # Fermeture si signal contraire
                             for pk, pos in list(sim["positions"].items()):
                                 if (pos["symbol"]==opp["symbol"] and
                                         ((pos["side"]=="LONG" and signal=="SELL") or
@@ -1696,19 +2109,11 @@ def trading_loop(send_fn):
                             continue
 
                         if not in_pos:
-                            # Mode apprentissage forcé : trade même si signal faible
                             if conf >= threshold and risk in ("LOW","MEDIUM"):
                                 open_trade(result, send_fn)
                             elif LEARN_MODE_ENABLED and conf >= LEARN_MODE_CONF_MIN:
-                                # Trade réduit pour apprendre
                                 result["_learning"] = True
-                                orig_max = MAX_PCT_PER_TRADE
-                                # Force taille réduite
-                                result["_forced_pct"] = LEARN_MODE_MAX_PCT
-                                send_fn(
-                                    f"🎓 APPRENTISSAGE {coin} — conf={conf}%\n"
-                                    f"  Signal: {signal} | Trade réduit {LEARN_MODE_MAX_PCT*100:.0f}% cash"
-                                )
+                                result["_forced_pct"] = LEARNING_MAX_PCT
                                 open_trade(result, send_fn)
                             else:
                                 send_fn(
@@ -1722,10 +2127,26 @@ def trading_loop(send_fn):
 
             bot_state["last_scalp"] = now
 
-        # ══ 5min : Analyse profonde futures ═══════════════════
+        # ══ 5min : Analyse profonde + traders + auto-learning ═══
         if now - bot_state["last_deep"] >= CYCLE_DEEP:
             try:
                 _deep_futures(send_fn, fear_greed)
+                # Collecte traders en arrière-plan
+                threading.Thread(target=get_trader_intelligence, daemon=True).start()
+                # Auto-ajustement SL/TP
+                auto_adjust_sl_tp()
+                # Règles auto-générées tous les 10 trades
+                rules = generate_trading_rules()
+                if rules:
+                    send_fn(
+                        f"🧠 RÈGLES AUTO-GÉNÉRÉES ({len(sim['trades'])} trades)\n"
+                        + "\n".join(f"• {r}" for r in rules.get("rules",[])[:3]) +
+                        f"\nSL:{rules['sl']*100:.1f}% TP:{rules['tp']*100:.1f}% | {rules.get('insight','')[:80]}"
+                    )
+                # Test stratégie tous les 50 trades
+                closed_n = len([t for t in sim["trades"] if t.get("pnl")])
+                if closed_n >= 20 and closed_n % 50 == 0:
+                    test_strategy_variation(send_fn)
             except Exception as e:
                 print(f"[DEEP] {e}")
             bot_state["last_deep"] = now
@@ -1860,12 +2281,13 @@ JSON strict (sans backticks):
 
 
 def _send_bilan(send_fn):
-    equity = get_equity()
-    pnl    = equity - sim["initial"]
-    stats  = get_stats()
-    wr_db  = db_win_rate(30)
-    sym_stats = db_symbol_stats()
-    thresh = memory.get("confidence_threshold", CONFIDENCE_BASE)
+    equity        = get_equity()
+    pnl           = equity - sim["initial"]
+    stats         = get_stats()
+    wr_db         = db_win_rate(30)
+    sym_stats     = db_symbol_stats()
+    thresh        = memory.get("confidence_threshold", CONFIDENCE_BASE)
+    fear_greed_str = get_fear_greed()
 
     pos_lines = ""
     if sim["positions"]:
@@ -1877,30 +2299,40 @@ def _send_bilan(send_fn):
             pos_lines += (f"\n  {e} {pos['symbol'].replace('USDT',''):6s} "
                           f"{pos['side']} {chg:+.2f}%")
 
+    sym_s   = sym_stats
     sym_str = " | ".join(
         f"{s['s']}:{s['wr']:.0f}%WR" for s in sym_stats
     ) or "Aucun encore"
 
+    # Conseil inspiré des traders selon le contexte
+    fg_val = 50
+    try:
+        fg_val = int(fear_greed_str.split(":")[1].split("/")[0].strip())
+    except Exception:
+        pass
+    if fg_val < 20:
+        trader_tip = "💡 Saylor & Buffett : Fear extrême = opportunité rare. Accumule."
+    elif fg_val < 35:
+        trader_tip = "💡 Buffett : 'Sois avide quand les autres ont peur.'"
+    elif fg_val > 75:
+        trader_tip = "💡 Paul Tudor Jones : Marché euphorique → protège le capital."
+    elif stats['win_rate'] > 60:
+        trader_tip = "💡 Livermore : Tu es en forme, laisse courir les gagnants."
+    else:
+        trader_tip = "💡 Cathie Wood : Focus sur les tokens à fort momentum."
+
     micro_count = bot_state.get("micro_count", 0)
-    micro_pos   = sum(1 for p in sim["positions"].values()
-                      if p.get("trade_type")=="MICRO")
-    classic_pos = len(sim["positions"]) - micro_pos
     send_fn(
-        f"📋 BILAN 15min — {datetime.now().strftime('%H:%M:%S')}\n"
+        f"📊 BILAN — {datetime.now().strftime('%H:%M')}\n"
         f"━━━━━━━━━━━━━━━━━━━\n"
-        f"💰 Capital   : ${equity:.2f} ({pnl/sim['initial']*100:+.1f}%)\n"
-        f"📈 PnL total : ${pnl:+.2f}\n"
-        f"💵 Cash libre: ${sim['cash']:.2f}\n"
-        f"📍 Positions : {len(sim['positions'])} "
-        f"(⚡{micro_pos} micro | 🔍{classic_pos} classique){pos_lines}\n"
+        f"💰 Capital  : ${equity:.2f} ({pnl/sim['initial']*100:+.1f}%)\n"
+        f"📍 Positions: {len(sim['positions'])}/{MAX_POSITIONS}{pos_lines}\n"
         f"━━━━━━━━━━━━━━━━━━━\n"
-        f"🏆 Win Rate  : {stats['win_rate']}% | DB(30): {wr_db}%\n"
-        f"📊 Trades    : {stats['total']} total | {bot_state['trades_today']} aujourd'hui\n"
-        f"⚡ Micro-trades session: {micro_count}\n"
-        f"⏱ Durée moy : {stats['avg_dur']} min\n"
-        f"🥇 Meilleurs : {sym_str}\n"
-        f"⚙️  Seuil auto : {thresh}%\n"
-        f"📚 Leçons    : {len(memory['lessons'])} | 🔄 Cycle #{bot_state['cycle_count']}"
+        f"🏆 Win Rate : {stats['win_rate']}% ({stats['wins']}✅/{stats['losses']}❌)\n"
+        f"📊 Trades   : {stats['total']} | ⚡{micro_count} micro\n"
+        f"🥇 Top coins: {sym_str}\n"
+        f"━━━━━━━━━━━━━━━━━━━\n"
+        f"{trader_tip}"
     )
 
 
@@ -2466,7 +2898,7 @@ async def cmd_reset(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 async def cmd_help(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
-    learning_status = "✅ ON" if LEARNING_MODE else "⏸ OFF"
+    learning_status = "✅ ON" if LEARN_MODE_ENABLED else "⏸ OFF"
     thresh = memory.get("confidence_threshold", CONFIDENCE_BASE)
     await update.message.reply_text(
         f"🤖 Tradbot — Toutes les commandes\n"
@@ -2495,6 +2927,10 @@ async def cmd_help(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         f"  Micro SL/TP  : -{MICRO_SL_PCT*100:.1f}% / +{MICRO_TP_PCT*100:.1f}%\n"
         f"  Capital      : ${sim['cash']:.2f} dispo\n"
         f"  Marchés      : {len(ALL_SYMBOLS)} cryptos + actions + forex + commodités"
+        f"\n━━━━━━━━━━━━━━━━━━━\n"
+        f"🔍 Surveillance & apprentissage :\n"
+        f"  /signaux   — Derniers signaux des traders Twitter/YouTube\n"
+        f"  /regles    — Règles de trading auto-générées par le bot"
     )
 
 
@@ -2553,6 +2989,60 @@ async def cmd_marches(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"Erreur: {e}")
 
 
+async def cmd_signaux(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Affiche les derniers signaux collectés des traders."""
+    if not _auth(update): return
+    summary = get_db_trader_signals_summary()
+    await update.message.reply_text(
+        f"📡 SIGNAUX TRADERS EN TEMPS RÉEL\n"
+        f"━━━━━━━━━━━━━━━━━━━\n"
+        f"{summary}\n"
+        f"━━━━━━━━━━━━━━━━━━━\n"
+        f"Sources: Twitter/Nitter + YouTube RSS\n"
+        f"Collecte: toutes les 5 min automatiquement"
+    )
+
+
+async def cmd_regles(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Affiche les règles de trading auto-générées par le bot."""
+    if not _auth(update): return
+    try:
+        con  = sqlite3.connect(DB_FILE)
+        rows = con.execute("""
+            SELECT rule, win_rate, sample_size, created_date
+            FROM trading_rules WHERE active=1
+            ORDER BY win_rate DESC LIMIT 10
+        """).fetchall()
+        # Récupère aussi la meilleure stratégie testée
+        strats = con.execute("""
+            SELECT strategy_name, win_rate, total_pnl
+            FROM strategy_tests ORDER BY win_rate DESC LIMIT 3
+        """).fetchall()
+        con.close()
+
+        if not rows:
+            await update.message.reply_text(
+                "🧠 Aucune règle auto-générée encore.\n"
+                f"Le bot génère ses règles tous les 10 trades.\n"
+                f"Trades actuels: {len([t for t in sim['trades'] if t.get('pnl')])}/10"
+            )
+            return
+
+        lines = [f"🧠 MES RÈGLES AUTO-GÉNÉRÉES ({len(rows)})\n━━━━━━━━━━━━━━━━━━━"]
+        for r in rows:
+            lines.append(f"• {r[0]}\n  WR: {r[1]:.0f}% sur {r[2]} trades ({r[3]})")
+
+        if strats:
+            lines.append("\n📊 STRATÉGIES TESTÉES:")
+            for s in strats:
+                lines.append(f"  {s[0]}: WR {s[1]:.0f}% | PnL ${s[2]:+.2f}")
+
+        lines.append(f"\n⚙️  SL actuel: {STOP_LOSS_PCT*100:.1f}% | TP: {TAKE_PROFIT_PCT*100:.1f}%")
+        await update.message.reply_text("\n".join(lines))
+    except Exception as e:
+        await update.message.reply_text(f"Erreur: {e}")
+
+
 # ═══════════════════════════════════════════════════════════════
 #  APPLICATION TELEGRAM (webhook)
 # ═══════════════════════════════════════════════════════════════
@@ -2584,6 +3074,8 @@ async def run_telegram():
         ("apprendre", cmd_apprendre),
         ("marches",   cmd_marches),
         ("help",      cmd_help),
+        ("signaux",   cmd_signaux),
+        ("regles",    cmd_regles),
     ]:
         _app.add_handler(CommandHandler(cmd, fn))
 
