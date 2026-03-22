@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 825703.2837153231,
+    "cash": 822779.952116331,
     "initial": 1000.0,
     "positions": {
       "MICRO_LINKUSDT_13": {
@@ -380,6 +380,33 @@
         "peak_price": 8.72,
         "open_time": 1774222404.203739,
         "kelly_pct": 0.1
+      },
+      {
+        "id": 14,
+        "symbol": "Buttcoin",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "Buttcoin",
+        "price_in": 0.01497,
+        "price_out": 0.01391,
+        "qty": 2757859.9990491755,
+        "amount_usd": 41285.16418576616,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": "\ud83d\uded1 MEME SL (-7.1%)",
+        "time_in": "2026-03-22 23:34:19",
+        "time_out": "2026-03-22 23:34:20",
+        "pnl": -2923.331599,
+        "pnl_pct": -7.08,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.01497,
+        "open_time": 1774222459.9195926,
+        "kelly_pct": 0.05
       }
     ],
     "equity_history": [],
