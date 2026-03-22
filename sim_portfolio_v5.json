@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 911831.572058074,
+    "cash": 911856.0676570453,
     "initial": 1000.0,
     "positions": {},
     "trades": [
@@ -413,16 +413,16 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.9069,
-        "price_out": 0.9071,
+        "price_out": 0.9074,
         "qty": 81651.9965712535,
         "amount_usd": 74050.1956904698,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=22 mom=-0.19% vol=2.6x",
-        "exit_reason": "\u23f1 TIMEOUT 94s",
+        "exit_reason": "\u23f1 TIMEOUT 102s",
         "time_in": "2026-03-22 23:34:58",
-        "time_out": "2026-03-22 23:36:34",
-        "pnl": 16.330399,
-        "pnl_pct": 0.022,
+        "time_out": "2026-03-22 23:36:41",
+        "pnl": 40.825998,
+        "pnl_pct": 0.055,
         "duration_min": 1,
         "patterns": [
           "score=4"
@@ -468,7 +468,7 @@
     "patterns_to_avoid": [],
     "patterns_that_work": [],
     "confidence_threshold": 65,
-    "total_wins": 8,
+    "total_wins": 7,
     "total_losses": 3
   },
   "epargne": {
