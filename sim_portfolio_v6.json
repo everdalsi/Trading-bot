@@ -1,8 +1,36 @@
 {
   "sim": {
-    "cash": 2055.217142358454,
+    "cash": 1849.6954281226087,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MICRO_NEARUSDT_6": {
+        "id": 6,
+        "symbol": "NEARUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 1.273,
+        "price_out": null,
+        "qty": 161.44675116719986,
+        "amount_usd": 205.52171423584542,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=4 mom=-0.08% vol=2.5x",
+        "exit_reason": null,
+        "time_in": "2026-03-22 23:58:21",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 1.273,
+        "open_time": 1774223901.2767928,
+        "kelly_pct": 0.1,
+        "pos_key": "MICRO_NEARUSDT_6"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -134,6 +162,32 @@
         "peak_price": 0.2053,
         "open_time": 1774223545.2459462,
         "kelly_pct": 0.1
+      },
+      {
+        "id": 6,
+        "symbol": "NEARUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 1.273,
+        "price_out": null,
+        "qty": 161.44675116719986,
+        "amount_usd": 205.52171423584542,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=4 mom=-0.08% vol=2.5x",
+        "exit_reason": null,
+        "time_in": "2026-03-22 23:58:21",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 1.273,
+        "open_time": 1774223901.2767928,
+        "kelly_pct": 0.1
       }
     ],
     "equity_history": [],
@@ -216,6 +270,6 @@
         "status": "\u2705 Promos d\u00e9tect\u00e9es"
       }
     ],
-    "last_scan": 1774223877.6562083
+    "last_scan": 1774223936.8485217
   }
 }
