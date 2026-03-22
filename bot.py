@@ -730,6 +730,127 @@ def auto_fill_form(url: str, form_type: str) -> dict:
     except Exception as e:
         return {"success": False, "reason": str(e)[:100]}
 
+def auto_fill_form(url: str, form_type: str) -> dict:
+    """
+    Remplit automatiquement les formulaires d'airdrops/faucets
+    avec les vraies infos de l'utilisateur configurées dans Koyeb.
+    """
+    if not all([USER_EMAIL, USER_FIRSTNAME, USER_LASTNAME, USER_WALLET]):
+        return {"success": False, "reason": "Infos utilisateur incomplètes dans Koyeb"}
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15",
+        "Accept": "application/json, text/html, */*",
+        "Accept-Language": "en-AU,en;q=0.9",
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Referer": url,
+    }
+
+    form_data = {
+        "email":            USER_EMAIL,
+        "Email":            USER_EMAIL,
+        "user_email":       USER_EMAIL,
+        "EMAIL":            USER_EMAIL,
+        "name":             f"{USER_FIRSTNAME} {USER_LASTNAME}",
+        "full_name":        f"{USER_FIRSTNAME} {USER_LASTNAME}",
+        "first_name":       USER_FIRSTNAME,
+        "last_name":        USER_LASTNAME,
+        "FirstName":        USER_FIRSTNAME,
+        "LastName":         USER_LASTNAME,
+        "wallet":           USER_WALLET,
+        "wallet_address":   USER_WALLET,
+        "eth_address":      USER_WALLET,
+        "address":          USER_WALLET,
+        "crypto_address":   USER_WALLET,
+        "erc20_address":    USER_WALLET,
+        "country":          "Australia",
+        "country_code":     "AU",
+        "timezone":         "Australia/Sydney",
+        "terms":            "1",
+        "agree":            "1",
+        "accept":           "1",
+        "subscribe":        "1",
+    }
+
+    try:
+        session = requests.Session()
+        session.headers.update(headers)
+
+        # GET initial pour récupérer tokens CSRF
+        r_get = session.get(url, timeout=10)
+
+        # Cherche tokens CSRF
+        csrf_patterns = [
+            r'name=["\']csrf_token["\'].*?value=["\']([^"\']+)["\']',
+            r'name=["\']_token["\'].*?value=["\']([^"\']+)["\']',
+            r'name=["\']authenticity_token["\'].*?value=["\']([^"\']+)["\']',
+            r'"csrf":"([^"]+)"',
+            r'csrfToken.*?["\']([a-zA-Z0-9_\-]+)["\']',
+        ]
+        for pattern in csrf_patterns:
+            match = re.search(pattern, r_get.text, re.IGNORECASE)
+            if match:
+                token = match.group(1)
+                form_data["csrf_token"]         = token
+                form_data["_token"]             = token
+                form_data["authenticity_token"] = token
+                break
+
+        # Cherche les champs du formulaire
+        input_pattern = r'<input[^>]*name=["\']([^"\']+)["\'][^>]*>'
+        inputs = re.findall(input_pattern, r_get.text, re.IGNORECASE)
+        for field in inputs:
+            field_lower = field.lower()
+            if field_lower not in [k.lower() for k in form_data.keys()]:
+                if "phone" in field_lower or "tel" in field_lower:
+                    form_data[field] = "+61400000000"
+                elif "twitter" in field_lower or "handle" in field_lower:
+                    form_data[field] = "@tradbot_user"
+                elif "telegram" in field_lower:
+                    form_data[field] = "@tradbot_user"
+                elif "discord" in field_lower:
+                    form_data[field] = "tradbot#0000"
+                elif "referral" in field_lower or "ref" in field_lower:
+                    form_data[field] = ""
+
+        # Cherche l'action du formulaire
+        action_match = re.search(
+            r'<form[^>]*action=["\']([^"\']+)["\']', r_get.text, re.IGNORECASE)
+        submit_url = url
+        if action_match:
+            action = action_match.group(1)
+            if action.startswith("http"):
+                submit_url = action
+            elif action.startswith("/"):
+                from urllib.parse import urlparse
+                parsed = urlparse(url)
+                submit_url = f"{parsed.scheme}://{parsed.netloc}{action}"
+
+        # POST le formulaire
+        r_post = session.post(submit_url, data=form_data,
+                              timeout=15, allow_redirects=True)
+
+        success_kw = ["success","thank","confirm","registered","submitted",
+                      "merci","félicitation","done","completed"]
+        error_kw   = ["error","invalid","failed","wrong","already","exists"]
+        resp       = r_post.text.lower()
+
+        if any(kw in resp for kw in success_kw):
+            return {"success": True,  "status": r_post.status_code,
+                    "message": "Formulaire soumis avec succès ✅"}
+        elif any(kw in resp for kw in error_kw):
+            return {"success": False, "status": r_post.status_code,
+                    "message": "Erreur dans la réponse"}
+        elif r_post.status_code in (200, 201, 302):
+            return {"success": True,  "status": r_post.status_code,
+                    "message": f"Soumis (HTTP {r_post.status_code})"}
+        else:
+            return {"success": False, "status": r_post.status_code,
+                    "message": f"HTTP {r_post.status_code}"}
+
+    except Exception as e:
+        return {"success": False, "reason": str(e)[:100]}
+
 
 def run_epargne_scan(send_fn):
     """Scan silencieux — alerte uniquement si opportunité intéressante."""
