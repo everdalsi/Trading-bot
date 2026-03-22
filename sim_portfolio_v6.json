@@ -138,8 +138,8 @@
     ],
     "equity_history": [],
     "session": 1,
-    "peak_equity": 2055.32,
-    "daily_start_equity": 2055.32,
+    "peak_equity": 2055.22,
+    "daily_start_equity": 2055.22,
     "daily_start_date": "2026-03-22"
   },
   "memory": {
@@ -196,6 +196,16 @@
     "faucets_used": [],
     "promos_found": [
       {
+        "exchange": "Bybit",
+        "url": "https://www.bybit.com/en/promo/",
+        "keywords": [
+          "bonus",
+          "promo",
+          "free"
+        ],
+        "status": "\u2705 Promos d\u00e9tect\u00e9es"
+      },
+      {
         "exchange": "KuCoin",
         "url": "https://www.kucoin.com/news/bonus",
         "keywords": [
@@ -206,6 +216,6 @@
         "status": "\u2705 Promos d\u00e9tect\u00e9es"
       }
     ],
-    "last_scan": 1774223622.222434
+    "last_scan": 1774223700.9042785
   }
 }
