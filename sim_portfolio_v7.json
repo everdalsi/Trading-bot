@@ -1,8 +1,65 @@
 {
   "sim": {
-    "cash": 127142.91185637136,
+    "cash": 211304.61057244215,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MEME_CHIBILAND_60": {
+        "id": 60,
+        "symbol": "CHIBILAND",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "CHIBILAND",
+        "price_in": 0.0008589,
+        "price_out": null,
+        "qty": 7401496.789869097,
+        "amount_usd": 6357.145592818568,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-23 08:52:54",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0009738,
+        "open_time": 1774255974.5560691,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_CHIBILAND_60"
+      },
+      "MEME_Computer_61": {
+        "id": 61,
+        "symbol": "Computer",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "Computer",
+        "price_in": 6.855e-05,
+        "price_out": null,
+        "qty": 88100485.96903925,
+        "amount_usd": 6039.28831317764,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-23 08:57:32",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.001096,
+        "open_time": 1774256252.6472716,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_Computer_61"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -1596,6 +1653,60 @@
         "peak_price": 7.222e-05,
         "open_time": 1774255925.6500857,
         "kelly_pct": 0.05
+      },
+      {
+        "id": 60,
+        "symbol": "CHIBILAND",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "CHIBILAND",
+        "price_in": 0.0008589,
+        "price_out": null,
+        "qty": 7401496.789869097,
+        "amount_usd": 6357.145592818568,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-23 08:52:54",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0008589,
+        "open_time": 1774255974.5560691,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 61,
+        "symbol": "Computer",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "Computer",
+        "price_in": 6.855e-05,
+        "price_out": 0.001096,
+        "qty": 88100485.96903925,
+        "amount_usd": 6039.28831317764,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": "\ud83c\udfaf MEME TP (+1498.8%)",
+        "time_in": "2026-03-23 08:57:32",
+        "time_out": "2026-03-23 08:57:34",
+        "pnl": 90518.844309,
+        "pnl_pct": 1498.83,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 6.855e-05,
+        "open_time": 1774256252.6472716,
+        "kelly_pct": 0.05
       }
     ],
     "equity_history": [],
@@ -2166,6 +2277,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-23 08:52"
+      },
+      {
+        "trade_id": 61,
+        "pnl": 90518.844309,
+        "symbol": "Computer",
+        "market": "MEME",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "memecoin",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-23 08:57"
       }
     ],
     "patterns_to_avoid": [
@@ -2221,10 +2343,11 @@
       "memecoin",
       "memecoin",
       "memecoin",
+      "memecoin",
       "memecoin"
     ],
     "confidence_threshold": 82,
-    "total_wins": 24,
+    "total_wins": 25,
     "total_losses": 33,
     "symbol_scores": {
       "BTCUSDT": -2,
