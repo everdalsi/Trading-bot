@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 3211616.6312134564,
+    "cash": 3295663.080986557,
     "initial": 1000.0,
     "positions": {
       "MEME_CHIBILAND_68": {
@@ -26,7 +26,7 @@
           "memecoin"
         ],
         "leverage": 1,
-        "peak_price": 0.001167,
+        "peak_price": 0.001241,
         "open_time": 1774256626.901082,
         "kelly_pct": 0.05,
         "pos_key": "MEME_CHIBILAND_68"
@@ -1850,17 +1850,17 @@
         "trade_type": "MEME",
         "meme_symbol": "CHIBILAND",
         "price_in": 0.001167,
-        "price_out": null,
+        "price_out": 0.001019,
         "qty": 82479342.26997131,
         "amount_usd": 96253.39242905653,
         "confidence": 95,
         "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
+        "exit_reason": "\ud83d\uded1 MEME SL (-12.7%)",
         "time_in": "2026-03-23 09:03:46",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-23 09:06:05",
+        "pnl": -12206.942656,
+        "pnl_pct": -12.68,
+        "duration_min": 2,
         "patterns": [
           "memecoin"
         ],
@@ -2564,6 +2564,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-23 09:03"
+      },
+      {
+        "trade_id": 68,
+        "pnl": -12206.942656,
+        "symbol": "CHIBILAND",
+        "market": "MEME",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "memecoin",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-23 09:06"
       }
     ],
     "patterns_to_avoid": [
@@ -2582,6 +2593,7 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "memecoin",
       "memecoin",
       "memecoin",
       "memecoin",
@@ -2630,15 +2642,15 @@
       "memecoin",
       "memecoin"
     ],
-    "confidence_threshold": 68,
-    "total_wins": 32,
+    "confidence_threshold": 66,
+    "total_wins": 33,
     "total_losses": 34,
     "symbol_scores": {
       "BTCUSDT": -2,
       "ETHUSDT": -12,
       "SOLUSDT": 2,
       "Computer": 15,
-      "CHIBILAND": -6
+      "CHIBILAND": -9
     },
     "symbol_blacklist": {},
     "consecutive_losses": {},
