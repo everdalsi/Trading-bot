@@ -3810,13 +3810,18 @@ def auto_start():
 
 if __name__ == "__main__":
     print("🚀 Trading Bot v7 — WebSocket + Backtest + Sécurité")
-    init_db(); load_data()
+    init_db()
+    load_data()
+
+    threading.Thread(target=auto_training, daemon=True).start()
+
     # Démarrage WebSocket Binance
     start_websocket()
-    threading.Thread(target=run_server,  daemon=True).start()
-    threading.Thread(target=self_ping,   daemon=True).start()
-    # threading.Thread(target=auto_start,  daemon=True).start()
+
+    threading.Thread(target=run_server, daemon=True).start()
+    threading.Thread(target=self_ping, daemon=True).start()
+    # threading.Thread(target=auto_start, daemon=True).start()
+
     print("Serveur HTTP port 8000")
     asyncio.run(run_telegram())
-    import threading
-threading.Thread(target=auto_training, daemon=True).start()
+    
