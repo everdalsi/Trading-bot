@@ -2,36 +2,7 @@
   "sim": {
     "cash": 1.1232619022210188e+38,
     "initial": 1000.0,
-    "positions": {
-      "MEME_PERP_150": {
-        "id": 150,
-        "symbol": "PERP",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "PERP",
-        "price_in": 0.001007,
-        "price_out": null,
-        "qty": 4.373510811387239e+38,
-        "amount_usd": 4.40412538706695e+35,
-        "confidence": 95,
-        "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-23 16:16:20",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.2377,
-        "open_time": 1774282580.3677363,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_PERP_150"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
