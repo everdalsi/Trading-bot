@@ -1684,44 +1684,69 @@ def micro_signal(symbol: str, price: float) -> dict:
         return {"signal":"HOLD","score":0,"conf":0}
 
 def open_micro_trade(symbol: str, price: float, signal: dict, send_fn) -> dict | None:
-    if signal["signal"] == "SELL": return None
-    micro_count = sum(1 for p in sim["positions"].values() if p.get("trade_type")=="MICRO")
-    if micro_count >= MAX_MICRO_POSITIONS: return None
-    if any(p["symbol"]==symbol and p.get("trade_type")=="MICRO" for p in sim["positions"].values()): return None
-    if sim["cash"] < 15: return None
+    if signal["signal"] == "SELL":
+        return None
+
+    micro_count = sum(1 for p in sim["positions"].values() if p.get("trade_type") == "MICRO")
+    if micro_count >= MAX_MICRO_POSITIONS:
+        return None
+
+    if any(p["symbol"] == symbol and p.get("trade_type") == "MICRO" for p in sim["positions"].values()):
+        return None
+
+    if sim["cash"] < 15:
+        return None
+
     if symbol in memory.get("recent_losses", []):
-    print(f"[FILTER] {symbol} évité en MICRO (pertes récentes)")
-    return None
-else:
-    pass
+        print(f"[FILTER] {symbol} évité en MICRO (pertes récentes)")
+        return None
+
     night_factor = 0.5 if is_night_time() else 1.0
     confidence = get_symbol_confidence(symbol)
 
-if confidence > 0.7:
-    amount = sim["cash"] * MICRO_MAX_PCT * 1.3 * night_factor
-elif confidence < 0.4:
-    amount = sim["cash"] * MICRO_MAX_PCT * 0.5 * night_factor
-else:
-    amount = sim["cash"] * MICRO_MAX_PCT * night_factor
-    qty    = amount/price
+    if confidence > 0.7:
+        amount = sim["cash"] * MICRO_MAX_PCT * 1.3 * night_factor
+    elif confidence < 0.4:
+        amount = sim["cash"] * MICRO_MAX_PCT * 0.5 * night_factor
+    else:
+        amount = sim["cash"] * MICRO_MAX_PCT * night_factor
+
+    qty = amount / price
     sim["cash"] -= amount
+
     trade = {
-        "id":len(sim["trades"])+1,"symbol":symbol,"market":"MICRO","side":"LONG",
-        "trade_type":"MICRO","price_in":price,"price_out":None,"qty":qty,
-        "amount_usd":amount,"confidence":signal["conf"],"reason":signal.get("reason",""),
-        "exit_reason":None,"time_in":datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "time_out":None,"pnl":None,"pnl_pct":None,"duration_min":None,
-        "patterns":[f"score={signal['score']}"],"leverage":1,
-        "peak_price":price,"open_time":time.time(),"kelly_pct":MICRO_MAX_PCT
+        "id": len(sim["trades"]) + 1,
+        "symbol": symbol,
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": price,
+        "price_out": None,
+        "qty": qty,
+        "amount_usd": amount,
+        "confidence": signal["conf"],
+        "reason": signal.get("reason", ""),
+        "exit_reason": None,
+        "time_in": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "time_out": None,
+        "pnl": None,
+        "pnl_pct": None,
+        "duration_min": None,
+        "patterns": [f"score={signal['score']}"],
+        "leverage": 1,
+        "peak_price": price,
+        "open_time": time.time(),
+        "kelly_pct": MICRO_MAX_PCT,
     }
+
     pos_key = f"MICRO_{symbol}_{trade['id']}"
     sim["trades"].append(trade)
-    sim["positions"][pos_key] = {**trade,"pos_key":pos_key}
+    sim["positions"][pos_key] = {**trade, "pos_key": pos_key}
+
     db_save_trade(trade)
     bot_state["trades_today"] += 1
-    bot_state["micro_count"] = bot_state.get("micro_count",0)+1
-    coin = symbol.replace("USDT","")
-    send_fn(f"⚡ Micro {coin} #{trade['id']} | ${price:.4f} | {signal.get('reason','')[:60]}")
+    bot_state["micro_count"] = bot_state.get("micro_count", 0) + 1
+
     return trade
 
 def monitor_micro_positions(send_fn):
