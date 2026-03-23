@@ -2870,10 +2870,8 @@ except Exception as e:
     await asyncio.sleep(5)
     await _app.bot.set_webhook(url=full,drop_pending_updates=True,allowed_updates=["message"])
 
----
 
 ## Problème 3 — Groq et HuggingFace
-```
 groq err: Expecting value: line 1 column 1 (char 0)
         print(f"Webhook: {full}")
     print("Bot v6 prêt — /start pour lancer")
