@@ -2859,20 +2859,25 @@ async def run_telegram():
         ("macro",cmd_macro),("risque",cmd_risque),("blacklist",cmd_blacklist),
     ]:
         _app.add_handler(CommandHandler(cmd, fn))
-    await _app.initialize(); await _app.start()
+    await _app.initialize()
+    await _app.start()
     if WEBHOOK_URL:
         full = WEBHOOK_URL.rstrip("/")+WEBHOOK_PATH
         await asyncio.sleep(2)
-try:
-    await _app.bot.set_webhook(url=full,drop_pending_updates=True,allowed_updates=["message"])
-except Exception as e:
-    print(f"[WEBHOOK] {e}")
-    await asyncio.sleep(5)
-    await _app.bot.set_webhook(url=full,drop_pending_updates=True,allowed_updates=["message"])
-
-
-## Problème 3 — Groq et HuggingFace
-groq err: Expecting value: line 1 column 1 (char 0)
+        try:
+            await _app.bot.set_webhook(url=full,drop_pending_updates=True,allowed_updates=["message"])
+        except Exception as e:
+            print(f"[WEBHOOK] {e}")
+            await asyncio.sleep(5)
+            await _app.bot.set_webhook(url=full,drop_pending_updates=True,allowed_updates=["message"])
+        print(f"Webhook: {full}")
+    print("Bot v6 prêt — /start pour lancer")
+    try:
+        while True: await asyncio.sleep(1)
+    finally:
+        if WEBHOOK_URL: await _app.bot.delete_webhook()
+        await _app.stop()
+        await _app.shutdown()
         print(f"Webhook: {full}")
     print("Bot v6 prêt — /start pour lancer")
     try:
