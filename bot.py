@@ -451,20 +451,49 @@ def _get_available_provider() -> dict | None:
 
 def _call_groq(prompt: str) -> dict:
     r = groq_client.chat.completions.create(
-        model=GROQ_FAST_MODEL, max_tokens=80, temperature=0.1,
+        model=GROQ_FAST_MODEL,
+        max_tokens=120,
+        temperature=0.1,
         messages=[
-            {"role":"system","content":"JSON: {signal,confidence,reason,risk,market}"},
-            {"role":"user","content":prompt[:500]}
+            {
+                "role": "system",
+                "content": (
+                    'Réponds UNIQUEMENT avec un objet JSON valide, sans texte autour. '
+                    'Format exact: {"signal":"BUY|SELL|HOLD","confidence":0,"reason":"...","risk":"LOW|MEDIUM|HIGH","market":"SPOT|FUTURES"}'
+                )
+            },
+            {"role": "user", "content": prompt[:500]}
         ],
     )
-    text = r.choices[0].message.content.strip()
-    text = text.replace("```json","").replace("```","").strip()
-    s = text.find("{"); e = text.rfind("}")+1
+
+    text = (r.choices[0].message.content or "").strip()
+    text = text.replace("```json", "").replace("```", "").strip()
+
+    s = text.find("{")
+    e = text.rfind("}") + 1
+
     if s >= 0 and e > s:
         text = text[s:e]
-    result = json.loads(text)
-    if result.get("signal") not in ("BUY","SELL","HOLD"):
+    else:
+        raise Exception(f"Groq non-JSON response: {text[:200]}")
+
+    try:
+        result = json.loads(text)
+    except Exception:
+        raise Exception(f"Groq invalid JSON: {text[:200]}")
+
+    if result.get("signal") not in ("BUY", "SELL", "HOLD"):
         result["signal"] = "HOLD"
+
+    if "confidence" not in result:
+        result["confidence"] = 0
+    if "reason" not in result:
+        result["reason"] = "missing_reason"
+    if "risk" not in result:
+        result["risk"] = "HIGH"
+    if "market" not in result:
+        result["market"] = "SPOT"
+
     return result
 
 def _call_huggingface(prompt: str) -> dict:
