@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 626320.7501006436,
+    "cash": 617281.3909603187,
     "initial": 1000.0,
     "positions": {
       "MEME_CHIBILAND_63": {
@@ -26,26 +26,26 @@
           "memecoin"
         ],
         "leverage": 1,
-        "peak_price": 0.0009812,
+        "peak_price": 0.00116,
         "open_time": 1774256346.748153,
         "kelly_pct": 0.05,
         "pos_key": "MEME_CHIBILAND_63"
       },
-      "MEME_Computer_64": {
-        "id": 64,
+      "MEME_Computer_65": {
+        "id": 65,
         "symbol": "Computer",
         "market": "MEME",
         "side": "LONG",
         "trade_type": "MEME",
         "meme_symbol": "Computer",
-        "price_in": 6.855e-05,
+        "price_in": 6.798e-05,
         "price_out": null,
-        "qty": 261135629.3025261,
-        "amount_usd": 17900.847388688162,
+        "qty": 460665453.1484581,
+        "amount_usd": 31316.03750503218,
         "confidence": 85,
         "reason": "Score 5/10 | @DexScreener",
         "exit_reason": null,
-        "time_in": "2026-03-23 08:59:06",
+        "time_in": "2026-03-23 09:02:15",
         "time_out": null,
         "pnl": null,
         "pnl_pct": null,
@@ -54,10 +54,10 @@
           "memecoin"
         ],
         "leverage": 1,
-        "peak_price": 0.001096,
-        "open_time": 1774256346.8355641,
+        "peak_price": 6.798e-05,
+        "open_time": 1774256535.2499323,
         "kelly_pct": 0.05,
-        "pos_key": "MEME_Computer_64"
+        "pos_key": "MEME_Computer_65"
       }
     },
     "trades": [
@@ -1743,17 +1743,17 @@
         "trade_type": "MEME",
         "meme_symbol": "CHIBILAND",
         "price_in": 0.0009812,
-        "price_out": null,
+        "price_out": 0.00116,
         "qty": 19204033.073023535,
         "amount_usd": 18842.997251250694,
         "confidence": 95,
         "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
+        "exit_reason": "\ud83c\udfaf MEME TP (+18.2%)",
         "time_in": "2026-03-23 08:59:06",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-23 09:02:15",
+        "pnl": 3433.681113,
+        "pnl_pct": 18.22,
+        "duration_min": 3,
         "patterns": [
           "memecoin"
         ],
@@ -1787,6 +1787,33 @@
         "leverage": 1,
         "peak_price": 6.855e-05,
         "open_time": 1774256346.8355641,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 65,
+        "symbol": "Computer",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "Computer",
+        "price_in": 6.798e-05,
+        "price_out": null,
+        "qty": 460665453.1484581,
+        "amount_usd": 31316.03750503218,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-23 09:02:15",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 6.798e-05,
+        "open_time": 1774256535.2499323,
         "kelly_pct": 0.05
       }
     ],
@@ -2402,6 +2429,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-23 08:59"
+      },
+      {
+        "trade_id": 63,
+        "pnl": 3433.681113,
+        "symbol": "CHIBILAND",
+        "market": "MEME",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "memecoin",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-23 09:02"
       }
     ],
     "patterns_to_avoid": [
@@ -2461,17 +2499,18 @@
       "memecoin",
       "memecoin",
       "memecoin",
+      "memecoin",
       "memecoin"
     ],
-    "confidence_threshold": 78,
-    "total_wins": 28,
+    "confidence_threshold": 76,
+    "total_wins": 29,
     "total_losses": 33,
     "symbol_scores": {
       "BTCUSDT": -2,
       "ETHUSDT": -12,
       "SOLUSDT": 2,
       "Computer": 15,
-      "CHIBILAND": -5
+      "CHIBILAND": -3
     },
     "symbol_blacklist": {},
     "consecutive_losses": {},
