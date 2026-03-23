@@ -2,36 +2,7 @@
   "sim": {
     "cash": 9880469012.8881,
     "initial": 1000.0,
-    "positions": {
-      "MEME_Optimistic_121": {
-        "id": 121,
-        "symbol": "Optimistic",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "Optimistic",
-        "price_in": 0.00143,
-        "price_out": null,
-        "qty": 346853507438.3241,
-        "amount_usd": 496000515.63680345,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-23 13:40:29",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.00143,
-        "open_time": 1774273229.4168804,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_Optimistic_121"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
