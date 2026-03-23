@@ -30,34 +30,6 @@
         "open_time": 1774285567.7282703,
         "kelly_pct": 0.05,
         "pos_key": "MEME_7_166"
-      },
-      "MEME_LOL_171": {
-        "id": 171,
-        "symbol": "LOL",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "LOL",
-        "price_in": 0.001787,
-        "price_out": null,
-        "qty": 6.644453528830901e+55,
-        "amount_usd": 1.187363845602082e+53,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-23 18:30:31",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.003461,
-        "open_time": 1774290631.8265631,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_LOL_171"
       }
     },
     "trades": [
