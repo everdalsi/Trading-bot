@@ -2,36 +2,7 @@
   "sim": {
     "cash": 8125497457.363176,
     "initial": 1000.0,
-    "positions": {
-      "MEME_USDUC_101": {
-        "id": 101,
-        "symbol": "USDUC",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "USDUC",
-        "price_in": 0.001711,
-        "price_out": null,
-        "qty": 236508832732.65735,
-        "amount_usd": 404666612.80557674,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-23 10:19:31",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.001847,
-        "open_time": 1774261171.0806854,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_USDUC_101"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
