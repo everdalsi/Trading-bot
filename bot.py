@@ -579,7 +579,7 @@ def get_prices_batch() -> dict:
             data = r.json()
             for symbol, cg_id in COINGECKO_IDS.items():
                 if cg_id in data:
-                    p = float(data[cg_id]["usd"])
+                    p = float(data[cg_id]["price"])
                     prices[symbol] = p
                     _price_cache[symbol] = (time.time(), p)
     except Exception as e: print(f"[PRICE] {e}")
@@ -2862,7 +2862,20 @@ async def run_telegram():
     await _app.initialize(); await _app.start()
     if WEBHOOK_URL:
         full = WEBHOOK_URL.rstrip("/")+WEBHOOK_PATH
-        await _app.bot.set_webhook(url=full,drop_pending_updates=True,allowed_updates=["message"])
+        await asyncio.sleep(2)
+try:
+    await _app.bot.set_webhook(url=full,drop_pending_updates=True,allowed_updates=["message"])
+except Exception as e:
+    print(f"[WEBHOOK] {e}")
+    await asyncio.sleep(5)
+    await _app.bot.set_webhook(url=full,drop_pending_updates=True,allowed_updates=["message"])
+```
+
+---
+
+## Problème 3 — Groq et HuggingFace
+```
+groq err: Expecting value: line 1 column 1 (char 0)
         print(f"Webhook: {full}")
     print("Bot v6 prêt — /start pour lancer")
     try:
