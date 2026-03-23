@@ -2869,7 +2869,6 @@ except Exception as e:
     print(f"[WEBHOOK] {e}")
     await asyncio.sleep(5)
     await _app.bot.set_webhook(url=full,drop_pending_updates=True,allowed_updates=["message"])
-```
 
 ---
 
