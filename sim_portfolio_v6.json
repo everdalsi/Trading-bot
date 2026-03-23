@@ -223,16 +223,6 @@
     "faucets_used": [],
     "promos_found": [
       {
-        "exchange": "Bybit",
-        "url": "https://www.bybit.com/en/promo/",
-        "keywords": [
-          "bonus",
-          "promo",
-          "free"
-        ],
-        "status": "\u2705 Promos d\u00e9tect\u00e9es"
-      },
-      {
         "exchange": "KuCoin",
         "url": "https://www.kucoin.com/news/bonus",
         "keywords": [
@@ -243,6 +233,6 @@
         "status": "\u2705 Promos d\u00e9tect\u00e9es"
       }
     ],
-    "last_scan": 1774224838.373314
+    "last_scan": 1774224872.4273853
   }
 }
