@@ -1484,21 +1484,21 @@ def open_trade(analysis: dict, send_fn) -> dict | None:
       # 🧠 AI FILTER — confidence
 confidence = get_symbol_confidence(symbol)
 
-if confidence < 0.4:
-    print(f"[FILTER] {symbol} ignoré (confidence {confidence:.2f})")
+    if confidence < 0.4:
+        print(f"[FILTER] {symbol} ignoré (confidence {confidence:.2f})")
     return None
 
 # 🚫 pertes récentes
-if symbol in memory.get("recent_losses", []):
-    print(f"[FILTER] {symbol} évité (pertes récentes)")
+    if symbol in memory.get("recent_losses", []):
+        print(f"[FILTER] {symbol} évité (pertes récentes)")
     return None
 
-if confidence < 0.4:
-    print(f"[FILTER] {symbol} ignoré (confidence {confidence:.2f})")
+    if confidence < 0.4:
+        print(f"[FILTER] {symbol} ignoré (confidence {confidence:.2f})")
     return None
     if symbol in memory.get("recent_losses", []):
         print(f"[FILTER] {symbol} évité (pertes récentes)")
-        return None
+   return None
     if any(p["symbol"]==symbol for p in sim["positions"].values()): return None
     if len(sim["positions"]) >= MAX_POSITIONS: return None
     if sim["cash"] < 20: return None
