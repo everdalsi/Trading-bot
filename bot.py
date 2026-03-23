@@ -576,14 +576,15 @@ def get_prices_batch() -> dict:
             timeout=15, headers={"User-Agent":"Mozilla/5.0"}
         )
         print(f"[CG] status={r.status_code} body={r.text[:300]}")
-if r.status_code == 200:
+        if r.status_code == 200:
             data = r.json()
             for symbol, cg_id in COINGECKO_IDS.items():
-                if cg_id in data:
+                if cg_id in data and "usd" in data[cg_id]:
                     p = float(data[cg_id]["usd"])
                     prices[symbol] = p
                     _price_cache[symbol] = (time.time(), p)
-    except Exception as e: print(f"[PRICE] {e}")
+    except Exception as e:
+        print(f"[PRICE] {e}")
     return prices
 
 def get_price(symbol: str, force=False) -> float:
