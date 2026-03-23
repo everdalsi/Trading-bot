@@ -1,8 +1,63 @@
 {
   "sim": {
-    "cash": 4958.057888743857,
+    "cash": 4017.778245215581,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MICRO_BTCUSDT_7": {
+        "id": 7,
+        "symbol": "BTCUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 67860.4,
+        "price_out": null,
+        "qty": 0.007309447123538479,
+        "amount_usd": 496.02200558217055,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=28 mom=-0.16% vol=3.2x",
+        "exit_reason": null,
+        "time_in": "2026-03-23 00:33:20",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 67860.4,
+        "open_time": 1774226000.729698,
+        "kelly_pct": 0.1,
+        "pos_key": "MICRO_BTCUSDT_7"
+      },
+      "MICRO_SOLUSDT_8": {
+        "id": 8,
+        "symbol": "SOLUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 85.96,
+        "price_out": null,
+        "qty": 5.19334347398736,
+        "amount_usd": 446.4198050239535,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=19 mom=-0.35% vol=4.0x",
+        "exit_reason": null,
+        "time_in": "2026-03-23 00:33:21",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 85.96,
+        "open_time": 1774226001.4909225,
+        "kelly_pct": 0.1,
+        "pos_key": "MICRO_SOLUSDT_8"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -169,17 +224,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 67860.4,
-        "price_out": 67713.8,
+        "price_out": null,
         "qty": 0.007309447123538479,
         "amount_usd": 496.02200558217055,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=28 mom=-0.16% vol=3.2x",
-        "exit_reason": "\u23f1 TIMEOUT 170s",
+        "exit_reason": null,
         "time_in": "2026-03-23 00:33:20",
-        "time_out": "2026-03-23 00:36:11",
-        "pnl": -1.071565,
-        "pnl_pct": -0.216,
-        "duration_min": 2,
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
         "patterns": [
           "score=4"
         ],
@@ -195,17 +250,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 85.96,
-        "price_out": 85.75,
+        "price_out": null,
         "qty": 5.19334347398736,
         "amount_usd": 446.4198050239535,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=19 mom=-0.35% vol=4.0x",
-        "exit_reason": "\u23f1 TIMEOUT 169s",
+        "exit_reason": null,
         "time_in": "2026-03-23 00:33:21",
-        "time_out": "2026-03-23 00:36:12",
-        "pnl": -1.090602,
-        "pnl_pct": -0.244,
-        "duration_min": 2,
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
         "patterns": [
           "score=4"
         ],
@@ -217,8 +272,8 @@
     ],
     "equity_history": [],
     "session": 1,
-    "peak_equity": 4959.16,
-    "daily_start_equity": 4959.16,
+    "peak_equity": 4960.22,
+    "daily_start_equity": 4960.22,
     "daily_start_date": "2026-03-23"
   },
   "memory": {
@@ -227,17 +282,15 @@
     "patterns_that_work": [],
     "confidence_threshold": 65,
     "total_wins": 1,
-    "total_losses": 3,
+    "total_losses": 2,
     "symbol_scores": {
       "FETUSDT": -3,
-      "APTUSDT": -3,
-      "BTCUSDT": -3
+      "APTUSDT": -3
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
       "FETUSDT": 1,
-      "APTUSDT": 1,
-      "BTCUSDT": 1
+      "APTUSDT": 1
     }
   },
   "epargne": {
@@ -297,6 +350,6 @@
         "status": "\u2705 Promos d\u00e9tect\u00e9es"
       }
     ],
-    "last_scan": 1774226128.973621
+    "last_scan": 1774226186.948766
   }
 }
