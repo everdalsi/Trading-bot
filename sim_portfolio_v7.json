@@ -606,13 +606,29 @@
     "daily_start_date": "2026-03-23"
   },
   "memory": {
-    "lessons": [],
+    "lessons": [
+      {
+        "trade_id": -1,
+        "pnl": 3.001,
+        "symbol": "BTCUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-23 07:16"
+      }
+    ],
     "patterns_to_avoid": [],
-    "patterns_that_work": [],
+    "patterns_that_work": [
+      "backtest_5m"
+    ],
     "confidence_threshold": 65,
     "total_wins": 5,
     "total_losses": 14,
-    "symbol_scores": {},
+    "symbol_scores": {
+      "BTCUSDT": 2
+    },
     "symbol_blacklist": {},
     "consecutive_losses": {}
   },
