@@ -80,16 +80,16 @@ USER_ADDRESS   = os.environ.get("USER_ADDRESS", "")
 USER_WALLET    = os.environ.get("USER_WALLET", "")
 
 CAPITAL_INITIAL   = 1000.0
-MAX_POSITIONS     = 6
-MAX_PCT_PER_TRADE = 0.18
+MAX_POSITIONS     = 4
+MAX_PCT_PER_TRADE = 0.25
 STOP_LOSS_PCT     = 0.025
 TAKE_PROFIT_PCT   = 0.04
 TRAILING_PCT      = 0.015
 LEVERAGE_SIM      = 2
 
-CONFIDENCE_BASE = 60
-CONFIDENCE_MIN  = 58
-CONFIDENCE_MAX  = 80
+CONFIDENCE_BASE = 65
+CONFIDENCE_MIN  = 55
+CONFIDENCE_MAX  = 82
 
 MAX_DAILY_LOSS_PCT   = 0.05
 MAX_DRAWDOWN_PCT     = 0.10
@@ -104,31 +104,31 @@ CORRELATED_PAIRS     = [
     {"BNBUSDT","MATICUSDT"},
 ]
 
-CYCLE_MONITOR = 10
-CYCLE_SCALP   = 180
-CYCLE_DEEP    = 240
+CYCLE_MONITOR = 15
+CYCLE_SCALP   = 300
+CYCLE_DEEP    = 300
 CYCLE_STATUS  = 900
-CYCLE_MICRO   = 5
-CYCLE_MEME    = 30
+CYCLE_MICRO   = 8
+CYCLE_MEME    = 45
 CYCLE_EPARGNE = 3600
 
-MICRO_SL_PCT        = 0.007
-MICRO_TP_PCT        = 0.010
-MICRO_TRAILING_PCT  = 0.004
-MICRO_MAX_DURATION  = 60
-MICRO_MAX_PCT       = 0.08
-MICRO_CONF_MIN      = 66
-MAX_MICRO_POSITIONS = 4
+MICRO_SL_PCT        = 0.008
+MICRO_TP_PCT        = 0.012
+MICRO_TRAILING_PCT  = 0.005
+MICRO_MAX_DURATION  = 90
+MICRO_MAX_PCT       = 0.10
+MICRO_CONF_MIN      = 72
+MAX_MICRO_POSITIONS = 3
 
-MEME_SL_PCT       = 0.04
-MEME_TP_PCT       = 0.10
-MEME_TRAILING_PCT = 0.05
-MEME_MAX_PCT      = 0.04
-MEME_MAX_DURATION = 180
+MEME_SL_PCT       = 0.05
+MEME_TP_PCT       = 0.15
+MEME_TRAILING_PCT = 0.07
+MEME_MAX_PCT      = 0.05
+MEME_MAX_DURATION = 300
 
 LEARN_MODE_ENABLED  = True
-LEARN_MODE_CONF_MIN = 35
-LEARN_MODE_MAX_PCT  = 0.03
+LEARN_MODE_CONF_MIN = 45
+LEARN_MODE_MAX_PCT  = 0.05
 
 GROQ_FAST_MODEL = "llama-3.1-8b-instant"
 DB_FILE   = "sim_v7.db"
@@ -377,7 +377,7 @@ def _ws_prefill_from_rest():
 #  AI POOL — Optimisé avec cache 
 AI_PROVIDERS = [
     {"name":"groq","calls":0,"window_start":time.time(),"last_call":0,
-     "max_calls_per_hour":60,"cooldown":45,"available":True,"failures":0},
+     "max_calls_per_hour":10,"cooldown":360,"available":True,"failures":0},
 ]
 _pool_stats = {
     "total_calls":0,"calls_by_provider":{},"fallbacks":0,"last_provider":"groq",
@@ -1698,38 +1698,19 @@ def monitor_micro_positions(send_fn):
             update_blacklist(symbol, won)
 
 def run_micro_cycle(send_fn):
-    max_micro = 2 if is_night_time() else MAX_MICRO_POSITIONS
+    max_micro = 1 if is_night_time() else MAX_MICRO_POSITIONS
     prices = get_prices_batch()
-
     for symbol in MICRO_SYMBOLS:
-        if not bot_state["running"]:
-            break
-        if is_blacklisted(symbol):
-            continue
-
-        price = prices.get(symbol, 0)
-        if not price:
-            continue
-
-        micro_count = sum(1 for p in sim["positions"].values() if p.get("trade_type") == "MICRO")
-        if micro_count >= max_micro:
-            break
-
-        if any(p["symbol"] == symbol and p.get("trade_type") == "MICRO" for p in sim["positions"].values()):
-            continue
-
+        if not bot_state["running"]: break
+        if is_blacklisted(symbol): continue
+        price = prices.get(symbol,0)
+        if not price: continue
+        micro_count = sum(1 for p in sim["positions"].values() if p.get("trade_type")=="MICRO")
+        if micro_count >= max_micro: break
+        if any(p["symbol"]==symbol and p.get("trade_type")=="MICRO" for p in sim["positions"].values()): continue
         sig = micro_signal(symbol, price)
-
         if sig["signal"] != "HOLD" and sig["conf"] >= MICRO_CONF_MIN:
             open_micro_trade(symbol, price, sig, send_fn)
-        elif LEARN_MODE_ENABLED and sig["signal"] == "BUY" and sig["score"] >= 2:
-            forced_sig = {
-                "signal": "BUY",
-                "score": sig["score"],
-                "conf": max(45, sig.get("conf", 0)),
-                "reason": f"learn_mode {sig.get('reason','')}"
-            }
-            open_micro_trade(symbol, price, forced_sig, send_fn)
 
 # ═══════════════════════════════════════════════════════════════
 #  MEMECOINS
@@ -2505,9 +2486,11 @@ def backtest_strategy(
 def format_backtest_result(r: dict) -> str:
     if "error" in r:
         return f"❌ Backtest: {r['error']}"
+
     pnl_e = "✅" if r["total_pnl"] >= 0 else "❌"
     sharpe_e = "🟢" if r["sharpe"] > 1 else "🟡" if r["sharpe"] > 0 else "🔴"
-    dd_e     = "🟢" if r["max_drawdown"] > -10 else "🟡" if r["max_drawdown"] > -20 else "🔴"
+    dd_e = "🟢" if r["max_drawdown"] > -10 else "🟡" if r["max_drawdown"] > -20 else "🔴"
+
     return (
         f"📊 BACKTEST {r['symbol']} — {r['days']}j/{r['interval']}\n"
         f"━━━━━━━━━━━━━━━━━━━\n"
@@ -2522,7 +2505,9 @@ def format_backtest_result(r: dict) -> str:
         f"💰 Capital  : ${r['final_equity']:.2f}\n"
         f"SL:{r['sl_used']*100:.1f}% TP:{r['tp_used']*100:.1f}%"
     )
-    def learn_from_backtest_result(result: dict):
+
+
+def learn_from_backtest_result(result: dict):
     if "error" in result:
         return
 
@@ -2541,7 +2526,7 @@ def format_backtest_result(r: dict) -> str:
             "duration_min": 5,
             "reason": "backtest_sample",
             "exit_reason": t.get("exit_reason", "BACKTEST"),
-            "patterns": [f"backtest_{result.get('interval','5m')}"]
+            "patterns": [f"backtest_{result.get('interval', '5m')}"],
         }
         learn_from_trade(fake_trade, send_fn=None)
 
@@ -2637,98 +2622,54 @@ def load_data():
 #  APPRENTISSAGE
 # ═══════════════════════════════════════════════════════════════
 def learn_from_trade(trade: dict, send_fn=None):
-    if trade.get("pnl") is None:
-        return
-
+    if trade.get("pnl") is None: return
     try:
-        pnl = float(trade.get("pnl", 0))
-        pnl_pct = float(trade.get("pnl_pct", 0))
-        duration = int(trade.get("duration_min", 0) or 0)
-        pattern = ", ".join(trade.get("patterns", [])[:3]) or "aucun_pattern"
-
-        if pnl > 0:
-            lesson_type = "succes"
-            if duration <= 5:
-                lecon = "Scalp rapide gagnant"
-                action_future = "Conserver ce setup pour micro-trading"
-            elif pnl_pct > 2:
-                lecon = "Momentum rentable détecté"
-                action_future = "Renforcer la priorité de ce pattern"
-            else:
-                lecon = "Trade gagnant exploitable"
-                action_future = "Rejouer ce setup avec prudence"
-        else:
-            lesson_type = "erreur"
-            if duration <= 5:
-                lecon = "Entrée trop agressive"
-                action_future = "Exiger plus de confirmation avant entrée"
-            elif "SL" in str(trade.get("exit_reason", "")):
-                lecon = "Stop touché rapidement"
-                action_future = "Réduire taille ou éviter ce pattern"
-            else:
-                lecon = "Setup peu performant"
-                action_future = "Diminuer la priorité de ce setup"
-
-        lesson = {
-            "trade_id": trade["id"],
-            "pnl": pnl,
-            "symbol": trade["symbol"],
-            "market": trade.get("market", "SPOT"),
-            "lecon": lecon,
-            "pattern": pattern,
-            "action_future": action_future,
-            "type": lesson_type,
-            "date": datetime.now().strftime("%Y-%m-%d %H:%M")
-        }
-
+        verdict = "PERDANT" if trade["pnl"]<0 else "GAGNANT"
+        prompt = f"""Trade simulé {trade['symbol']} {trade['market']}
+${trade['price_in']:.6f}→${trade.get('price_out',0):.6f}
+PnL:${trade['pnl']:+.4f} ({trade.get('pnl_pct',0):+.2f}%) — {verdict}
+Durée:{trade.get('duration_min',0)}min Kelly:{trade.get('kelly_pct',0)*100:.1f}%
+Raison:{trade['reason']} | Sortie:{trade.get('exit_reason','')}
+JSON:{{"lecon":"leçon","pattern":"pattern","action_future":"règle","type":"erreur ou succes"}}"""
+        r = groq_client.chat.completions.create(
+            model=GROQ_FAST_MODEL, max_tokens=100, temperature=0.2,
+            messages=[{"role":"user","content":prompt}]
+        )
+        lesson = json.loads(
+            r.choices[0].message.content.replace("```json","").replace("```","").strip()
+        )
+        lesson.update({
+            "trade_id":trade["id"],"pnl":trade["pnl"],
+            "symbol":trade["symbol"],"market":trade.get("market","SPOT"),
+            "date":datetime.now().strftime("%Y-%m-%d %H:%M")
+        })
         memory["lessons"].append(lesson)
         db_save_lesson(lesson)
-
-        key = "patterns_that_work" if lesson_type == "succes" else "patterns_to_avoid"
-        memory[key].append(pattern)
-
-        memory["lessons"] = memory["lessons"][-MAX_LESSONS:]
-        memory["patterns_that_work"] = memory["patterns_that_work"][-100:]
-        memory["patterns_to_avoid"] = memory["patterns_to_avoid"][-100:]
-
-        update_symbol_score(trade["symbol"], pnl > 0)
-        auto_adjust()
-        save_data()
-
+        key = "patterns_that_work" if lesson["type"]=="succes" else "patterns_to_avoid"
+        memory[key].append(lesson["pattern"])
+        memory["lessons"]            = memory["lessons"][-MAX_LESSONS:]
+        memory["patterns_that_work"] = memory["patterns_that_work"][-50:]
+        memory["patterns_to_avoid"]  = memory["patterns_to_avoid"][-50:]
+        auto_adjust(); save_data()
         print(f"[LEARN] {lesson['lecon']}")
-
         if send_fn:
-            stats = get_stats()
-            e = "✅" if lesson["type"] == "succes" else "❌"
-            coin = trade["symbol"].replace("USDT", "")
+            stats = get_stats(); e = "✅" if lesson["type"]=="succes" else "❌"
+            coin  = trade["symbol"].replace("USDT","")
             send_fn(
                 f"📚 Leçon #{len(memory['lessons'])} — {coin}\n"
                 f"{e} {lesson['lecon']}\n→ {lesson['action_future']}\n"
                 f"📊 WR:{stats['win_rate']}% ({stats['wins']}✅/{stats['losses']}❌)"
             )
-
     except Exception as e:
         print(f"[LEARN] {e}")
 
 def auto_adjust():
-    closed = [t for t in sim["trades"] if t.get("pnl") is not None]
-    cur = memory.get("confidence_threshold", CONFIDENCE_BASE)
-
-    if len(closed) < 8:
-        memory["confidence_threshold"] = max(CONFIDENCE_MIN, cur - 1)
-        return
-
-    wr20 = db_win_rate(20)
-
-    if wr20 >= 62:
-        memory["confidence_threshold"] = max(CONFIDENCE_MIN, cur - 2)
-    elif wr20 <= 38:
-        memory["confidence_threshold"] = min(CONFIDENCE_MAX, cur + 2)
-    else:
-        if cur > CONFIDENCE_BASE:
-            memory["confidence_threshold"] -= 1
-        elif cur < CONFIDENCE_BASE:
-            memory["confidence_threshold"] += 1
+    wr  = db_win_rate(20)
+    cur = memory.get("confidence_threshold",CONFIDENCE_BASE)
+    if wr > 62 and cur > CONFIDENCE_MIN:
+        memory["confidence_threshold"] = max(CONFIDENCE_MIN,cur-2)
+    elif wr < 40 and cur < CONFIDENCE_MAX:
+        memory["confidence_threshold"] = min(CONFIDENCE_MAX,cur+3)
 
 def auto_adjust_sl_tp():
     global STOP_LOSS_PCT, TAKE_PROFIT_PCT
@@ -3452,7 +3393,6 @@ async def cmd_backtest(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"🔄 Backtest {symbol} {interval} {days}j en cours...")
     try:
         result = backtest_strategy(symbol, interval, days)
-        learn_from_backtest_result(result)
         await update.message.reply_text(format_backtest_result(result))
     except Exception as e:
         await update.message.reply_text(f"❌ Erreur backtest: {e}")
