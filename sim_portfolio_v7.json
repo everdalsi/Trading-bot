@@ -2,36 +2,7 @@
   "sim": {
     "cash": 9610038053.04168,
     "initial": 1000.0,
-    "positions": {
-      "MEME_Peace _114": {
-        "id": 114,
-        "symbol": "Peace ",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "Peace ",
-        "price_in": 0.0006507,
-        "price_out": null,
-        "qty": 713159488326.1731,
-        "amount_usd": 464052879.0538409,
-        "confidence": 95,
-        "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-23 12:09:07",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.001112,
-        "open_time": 1774267747.482898,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_Peace _114"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
