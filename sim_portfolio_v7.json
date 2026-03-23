@@ -30,34 +30,6 @@
         "open_time": 1774254660.4721074,
         "kelly_pct": 0.05,
         "pos_key": "MEME_CHIBILAND_50"
-      },
-      "MEME_Computer_51": {
-        "id": 51,
-        "symbol": "Computer",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "Computer",
-        "price_in": 8.802e-05,
-        "price_out": null,
-        "qty": 3554595.7746764757,
-        "amount_usd": 312.8755200870234,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-23 08:31:47",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.001096,
-        "open_time": 1774254707.0125473,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_Computer_51"
       }
     },
     "trades": [
