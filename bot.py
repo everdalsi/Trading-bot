@@ -61,7 +61,7 @@ def secure_compare(a: str, b: str) -> bool:
 # ═══════════════════════════════════════════════════════════════
 #  CONFIG
 # ═══════════════════════════════════════════════════════════════
-GROQ_KEY         = os.environ.get("ANTHROPIC_KEY")
+GROQ_KEY = os.environ.get("GROQ_API_KEY")
 TELEGRAM_TOKEN   = os.environ.get("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 BINANCE_KEY      = os.environ.get("BINANCE_KEY", "")
@@ -470,36 +470,47 @@ def _call_groq(prompt: str) -> dict:
     return result
 
 def _call_huggingface(prompt: str) -> dict:
-    global _hf_model_idx
     if not HF_KEY:
         raise Exception("HF_KEY manquante")
+
     model = HF_MODELS[_hf_model_idx % len(HF_MODELS)]
-    hf_prompt = f"""Trading crypto expert. Réponds UNIQUEMENT en JSON.
-Situation: {prompt[:300]}
-Format: {{"signal":"BUY","confidence":70,"reason":"raison","risk":"LOW","market":"SPOT"}}
-signal = BUY ou SELL ou HOLD"""
+
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": 'Réponds UNIQUEMENT en JSON: {"signal":"BUY|SELL|HOLD","confidence":70,"reason":"...","risk":"LOW|MEDIUM|HIGH","market":"SPOT|FUTURES"}'},
+            {"role": "user", "content": prompt[:500]}
+        ],
+        "temperature": 0.1,
+        "max_tokens": 120
+    }
+
     r = requests.post(
-        f"https://api-inference.huggingface.co/models/{model}",
-        headers={"Authorization": f"Bearer {HF_KEY}"},
-        json={"inputs": hf_prompt,
-              "parameters": {"max_new_tokens":100,"temperature":0.1,"return_full_text":False}},
+        "https://router.huggingface.co/v1/chat/completions",
+        headers={
+            "Authorization": f"Bearer {HF_KEY}",
+            "Content-Type": "application/json",
+        },
+        json=payload,
         timeout=20,
     )
-    if r.status_code == 503:
-        _hf_model_idx += 1
-        raise Exception("HF model loading")
+
     if r.status_code != 200:
-        raise Exception(f"HF HTTP {r.status_code}")
+        raise Exception(f"HF HTTP {r.status_code}: {r.text[:200]}")
+
     raw = r.json()
-    text = raw[0].get("generated_text","") if isinstance(raw, list) else str(raw)
-    text = text.replace("```json","").replace("```","").strip()
-    s = text.find("{"); e = text.rfind("}")+1
+    text = raw["choices"][0]["message"]["content"].strip()
+    text = text.replace("```json", "").replace("```", "").strip()
+
+    s = text.find("{")
+    e = text.rfind("}") + 1
     if s >= 0 and e > s:
         result = json.loads(text[s:e])
-        if result.get("signal") not in ("BUY","SELL","HOLD"):
+        if result.get("signal") not in ("BUY", "SELL", "HOLD"):
             result["signal"] = "HOLD"
         return result
-    return {"signal":"HOLD","confidence":0,"reason":"hf_no_json","risk":"HIGH"}
+
+    return {"signal":"HOLD","confidence":0,"reason":"hf_no_json","risk":"HIGH","market":"SPOT"}
 
 def ask_ai(prompt: str) -> dict:
     cached = _get_cached_ai(prompt)
@@ -812,8 +823,8 @@ _prices_cache_data = {}
 def get_prices_batch() -> dict:
     global _prices_cache_ts, _prices_cache_data
     now = time.time()
-    if now - _prices_cache_ts < 60 and _prices_cache_data:
-        return _prices_cache_data
+    if now - _prices_cache_ts < 120 and _prices_cache_data:
+    return _prices_cache_data
     try:
         ids = ",".join(COINGECKO_IDS.values())
         r = requests.get(
