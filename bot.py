@@ -2547,8 +2547,29 @@ def format_backtest_result(r: dict) -> str:
 
 
 def learn_from_backtest_result(result: dict):
-    if "error" in result:
-        return
+    try:
+        if "error" in result:
+            return
+
+        win_rate = result.get("win_rate", 0)
+        pnl = result.get("total_pnl", 0)
+
+        if win_rate > 60:
+            print("[LEARN] Bonne stratégie détectée")
+            memory.setdefault("good_setups", []).append(result)
+        elif win_rate < 40:
+            print("[LEARN] Mauvaise stratégie détectée")
+            memory.setdefault("bad_setups", []).append(result)
+
+        if pnl > 0:
+            memory["total_wins"] = memory.get("total_wins", 0) + 1
+        else:
+            memory["total_losses"] = memory.get("total_losses", 0) + 1
+
+        save_data()
+
+    except Exception as e:
+        print(f"[LEARN] backtest error: {e}")
 
     sample = result.get("trades", [])
     symbol = result.get("symbol", "BTCUSDT")
@@ -2568,6 +2589,22 @@ def learn_from_backtest_result(result: dict):
             "patterns": [f"backtest_{result.get('interval','5m')}"]
         }
         learn_from_trade(fake_trade, send_fn=None)
+
+def auto_training():
+    while True:
+        try:
+            print("[AUTO-TRAIN] lancement")
+
+            for symbol in ["BTCUSDT","ETHUSDT","SOLUSDT"]:
+                result = run_backtest(symbol, "5m", 30)
+                learn_from_backtest_result(result)
+
+            print("[AUTO-TRAIN] terminé")
+
+        except Exception as e:
+            print(f"[AUTO-TRAIN ERROR] {e}")
+
+        time.sleep(300)  # toutes les 5 min
 
 def auto_training():
     pairs = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
@@ -3885,15 +3922,13 @@ if __name__ == "__main__":
     init_db()
     load_data()
 
-    # 🔥 AUTO TRAINING (IMPORTANT)
-    threading.Thread(target=auto_training, daemon=True).start()
-
-    # WebSocket Binance
     start_websocket()
 
-    # Serveur + ping
     threading.Thread(target=run_server, daemon=True).start()
     threading.Thread(target=self_ping, daemon=True).start()
+
+    # ✅ AUTO TRAINING ICI
+    threading.Thread(target=auto_training, daemon=True).start()
 
     print("Serveur HTTP port 8000")
 
