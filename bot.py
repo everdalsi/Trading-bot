@@ -3754,6 +3754,6 @@ if __name__ == "__main__":
     start_websocket()
     threading.Thread(target=run_server,  daemon=True).start()
     threading.Thread(target=self_ping,   daemon=True).start()
-    threading.Thread(target=auto_start,  daemon=True).start()
+    # threading.Thread(target=auto_start,  daemon=True).start()
     print("Serveur HTTP port 8000")
     asyncio.run(run_telegram())
