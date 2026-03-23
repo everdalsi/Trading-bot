@@ -1689,7 +1689,7 @@ def open_micro_trade(symbol: str, price: float, signal: dict, send_fn) -> dict |
     if micro_count >= MAX_MICRO_POSITIONS: return None
     if any(p["symbol"]==symbol and p.get("trade_type")=="MICRO" for p in sim["positions"].values()): return None
     if sim["cash"] < 15: return None
-      if symbol in memory.get("recent_losses", []):
+    if symbol in memory.get("recent_losses", []):
     print(f"[FILTER] {symbol} évité en MICRO (pertes récentes)")
     return None
     night_factor = 0.5 if is_night_time() else 1.0
