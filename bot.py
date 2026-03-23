@@ -379,8 +379,6 @@ def _ws_prefill_from_rest():
 AI_PROVIDERS = [
     {"name":"groq","calls":0,"window_start":time.time(),"last_call":0,
      "max_calls_per_hour":10,"cooldown":360,"available":True,"failures":0},
-    {"name":"huggingface","calls":0,"window_start":time.time(),"last_call":0,
-     "max_calls_per_hour":30,"cooldown":120,"available":True,"failures":0},
 ]
 _pool_stats = {
     "total_calls":0,"calls_by_provider":{},"fallbacks":0,"last_provider":"groq",
