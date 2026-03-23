@@ -1,35 +1,8 @@
 {
   "sim": {
-    "cash": 3614.4242008942715,
+    "cash": 4110.502091495704,
     "initial": 1000.0,
     "positions": {
-      "MICRO_ETHUSDT_9": {
-        "id": 9,
-        "symbol": "ETHUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 2040.79,
-        "price_out": null,
-        "qty": 0.24294797057726944,
-        "amount_usd": 495.8057888743857,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=9 mom=-0.30% vol=3.5x",
-        "exit_reason": null,
-        "time_in": "2026-03-23 00:36:56",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 2043.66,
-        "open_time": 1774226216.2509015,
-        "kelly_pct": 0.1,
-        "pos_key": "MICRO_ETHUSDT_9"
-      },
       "MICRO_SOLUSDT_10": {
         "id": 10,
         "symbol": "SOLUSDT",
@@ -52,7 +25,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 85.78,
+        "peak_price": 85.79,
         "open_time": 1774226216.6329129,
         "kelly_pct": 0.1,
         "pos_key": "MICRO_SOLUSDT_10"
@@ -303,17 +276,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 2040.79,
-        "price_out": null,
+        "price_out": 2041.91,
         "qty": 0.24294797057726944,
         "amount_usd": 495.8057888743857,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=9 mom=-0.30% vol=3.5x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 95s",
         "time_in": "2026-03-23 00:36:56",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-23 00:38:31",
+        "pnl": 0.272102,
+        "pnl_pct": 0.055,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -377,8 +350,8 @@
     ],
     "equity_history": [],
     "session": 1,
-    "peak_equity": 4959.25,
-    "daily_start_equity": 4959.25,
+    "peak_equity": 4958.06,
+    "daily_start_equity": 4958.06,
     "daily_start_date": "2026-03-23"
   },
   "memory": {
@@ -449,6 +422,6 @@
         "status": "\u2705 Promos d\u00e9tect\u00e9es"
       }
     ],
-    "last_scan": 1774226308.5694745
+    "last_scan": 1774226245.8967392
   }
 }
