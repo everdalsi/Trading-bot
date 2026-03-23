@@ -2477,18 +2477,19 @@ class BotHandler(BaseHTTPRequestHandler):
             self.send_response(200); self.send_header("Content-type","text/html; charset=utf-8")
             self.end_headers(); self.wfile.write(generate_dashboard().encode("utf-8"))
     def do_POST(self):
-    print(f"[POST] reçu path={self.path}")
-    if self.path != WEBHOOK_PATH: 
-        print(f"[POST] mauvais path, attendu={WEBHOOK_PATH}")
-        self.send_response(404); self.end_headers(); return
-    n = int(self.headers.get("Content-Length",0))
-    body = self.rfile.read(n)
-    print(f"[POST] body={body[:100]}")
-    if _app and _main_loop:
-        asyncio.run_coroutine_threadsafe(_process_update(body), _main_loop)
-    else:
-        print(f"[POST] _app={_app} _main_loop={_main_loop}")
-    self.send_response(200); self.end_headers()
+        print(f"[POST] reçu path={self.path}")
+        if self.path != WEBHOOK_PATH:
+            print(f"[POST] mauvais path attendu={WEBHOOK_PATH}")
+            self.send_response(404); self.end_headers(); return
+        n = int(self.headers.get("Content-Length",0))
+        body = self.rfile.read(n)
+        print(f"[POST] body={body[:100]}")
+        if _app and _main_loop:
+            asyncio.run_coroutine_threadsafe(_process_update(body), _main_loop)
+        else:
+            print(f"[POST] _app={_app} _main_loop={_main_loop}")
+        self.send_response(200); self.end_headers()
+    def log_message(self, fmt, *args): pass
 
 
 async def _process_update(body: bytes):
