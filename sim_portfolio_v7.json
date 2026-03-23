@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 2.7205758803966024e+63,
+    "cash": 2.0734820729357864e+64,
     "initial": 1000.0,
     "positions": {
       "MEME_7_166": {
@@ -30,6 +30,34 @@
         "open_time": 1774285567.7282703,
         "kelly_pct": 0.05,
         "pos_key": "MEME_7_166"
+      },
+      "MEME_PIXELS_199": {
+        "id": 199,
+        "symbol": "PIXELS",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "PIXELS",
+        "price_in": 0.0003461,
+        "price_out": null,
+        "qty": 3.930332101121934e+65,
+        "amount_usd": 1.3602879401983014e+62,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-23 21:06:31",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.04618,
+        "open_time": 1774299991.9131122,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_PIXELS_199"
       }
     },
     "trades": [
@@ -5378,6 +5406,33 @@
         "peak_price": 0.0003461,
         "open_time": 1774299946.587305,
         "kelly_pct": 0.05
+      },
+      {
+        "id": 199,
+        "symbol": "PIXELS",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "PIXELS",
+        "price_in": 0.0003461,
+        "price_out": 0.04618,
+        "qty": 3.930332101121934e+65,
+        "amount_usd": 1.3602879401983014e+62,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": "\ud83c\udfaf MEME TP (+13243.0%)",
+        "time_in": "2026-03-23 21:06:31",
+        "time_out": "2026-03-23 21:06:32",
+        "pnl": 1.801424484896126e+64,
+        "pnl_pct": 13242.96,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0003461,
+        "open_time": 1774299991.9131122,
+        "kelly_pct": 0.05
       }
     ],
     "equity_history": [],
@@ -7466,6 +7521,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-23 21:05"
+      },
+      {
+        "trade_id": 199,
+        "pnl": 1.801424484896126e+64,
+        "symbol": "PIXELS",
+        "market": "MEME",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "memecoin",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-23 21:06"
       }
     ],
     "patterns_to_avoid": [
@@ -7631,7 +7697,7 @@
       "memecoin"
     ],
     "confidence_threshold": 55,
-    "total_wins": 130,
+    "total_wins": 131,
     "total_losses": 65,
     "symbol_scores": {
       "BTCUSDT": -2,
