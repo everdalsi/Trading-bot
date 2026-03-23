@@ -1232,6 +1232,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-23 08:15"
+      },
+      {
+        "trade_id": -2,
+        "pnl": 0.0916,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-23 08:15"
       }
     ],
     "patterns_to_avoid": [
@@ -1261,6 +1272,7 @@
       "memecoin",
       "memecoin",
       "backtest_5m",
+      "backtest_5m",
       "backtest_5m"
     ],
     "confidence_threshold": 55,
@@ -1269,7 +1281,7 @@
     "symbol_scores": {
       "BTCUSDT": -2,
       "ETHUSDT": -12,
-      "SOLUSDT": 3,
+      "SOLUSDT": 5,
       "Computer": 12,
       "CHIBILAND": -15
     },
