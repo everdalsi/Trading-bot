@@ -30,34 +30,6 @@
         "open_time": 1774285567.7282703,
         "kelly_pct": 0.05,
         "pos_key": "MEME_7_166"
-      },
-      "MEME_BOB_210": {
-        "id": 210,
-        "symbol": "BOB",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "BOB",
-        "price_in": 0.0004112,
-        "price_out": null,
-        "qty": 3.130929597440197e+72,
-        "amount_usd": 1.2874382504674092e+69,
-        "confidence": 95,
-        "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-23 21:22:03",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0004112,
-        "open_time": 1774300923.4006128,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_BOB_210"
       }
     },
     "trades": [
