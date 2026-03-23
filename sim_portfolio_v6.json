@@ -1,35 +1,8 @@
 {
   "sim": {
-    "cash": 4110.361181672769,
+    "cash": 4556.117995708015,
     "initial": 1000.0,
     "positions": {
-      "MICRO_SOLUSDT_10": {
-        "id": 10,
-        "symbol": "SOLUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 85.74,
-        "price_out": null,
-        "qty": 5.204399463342047,
-        "amount_usd": 446.2252099869471,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=12 mom=-0.24% vol=5.3x",
-        "exit_reason": null,
-        "time_in": "2026-03-23 00:36:56",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 85.78,
-        "open_time": 1774226216.6329129,
-        "kelly_pct": 0.1,
-        "pos_key": "MICRO_SOLUSDT_10"
-      },
       "MICRO_BNBUSDT_11": {
         "id": 11,
         "symbol": "BNBUSDT",
@@ -302,17 +275,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 85.74,
-        "price_out": null,
+        "price_out": 85.65,
         "qty": 5.204399463342047,
         "amount_usd": 446.2252099869471,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=12 mom=-0.24% vol=5.3x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 97s",
         "time_in": "2026-03-23 00:36:56",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-23 00:38:35",
+        "pnl": -0.468396,
+        "pnl_pct": -0.105,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -359,20 +332,22 @@
     "patterns_to_avoid": [],
     "patterns_that_work": [],
     "confidence_threshold": 65,
-    "total_wins": 1,
+    "total_wins": 2,
     "total_losses": 4,
     "symbol_scores": {
       "FETUSDT": -3,
       "APTUSDT": -3,
       "BTCUSDT": -3,
-      "SOLUSDT": -3
+      "SOLUSDT": -3,
+      "ETHUSDT": 2
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
       "FETUSDT": 1,
       "APTUSDT": 1,
       "BTCUSDT": 1,
-      "SOLUSDT": 1
+      "SOLUSDT": 1,
+      "ETHUSDT": 0
     }
   },
   "epargne": {
