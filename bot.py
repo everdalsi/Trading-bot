@@ -579,7 +579,7 @@ def get_prices_batch() -> dict:
             data = r.json()
             for symbol, cg_id in COINGECKO_IDS.items():
                 if cg_id in data:
-                    p = float(data[cg_id]["price"])
+                    p = float(data[cg_id]["usd"])
                     prices[symbol] = p
                     _price_cache[symbol] = (time.time(), p)
     except Exception as e: print(f"[PRICE] {e}")
