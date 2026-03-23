@@ -1,8 +1,37 @@
 {
   "sim": {
-    "cash": 3962.4116031843723,
+    "cash": 3817.4744201075328,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MEME_CHIBILAND_33": {
+        "id": 33,
+        "symbol": "CHIBILAND",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "CHIBILAND",
+        "price_in": 0.0003986,
+        "price_out": null,
+        "qty": 497041.09422784403,
+        "amount_usd": 198.12058015921863,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-23 07:29:21",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0003986,
+        "open_time": 1774250961.4955206,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_CHIBILAND_33"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -867,6 +896,33 @@
         "peak_price": 0.0003986,
         "open_time": 1774250916.593315,
         "kelly_pct": 0.05
+      },
+      {
+        "id": 33,
+        "symbol": "CHIBILAND",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "CHIBILAND",
+        "price_in": 0.0003986,
+        "price_out": 0.000107,
+        "qty": 497041.09422784403,
+        "amount_usd": 198.12058015921863,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": "\ud83d\uded1 MEME SL (-73.2%)",
+        "time_in": "2026-03-23 07:29:21",
+        "time_out": "2026-03-23 07:29:21",
+        "pnl": -144.937183,
+        "pnl_pct": -73.16,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0003986,
+        "open_time": 1774250961.4955206,
+        "kelly_pct": 0.05
       }
     ],
     "equity_history": [],
@@ -1063,6 +1119,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-23 07:28"
+      },
+      {
+        "trade_id": 33,
+        "pnl": -144.937183,
+        "symbol": "CHIBILAND",
+        "market": "MEME",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "memecoin",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-23 07:29"
       }
     ],
     "patterns_to_avoid": [
@@ -1070,6 +1137,7 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "memecoin",
       "memecoin",
       "memecoin",
       "memecoin",
@@ -1088,13 +1156,13 @@
     ],
     "confidence_threshold": 55,
     "total_wins": 11,
-    "total_losses": 17,
+    "total_losses": 18,
     "symbol_scores": {
       "BTCUSDT": -1,
       "ETHUSDT": -6,
       "SOLUSDT": 1,
       "Computer": 12,
-      "CHIBILAND": -12
+      "CHIBILAND": -15
     },
     "symbol_blacklist": {},
     "consecutive_losses": {}
