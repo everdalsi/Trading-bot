@@ -30,34 +30,6 @@
         "open_time": 1774285567.7282703,
         "kelly_pct": 0.05,
         "pos_key": "MEME_7_166"
-      },
-      "MEME_CHIBIDOOM_185": {
-        "id": 185,
-        "symbol": "CHIBIDOOM",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "CHIBIDOOM",
-        "price_in": 0.0005318,
-        "price_out": null,
-        "qty": 3.5581357926188703e+56,
-        "amount_usd": 1.8922166145147154e+53,
-        "confidence": 95,
-        "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-23 20:04:12",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0005484,
-        "open_time": 1774296252.7150977,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_CHIBIDOOM_185"
       }
     },
     "trades": [
