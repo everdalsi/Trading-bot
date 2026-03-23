@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 3005.9051643651187,
+    "cash": 4112.476767726734,
     "initial": 1000.0,
     "positions": {
       "MEME_Computer_31": {
@@ -26,7 +26,7 @@
           "memecoin"
         ],
         "leverage": 1,
-        "peak_price": 0.0001546,
+        "peak_price": 0.001096,
         "open_time": 1774250868.7644265,
         "kelly_pct": 0.05,
         "pos_key": "MEME_Computer_31"
@@ -851,17 +851,17 @@
         "trade_type": "MEME",
         "meme_symbol": "Computer",
         "price_in": 0.0001546,
-        "price_out": null,
+        "price_out": 0.001096,
         "qty": 1009645.6235051237,
         "amount_usd": 156.0912133938921,
         "confidence": 95,
         "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
+        "exit_reason": "\ud83c\udfaf MEME TP (+608.9%)",
         "time_in": "2026-03-23 07:27:48",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-23 07:27:51",
+        "pnl": 950.48039,
+        "pnl_pct": 608.93,
+        "duration_min": 1,
         "patterns": [
           "memecoin"
         ],
@@ -1043,6 +1043,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-23 07:27"
+      },
+      {
+        "trade_id": 31,
+        "pnl": 950.48039,
+        "symbol": "Computer",
+        "market": "MEME",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "memecoin",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-23 07:27"
       }
     ],
     "patterns_to_avoid": [
@@ -1062,16 +1073,17 @@
       "memecoin",
       "memecoin",
       "memecoin",
+      "memecoin",
       "memecoin"
     ],
     "confidence_threshold": 55,
     "total_wins": 10,
-    "total_losses": 16,
+    "total_losses": 17,
     "symbol_scores": {
       "BTCUSDT": -1,
       "ETHUSDT": -6,
       "SOLUSDT": 1,
-      "Computer": 10,
+      "Computer": 12,
       "CHIBILAND": -9
     },
     "symbol_blacklist": {},
