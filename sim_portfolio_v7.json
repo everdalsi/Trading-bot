@@ -3,34 +3,6 @@
     "cash": 1918.9764500801507,
     "initial": 1000.0,
     "positions": {
-      "MEME_CHIBILAND_26": {
-        "id": 26,
-        "symbol": "CHIBILAND",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "CHIBILAND",
-        "price_in": 0.0004405,
-        "price_out": null,
-        "qty": 238127.0316065273,
-        "amount_usd": 104.89495742267528,
-        "confidence": 95,
-        "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-23 07:26:17",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0004405,
-        "open_time": 1774250777.664733,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_CHIBILAND_26"
-      },
       "MEME_Computer_27": {
         "id": 27,
         "symbol": "Computer",
