@@ -561,7 +561,11 @@ def get_price(symbol: str, force=False) -> float:
         r = requests.get(f"{BINANCE_BASE}/api/v3/ticker/price",
                          params={"symbol": symbol}, timeout=8,
                          headers={"User-Agent":"Mozilla/5.0"})
-        p = float(r.json()["price"])
+        data = r.json()
+        if isinstance(data, list):
+            p = float(data[0]["price"])
+        else:
+            p = float(data["price"])
         _price_cache[symbol] = (now, p); return p
     except Exception as e:
         print(f"[PRICE] {e}")
