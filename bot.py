@@ -1481,7 +1481,17 @@ def open_trade(analysis: dict, send_fn) -> dict | None:
     side   = "LONG" if signal=="BUY" else "SHORT"
     if signal == "SELL" and market == "SPOT": return None
     if not can_open_trade(symbol, market, send_fn): return None
-      confidence = get_symbol_confidence(symbol)
+      # 🧠 AI FILTER — confidence
+confidence = get_symbol_confidence(symbol)
+
+if confidence < 0.4:
+    print(f"[FILTER] {symbol} ignoré (confidence {confidence:.2f})")
+    return None
+
+# 🚫 pertes récentes
+if symbol in memory.get("recent_losses", []):
+    print(f"[FILTER] {symbol} évité (pertes récentes)")
+    return None
 
 if confidence < 0.4:
     print(f"[FILTER] {symbol} ignoré (confidence {confidence:.2f})")
@@ -1654,7 +1664,17 @@ def open_micro_trade(symbol: str, price: float, signal: dict, send_fn) -> dict |
     if micro_count >= MAX_MICRO_POSITIONS: return None
     if any(p["symbol"]==symbol and p.get("trade_type")=="MICRO" for p in sim["positions"].values()): return None
     if sim["cash"] < 15: return None
+      if symbol in memory.get("recent_losses", []):
+    print(f"[FILTER] {symbol} évité en MICRO (pertes récentes)")
+    return None
     night_factor = 0.5 if is_night_time() else 1.0
+    confidence = get_symbol_confidence(symbol)
+
+if confidence > 0.7:
+    amount = sim["cash"] * MICRO_MAX_PCT * 1.3 * night_factor
+elif confidence < 0.4:
+    amount = sim["cash"] * MICRO_MAX_PCT * 0.5 * night_factor
+else:
     amount = sim["cash"] * MICRO_MAX_PCT * night_factor
     qty    = amount/price
     sim["cash"] -= amount
