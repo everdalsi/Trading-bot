@@ -577,6 +577,7 @@ def get_prices_batch() -> dict:
     try:
         r = requests.get(f"{BINANCE_BASE}/api/v3/ticker/price", timeout=8,
                          headers={"User-Agent":"Mozilla/5.0"})
+        print(f"[PRICE-DEBUG] status={r.status_code} body={r.text[:200]}")
         if r.status_code == 200:
             for item in r.json():
                 if item["symbol"] in ALL_SYMBOLS:
