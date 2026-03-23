@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 2.5748765009348182e+70,
+    "cash": 2.5231848532810808e+70,
     "initial": 1000.0,
     "positions": {
       "MEME_7_166": {
@@ -30,6 +30,34 @@
         "open_time": 1774285567.7282703,
         "kelly_pct": 0.05,
         "pos_key": "MEME_7_166"
+      },
+      "MEME_BOB_210": {
+        "id": 210,
+        "symbol": "BOB",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "BOB",
+        "price_in": 0.0004112,
+        "price_out": null,
+        "qty": 3.130929597440197e+72,
+        "amount_usd": 1.2874382504674092e+69,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-23 21:22:03",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0004112,
+        "open_time": 1774300923.4006128,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_BOB_210"
       }
     },
     "trades": [
@@ -5675,6 +5703,33 @@
         "peak_price": 0.0003936,
         "open_time": 1774300874.4746866,
         "kelly_pct": 0.05
+      },
+      {
+        "id": 210,
+        "symbol": "BOB",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "BOB",
+        "price_in": 0.0004112,
+        "price_out": 0.0002461,
+        "qty": 3.130929597440197e+72,
+        "amount_usd": 1.2874382504674092e+69,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": "\ud83d\uded1 MEME SL (-40.2%)",
+        "time_in": "2026-03-23 21:22:03",
+        "time_out": "2026-03-23 21:22:04",
+        "pnl": -5.169164765373765e+68,
+        "pnl_pct": -40.15,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0004112,
+        "open_time": 1774300923.4006128,
+        "kelly_pct": 0.05
       }
     ],
     "equity_history": [],
@@ -5685,17 +5740,6 @@
   },
   "memory": {
     "lessons": [
-      {
-        "trade_id": -1,
-        "pnl": 3.001,
-        "symbol": "BTCUSDT",
-        "market": "BACKTEST",
-        "lecon": "Scalp rapide gagnant",
-        "pattern": "backtest_5m",
-        "action_future": "Conserver ce setup pour micro-trading",
-        "type": "succes",
-        "date": "2026-03-23 07:16"
-      },
       {
         "trade_id": -2,
         "pnl": -0.8074,
@@ -7884,6 +7928,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-23 21:21"
+      },
+      {
+        "trade_id": 210,
+        "pnl": -5.169164765373765e+68,
+        "symbol": "BOB",
+        "market": "MEME",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "memecoin",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-23 21:22"
       }
     ],
     "patterns_to_avoid": [
@@ -7902,6 +7957,7 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "memecoin",
       "memecoin",
       "memecoin",
       "memecoin",
@@ -8053,7 +8109,7 @@
     ],
     "confidence_threshold": 55,
     "total_wins": 139,
-    "total_losses": 67,
+    "total_losses": 68,
     "symbol_scores": {
       "BTCUSDT": -2,
       "ETHUSDT": -12,
@@ -8068,7 +8124,7 @@
       "LOL": 15,
       "CHIBIDOOM": -1,
       "PIXELS": 15,
-      "BOB": -9
+      "BOB": -12
     },
     "symbol_blacklist": {},
     "consecutive_losses": {},
