@@ -1,8 +1,37 @@
 {
   "sim": {
-    "cash": 1.2540287754494956e+16,
+    "cash": 2.0602804278871936e+17,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MEME_PERP_132": {
+        "id": 132,
+        "symbol": "PERP",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "PERP",
+        "price_in": 0.0007678,
+        "price_out": null,
+        "qty": 8.166376500713048e+17,
+        "amount_usd": 627014387724747.9,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-23 15:43:55",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.2377,
+        "open_time": 1774280635.2903254,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_PERP_132"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -3540,6 +3569,33 @@
         "peak_price": 0.0007678,
         "open_time": 1774280587.7649426,
         "kelly_pct": 0.05
+      },
+      {
+        "id": 132,
+        "symbol": "PERP",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "PERP",
+        "price_in": 0.0007678,
+        "price_out": 0.2377,
+        "qty": 8.166376500713048e+17,
+        "amount_usd": 627014387724747.9,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": "\ud83c\udfaf MEME TP (+30858.6%)",
+        "time_in": "2026-03-23 15:43:55",
+        "time_out": "2026-03-23 15:43:55",
+        "pnl": 1.9348775503422442e+17,
+        "pnl_pct": 30858.58,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0007678,
+        "open_time": 1774280635.2903254,
+        "kelly_pct": 0.05
       }
     ],
     "equity_history": [],
@@ -4902,6 +4958,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-23 15:43"
+      },
+      {
+        "trade_id": 132,
+        "pnl": 1.9348775503422442e+17,
+        "symbol": "PERP",
+        "market": "MEME",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "memecoin",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-23 15:43"
       }
     ],
     "patterns_to_avoid": [
@@ -5029,10 +5096,11 @@
       "memecoin",
       "memecoin",
       "memecoin",
+      "memecoin",
       "memecoin"
     ],
     "confidence_threshold": 55,
-    "total_wins": 67,
+    "total_wins": 68,
     "total_losses": 62,
     "symbol_scores": {
       "BTCUSDT": -2,
@@ -5044,7 +5112,7 @@
       "Optimistic": -15,
       "Peace ": 15,
       "Buttcoin": -9,
-      "PERP": 10
+      "PERP": 12
     },
     "symbol_blacklist": {},
     "consecutive_losses": {},
