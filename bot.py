@@ -566,8 +566,14 @@ COINGECKO_IDS = {
     "PEPEUSDT":"pepe","FLOKIUSDT":"floki",
 }
 
+_prices_cache_ts = 0
+_prices_cache_data = {}
+
 def get_prices_batch() -> dict:
-    prices = {}
+    global _prices_cache_ts, _prices_cache_data
+    now = time.time()
+    if now - _prices_cache_ts < 60 and _prices_cache_data:
+        return _prices_cache_data
     try:
         ids = ",".join(COINGECKO_IDS.values())
         r = requests.get(
@@ -575,17 +581,23 @@ def get_prices_batch() -> dict:
             params={"ids": ids, "vs_currencies": "usd"},
             timeout=15, headers={"User-Agent":"Mozilla/5.0"}
         )
-        print(f"[CG] status={r.status_code} body={r.text[:300]}")
         if r.status_code == 200:
             data = r.json()
+            prices = {}
             for symbol, cg_id in COINGECKO_IDS.items():
                 if cg_id in data and "usd" in data[cg_id]:
                     p = float(data[cg_id]["usd"])
                     prices[symbol] = p
-                    _price_cache[symbol] = (time.time(), p)
+                    _price_cache[symbol] = (now, p)
+            _prices_cache_data = prices
+            _prices_cache_ts = now
+            return prices
+        elif r.status_code == 429:
+            print("[CG] Rate limit — utilise cache")
+            return _prices_cache_data
     except Exception as e:
         print(f"[PRICE] {e}")
-    return prices
+    return _prices_cache_data
 
 def get_price(symbol: str, force=False) -> float:
     now = time.time()
