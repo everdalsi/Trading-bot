@@ -1177,6 +1177,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-23 07:30"
+      },
+      {
+        "trade_id": -1,
+        "pnl": 3.001,
+        "symbol": "BTCUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-23 08:15"
       }
     ],
     "patterns_to_avoid": [
@@ -1201,13 +1212,14 @@
       "memecoin",
       "memecoin",
       "memecoin",
-      "memecoin"
+      "memecoin",
+      "backtest_5m"
     ],
     "confidence_threshold": 55,
     "total_wins": 12,
     "total_losses": 20,
     "symbol_scores": {
-      "BTCUSDT": -1,
+      "BTCUSDT": 1,
       "ETHUSDT": -6,
       "SOLUSDT": 1,
       "Computer": 12,
