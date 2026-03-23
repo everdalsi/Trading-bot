@@ -759,6 +759,17 @@ def update_symbol_score(symbol: str, won: bool):
     current = scores.get(symbol, 0)
     scores[symbol] = max(-15, min(15, current + (2 if won else -3)))
 
+def get_symbol_confidence(symbol: str) -> float:
+    stats = memory.get("symbol_stats", {}).get(symbol, {})
+    wins = stats.get("wins", 0)
+    losses = stats.get("losses", 0)
+
+    total = wins + losses
+    if total == 0:
+        return 0.5
+
+    return wins / total
+
 def get_open_interest(symbol: str) -> dict:
     return {}
 
@@ -1470,6 +1481,14 @@ def open_trade(analysis: dict, send_fn) -> dict | None:
     side   = "LONG" if signal=="BUY" else "SHORT"
     if signal == "SELL" and market == "SPOT": return None
     if not can_open_trade(symbol, market, send_fn): return None
+      confidence = get_symbol_confidence(symbol)
+
+if confidence < 0.4:
+    print(f"[FILTER] {symbol} ignoré (confidence {confidence:.2f})")
+    return None
+    if symbol in memory.get("recent_losses", []):
+    print(f"[FILTER] {symbol} évité (pertes récentes)")
+    return None
     if any(p["symbol"]==symbol for p in sim["positions"].values()): return None
     if len(sim["positions"]) >= MAX_POSITIONS: return None
     if sim["cash"] < 20: return None
