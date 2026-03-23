@@ -1497,8 +1497,8 @@ if confidence < 0.4:
     print(f"[FILTER] {symbol} ignoré (confidence {confidence:.2f})")
     return None
     if symbol in memory.get("recent_losses", []):
-    print(f"[FILTER] {symbol} évité (pertes récentes)")
-    return None
+        print(f"[FILTER] {symbol} évité (pertes récentes)")
+        return None
     if any(p["symbol"]==symbol for p in sim["positions"].values()): return None
     if len(sim["positions"]) >= MAX_POSITIONS: return None
     if sim["cash"] < 20: return None
