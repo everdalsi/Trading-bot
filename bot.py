@@ -575,7 +575,8 @@ def get_prices_batch() -> dict:
             params={"ids": ids, "vs_currencies": "usd"},
             timeout=15, headers={"User-Agent":"Mozilla/5.0"}
         )
-        if r.status_code == 200:
+        print(f"[CG] status={r.status_code} body={r.text[:300]}")
+if r.status_code == 200:
             data = r.json()
             for symbol, cg_id in COINGECKO_IDS.items():
                 if cg_id in data:
