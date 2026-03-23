@@ -2,36 +2,7 @@
   "sim": {
     "cash": 1564.905497663433,
     "initial": 1000.0,
-    "positions": {
-      "MEME_Computer_24": {
-        "id": 24,
-        "symbol": "Computer",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "Computer",
-        "price_in": 0.0001403,
-        "price_out": null,
-        "qty": 416010.18094569823,
-        "amount_usd": 58.36622838668146,
-        "confidence": 95,
-        "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-23 07:24:40",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.001096,
-        "open_time": 1774250680.9650493,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_Computer_24"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
