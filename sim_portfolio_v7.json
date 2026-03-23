@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 1.2288213221933388e+73,
+    "cash": 1.2210446239682259e+73,
     "initial": 1000.0,
     "positions": {
       "MEME_7_166": {
@@ -30,6 +30,34 @@
         "open_time": 1774285567.7282703,
         "kelly_pct": 0.05,
         "pos_key": "MEME_7_166"
+      },
+      "MEME_Clippy_222": {
+        "id": 222,
+        "symbol": "Clippy",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "Clippy",
+        "price_in": 0.0004772,
+        "price_out": null,
+        "qty": 1.287532818727304e+75,
+        "amount_usd": 6.144106610966694e+71,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-23 21:57:15",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0004772,
+        "open_time": 1774303035.890646,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_Clippy_222"
       }
     },
     "trades": [
@@ -5999,6 +6027,33 @@
         "peak_price": 0.0005307,
         "open_time": 1774302553.8975494,
         "kelly_pct": 0.05
+      },
+      {
+        "id": 222,
+        "symbol": "Clippy",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "Clippy",
+        "price_in": 0.0004772,
+        "price_out": 0.0004168,
+        "qty": 1.287532818727304e+75,
+        "amount_usd": 6.144106610966694e+71,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": "\ud83d\uded1 MEME SL (-12.7%)",
+        "time_in": "2026-03-23 21:57:15",
+        "time_out": "2026-03-23 22:01:09",
+        "pnl": -7.776698225112917e+70,
+        "pnl_pct": -12.66,
+        "duration_min": 3,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0004772,
+        "open_time": 1774303035.890646,
+        "kelly_pct": 0.05
       }
     ],
     "equity_history": [],
@@ -6009,17 +6064,6 @@
   },
   "memory": {
     "lessons": [
-      {
-        "trade_id": 28,
-        "pnl": -98.669414,
-        "symbol": "CHIBILAND",
-        "market": "MEME",
-        "lecon": "Entr\u00e9e trop agressive",
-        "pattern": "memecoin",
-        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
-        "type": "erreur",
-        "date": "2026-03-23 07:27"
-      },
       {
         "trade_id": 29,
         "pnl": 759.377268,
@@ -8208,6 +8252,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-23 21:49"
+      },
+      {
+        "trade_id": 222,
+        "pnl": -7.776698225112917e+70,
+        "symbol": "Clippy",
+        "market": "MEME",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "memecoin",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-23 22:01"
       }
     ],
     "patterns_to_avoid": [
@@ -8226,6 +8281,7 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "memecoin",
       "memecoin",
       "memecoin",
       "memecoin",
@@ -8384,9 +8440,9 @@
       "memecoin",
       "memecoin"
     ],
-    "confidence_threshold": 55,
+    "confidence_threshold": 58,
     "total_wins": 142,
-    "total_losses": 76,
+    "total_losses": 77,
     "symbol_scores": {
       "BTCUSDT": -2,
       "ETHUSDT": -12,
