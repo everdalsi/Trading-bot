@@ -1229,7 +1229,7 @@
     ],
     "confidence_threshold": 55,
     "total_wins": 12,
-    "total_losses": 20,
+    "total_losses": 21,
     "symbol_scores": {
       "BTCUSDT": -2,
       "ETHUSDT": -6,
@@ -1238,7 +1238,47 @@
       "CHIBILAND": -15
     },
     "symbol_blacklist": {},
-    "consecutive_losses": {}
+    "consecutive_losses": {},
+    "bad_setups": [
+      {
+        "symbol": "ETHUSDT",
+        "interval": "5m",
+        "days": 30,
+        "total_trades": 2,
+        "wins": 0,
+        "losses": 2,
+        "win_rate": 0.0,
+        "total_pnl": -2.0,
+        "total_pnl_pct": -0.2,
+        "sharpe": -30.53,
+        "max_drawdown": -0.2,
+        "profit_factor": 0.0,
+        "best_trade": -0.24,
+        "worst_trade": -0.76,
+        "avg_trade": -0.5,
+        "final_equity": 998.0,
+        "sl_used": 0.025,
+        "tp_used": 0.04,
+        "trades": [
+          {
+            "entry": 2087.67,
+            "exit": 2082.69,
+            "pnl": -0.4771,
+            "pnl_pct": -0.24,
+            "exit_reason": "TIMEOUT",
+            "idx": 724
+          },
+          {
+            "entry": 2079.1,
+            "exit": 2063.21,
+            "pnl": -1.5278,
+            "pnl_pct": -0.76,
+            "exit_reason": "TIMEOUT",
+            "idx": 851
+          }
+        ]
+      }
+    ]
   },
   "epargne": {
     "total_earned": 0.0,
