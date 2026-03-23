@@ -2526,7 +2526,7 @@ def learn_from_backtest_result(result: dict):
             "duration_min": 5,
             "reason": "backtest_sample",
             "exit_reason": t.get("exit_reason", "BACKTEST"),
-            "patterns": [f"backtest_{result.get('interval', '5m')}"],
+            "patterns": [f"backtest_{result.get('interval','5m')}"]
         }
         learn_from_trade(fake_trade, send_fn=None)
 
