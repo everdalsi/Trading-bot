@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 4080.640479711192,
+    "cash": 3885.5813453822193,
     "initial": 1000.0,
     "positions": {},
     "trades": [
@@ -399,6 +399,33 @@
         "peak_price": 0.006501,
         "open_time": 1774235277.071036,
         "kelly_pct": 0.05
+      },
+      {
+        "id": 16,
+        "symbol": "VDOR",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "VDOR",
+        "price_in": 0.006501,
+        "price_out": 0.0002859,
+        "qty": 31384.713734126995,
+        "amount_usd": 204.0320239855596,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": "\ud83d\uded1 MEME SL (-95.6%)",
+        "time_in": "2026-03-23 03:08:46",
+        "time_out": "2026-03-23 03:08:46",
+        "pnl": -195.059134,
+        "pnl_pct": -95.6,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.006501,
+        "open_time": 1774235326.2069793,
+        "kelly_pct": 0.05
       }
     ],
     "equity_history": [],
@@ -413,7 +440,7 @@
     "patterns_that_work": [],
     "confidence_threshold": 65,
     "total_wins": 3,
-    "total_losses": 7,
+    "total_losses": 8,
     "symbol_scores": {
       "FETUSDT": -3,
       "APTUSDT": -3,
