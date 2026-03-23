@@ -1,8 +1,36 @@
 {
   "sim": {
-    "cash": 4960.2200558217055,
+    "cash": 4464.1980502395345,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MICRO_LINKUSDT_7": {
+        "id": 7,
+        "symbol": "LINKUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 8.68,
+        "price_out": null,
+        "qty": 57.14539234817633,
+        "amount_usd": 496.02200558217055,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=16 mom=-0.23% vol=3.8x",
+        "exit_reason": null,
+        "time_in": "2026-03-23 00:32:06",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 8.68,
+        "open_time": 1774225926.2772675,
+        "kelly_pct": 0.1,
+        "pos_key": "MICRO_LINKUSDT_7"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -161,6 +189,32 @@
         "peak_price": 0.0005832,
         "open_time": 1774223951.1705775,
         "kelly_pct": 0.05
+      },
+      {
+        "id": 7,
+        "symbol": "LINKUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 8.68,
+        "price_out": null,
+        "qty": 57.14539234817633,
+        "amount_usd": 496.02200558217055,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=16 mom=-0.23% vol=3.8x",
+        "exit_reason": null,
+        "time_in": "2026-03-23 00:32:06",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 8.68,
+        "open_time": 1774225926.2772675,
+        "kelly_pct": 0.1
       }
     ],
     "equity_history": [],
@@ -233,6 +287,6 @@
         "status": "\u2705 Promos d\u00e9tect\u00e9es"
       }
     ],
-    "last_scan": 1774225918.2661183
+    "last_scan": 1774225957.8484135
   }
 }
