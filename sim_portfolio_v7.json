@@ -1,8 +1,37 @@
 {
   "sim": {
-    "cash": 9747043819.813229,
+    "cash": 9692535558.231354,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MEME_Buttcoin_125": {
+        "id": 125,
+        "symbol": "Buttcoin",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "Buttcoin",
+        "price_in": 0.01815,
+        "price_out": null,
+        "qty": 26851360385.16041,
+        "amount_usd": 487352190.99066144,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-23 15:08:15",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.01815,
+        "open_time": 1774278495.117358,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_Buttcoin_125"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -3351,6 +3380,33 @@
         "peak_price": 0.01815,
         "open_time": 1774278444.0500014,
         "kelly_pct": 0.05
+      },
+      {
+        "id": 125,
+        "symbol": "Buttcoin",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "Buttcoin",
+        "price_in": 0.01815,
+        "price_out": 0.01612,
+        "qty": 26851360385.16041,
+        "amount_usd": 487352190.99066144,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": "\ud83d\uded1 MEME SL (-11.2%)",
+        "time_in": "2026-03-23 15:08:15",
+        "time_out": "2026-03-23 15:08:15",
+        "pnl": -54508261.581876,
+        "pnl_pct": -11.18,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.01815,
+        "open_time": 1774278495.117358,
+        "kelly_pct": 0.05
       }
     ],
     "equity_history": [],
@@ -4636,6 +4692,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-23 15:07"
+      },
+      {
+        "trade_id": 125,
+        "pnl": -54508261.581876,
+        "symbol": "Buttcoin",
+        "market": "MEME",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "memecoin",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-23 15:08"
       }
     ],
     "patterns_to_avoid": [
@@ -4654,6 +4721,7 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "memecoin",
       "memecoin",
       "memecoin",
       "memecoin",
@@ -4760,7 +4828,7 @@
     ],
     "confidence_threshold": 55,
     "total_wins": 63,
-    "total_losses": 59,
+    "total_losses": 60,
     "symbol_scores": {
       "BTCUSDT": -2,
       "ETHUSDT": -12,
@@ -4770,7 +4838,7 @@
       "USDUC": 4,
       "Optimistic": -15,
       "Peace ": 15,
-      "Buttcoin": -3
+      "Buttcoin": -6
     },
     "symbol_blacklist": {},
     "consecutive_losses": {},
