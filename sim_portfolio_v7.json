@@ -1,8 +1,37 @@
 {
   "sim": {
-    "cash": 870.7533128799648,
+    "cash": 1167.3245677336292,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MEME_Computer_23": {
+        "id": 23,
+        "symbol": "Computer",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "Computer",
+        "price_in": 0.0001403,
+        "price_out": null,
+        "qty": 310318.3581183054,
+        "amount_usd": 43.537665643998245,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-23 07:23:57",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.001096,
+        "open_time": 1774250637.8038583,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_Computer_23"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -597,12 +626,39 @@
         "peak_price": 0.003685,
         "open_time": 1774248485.9215717,
         "kelly_pct": 0.05
+      },
+      {
+        "id": 23,
+        "symbol": "Computer",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "Computer",
+        "price_in": 0.0001403,
+        "price_out": 0.001096,
+        "qty": 310318.3581183054,
+        "amount_usd": 43.537665643998245,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": "\ud83c\udfaf MEME TP (+681.2%)",
+        "time_in": "2026-03-23 07:23:57",
+        "time_out": "2026-03-23 07:23:58",
+        "pnl": 296.571255,
+        "pnl_pct": 681.18,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0001403,
+        "open_time": 1774250637.8038583,
+        "kelly_pct": 0.05
       }
     ],
     "equity_history": [],
     "session": 1,
-    "peak_equity": 1028.45,
-    "daily_start_equity": 1028.45,
+    "peak_equity": 870.75,
+    "daily_start_equity": 870.75,
     "daily_start_date": "2026-03-23"
   },
   "memory": {
@@ -683,6 +739,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-23 07:16"
+      },
+      {
+        "trade_id": 23,
+        "pnl": 296.571255,
+        "symbol": "Computer",
+        "market": "MEME",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "memecoin",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-23 07:23"
       }
     ],
     "patterns_to_avoid": [
@@ -694,15 +761,17 @@
     "patterns_that_work": [
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "memecoin"
     ],
-    "confidence_threshold": 65,
+    "confidence_threshold": 63,
     "total_wins": 5,
     "total_losses": 14,
     "symbol_scores": {
       "BTCUSDT": -1,
       "ETHUSDT": -6,
-      "SOLUSDT": 1
+      "SOLUSDT": 1,
+      "Computer": 2
     },
     "symbol_blacklist": {},
     "consecutive_losses": {}
