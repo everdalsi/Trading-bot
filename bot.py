@@ -374,8 +374,7 @@ def _ws_prefill_from_rest():
     print("[WS] Pré-remplissage terminé ✅")
 
 # ═══════════════════════════════════════════════════════════════
-#  AI POOL — Optimisé avec cache et déduplication
-# ═══════════════════════════════════════════════════════════════
+#  AI POOL — Optimisé avec cache 
 AI_PROVIDERS = [
     {"name":"groq","calls":0,"window_start":time.time(),"last_call":0,
      "max_calls_per_hour":10,"cooldown":360,"available":True,"failures":0},
@@ -2712,14 +2711,38 @@ def test_strategy_variation(send_fn):
 # ═══════════════════════════════════════════════════════════════
 def trading_loop(send_fn):
     kelly_init = kelly_criterion()
-    hf_status  = "✅" if HF_KEY else "❌ Non configuré"
     gh_status  = "✅" if GITHUB_TOKEN else "❌ Non configuré"
     ws_status  = "✅ WebSocket" if WS_AVAILABLE else "⚠️ REST fallback"
+
+    hf_enabled = any(p["name"] == "huggingface" for p in AI_PROVIDERS)
+    hf_status  = "✅" if hf_enabled and HF_KEY else "❌ Désactivé"
+
     equity     = get_equity_safe()
     sim["peak_equity"]        = equity
     sim["daily_start_equity"] = equity
     sim["daily_start_date"]   = datetime.utcnow().strftime("%Y-%m-%d")
+
     send_fn(
+        f"🚀 BOT v7 DÉMARRÉ\n━━━━━━━━━━━━━━━━━━━\n"
+        f"💰 Capital     : ${CAPITAL_INITIAL:,.2f} (virtuel)\n"
+        f"📐 Kelly init  : {kelly_init*100:.1f}% / trade\n"
+        f"━━━━━━━━━━━━━━━━━━━\n"
+        f"🧠 Groq        : ✅ (priorité)\n"
+        f"🤗 HuggingFace : {hf_status}\n"
+        f"💾 GitHub sync : {gh_status}\n"
+        f"📡 Data source : {ws_status}\n"
+        f"━━━━━━━━━━━━━━━━━━━\n"
+        f"🛡️  Stop jour.  : -{MAX_DAILY_LOSS_PCT*100:.0f}%\n"
+        f"📉 Drawdown max: -{MAX_DRAWDOWN_PCT*100:.0f}%\n"
+        f"🌙 Mode nuit   : Actif (2h-6h UTC réduit)\n"
+        f"🔗 Corrélation : Protection activée\n"
+        f"━━━━━━━━━━━━━\n"
+        f"🎯 Polymarket  : actif\n"
+        f"⚡ Arbitrage   : Binance/KuCoin\n"
+        f"🐸 Memecoins   : DexScreener actif\n"
+        f"💰 Épargne     : scan toutes les heures\n"
+        f"📊 Backtest    : /backtest disponible"
+    )
         f"🚀 BOT v7 DÉMARRÉ\n━━━━━━━━━━━━━━━━━━━\n"
         f"💰 Capital     : ${CAPITAL_INITIAL:,.2f} (virtuel)\n"
         f"📐 Kelly init  : {kelly_init*100:.1f}% / trade\n"
@@ -3031,16 +3054,42 @@ def self_ping():
 #  DASHBOARD HTML
 # ═══════════════════════════════════════════════════════════════
 def generate_dashboard() -> str:
-    stats  = get_stats(); equity = get_equity_safe()
-    pnl    = equity - sim["initial"]; pct = pnl/sim["initial"]*100
+    stats  = get_stats()
+    equity = get_equity_safe()
+    pnl    = equity - sim["initial"]
+    pct    = pnl / sim["initial"] * 100
+
     status = "🟢 EN MARCHE" if bot_state["running"] else "🔴 ARRÊTÉ"
-    if bot_state.get("daily_stopped"): status = "🛑 STOP JOUR"
-    kelly  = kelly_criterion(); wr_db = db_win_rate(30); sym_s = db_symbol_stats()
-    last   = bot_state.get("last_heartbeat"); hb = last.strftime("%H:%M:%S") if last else "—"
+    if bot_state.get("daily_stopped"):
+        status = "🛑 STOP JOUR"
+
+    kelly  = kelly_criterion()
+    wr_db  = db_win_rate(30)
+    sym_s  = db_symbol_stats()
+    last   = bot_state.get("last_heartbeat")
+    hb     = last.strftime("%H:%M:%S") if last else "—"
     thresh = memory.get("confidence_threshold", CONFIDENCE_BASE)
-    arb_opps = detect_arbitrage(); poly_mkts = get_polymarket_markets()
-    options  = get_options_data(); onchain = get_onchain_data(); prices = get_prices_batch()
-    ai_groq  = AI_PROVIDERS[0]; ai_hf = AI_PROVIDERS[1]
+
+    arb_opps = detect_arbitrage()
+    poly_mkts = get_polymarket_markets()
+    options  = get_options_data()
+    onchain  = get_onchain_data()
+    prices   = get_prices_batch()
+
+    ai_groq = AI_PROVIDERS[0]
+    ai_hf = AI_PROVIDERS[1] if len(AI_PROVIDERS) > 1 else None
+
+    ai_pool_html = f"Groq:{ai_groq['calls']}/{ai_groq['max_calls_per_hour']}/h<br>Cache:{_pool_stats['cache_hits']}"
+    if ai_hf:
+        ai_pool_html += f"<br>HF:{ai_hf['calls']}/{ai_hf['max_calls_per_hour']}/h"
+
+    macro    = bot_state.get("macro_trend","NEUTRAL")
+    fg_val   = bot_state.get("fg_value",50)
+    daily_start = sim.get("daily_start_equity", CAPITAL_INITIAL)
+    daily_pnl   = equity - daily_start
+    daily_pct2  = daily_pnl/daily_start*100 if daily_start > 0 else 0
+    bl_list     = memory.get("symbol_blacklist",{})
+    ws_str      = "✅ WebSocket" if _ws_connected else "⚠️ REST"
     macro    = bot_state.get("macro_trend","NEUTRAL")
     fg_val   = bot_state.get("fg_value",50)
     daily_start = sim.get("daily_start_equity", CAPITAL_INITIAL)
@@ -3170,8 +3219,7 @@ code{{color:#58a6ff}}
 <div class="grid3">
   <div class="card"><div class="label">BTC Dom.</div><div class="value">{btc_dom}%</div></div>
   <div class="card"><div class="label">MCap 24h</div><div class="value {'green' if mcap_chg>=0 else 'red'}">{mcap_chg:+.1f}%</div></div>
-  <div class="card"><div class="label">AI Pool</div><div class="value" style="font-size:.8em">Groq:{ai_groq['calls']}/{ai_groq['max_calls_per_hour']}/h<br>HF:{ai_hf['calls']}/{ai_hf['max_calls_per_hour']}/h<br>Cache:{_pool_stats['cache_hits']}</div></div>
-</div>
+  <div class="card"><div class="label">AI Pool</div><div class="value" style="font-size:.8em">{ai_pool_html}</div></div>
 <div class="cmds"><b>Commandes v7:</b>
 <code>/start</code> <code>/stop</code> <code>/status</code> <code>/portfolio</code>
 <code>/positions</code> <code>/lecons</code> <code>/scan</code> <code>/arbitrage</code>
