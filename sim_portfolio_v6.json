@@ -1,8 +1,90 @@
 {
   "sim": {
-    "cash": 4958.057888743857,
+    "cash": 3614.4242008942715,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MICRO_ETHUSDT_9": {
+        "id": 9,
+        "symbol": "ETHUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 2040.79,
+        "price_out": null,
+        "qty": 0.24294797057726944,
+        "amount_usd": 495.8057888743857,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=9 mom=-0.30% vol=3.5x",
+        "exit_reason": null,
+        "time_in": "2026-03-23 00:36:56",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 2040.79,
+        "open_time": 1774226216.2509015,
+        "kelly_pct": 0.1,
+        "pos_key": "MICRO_ETHUSDT_9"
+      },
+      "MICRO_SOLUSDT_10": {
+        "id": 10,
+        "symbol": "SOLUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 85.74,
+        "price_out": null,
+        "qty": 5.204399463342047,
+        "amount_usd": 446.2252099869471,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=12 mom=-0.24% vol=5.3x",
+        "exit_reason": null,
+        "time_in": "2026-03-23 00:36:56",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 85.74,
+        "open_time": 1774226216.6329129,
+        "kelly_pct": 0.1,
+        "pos_key": "MICRO_SOLUSDT_10"
+      },
+      "MICRO_BNBUSDT_11": {
+        "id": 11,
+        "symbol": "BNBUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 623.5,
+        "price_out": null,
+        "qty": 0.6441101667814794,
+        "amount_usd": 401.6026889882524,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=18 mom=-0.21% vol=2.5x",
+        "exit_reason": null,
+        "time_in": "2026-03-23 00:36:57",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 623.5,
+        "open_time": 1774226217.019084,
+        "kelly_pct": 0.1,
+        "pos_key": "MICRO_BNBUSDT_11"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -213,6 +295,84 @@
         "peak_price": 85.96,
         "open_time": 1774226001.4909225,
         "kelly_pct": 0.1
+      },
+      {
+        "id": 9,
+        "symbol": "ETHUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 2040.79,
+        "price_out": null,
+        "qty": 0.24294797057726944,
+        "amount_usd": 495.8057888743857,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=9 mom=-0.30% vol=3.5x",
+        "exit_reason": null,
+        "time_in": "2026-03-23 00:36:56",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 2040.79,
+        "open_time": 1774226216.2509015,
+        "kelly_pct": 0.1
+      },
+      {
+        "id": 10,
+        "symbol": "SOLUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 85.74,
+        "price_out": null,
+        "qty": 5.204399463342047,
+        "amount_usd": 446.2252099869471,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=12 mom=-0.24% vol=5.3x",
+        "exit_reason": null,
+        "time_in": "2026-03-23 00:36:56",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 85.74,
+        "open_time": 1774226216.6329129,
+        "kelly_pct": 0.1
+      },
+      {
+        "id": 11,
+        "symbol": "BNBUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 623.5,
+        "price_out": null,
+        "qty": 0.6441101667814794,
+        "amount_usd": 401.6026889882524,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=18 mom=-0.21% vol=2.5x",
+        "exit_reason": null,
+        "time_in": "2026-03-23 00:36:57",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 623.5,
+        "open_time": 1774226217.019084,
+        "kelly_pct": 0.1
       }
     ],
     "equity_history": [],
@@ -279,16 +439,6 @@
     "faucets_used": [],
     "promos_found": [
       {
-        "exchange": "Bybit",
-        "url": "https://www.bybit.com/en/promo/",
-        "keywords": [
-          "bonus",
-          "promo",
-          "free"
-        ],
-        "status": "\u2705 Promos d\u00e9tect\u00e9es"
-      },
-      {
         "exchange": "KuCoin",
         "url": "https://www.kucoin.com/news/bonus",
         "keywords": [
@@ -299,6 +449,6 @@
         "status": "\u2705 Promos d\u00e9tect\u00e9es"
       }
     ],
-    "last_scan": 1774226237.0870094
+    "last_scan": 1774226245.8967392
   }
 }
