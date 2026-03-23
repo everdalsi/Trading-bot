@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 2.9920105517844484e+54,
+    "cash": 3.118847518048028e+54,
     "initial": 1000.0,
     "positions": {
       "MEME_7_166": {
@@ -31,21 +31,21 @@
         "kelly_pct": 0.05,
         "pos_key": "MEME_7_166"
       },
-      "MEME_LOL_175": {
-        "id": 175,
+      "MEME_LOL_176": {
+        "id": 176,
         "symbol": "LOL",
         "market": "MEME",
         "side": "LONG",
         "trade_type": "MEME",
         "meme_symbol": "LOL",
-        "price_in": 0.001773,
+        "price_in": 0.001873,
         "price_out": null,
-        "qty": 8.05429781356856e+55,
-        "amount_usd": 1.4280270023457056e+53,
+        "qty": 7.987214500225436e+55,
+        "amount_usd": 1.4960052758922242e+53,
         "confidence": 85,
         "reason": "Score 5/10 | @DexScreener",
         "exit_reason": null,
-        "time_in": "2026-03-23 18:33:37",
+        "time_in": "2026-03-23 18:57:40",
         "time_out": null,
         "pnl": null,
         "pnl_pct": null,
@@ -55,9 +55,9 @@
         ],
         "leverage": 1,
         "peak_price": 0.003461,
-        "open_time": 1774290817.7188113,
+        "open_time": 1774292260.6040614,
         "kelly_pct": 0.05,
-        "pos_key": "MEME_LOL_175"
+        "pos_key": "MEME_LOL_176"
       }
     },
     "trades": [
@@ -4785,6 +4785,33 @@
         "peak_price": 0.001773,
         "open_time": 1774290817.7188113,
         "kelly_pct": 0.05
+      },
+      {
+        "id": 176,
+        "symbol": "LOL",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "LOL",
+        "price_in": 0.001873,
+        "price_out": 0.003461,
+        "qty": 7.987214500225436e+55,
+        "amount_usd": 1.4960052758922242e+53,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": "\ud83c\udfaf MEME TP (+84.8%)",
+        "time_in": "2026-03-23 18:57:40",
+        "time_out": "2026-03-23 18:57:41",
+        "pnl": 1.2683696626357991e+53,
+        "pnl_pct": 84.78,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.001873,
+        "open_time": 1774292260.6040614,
+        "kelly_pct": 0.05
       }
     ],
     "equity_history": [],
@@ -6620,6 +6647,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-23 18:33"
+      },
+      {
+        "trade_id": 176,
+        "pnl": 1.2683696626357991e+53,
+        "symbol": "LOL",
+        "market": "MEME",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "memecoin",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-23 18:57"
       }
     ],
     "patterns_to_avoid": [
@@ -6680,7 +6718,7 @@
       "memecoin"
     ],
     "patterns_that_work": [
-      "backtest_5m",
+      "memecoin",
       "memecoin",
       "memecoin",
       "memecoin",
@@ -6782,7 +6820,7 @@
       "memecoin"
     ],
     "confidence_threshold": 55,
-    "total_wins": 110,
+    "total_wins": 111,
     "total_losses": 62,
     "symbol_scores": {
       "BTCUSDT": -2,
