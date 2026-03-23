@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 3.882587799096214e+54,
+    "cash": 3.983512863916784e+54,
     "initial": 1000.0,
     "positions": {
       "MEME_7_166": {
@@ -30,6 +30,34 @@
         "open_time": 1774285567.7282703,
         "kelly_pct": 0.05,
         "pos_key": "MEME_7_166"
+      },
+      "MEME_CHIBIDOOM_187": {
+        "id": 187,
+        "symbol": "CHIBIDOOM",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "CHIBIDOOM",
+        "price_in": 0.0003495,
+        "price_out": null,
+        "qty": 5.5544889829702645e+56,
+        "amount_usd": 1.9412938995481074e+53,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-23 20:19:39",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0005312,
+        "open_time": 1774297179.3799675,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_CHIBIDOOM_187"
       }
     },
     "trades": [
@@ -5054,6 +5082,33 @@
         "peak_price": 0.0003495,
         "open_time": 1774297133.4637463,
         "kelly_pct": 0.05
+      },
+      {
+        "id": 187,
+        "symbol": "CHIBIDOOM",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "CHIBIDOOM",
+        "price_in": 0.0003495,
+        "price_out": 0.0005312,
+        "qty": 5.5544889829702645e+56,
+        "amount_usd": 1.9412938995481074e+53,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": "\ud83c\udfaf MEME TP (+52.0%)",
+        "time_in": "2026-03-23 20:19:39",
+        "time_out": "2026-03-23 20:19:40",
+        "pnl": 1.009250648205697e+53,
+        "pnl_pct": 51.99,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0003495,
+        "open_time": 1774297179.3799675,
+        "kelly_pct": 0.05
       }
     ],
     "equity_history": [],
@@ -7010,6 +7065,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-23 20:18"
+      },
+      {
+        "trade_id": 187,
+        "pnl": 1.009250648205697e+53,
+        "symbol": "CHIBIDOOM",
+        "market": "MEME",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "memecoin",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-23 20:19"
       }
     ],
     "patterns_to_avoid": [
@@ -7175,7 +7241,7 @@
       "memecoin"
     ],
     "confidence_threshold": 55,
-    "total_wins": 118,
+    "total_wins": 119,
     "total_losses": 65,
     "symbol_scores": {
       "BTCUSDT": -2,
@@ -7189,7 +7255,7 @@
       "Buttcoin": -9,
       "PERP": 15,
       "LOL": 15,
-      "CHIBIDOOM": -5
+      "CHIBIDOOM": -3
     },
     "symbol_blacklist": {},
     "consecutive_losses": {},
