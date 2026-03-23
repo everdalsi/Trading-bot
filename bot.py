@@ -817,12 +817,13 @@ COINGECKO_IDS = {
 
 _prices_cache_ts   = 0
 _prices_cache_data = {}
+_price_cache = {}
 
 def get_prices_batch() -> dict:
     global _prices_cache_ts, _prices_cache_data
     now = time.time()
     if now - _prices_cache_ts < 120 and _prices_cache_data:
-    return _prices_cache_data
+        return _prices_cache_data
     try:
         ids = ",".join(COINGECKO_IDS.values())
         r = requests.get(
