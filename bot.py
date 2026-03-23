@@ -2743,26 +2743,6 @@ def trading_loop(send_fn):
         f"💰 Épargne     : scan toutes les heures\n"
         f"📊 Backtest    : /backtest disponible"
     )
-        f"🚀 BOT v7 DÉMARRÉ\n━━━━━━━━━━━━━━━━━━━\n"
-        f"💰 Capital     : ${CAPITAL_INITIAL:,.2f} (virtuel)\n"
-        f"📐 Kelly init  : {kelly_init*100:.1f}% / trade\n"
-        f"━━━━━━━━━━━━━━━━━━━\n"
-        f"🧠 Groq        : ✅ (priorité)\n"
-        f"🤗 HuggingFace : {hf_status} (backup)\n"
-        f"💾 GitHub sync : {gh_status}\n"
-        f"📡 Data source : {ws_status}\n"
-        f"━━━━━━━━━━━━━━━━━━━\n"
-        f"🛡️  Stop jour.  : -{MAX_DAILY_LOSS_PCT*100:.0f}%\n"
-        f"📉 Drawdown max: -{MAX_DRAWDOWN_PCT*100:.0f}%\n"
-        f"🌙 Mode nuit   : Actif (2h-6h UTC réduit)\n"
-        f"🔗 Corrélation : Protection activée\n"
-        f"━━━━━━━━━━━━━\n"
-        f"🎯 Polymarket  : actif\n"
-        f"⚡ Arbitrage   : Binance/KuCoin\n"
-        f"🐸 Memecoins   : DexScreener actif\n"
-        f"💰 Épargne     : scan toutes les heures\n"
-        f"📊 Backtest    : /backtest disponible"
-    )
     fear_greed = get_fear_greed()
 
     while bot_state["running"]:
