@@ -1,8 +1,37 @@
 {
   "sim": {
-    "cash": 8093332256.111534,
+    "cash": 8125497457.363176,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MEME_USDUC_101": {
+        "id": 101,
+        "symbol": "USDUC",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "USDUC",
+        "price_in": 0.001711,
+        "price_out": null,
+        "qty": 236508832732.65735,
+        "amount_usd": 404666612.80557674,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-23 10:19:31",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.001847,
+        "open_time": 1774261171.0806854,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_USDUC_101"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -2703,6 +2732,33 @@
         "peak_price": 7.488e-05,
         "open_time": 1774259434.7915347,
         "kelly_pct": 0.05
+      },
+      {
+        "id": 101,
+        "symbol": "USDUC",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "USDUC",
+        "price_in": 0.001711,
+        "price_out": 0.001847,
+        "qty": 236508832732.65735,
+        "amount_usd": 404666612.80557674,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": "\u23f1 TIMEOUT",
+        "time_in": "2026-03-23 10:19:31",
+        "time_out": "2026-03-23 10:24:58",
+        "pnl": 32165201.251641,
+        "pnl_pct": 7.95,
+        "duration_min": 5,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.001711,
+        "open_time": 1774261171.0806854,
+        "kelly_pct": 0.05
       }
     ],
     "equity_history": [],
@@ -3724,6 +3780,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-23 09:50"
+      },
+      {
+        "trade_id": 101,
+        "pnl": 32165201.251641,
+        "symbol": "USDUC",
+        "market": "MEME",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "memecoin",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-23 10:24"
       }
     ],
     "patterns_to_avoid": [
@@ -3820,6 +3887,7 @@
       "memecoin",
       "memecoin",
       "memecoin",
+      "memecoin",
       "memecoin"
     ],
     "confidence_threshold": 55,
@@ -3830,7 +3898,8 @@
       "ETHUSDT": -12,
       "SOLUSDT": 2,
       "Computer": 15,
-      "CHIBILAND": -13
+      "CHIBILAND": -13,
+      "USDUC": 2
     },
     "symbol_blacklist": {},
     "consecutive_losses": {},
