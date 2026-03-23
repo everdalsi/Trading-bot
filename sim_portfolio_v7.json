@@ -1,8 +1,37 @@
 {
   "sim": {
-    "cash": 8146845233.934246,
+    "cash": 8166644339.881257,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MEME_Optimistic_103": {
+        "id": 103,
+        "symbol": "Optimistic",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "Optimistic",
+        "price_in": 0.001255,
+        "price_out": null,
+        "qty": 324575507328.0576,
+        "amount_usd": 407342261.6967123,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-23 11:06:20",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.001316,
+        "open_time": 1774263980.4956293,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_Optimistic_103"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -2757,6 +2786,33 @@
         "peak_price": 0.001827,
         "open_time": 1774261546.674276,
         "kelly_pct": 0.05
+      },
+      {
+        "id": 103,
+        "symbol": "Optimistic",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "Optimistic",
+        "price_in": 0.001255,
+        "price_out": 0.001316,
+        "qty": 324575507328.0576,
+        "amount_usd": 407342261.6967123,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": "\u23f1 TIMEOUT",
+        "time_in": "2026-03-23 11:06:20",
+        "time_out": "2026-03-23 11:11:41",
+        "pnl": 19799105.947011,
+        "pnl_pct": 4.86,
+        "duration_min": 5,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.001255,
+        "open_time": 1774263980.4956293,
+        "kelly_pct": 0.05
       }
     ],
     "equity_history": [],
@@ -3800,6 +3856,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-23 10:31"
+      },
+      {
+        "trade_id": 103,
+        "pnl": 19799105.947011,
+        "symbol": "Optimistic",
+        "market": "MEME",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "memecoin",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-23 11:11"
       }
     ],
     "patterns_to_avoid": [
@@ -3898,10 +3965,11 @@
       "memecoin",
       "memecoin",
       "memecoin",
+      "memecoin",
       "memecoin"
     ],
     "confidence_threshold": 55,
-    "total_wins": 53,
+    "total_wins": 54,
     "total_losses": 47,
     "symbol_scores": {
       "BTCUSDT": -2,
@@ -3909,7 +3977,8 @@
       "SOLUSDT": 2,
       "Computer": 15,
       "CHIBILAND": -13,
-      "USDUC": 4
+      "USDUC": 4,
+      "Optimistic": 2
     },
     "symbol_blacklist": {},
     "consecutive_losses": {},
