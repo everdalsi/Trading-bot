@@ -1692,6 +1692,8 @@ def open_micro_trade(symbol: str, price: float, signal: dict, send_fn) -> dict |
     if symbol in memory.get("recent_losses", []):
     print(f"[FILTER] {symbol} évité en MICRO (pertes récentes)")
     return None
+else:
+    pass
     night_factor = 0.5 if is_night_time() else 1.0
     confidence = get_symbol_confidence(symbol)
 
