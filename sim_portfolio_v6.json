@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 11971.378836370513,
+    "cash": 4960.2200558217055,
     "initial": 1000.0,
     "positions": {},
     "trades": [
@@ -161,47 +161,20 @@
         "peak_price": 0.0005832,
         "open_time": 1774223951.1705775,
         "kelly_pct": 0.05
-      },
-      {
-        "id": 7,
-        "symbol": "one",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "one",
-        "price_in": 0.0005832,
-        "price_out": 0.01707,
-        "qty": 425258.92110954266,
-        "amount_usd": 248.01100279108528,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": "\ud83c\udfaf MEME TP (+2827.0%)",
-        "time_in": "2026-03-23 00:00:00",
-        "time_out": "2026-03-23 00:00:01",
-        "pnl": 7011.158781,
-        "pnl_pct": 2826.95,
-        "duration_min": 1,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0005832,
-        "open_time": 1774224000.0581944,
-        "kelly_pct": 0.05
       }
     ],
     "equity_history": [],
     "session": 1,
-    "peak_equity": 2055.22,
-    "daily_start_equity": 2055.22,
-    "daily_start_date": "2026-03-22"
+    "peak_equity": 4960.22,
+    "daily_start_equity": 4960.22,
+    "daily_start_date": "2026-03-23"
   },
   "memory": {
     "lessons": [],
     "patterns_to_avoid": [],
     "patterns_that_work": [],
     "confidence_threshold": 65,
-    "total_wins": 2,
+    "total_wins": 1,
     "total_losses": 2,
     "symbol_scores": {
       "FETUSDT": -3,
@@ -270,6 +243,6 @@
         "status": "\u2705 Promos d\u00e9tect\u00e9es"
       }
     ],
-    "last_scan": 1774223979.9389956
+    "last_scan": 1774224019.5895963
   }
 }
