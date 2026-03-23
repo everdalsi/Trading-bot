@@ -2629,44 +2629,76 @@ def load_data():
 #  APPRENTISSAGE
 # ═══════════════════════════════════════════════════════════════
 def learn_from_trade(trade: dict, send_fn=None):
-    if trade.get("pnl") is None: return
+    if trade.get("pnl") is None:
+        return
+
     try:
-        verdict = "PERDANT" if trade["pnl"]<0 else "GAGNANT"
-        prompt = f"""Trade simulé {trade['symbol']} {trade['market']}
-${trade['price_in']:.6f}→${trade.get('price_out',0):.6f}
-PnL:${trade['pnl']:+.4f} ({trade.get('pnl_pct',0):+.2f}%) — {verdict}
-Durée:{trade.get('duration_min',0)}min Kelly:{trade.get('kelly_pct',0)*100:.1f}%
-Raison:{trade['reason']} | Sortie:{trade.get('exit_reason','')}
-JSON:{{"lecon":"leçon","pattern":"pattern","action_future":"règle","type":"erreur ou succes"}}"""
-        r = groq_client.chat.completions.create(
-            model=GROQ_FAST_MODEL, max_tokens=100, temperature=0.2,
-            messages=[{"role":"user","content":prompt}]
-        )
-        lesson = json.loads(
-            r.choices[0].message.content.replace("```json","").replace("```","").strip()
-        )
-        lesson.update({
-            "trade_id":trade["id"],"pnl":trade["pnl"],
-            "symbol":trade["symbol"],"market":trade.get("market","SPOT"),
-            "date":datetime.now().strftime("%Y-%m-%d %H:%M")
-        })
+        pnl = float(trade.get("pnl", 0))
+        pnl_pct = float(trade.get("pnl_pct", 0))
+        duration = int(trade.get("duration_min", 0) or 0)
+        pattern = ", ".join(trade.get("patterns", [])[:3]) or "aucun_pattern"
+
+        if pnl > 0:
+            lesson_type = "succes"
+            if duration <= 5:
+                lecon = "Scalp rapide gagnant"
+                action_future = "Conserver ce setup pour micro-trading"
+            elif pnl_pct > 2:
+                lecon = "Momentum rentable détecté"
+                action_future = "Renforcer la priorité de ce pattern"
+            else:
+                lecon = "Trade gagnant exploitable"
+                action_future = "Rejouer ce setup avec prudence"
+        else:
+            lesson_type = "erreur"
+            if duration <= 5:
+                lecon = "Entrée trop agressive"
+                action_future = "Exiger plus de confirmation avant entrée"
+            elif "SL" in str(trade.get("exit_reason", "")):
+                lecon = "Stop touché rapidement"
+                action_future = "Réduire taille ou éviter ce pattern"
+            else:
+                lecon = "Setup peu performant"
+                action_future = "Diminuer la priorité de ce setup"
+
+        lesson = {
+            "trade_id": trade["id"],
+            "pnl": pnl,
+            "symbol": trade["symbol"],
+            "market": trade.get("market", "SPOT"),
+            "lecon": lecon,
+            "pattern": pattern,
+            "action_future": action_future,
+            "type": lesson_type,
+            "date": datetime.now().strftime("%Y-%m-%d %H:%M")
+        }
+
         memory["lessons"].append(lesson)
         db_save_lesson(lesson)
-        key = "patterns_that_work" if lesson["type"]=="succes" else "patterns_to_avoid"
-        memory[key].append(lesson["pattern"])
-        memory["lessons"]            = memory["lessons"][-MAX_LESSONS:]
-        memory["patterns_that_work"] = memory["patterns_that_work"][-50:]
-        memory["patterns_to_avoid"]  = memory["patterns_to_avoid"][-50:]
-        auto_adjust(); save_data()
+
+        key = "patterns_that_work" if lesson_type == "succes" else "patterns_to_avoid"
+        memory[key].append(pattern)
+
+        memory["lessons"] = memory["lessons"][-MAX_LESSONS:]
+        memory["patterns_that_work"] = memory["patterns_that_work"][-100:]
+        memory["patterns_to_avoid"] = memory["patterns_to_avoid"][-100:]
+
+        update_symbol_score(trade["symbol"], pnl > 0)
+        auto_adjust()
+        save_data()
+
         print(f"[LEARN] {lesson['lecon']}")
+
         if send_fn:
-            stats = get_stats(); e = "✅" if lesson["type"]=="succes" else "❌"
-            coin  = trade["symbol"].replace("USDT","")
+            stats = get_stats()
+            e = "✅" if lesson["type"] == "succes" else "❌"
+            coin = trade["symbol"].replace("USDT", "")
             send_fn(
                 f"📚 Leçon #{len(memory['lessons'])} — {coin}\n"
                 f"{e} {lesson['lecon']}\n→ {lesson['action_future']}\n"
                 f"📊 WR:{stats['win_rate']}% ({stats['wins']}✅/{stats['losses']}❌)"
             )
+
     except Exception as e:
         print(f"[LEARN] {e}")
 
