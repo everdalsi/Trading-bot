@@ -1479,36 +1479,49 @@ def open_trade(analysis: dict, send_fn) -> dict | None:
     market = analysis.get("market","SPOT")
     pats   = analysis.get("patterns",[])
     side   = "LONG" if signal=="BUY" else "SHORT"
-    if signal == "SELL" and market == "SPOT": return None
-    if not can_open_trade(symbol, market, send_fn): return None
-      # 🧠 AI FILTER — confidence
-confidence = get_symbol_confidence(symbol)
+
+    if signal == "SELL" and market == "SPOT":
+        return None
+
+    if not can_open_trade(symbol, market, send_fn):
+        return None
+
+    # 🧠 AI FILTER — confidence
+    confidence = get_symbol_confidence(symbol)
 
     if confidence < 0.4:
         print(f"[FILTER] {symbol} ignoré (confidence {confidence:.2f})")
-    return None
+        return None
 
-# 🚫 pertes récentes
+    # 🚫 pertes récentes
     if symbol in memory.get("recent_losses", []):
         print(f"[FILTER] {symbol} évité (pertes récentes)")
-    return None
+        return None
 
-    if confidence < 0.4:
-        print(f"[FILTER] {symbol} ignoré (confidence {confidence:.2f})")
-    return None
-    if symbol in memory.get("recent_losses", []):
-        print(f"[FILTER] {symbol} évité (pertes récentes)")
-   return None
-    if any(p["symbol"]==symbol for p in sim["positions"].values()): return None
-    if len(sim["positions"]) >= MAX_POSITIONS: return None
-    if sim["cash"] < 20: return None
-    if not validate_amount(price, 0.000001, 1_000_000): return None
-    kelly_pct = analysis.get("kelly_pct") or dynamic_position_size(conf,market,symbol)
-    if analysis.get("_forced_pct"): kelly_pct = analysis["_forced_pct"]
+    # 🚫 déjà en position
+    if any(p["symbol"] == symbol for p in sim["positions"].values()):
+        return None
+
+    if len(sim["positions"]) >= MAX_POSITIONS:
+        return None
+
+    if sim["cash"] < 20:
+        return None
+
+    if not validate_amount(price, 0.000001, 1_000_000):
+        return None
+
+    # 📊 position sizing
+    kelly_pct = analysis.get("kelly_pct") or dynamic_position_size(conf, market, symbol)
+    if analysis.get("_forced_pct"):
+        kelly_pct = analysis["_forced_pct"]
+
     leverage  = LEVERAGE_SIM if market=="FUTURES" else 1
     amount    = sim["cash"] * kelly_pct
-    qty       = amount/price
+    qty       = amount / price
+
     sim["cash"] -= amount
+
     trade = {
         "id":len(sim["trades"])+1,"symbol":symbol,"market":market,"side":side,
         "price_in":price,"price_out":None,"qty":qty,"amount_usd":amount,
@@ -1518,20 +1531,31 @@ confidence = get_symbol_confidence(symbol)
         "patterns":[p["name"] for p in pats if p.get("signal")!="HOLD"],
         "leverage":leverage,"peak_price":price,"trough_price":price,"kelly_pct":kelly_pct
     }
+
     pos_key = f"{market}_{symbol}_{side}_{trade['id']}"
+
     sim["trades"].append(trade)
     sim["positions"][pos_key] = {**trade,"pos_key":pos_key}
-    db_save_trade(trade); save_data()
+
+    db_save_trade(trade)
+    save_data()
+
     bot_state["trades_today"] += 1
+
     sl = price*(1-STOP_LOSS_PCT) if side=="LONG" else price*(1+STOP_LOSS_PCT)
     tp = price*(1+TAKE_PROFIT_PCT) if side=="LONG" else price*(1-TAKE_PROFIT_PCT)
+
     coin  = symbol.replace("USDT","")
     mtype = analysis.get("market_type",market)
     name  = analysis.get("name",coin)
+
     asset_label = f"{name} ({mtype})" if mtype in ("STOCK","FOREX","COMMODITY") else f"{coin} (Crypto)"
-    learning    = "🎓" if analysis.get("_forced_pct") else ""
-    macro       = bot_state.get("macro_trend","NEUTRAL")
-    macro_e     = "🐂" if macro=="BULL" else "🐻" if macro=="BEAR" else "➡️"
+
+    learning = "🎓" if analysis.get("_forced_pct") else ""
+
+    macro  = bot_state.get("macro_trend","NEUTRAL")
+    macro_e = "🐂" if macro=="BULL" else "🐻" if macro=="BEAR" else "➡️"
+
     send_fn(
         f"{'🟢' if side=='LONG' else '🔴'} {learning} {asset_label}\n"
         f"━━━━━━━━━━━━━━━━━━━\n"
@@ -1543,6 +1567,7 @@ confidence = get_symbol_confidence(symbol)
         f"🔒 Confiance: {conf}% | #{trade['id']}\n"
         f"📊 Macro    : {macro_e} {macro}"
     )
+
     return trade
 
 def close_trade(pos_key: str, price: float, reason: str, send_fn) -> dict | None:
