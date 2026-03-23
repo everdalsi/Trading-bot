@@ -1,36 +1,8 @@
 {
   "sim": {
-    "cash": 4556.117995708015,
+    "cash": 4957.463040629555,
     "initial": 1000.0,
-    "positions": {
-      "MICRO_BNBUSDT_11": {
-        "id": 11,
-        "symbol": "BNBUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 623.5,
-        "price_out": null,
-        "qty": 0.6441101667814794,
-        "amount_usd": 401.6026889882524,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=18 mom=-0.21% vol=2.5x",
-        "exit_reason": null,
-        "time_in": "2026-03-23 00:36:57",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 624.0,
-        "open_time": 1774226217.019084,
-        "kelly_pct": 0.1,
-        "pos_key": "MICRO_BNBUSDT_11"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
@@ -301,17 +273,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 623.5,
-        "price_out": null,
+        "price_out": 623.1,
         "qty": 0.6441101667814794,
         "amount_usd": 401.6026889882524,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=18 mom=-0.21% vol=2.5x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 96s",
         "time_in": "2026-03-23 00:36:57",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-23 00:38:36",
+        "pnl": -0.257644,
+        "pnl_pct": -0.064,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -333,12 +305,12 @@
     "patterns_that_work": [],
     "confidence_threshold": 65,
     "total_wins": 2,
-    "total_losses": 4,
+    "total_losses": 5,
     "symbol_scores": {
       "FETUSDT": -3,
       "APTUSDT": -3,
       "BTCUSDT": -3,
-      "SOLUSDT": -3,
+      "SOLUSDT": -6,
       "ETHUSDT": 2
     },
     "symbol_blacklist": {},
@@ -346,7 +318,7 @@
       "FETUSDT": 1,
       "APTUSDT": 1,
       "BTCUSDT": 1,
-      "SOLUSDT": 1,
+      "SOLUSDT": 2,
       "ETHUSDT": 0
     }
   },
