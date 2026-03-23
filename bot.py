@@ -153,7 +153,7 @@ PROMO_EXCHANGES = [
 #  CLIENTS
 # ═══════════════════════════════════════════════════════════════
 groq_client = Groq(api_key=GROQ_KEY)
-bybit       = HTTP(api_key=BYBIT_KEY, api_secret=BYBIT_SECRET)
+bybit = HTTP(api_key=BYBIT_KEY, api_secret=BYBIT_SECRET, domain="bytick.com")
 
 # ═══════════════════════════════════════════════════════════════
 #  ÉTAT GLOBAL
