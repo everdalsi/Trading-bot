@@ -1,8 +1,37 @@
 {
   "sim": {
-    "cash": 8166644339.881257,
+    "cash": 7758312122.887194,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MEME_Optimistic_104": {
+        "id": 104,
+        "symbol": "Optimistic",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "Optimistic",
+        "price_in": 0.001328,
+        "price_out": null,
+        "qty": 307479079061.7944,
+        "amount_usd": 408332216.9940629,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-23 11:12:26",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.001328,
+        "open_time": 1774264346.872884,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_Optimistic_104"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -2784,6 +2813,33 @@
         "peak_price": 0.001255,
         "open_time": 1774263980.4956293,
         "kelly_pct": 0.05
+      },
+      {
+        "id": 104,
+        "symbol": "Optimistic",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "Optimistic",
+        "price_in": 0.001328,
+        "price_out": null,
+        "qty": 307479079061.7944,
+        "amount_usd": 408332216.9940629,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-23 11:12:26",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.001328,
+        "open_time": 1774264346.872884,
+        "kelly_pct": 0.05
       }
     ],
     "equity_history": [],
@@ -3940,7 +3996,7 @@
       "memecoin"
     ],
     "confidence_threshold": 55,
-    "total_wins": 54,
+    "total_wins": 55,
     "total_losses": 47,
     "symbol_scores": {
       "BTCUSDT": -2,
@@ -4089,6 +4145,6 @@
         "status": "\u2705 Promos d\u00e9tect\u00e9es"
       }
     ],
-    "last_scan": 1774260924.6332655
+    "last_scan": 1774264526.6330972
   }
 }
