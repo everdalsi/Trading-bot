@@ -135,6 +135,7 @@ DB_FILE   = "sim_v7.db"
 DATA_FILE = Path("sim_portfolio_v7.json")
 
 BINANCE_BASE = "https://api.binance.com"
+BINANCE_KLINES = "https://data.binance.com/api/v3/klines"  # ← changement ici
 INTERVAL_MAP = {
     "1":"1m","3":"3m","5":"5m","15":"15m","30":"30m",
     "60":"1h","120":"2h","240":"4h","D":"1d","1D":"1d"
