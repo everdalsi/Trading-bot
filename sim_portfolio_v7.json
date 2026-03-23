@@ -1,23 +1,23 @@
 {
   "sim": {
-    "cash": 7907393618.074207,
+    "cash": 8244775745.778707,
     "initial": 1000.0,
     "positions": {
-      "MEME_Optimistic_109": {
-        "id": 109,
-        "symbol": "Optimistic",
+      "MEME_Peace _110": {
+        "id": 110,
+        "symbol": "Peace ",
         "market": "MEME",
         "side": "LONG",
         "trade_type": "MEME",
-        "meme_symbol": "Optimistic",
-        "price_in": 0.001452,
+        "meme_symbol": "Peace ",
+        "price_in": 0.0006,
         "price_out": null,
-        "qty": 273574370954.68478,
-        "amount_usd": 397229986.6262023,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
+        "qty": 658949468172.8507,
+        "amount_usd": 395369680.90371037,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
         "exit_reason": null,
-        "time_in": "2026-03-23 12:02:52",
+        "time_in": "2026-03-23 12:06:04",
         "time_out": null,
         "pnl": null,
         "pnl_pct": null,
@@ -26,10 +26,10 @@
           "memecoin"
         ],
         "leverage": 1,
-        "peak_price": 0.001452,
-        "open_time": 1774267372.3794992,
+        "peak_price": 0.001112,
+        "open_time": 1774267564.9922824,
         "kelly_pct": 0.05,
-        "pos_key": "MEME_Optimistic_109"
+        "pos_key": "MEME_Peace _110"
       }
     },
     "trades": [
@@ -2975,6 +2975,33 @@
         "peak_price": 0.001452,
         "open_time": 1774267372.3794992,
         "kelly_pct": 0.05
+      },
+      {
+        "id": 110,
+        "symbol": "Peace ",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "Peace ",
+        "price_in": 0.0006,
+        "price_out": 0.001112,
+        "qty": 658949468172.8507,
+        "amount_usd": 395369680.90371037,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": "\ud83c\udfaf MEME TP (+85.3%)",
+        "time_in": "2026-03-23 12:06:04",
+        "time_out": "2026-03-23 12:06:05",
+        "pnl": 337382127.7045,
+        "pnl_pct": 85.33,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0006,
+        "open_time": 1774267564.9922824,
+        "kelly_pct": 0.05
       }
     ],
     "equity_history": [],
@@ -4095,6 +4122,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-23 12:02"
+      },
+      {
+        "trade_id": 110,
+        "pnl": 337382127.7045,
+        "symbol": "Peace ",
+        "market": "MEME",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "memecoin",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-23 12:06"
       }
     ],
     "patterns_to_avoid": [
@@ -4200,11 +4238,12 @@
       "memecoin",
       "memecoin",
       "memecoin",
+      "memecoin",
       "memecoin"
     ],
     "confidence_threshold": 55,
     "total_wins": 55,
-    "total_losses": 52,
+    "total_losses": 53,
     "symbol_scores": {
       "BTCUSDT": -2,
       "ETHUSDT": -12,
@@ -4212,7 +4251,8 @@
       "Computer": 15,
       "CHIBILAND": -13,
       "USDUC": 4,
-      "Optimistic": -15
+      "Optimistic": -15,
+      "Peace ": 2
     },
     "symbol_blacklist": {},
     "consecutive_losses": {},
