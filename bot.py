@@ -2892,13 +2892,7 @@ async def run_telegram():
         if WEBHOOK_URL: await _app.bot.delete_webhook()
         await _app.stop()
         await _app.shutdown()
-        print(f"Webhook: {full}")
-    print("Bot v6 prêt — /start pour lancer")
-    try:
-        while True: await asyncio.sleep(1)
-    finally:
-        if WEBHOOK_URL: await _app.bot.delete_webhook()
-        await _app.stop(); await _app.shutdown()
+       
 
 
 # ═══════════════════════════════════════════════════════════════
