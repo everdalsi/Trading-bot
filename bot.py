@@ -2509,7 +2509,10 @@ def make_send(chat_id: str):
     return send
 
 def _auth(update: Update) -> bool:
-    return str(update.effective_chat.id) == str(TELEGRAM_CHAT_ID)
+    chat_id = str(update.effective_chat.id)
+    expected = str(TELEGRAM_CHAT_ID)
+    print(f"[AUTH] reçu={chat_id} attendu={expected} match={chat_id==expected}")
+    return chat_id == expected
 
 
 async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
