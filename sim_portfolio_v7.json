@@ -30,34 +30,6 @@
         "open_time": 1774285567.7282703,
         "kelly_pct": 0.05,
         "pos_key": "MEME_7_166"
-      },
-      "MEME_Clippy_219": {
-        "id": 219,
-        "symbol": "Clippy",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "Clippy",
-        "price_in": 0.0005307,
-        "price_out": null,
-        "qty": 1.1739686006204787e+75,
-        "amount_usd": 6.230251363492881e+71,
-        "confidence": 95,
-        "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-23 21:47:44",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0005307,
-        "open_time": 1774302464.1703706,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_Clippy_219"
       }
     },
     "trades": [
