@@ -1,20 +1,62 @@
 """
-Trading Bot v6 — AI Pool + Épargne + Risk Management Avancé
+Trading Bot v7 — AI Pool + Épargne + Risk Management Avancé
+AMÉLIORATIONS v7:
+  ✅ Binance WebSocket pour données 1m/5m temps réel
+  ✅ Optimisation coûts AI (cache prompts, déduplication, batch)
+  ✅ Backtesting historique complet (Sharpe, Drawdown, Win Rate)
+  ✅ Sécurité renforcée (rate limiting, validation inputs, HMAC auth)
 """
 
 import os, time, threading, feedparser, requests, asyncio
-import json, sqlite3, re, hashlib, base64
+import json, sqlite3, re, hashlib, base64, hmac, secrets
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse
+from collections import defaultdict, deque
+
+try:
+    import websocket
+    WS_AVAILABLE = True
+except ImportError:
+    WS_AVAILABLE = False
+    print("[WS] websocket-client non installé — fallback REST")
 
 from groq import Groq
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 from telegram.request import HTTPXRequest
+
+# ═══════════════════════════════════════════════════════════════
+#  SÉCURITÉ — Validation & Rate Limiting
+# ═══════════════════════════════════════════════════════════════
+_rate_limits: dict = defaultdict(lambda: deque(maxlen=100))
+
+def check_rate_limit(key: str, max_calls: int, window_sec: int) -> bool:
+    now = time.time()
+    dq = _rate_limits[key]
+    while dq and now - dq[0] > window_sec:
+        dq.popleft()
+    if len(dq) >= max_calls:
+        return False
+    dq.append(now)
+    return True
+
+def validate_symbol(symbol: str) -> bool:
+    return bool(re.match(r'^[A-Z]{2,10}USDT$', symbol))
+
+def validate_amount(amount: float, min_v: float = 1.0, max_v: float = 100000.0) -> bool:
+    return isinstance(amount, (int, float)) and min_v <= amount <= max_v
+
+def sanitize_string(s: str, max_len: int = 500) -> str:
+    if not isinstance(s, str):
+        return ""
+    return re.sub(r'[^\w\s\.\,\!\?\-\+\%\$\:\(\)\/]', '', s)[:max_len]
+
+def secure_compare(a: str, b: str) -> bool:
+    return hmac.compare_digest(str(a), str(b))
 
 # ═══════════════════════════════════════════════════════════════
 #  CONFIG
@@ -89,8 +131,8 @@ LEARN_MODE_CONF_MIN = 45
 LEARN_MODE_MAX_PCT  = 0.05
 
 GROQ_FAST_MODEL = "llama-3.1-8b-instant"
-DB_FILE   = "sim_v6.db"
-DATA_FILE = Path("sim_portfolio_v6.json")
+DB_FILE   = "sim_v7.db"
+DATA_FILE = Path("sim_portfolio_v7.json")
 
 BINANCE_BASE = "https://api.binance.com"
 INTERVAL_MAP = {
@@ -207,7 +249,131 @@ _fg_cache           = {"value": 50, "ts": 0}
 _macro_cache        = {"trend": "NEUTRAL", "ts": 0}
 
 # ═══════════════════════════════════════════════════════════════
-#  AI POOL
+#  WEBSOCKET BINANCE — Données 1m/5m temps réel
+# ═══════════════════════════════════════════════════════════════
+_ws_klines_1m: dict = {}
+_ws_klines_5m: dict = {}
+_ws_connected: bool = False
+_ws_thread = None
+_ws_lock = threading.Lock()
+
+WS_SYMBOLS_WATCH = [
+    "btcusdt","ethusdt","solusdt","bnbusdt","xrpusdt",
+    "dogeusdt","avaxusdt","linkusdt","arbusdt","aptusdt",
+    "fetusdt","injusdt","nearusdt","suiusdt","opusdt",
+]
+
+def _ws_on_message(ws, message):
+    try:
+        data = json.loads(message)
+        if "stream" not in data:
+            return
+        stream = data["stream"]
+        kline  = data["data"]["k"]
+        symbol = kline["s"].upper()
+        close  = float(kline["c"])
+        is_closed = kline["x"]
+        with _ws_lock:
+            if "1m" in stream:
+                if symbol not in _ws_klines_1m:
+                    _ws_klines_1m[symbol] = deque(maxlen=60)
+                if is_closed or not _ws_klines_1m[symbol]:
+                    _ws_klines_1m[symbol].append(close)
+                elif _ws_klines_1m[symbol]:
+                    _ws_klines_1m[symbol][-1] = close
+            elif "5m" in stream:
+                if symbol not in _ws_klines_5m:
+                    _ws_klines_5m[symbol] = deque(maxlen=120)
+                if is_closed or not _ws_klines_5m[symbol]:
+                    _ws_klines_5m[symbol].append(close)
+                elif _ws_klines_5m[symbol]:
+                    _ws_klines_5m[symbol][-1] = close
+    except Exception as e:
+        print(f"[WS-MSG] {e}")
+
+def _ws_on_error(ws, error):
+    global _ws_connected
+    print(f"[WS] Erreur: {error}")
+    _ws_connected = False
+
+def _ws_on_close(ws, close_status_code, close_msg):
+    global _ws_connected
+    print(f"[WS] Fermé: {close_status_code}")
+    _ws_connected = False
+
+def _ws_on_open(ws):
+    global _ws_connected
+    _ws_connected = True
+    print("[WS] Connecté à Binance WebSocket ✅")
+
+def _build_ws_url() -> str:
+    streams = []
+    for sym in WS_SYMBOLS_WATCH:
+        streams.append(f"{sym}@kline_1m")
+        streams.append(f"{sym}@kline_5m")
+    return f"wss://stream.binance.com:9443/stream?streams={'/'.join(streams)}"
+
+def _ws_run_forever():
+    global _ws_connected
+    while True:
+        try:
+            ws = websocket.WebSocketApp(
+                _build_ws_url(),
+                on_message=_ws_on_message,
+                on_error=_ws_on_error,
+                on_close=_ws_on_close,
+                on_open=_ws_on_open,
+            )
+            ws.run_forever(ping_interval=30, ping_timeout=10)
+        except Exception as e:
+            print(f"[WS] Run error: {e}")
+        _ws_connected = False
+        print("[WS] Reconnexion dans 10s...")
+        time.sleep(10)
+
+def start_websocket():
+    global _ws_thread
+    if not WS_AVAILABLE:
+        print("[WS] Module websocket-client absent — utilise REST")
+        return
+    threading.Thread(target=_ws_prefill_from_rest, daemon=True).start()
+    _ws_thread = threading.Thread(target=_ws_run_forever, daemon=True)
+    _ws_thread.start()
+    print("[WS] Thread WebSocket démarré")
+
+def _ws_prefill_from_rest():
+    print("[WS] Pré-remplissage buffers depuis Binance REST...")
+    for sym_lower in WS_SYMBOLS_WATCH[:8]:
+        sym = sym_lower.upper()
+        try:
+            r1 = requests.get(
+                f"{BINANCE_BASE}/api/v3/klines",
+                params={"symbol": sym, "interval": "1m", "limit": 60},
+                timeout=8, headers={"User-Agent": "Mozilla/5.0"}
+            )
+            if r1.status_code == 200:
+                closes = [float(c[4]) for c in r1.json()]
+                with _ws_lock:
+                    _ws_klines_1m[sym] = deque(closes, maxlen=60)
+        except Exception:
+            pass
+        try:
+            r5 = requests.get(
+                f"{BINANCE_BASE}/api/v3/klines",
+                params={"symbol": sym, "interval": "5m", "limit": 120},
+                timeout=8, headers={"User-Agent": "Mozilla/5.0"}
+            )
+            if r5.status_code == 200:
+                closes = [float(c[4]) for c in r5.json()]
+                with _ws_lock:
+                    _ws_klines_5m[sym] = deque(closes, maxlen=120)
+        except Exception:
+            pass
+        time.sleep(0.3)
+    print("[WS] Pré-remplissage terminé ✅")
+
+# ═══════════════════════════════════════════════════════════════
+#  AI POOL — Optimisé avec cache et déduplication
 # ═══════════════════════════════════════════════════════════════
 AI_PROVIDERS = [
     {"name":"groq","calls":0,"window_start":time.time(),"last_call":0,
@@ -217,6 +383,7 @@ AI_PROVIDERS = [
 ]
 _pool_stats = {
     "total_calls":0,"calls_by_provider":{},"fallbacks":0,"last_provider":"groq",
+    "cache_hits":0,
 }
 HF_MODELS = [
     "mistralai/Mistral-7B-Instruct-v0.3",
@@ -224,7 +391,42 @@ HF_MODELS = [
     "tiiuae/falcon-7b-instruct",
 ]
 _hf_model_idx = 0
+_ai_cache: dict = {}
+_AI_CACHE_TTL = 60
 
+def _ai_cache_key(prompt: str) -> str:
+    return hashlib.md5(prompt[:200].encode()).hexdigest()
+
+def _get_cached_ai(prompt: str) -> dict | None:
+    key = _ai_cache_key(prompt)
+    if key in _ai_cache:
+        ts, result = _ai_cache[key]
+        if time.time() - ts < _AI_CACHE_TTL:
+            _pool_stats["cache_hits"] += 1
+            return result
+    return None
+
+def _set_cached_ai(prompt: str, result: dict):
+    key = _ai_cache_key(prompt)
+    _ai_cache[key] = (time.time(), result)
+    if len(_ai_cache) > 200:
+        cutoff = time.time() - _AI_CACHE_TTL * 2
+        for k in [k for k, (ts, _) in list(_ai_cache.items()) if ts < cutoff]:
+            del _ai_cache[k]
+
+def _compress_prompt(prompt: str) -> str:
+    lines = prompt.strip().split('\n')
+    compressed = []
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        if line.startswith("Traders:") and len(line) > 100:
+            line = line[:100]
+        if line.startswith("Gains:") or line.startswith("Erreurs:"):
+            line = line[:80]
+        compressed.append(line)
+    return '\n'.join(compressed)[:450]
 
 def _get_available_provider() -> dict | None:
     now = time.time()
@@ -233,15 +435,20 @@ def _get_available_provider() -> dict | None:
     for p in AI_PROVIDERS:
         if not p["available"]:
             if now - p.get("disabled_at", 0) > 1800:
-                p["available"] = True; p["failures"] = 0
-            else: continue
-        if now - p["window_start"] > 3600: p["calls"] = 0; p["window_start"] = now
+                p["available"] = True
+                p["failures"] = 0
+            else:
+                continue
+        if now - p["window_start"] > 3600:
+            p["calls"] = 0
+            p["window_start"] = now
         limit = p["max_calls_per_hour"] // 2 if is_night else p["max_calls_per_hour"]
-        if p["calls"] >= limit: continue
-        if now - p["last_call"] < p["cooldown"]: continue
+        if p["calls"] >= limit:
+            continue
+        if now - p["last_call"] < p["cooldown"]:
+            continue
         return p
     return None
-
 
 def _call_groq(prompt: str) -> dict:
     r = groq_client.chat.completions.create(
@@ -254,15 +461,17 @@ def _call_groq(prompt: str) -> dict:
     text = r.choices[0].message.content.strip()
     text = text.replace("```json","").replace("```","").strip()
     s = text.find("{"); e = text.rfind("}")+1
-    if s >= 0 and e > s: text = text[s:e]
+    if s >= 0 and e > s:
+        text = text[s:e]
     result = json.loads(text)
-    if result.get("signal") not in ("BUY","SELL","HOLD"): result["signal"] = "HOLD"
+    if result.get("signal") not in ("BUY","SELL","HOLD"):
+        result["signal"] = "HOLD"
     return result
-
 
 def _call_huggingface(prompt: str) -> dict:
     global _hf_model_idx
-    if not HF_KEY: raise Exception("HF_KEY manquante")
+    if not HF_KEY:
+        raise Exception("HF_KEY manquante")
     model = HF_MODELS[_hf_model_idx % len(HF_MODELS)]
     hf_prompt = f"""Trading crypto expert. Réponds UNIQUEMENT en JSON.
 Situation: {prompt[:300]}
@@ -275,20 +484,29 @@ signal = BUY ou SELL ou HOLD"""
               "parameters": {"max_new_tokens":100,"temperature":0.1,"return_full_text":False}},
         timeout=20,
     )
-    if r.status_code == 503: _hf_model_idx += 1; raise Exception("HF model loading")
-    if r.status_code != 200: raise Exception(f"HF HTTP {r.status_code}")
+    if r.status_code == 503:
+        _hf_model_idx += 1
+        raise Exception("HF model loading")
+    if r.status_code != 200:
+        raise Exception(f"HF HTTP {r.status_code}")
     raw = r.json()
     text = raw[0].get("generated_text","") if isinstance(raw, list) else str(raw)
     text = text.replace("```json","").replace("```","").strip()
     s = text.find("{"); e = text.rfind("}")+1
     if s >= 0 and e > s:
         result = json.loads(text[s:e])
-        if result.get("signal") not in ("BUY","SELL","HOLD"): result["signal"] = "HOLD"
+        if result.get("signal") not in ("BUY","SELL","HOLD"):
+            result["signal"] = "HOLD"
         return result
     return {"signal":"HOLD","confidence":0,"reason":"hf_no_json","risk":"HIGH"}
 
-
 def ask_ai(prompt: str) -> dict:
+    cached = _get_cached_ai(prompt)
+    if cached is not None:
+        return cached
+    if not check_rate_limit("ask_ai_global", 200, 3600):
+        return {"signal":"HOLD","confidence":0,"reason":"rate_limit_global","risk":"HIGH"}
+    compressed = _compress_prompt(prompt)
     _pool_stats["total_calls"] += 1
     for _ in range(len(AI_PROVIDERS)+1):
         provider = _get_available_provider()
@@ -296,28 +514,31 @@ def ask_ai(prompt: str) -> dict:
             return {"signal":"HOLD","confidence":0,"reason":"pool_epuise","risk":"HIGH"}
         name = provider["name"]
         try:
-            provider["calls"] += 1; provider["last_call"] = time.time()
-            result = _call_groq(prompt) if name == "groq" else _call_huggingface(prompt)
+            provider["calls"] += 1
+            provider["last_call"] = time.time()
+            result = _call_groq(compressed) if name == "groq" else _call_huggingface(compressed)
             provider["failures"] = max(0, provider["failures"]-1)
             _pool_stats["last_provider"] = name
             _pool_stats["calls_by_provider"][name] = \
                 _pool_stats["calls_by_provider"].get(name, 0)+1
+            _set_cached_ai(prompt, result)
             print(f"[AI] {name} ✅ {result.get('signal')} {result.get('confidence')}%")
             return result
         except Exception as e:
-            err = str(e); provider["failures"] += 1
+            err = str(e)
+            provider["failures"] += 1
             print(f"[AI] {name} err: {err[:50]}")
             if "rate_limit" in err or "429" in err:
                 provider["calls"] = provider["max_calls_per_hour"]
             if provider["failures"] >= 3:
-                provider["available"] = False; provider["disabled_at"] = time.time()
+                provider["available"] = False
+                provider["disabled_at"] = time.time()
             _pool_stats["fallbacks"] += 1
     return {"signal":"HOLD","confidence":0,"reason":"all_failed","risk":"HIGH"}
 
-
 def vote(prompt: str) -> dict:
     r1 = ask_ai(prompt)
-    if r1.get("reason") in ("pool_epuise","all_failed"):
+    if r1.get("reason") in ("pool_epuise","all_failed","rate_limit_global"):
         return {**r1,"votes":[r1["signal"]],"consensus":"0/1"}
     if r1["signal"] == "HOLD" or r1.get("confidence",0) < 60:
         return {**r1,"votes":[r1["signal"]],"consensus":"1/1"}
@@ -332,10 +553,11 @@ def vote(prompt: str) -> dict:
             "reason":f"Désaccord ({r1['signal']}/{r2['signal']})",
             "risk":"HIGH","votes":[r1["signal"],r2["signal"]],"consensus":"0/2"}
 
+def _can_call_ai() -> bool:
+    return _get_available_provider() is not None
 
-def _can_call_ai() -> bool: return _get_available_provider() is not None
-def ask_model_single(prompt: str, model: str=None) -> dict: return ask_ai(prompt)
-
+def ask_model_single(prompt: str, model: str=None) -> dict:
+    return ask_ai(prompt)
 
 def get_pool_status() -> str:
     now = time.time()
@@ -347,9 +569,8 @@ def get_pool_status() -> str:
         lines.append(f"  {st} {p['name']:12s} {p['calls']}/{p['max_calls_per_hour']}/h "
                      f"({total} total) cd:{cd}s")
     lines.append(f"  Total: {_pool_stats['total_calls']} | Fallbacks: {_pool_stats['fallbacks']}")
-    lines.append(f"  Dernier: {_pool_stats['last_provider']}")
+    lines.append(f"  Cache hits: {_pool_stats['cache_hits']} | Dernier: {_pool_stats['last_provider']}")
     return "\n".join(lines)
-
 
 # ═══════════════════════════════════════════════════════════════
 #  RISK MANAGEMENT
@@ -357,16 +578,16 @@ def get_pool_status() -> str:
 def check_daily_reset():
     today = datetime.utcnow().strftime("%Y-%m-%d")
     if sim.get("daily_start_date") != today:
-        sim["daily_start_date"]  = today
+        sim["daily_start_date"]   = today
         sim["daily_start_equity"] = get_equity_safe()
         bot_state["daily_stopped"] = False
-
 
 def get_equity_safe() -> float:
     try:
         prices = get_prices_batch()
         equity = float(sim.get("cash", CAPITAL_INITIAL))
-        if not (0 < equity < 1_000_000): equity = CAPITAL_INITIAL
+        if not (0 < equity < 1_000_000):
+            equity = CAPITAL_INITIAL
         for pos in list(sim.get("positions", {}).values()):
             try:
                 symbol   = pos.get("symbol","")
@@ -374,23 +595,28 @@ def get_equity_safe() -> float:
                 amount   = float(pos.get("amount_usd", 0))
                 lev      = float(pos.get("leverage", 1))
                 side     = pos.get("side","LONG")
-                if price_in <= 0 or amount <= 0: continue
-                if amount > CAPITAL_INITIAL * 2: continue
+                if price_in <= 0 or amount <= 0:
+                    continue
+                if amount > CAPITAL_INITIAL * 2:
+                    continue
                 p = prices.get(symbol, price_in)
-                if p <= 0 or p > price_in * 100: p = price_in
+                if p <= 0 or p > price_in * 100:
+                    p = price_in
                 if side == "LONG":
                     pos_pnl = (p - price_in) / price_in * amount * lev
                 else:
                     pos_pnl = (price_in - p) / price_in * amount * lev
                 pos_pnl = max(-amount, min(amount * 10, pos_pnl))
                 equity += amount + pos_pnl
-            except Exception: continue
+            except Exception:
+                continue
         return round(max(0, min(equity, CAPITAL_INITIAL * 100)), 2)
-    except Exception: return CAPITAL_INITIAL
-
+    except Exception:
+        return CAPITAL_INITIAL
 
 def check_risk_limits(send_fn) -> bool:
-    if bot_state.get("daily_stopped"): return False
+    if bot_state.get("daily_stopped"):
+        return False
     check_daily_reset()
     equity = get_equity_safe()
     if equity > sim.get("peak_equity", equity):
@@ -411,124 +637,137 @@ def check_risk_limits(send_fn) -> bool:
             return False
     return True
 
-
 def is_correlated(symbol: str) -> bool:
     open_symbols = {pos["symbol"] for pos in sim["positions"].values()}
     for group in CORRELATED_PAIRS:
         if symbol in group:
-            if open_symbols & (group - {symbol}): return True
+            if open_symbols & (group - {symbol}):
+                return True
     return False
-
 
 def is_blacklisted(symbol: str) -> bool:
     bl = memory.get("symbol_blacklist", {})
-    if symbol not in bl: return False
+    if symbol not in bl:
+        return False
     if time.time() - bl[symbol].get("ts", 0) > 86400:
-        del memory["symbol_blacklist"][symbol]; return False
+        del memory["symbol_blacklist"][symbol]
+        return False
     return True
-
 
 def update_blacklist(symbol: str, won: bool):
     cl = memory.setdefault("consecutive_losses", {})
-    if won: cl[symbol] = 0
+    if won:
+        cl[symbol] = 0
     else:
         cl[symbol] = cl.get(symbol, 0) + 1
         if cl[symbol] >= BLACKLIST_MAX_LOSSES:
             memory.setdefault("symbol_blacklist", {})[symbol] = {
-                "ts": time.time(), "reason": f"{BLACKLIST_MAX_LOSSES} pertes consécutives",
+                "ts": time.time(),
+                "reason": f"{BLACKLIST_MAX_LOSSES} pertes consécutives",
                 "losses": cl[symbol],
             }
-
 
 def is_night_time() -> bool:
     return datetime.utcnow().hour in NIGHT_HOURS_UTC
 
-
 def get_fear_greed_value() -> int:
     now = time.time()
-    if now - _fg_cache["ts"] < 600: return _fg_cache["value"]
+    if now - _fg_cache["ts"] < 600:
+        return _fg_cache["value"]
     try:
         d = requests.get("https://api.alternative.me/fng/", timeout=5).json()["data"][0]
         val = int(d["value"])
-        _fg_cache["value"] = val; _fg_cache["ts"] = now
-        bot_state["fg_value"] = val; return val
-    except Exception: return _fg_cache.get("value", 50)
-
+        _fg_cache["value"] = val
+        _fg_cache["ts"] = now
+        bot_state["fg_value"] = val
+        return val
+    except Exception:
+        return _fg_cache.get("value", 50)
 
 def is_fg_neutral() -> bool:
     fg = get_fear_greed_value()
     return FG_NEUTRAL_MIN <= fg <= FG_NEUTRAL_MAX
 
-
 def get_macro_trend() -> str:
     now = time.time()
-    if now - _macro_cache["ts"] < 300: return _macro_cache["trend"]
+    if now - _macro_cache["ts"] < 300:
+        return _macro_cache["trend"]
     try:
         onchain  = get_onchain_data()
         mcap_chg = onchain.get("mcap_change_24h", 0)
         closes   = get_klines("BTCUSDT", "60", 24)
-        if len(closes) >= 5: trend_up = closes.iloc[-1] > closes.iloc[-5]
-        else: trend_up = None
-        if mcap_chg > 2 and (trend_up or trend_up is None): trend = "BULL"
-        elif mcap_chg < -2 and (not trend_up or trend_up is None): trend = "BEAR"
-        else: trend = "NEUTRAL"
-        _macro_cache["trend"] = trend; _macro_cache["ts"] = now
-        bot_state["macro_trend"] = trend; return trend
-    except Exception: return _macro_cache.get("trend", "NEUTRAL")
-
+        if len(closes) >= 5:
+            trend_up = closes.iloc[-1] > closes.iloc[-5]
+        else:
+            trend_up = None
+        if mcap_chg > 2 and (trend_up or trend_up is None):
+            trend = "BULL"
+        elif mcap_chg < -2 and (not trend_up or trend_up is None):
+            trend = "BEAR"
+        else:
+            trend = "NEUTRAL"
+        _macro_cache["trend"] = trend
+        _macro_cache["ts"] = now
+        bot_state["macro_trend"] = trend
+        return trend
+    except Exception:
+        return _macro_cache.get("trend", "NEUTRAL")
 
 def get_symbol_confidence_bonus(symbol: str) -> int:
     return memory.get("symbol_scores", {}).get(symbol, 0)
-
 
 def update_symbol_score(symbol: str, won: bool):
     scores = memory.setdefault("symbol_scores", {})
     current = scores.get(symbol, 0)
     scores[symbol] = max(-15, min(15, current + (2 if won else -3)))
 
-
 def get_open_interest(symbol: str) -> dict:
     return {}
-
 
 def format_open_interest(symbol: str) -> str:
     return ""
 
-
 def get_volume_profile(symbol: str) -> dict:
     try:
         closes = get_klines(symbol, "60", 48)
-        if len(closes) < 10: return {}
+        if len(closes) < 10:
+            return {}
         vols = get_volume_data(symbol, "60", 48)
-        if len(vols) != len(closes): return {}
+        if len(vols) != len(closes):
+            return {}
         poc_idx   = vols.index(max(vols))
         poc_price = float(closes.iloc[poc_idx]) if poc_idx < len(closes) else float(closes.iloc[-1])
         current   = float(closes.iloc[-1])
         support   = round(poc_price * 0.98, 6)
         resistance= round(poc_price * 1.02, 6)
-        return {"poc":round(poc_price,6),"support":support,"resistance":resistance,
-                "near_support":abs(current-support)/current<0.015,
-                "near_resistance":abs(current-resistance)/current<0.015}
-    except Exception: return {}
-
+        return {
+            "poc": round(poc_price,6), "support": support, "resistance": resistance,
+            "near_support": abs(current-support)/current < 0.015,
+            "near_resistance": abs(current-resistance)/current < 0.015,
+        }
+    except Exception:
+        return {}
 
 # ═══════════════════════════════════════════════════════════════
 #  KELLY CRITERION
 # ═══════════════════════════════════════════════════════════════
 def kelly_criterion(n_recent: int=30) -> float:
     closed = [t for t in sim["trades"] if t.get("pnl") is not None]
-    if len(closed) < 5: return 0.10
+    if len(closed) < 5:
+        return 0.10
     recent = closed[-n_recent:]
     wins   = [t for t in recent if t["pnl"] > 0]
     losses = [t for t in recent if t["pnl"] <= 0]
-    if not wins or not losses: return 0.08
+    if not wins or not losses:
+        return 0.08
     p = len(wins)/len(recent); q = 1-p
     avg_win  = sum(t.get("pnl_pct",0) for t in wins)  / len(wins)  / 100
     avg_loss = abs(sum(t.get("pnl_pct",0) for t in losses) / len(losses)) / 100
-    if avg_loss == 0: return MAX_PCT_PER_TRADE
-    b = avg_win/avg_loss; kelly = (p*b - q) / b
+    if avg_loss == 0:
+        return MAX_PCT_PER_TRADE
+    b = avg_win/avg_loss
+    kelly = (p*b - q) / b
     return round(max(0.03, min(MAX_PCT_PER_TRADE, kelly/4)), 3)
-
 
 def dynamic_position_size(confidence: int, market: str, symbol: str) -> float:
     base        = kelly_criterion(30)
@@ -542,15 +781,15 @@ def dynamic_position_size(confidence: int, market: str, symbol: str) -> float:
         closes = get_klines_5m_cached(symbol)
         if not closes.empty:
             vol = float(closes.pct_change().dropna().std()*100)
-            if vol > 3: vol_mult = 0.7
+            if vol > 3:   vol_mult = 0.7
             elif vol < 1: vol_mult = 1.2
-    except Exception: pass
+    except Exception:
+        pass
     return round(max(0.03, min(MAX_PCT_PER_TRADE,
         base * conf_mult * market_mult * vol_mult * night_mult * macro_mult)), 3)
 
-
 # ═══════════════════════════════════════════════════════════════
-#  DONNÉES DE MARCHÉ — BINANCE (zéro blocage géographique)
+#  DONNÉES DE MARCHÉ
 # ═══════════════════════════════════════════════════════════════
 COINGECKO_IDS = {
     "BTCUSDT":"bitcoin","ETHUSDT":"ethereum","SOLUSDT":"solana",
@@ -566,7 +805,7 @@ COINGECKO_IDS = {
     "PEPEUSDT":"pepe","FLOKIUSDT":"floki",
 }
 
-_prices_cache_ts = 0
+_prices_cache_ts   = 0
 _prices_cache_data = {}
 
 def get_prices_batch() -> dict:
@@ -603,14 +842,15 @@ def get_price(symbol: str, force=False) -> float:
     now = time.time()
     if not force and symbol in _price_cache:
         ts, p = _price_cache[symbol]
-        if now-ts < 15: return p
+        if now-ts < 15:
+            return p
     prices = get_prices_batch()
     return prices.get(symbol, _price_cache.get(symbol, (0, 0.0))[1])
 
-
 def get_klines(symbol: str, interval: str, limit=100) -> pd.Series:
     cg_id = COINGECKO_IDS.get(symbol)
-    if not cg_id: return pd.Series(dtype=float)
+    if not cg_id:
+        return pd.Series(dtype=float)
     days_map = {"1":"1","5":"1","15":"1","60":"7","240":"14","D":"30","1D":"30"}
     days = days_map.get(interval, "1")
     try:
@@ -623,33 +863,46 @@ def get_klines(symbol: str, interval: str, limit=100) -> pd.Series:
             prices_list = r.json().get("prices",[])
             closes = pd.Series([float(p[1]) for p in prices_list], dtype=float)
             return closes.tail(limit)
-    except Exception as e: print(f"[KLINE] {e}")
+    except Exception as e:
+        print(f"[KLINE] {e}")
     return pd.Series(dtype=float)
-
 
 def get_klines_5m_cached(symbol: str) -> pd.Series:
     now = time.time()
+    # Utilise WebSocket si disponible
+    with _ws_lock:
+        ws_data = _ws_klines_5m.get(symbol)
+    if ws_data and len(ws_data) >= 27:
+        return pd.Series(list(ws_data), dtype=float)
+    # Fallback cache REST
     if symbol in _kline_cache_5m:
         ts, closes = _kline_cache_5m[symbol]
-        if now-ts < 30: return closes
+        if now-ts < 30:
+            return closes
     closes = get_klines(symbol, "5", 60)
     _kline_cache_5m[symbol] = (now, closes)
     return closes
 
-
 def get_klines_1m_cached(symbol: str) -> pd.Series:
     now = time.time()
+    # Utilise WebSocket si disponible
+    with _ws_lock:
+        ws_data = _ws_klines_1m.get(symbol)
+    if ws_data and len(ws_data) >= 14:
+        return pd.Series(list(ws_data), dtype=float)
+    # Fallback cache REST
     if symbol in _kline_cache_1m:
         ts, closes = _kline_cache_1m[symbol]
-        if now-ts < 5: return closes
+        if now-ts < 5:
+            return closes
     closes = get_klines(symbol, "1", 30)
     _kline_cache_1m[symbol] = (now, closes)
     return closes
 
-
 def get_volume_data(symbol: str, interval="5", limit=20) -> list:
     cg_id = COINGECKO_IDS.get(symbol)
-    if not cg_id: return []
+    if not cg_id:
+        return []
     try:
         r = requests.get(
             f"https://api.coingecko.com/api/v3/coins/{cg_id}/market_chart",
@@ -659,48 +912,58 @@ def get_volume_data(symbol: str, interval="5", limit=20) -> list:
         if r.status_code == 200:
             vols = r.json().get("total_volumes",[])
             return [float(v[1]) for v in vols[-limit:]]
-    except Exception as e: print(f"[VOL] {e}")
+    except Exception as e:
+        print(f"[VOL] {e}")
     return []
-
 
 def get_order_book(symbol: str) -> dict:
     return {"ratio": 1.0, "pressure": "neutre"}
 
-
 def get_liquidations() -> dict:
     now = time.time()
-    if now - _liquidations_cache["ts"] < 60: return _liquidations_cache["data"] or {}
+    if now - _liquidations_cache["ts"] < 60:
+        return _liquidations_cache["data"] or {}
     try:
         result = {}
         for sym in ["BTCUSDT","ETHUSDT","SOLUSDT"]:
-            r = requests.get(f"{BINANCE_BASE}/fapi/v1/fundingRate",
-                             params={"symbol":sym,"limit":1}, timeout=8,
-                             headers={"User-Agent":"Mozilla/5.0"})
+            r = requests.get(
+                f"{BINANCE_BASE}/fapi/v1/fundingRate",
+                params={"symbol":sym,"limit":1}, timeout=8,
+                headers={"User-Agent":"Mozilla/5.0"}
+            )
             if r.status_code == 200 and r.json():
                 rate = float(r.json()[0].get("fundingRate", 0))
-                result[sym] = {"funding_rate":rate,
-                               "signal":"bearish" if rate>0.001 else "bullish" if rate<-0.001 else "neutral"}
-        _liquidations_cache["data"] = result; _liquidations_cache["ts"] = now
+                result[sym] = {
+                    "funding_rate": rate,
+                    "signal": "bearish" if rate>0.001 else "bullish" if rate<-0.001 else "neutral"
+                }
+        _liquidations_cache["data"] = result
+        _liquidations_cache["ts"] = now
         return result
-    except Exception as e: print(f"[LIQ] {e}"); return {}
-
+    except Exception as e:
+        print(f"[LIQ] {e}")
+        return {}
 
 def interpret_liquidations(liq: dict) -> str:
-    if not liq: return "Liquidations: N/A"
+    if not liq:
+        return "Liquidations: N/A"
     lines = ["💥 Funding:"]
     for sym, data in list(liq.items())[:3]:
-        rate = data.get("funding_rate",0); signal = data.get("signal","neutral")
+        rate = data.get("funding_rate",0)
+        signal = data.get("signal","neutral")
         e = "🟢" if signal=="bullish" else "🔴" if signal=="bearish" else "⚪"
         lines.append(f"  {e} {sym.replace('USDT','')}: {rate*100:.4f}% ({signal})")
     return "\n".join(lines)
 
-
 def get_onchain_data() -> dict:
     now = time.time()
-    if now - _coingecko_cache["ts"] < 300: return _coingecko_cache["data"] or {}
+    if now - _coingecko_cache["ts"] < 300:
+        return _coingecko_cache["data"] or {}
     try:
-        r = requests.get("https://api.coingecko.com/api/v3/global",
-                         timeout=10, headers={"User-Agent":"Mozilla/5.0"})
+        r = requests.get(
+            "https://api.coingecko.com/api/v3/global",
+            timeout=10, headers={"User-Agent":"Mozilla/5.0"}
+        )
         if r.status_code == 200:
             d = r.json().get("data",{})
             result = {
@@ -708,21 +971,24 @@ def get_onchain_data() -> dict:
                 "total_mcap":     d.get("total_market_cap",{}).get("usd",0),
                 "mcap_change_24h":round(d.get("market_cap_change_percentage_24h_usd",0),2)
             }
-            _coingecko_cache["data"] = result; _coingecko_cache["ts"] = now
+            _coingecko_cache["data"] = result
+            _coingecko_cache["ts"] = now
             return result
-    except Exception as e: print(f"[GECKO] {e}")
+    except Exception as e:
+        print(f"[GECKO] {e}")
     return {}
 
-
 def format_onchain(data: dict) -> str:
-    if not data: return "On-chain: N/A"
-    mcap_b = data.get("total_mcap",0)/1e9; chg = data.get("mcap_change_24h",0)
+    if not data:
+        return "On-chain: N/A"
+    mcap_b = data.get("total_mcap",0)/1e9
+    chg    = data.get("mcap_change_24h",0)
     return f"🔗 MCap=${mcap_b:.0f}B ({chg:+.1f}%) | BTC dom={data.get('btc_dominance',0)}%"
-
 
 def get_whale_alerts() -> list:
     now = time.time()
-    if now - _whale_cache["ts"] < 120: return _whale_cache["alerts"]
+    if now - _whale_cache["ts"] < 120:
+        return _whale_cache["alerts"]
     alerts = []
     try:
         for sym in ["BTCUSDT","ETHUSDT"]:
@@ -731,25 +997,31 @@ def get_whale_alerts() -> list:
                 avg   = sum(vols[:-1]) / max(len(vols)-1,1)
                 ratio = vols[-1]/avg if avg > 0 else 1
                 if ratio > 3:
-                    alerts.append({"summary":f"Volume spike {sym.replace('USDT','')} x{ratio:.1f}",
-                                   "ts":datetime.now().strftime("%H:%M")})
-    except Exception as e: print(f"[WHALE] {e}")
-    _whale_cache["alerts"] = alerts; _whale_cache["ts"] = now
+                    alerts.append({
+                        "summary": f"Volume spike {sym.replace('USDT','')} x{ratio:.1f}",
+                        "ts": datetime.now().strftime("%H:%M")
+                    })
+    except Exception as e:
+        print(f"[WHALE] {e}")
+    _whale_cache["alerts"] = alerts
+    _whale_cache["ts"] = now
     return alerts
 
-
 def format_whale_alerts(alerts: list) -> str:
-    if not alerts: return "🐋 Whales: aucun mouvement"
+    if not alerts:
+        return "🐋 Whales: aucun mouvement"
     return "🐋 " + " | ".join(a.get("summary","")[:40] for a in alerts[:2])
-
 
 def get_polymarket_markets() -> list:
     now = time.time()
-    if now - _polymarket_cache["ts"] < 300: return _polymarket_cache["markets"]
+    if now - _polymarket_cache["ts"] < 300:
+        return _polymarket_cache["markets"]
     try:
-        r = requests.get("https://clob.polymarket.com/markets", timeout=10,
-                         params={"active":"true","limit":20},
-                         headers={"User-Agent":"Mozilla/5.0"})
+        r = requests.get(
+            "https://clob.polymarket.com/markets", timeout=10,
+            params={"active":"true","limit":20},
+            headers={"User-Agent":"Mozilla/5.0"}
+        )
         if r.status_code == 200:
             markets = r.json().get("data",[]); processed = []
             for m in markets[:20]:
@@ -761,105 +1033,123 @@ def get_polymarket_markets() -> list:
                 if m.get("volume",0) < 100: continue
                 total = yes_price + no_price
                 if abs(total-1.0) > 0.02:
-                    processed.append({"question":m.get("question","")[:80],
-                                      "yes_price":yes_price,"no_price":no_price,
-                                      "inefficiency":round(abs(total-1.0)*100,2),
-                                      "volume":m.get("volume",0)})
+                    processed.append({
+                        "question": m.get("question","")[:80],
+                        "yes_price": yes_price, "no_price": no_price,
+                        "inefficiency": round(abs(total-1.0)*100,2),
+                        "volume": m.get("volume",0)
+                    })
             processed.sort(key=lambda x: x["inefficiency"], reverse=True)
-            _polymarket_cache["markets"] = processed; _polymarket_cache["ts"] = now
+            _polymarket_cache["markets"] = processed
+            _polymarket_cache["ts"] = now
             return processed[:5]
-    except Exception as e: print(f"[POLY] {e}")
+    except Exception as e:
+        print(f"[POLY] {e}")
     return []
 
-
 def format_polymarket(markets: list) -> str:
-    if not markets: return "Polymarket: aucune inefficacité"
+    if not markets:
+        return "Polymarket: aucune inefficacité"
     best = markets[0]
     return f"🎯 Poly: {best['question'][:50]} (ineff:{best['inefficiency']:.1f}%)"
 
-
 def detect_arbitrage() -> list:
     now = time.time()
-    if now - _arb_cache["ts"] < 30: return _arb_cache["opportunities"]
+    if now - _arb_cache["ts"] < 30:
+        return _arb_cache["opportunities"]
     opportunities = []
     binance_prices = get_prices_batch()
     try:
-        r = requests.get("https://api.kucoin.com/api/v1/prices", timeout=8,
-                         headers={"User-Agent":"Mozilla/5.0"})
+        r = requests.get(
+            "https://api.kucoin.com/api/v1/prices", timeout=8,
+            headers={"User-Agent":"Mozilla/5.0"}
+        )
         if r.status_code == 200:
             kucoin_data = r.json().get("data",{})
             for sym in ["BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT","XRPUSDT"]:
-                bp = binance_prices.get(sym,0)
+                bp   = binance_prices.get(sym,0)
                 coin = sym.replace("USDT","")
-                kp = float(kucoin_data.get(coin,0))
+                kp   = float(kucoin_data.get(coin,0))
                 if not bp or not kp: continue
                 spread = abs(bp-kp)/bp*100
                 if spread > 0.15:
-                    opportunities.append({"symbol":sym,"binance":bp,"kucoin":kp,
-                                          "spread_pct":round(spread,3),
-                                          "profit_est":round(spread-0.10,3)})
-    except Exception as e: print(f"[ARB] {e}")
+                    opportunities.append({
+                        "symbol": sym, "binance": bp, "kucoin": kp,
+                        "spread_pct": round(spread,3),
+                        "profit_est": round(spread-0.10,3)
+                    })
+    except Exception as e:
+        print(f"[ARB] {e}")
     opportunities.sort(key=lambda x: x["spread_pct"], reverse=True)
-    _arb_cache["opportunities"] = opportunities; _arb_cache["ts"] = now
+    _arb_cache["opportunities"] = opportunities
+    _arb_cache["ts"] = now
     return opportunities
 
-
 def format_arbitrage(opps: list) -> str:
-    if not opps: return "Arbitrage: aucune opportunité"
+    if not opps:
+        return "Arbitrage: aucune opportunité"
     lines = ["⚡ Arbitrage:"]
     for o in opps[:2]:
         coin = o["symbol"].replace("USDT","")
         lines.append(f"  💰 {coin}: {o['spread_pct']:.3f}% → ~{o['profit_est']:.3f}% net")
     return "\n".join(lines)
 
-
 def get_options_data() -> dict:
     now = time.time()
-    if now - _options_cache["ts"] < 300: return _options_cache["data"] or {}
+    if now - _options_cache["ts"] < 300:
+        return _options_cache["data"] or {}
     try:
-        r = requests.get("https://deribit.com/api/v2/public/get_book_summary_by_currency",
-                         params={"currency":"BTC","kind":"option"},
-                         timeout=10, headers={"User-Agent":"Mozilla/5.0"})
+        r = requests.get(
+            "https://deribit.com/api/v2/public/get_book_summary_by_currency",
+            params={"currency":"BTC","kind":"option"},
+            timeout=10, headers={"User-Agent":"Mozilla/5.0"}
+        )
         if r.status_code == 200:
             instruments = r.json().get("result",[])
             calls = sum(1 for i in instruments if "-C" in i.get("instrument_name",""))
             puts  = sum(1 for i in instruments if "-P" in i.get("instrument_name",""))
             pcr   = round(puts/calls,2) if calls > 0 else 1.0
-            result = {"put_call_ratio":pcr,"calls":calls,"puts":puts,
-                      "sentiment":"bearish" if pcr>1.2 else "bullish" if pcr<0.7 else "neutral"}
-            _options_cache["data"] = result; _options_cache["ts"] = now
+            result = {
+                "put_call_ratio": pcr, "calls": calls, "puts": puts,
+                "sentiment": "bearish" if pcr>1.2 else "bullish" if pcr<0.7 else "neutral"
+            }
+            _options_cache["data"] = result
+            _options_cache["ts"] = now
             return result
-    except Exception as e: print(f"[OPT] {e}")
+    except Exception as e:
+        print(f"[OPT] {e}")
     return {}
 
-
 def format_options(data: dict) -> str:
-    if not data: return "Options: N/A"
-    pcr = data.get("put_call_ratio","N/A"); sent = data.get("sentiment","neutral")
-    e = "🐻" if sent=="bearish" else "🐂" if sent=="bullish" else "➡️"
+    if not data:
+        return "Options: N/A"
+    pcr  = data.get("put_call_ratio","N/A")
+    sent = data.get("sentiment","neutral")
+    e    = "🐻" if sent=="bearish" else "🐂" if sent=="bullish" else "➡️"
     return f"📊 Options P/C={pcr} {e} ({sent})"
-
 
 def get_fear_greed() -> str:
     val = get_fear_greed_value()
     try:
         d = requests.get("https://api.alternative.me/fng/", timeout=5).json()["data"][0]
         return f"Fear&Greed: {d['value']}/100 ({d['value_classification']})"
-    except Exception: return f"Fear&Greed: {val}/100"
-
+    except Exception:
+        return f"Fear&Greed: {val}/100"
 
 def get_yahoo_price(ticker: str) -> float:
     now = time.time()
     if ticker in _yahoo_cache:
         ts, p = _yahoo_cache[ticker]
-        if now-ts < 30: return p
+        if now-ts < 30:
+            return p
     try:
         url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}?interval=1m&range=1d"
         r   = requests.get(url, timeout=8, headers={"User-Agent":"Mozilla/5.0"})
         p   = float(r.json()["chart"]["result"][0]["meta"]["regularMarketPrice"])
-        _yahoo_cache[ticker] = (now, p); return p
-    except Exception: return _yahoo_cache.get(ticker,(0,0.0))[1]
-
+        _yahoo_cache[ticker] = (now, p)
+        return p
+    except Exception:
+        return _yahoo_cache.get(ticker,(0,0.0))[1]
 
 def get_yahoo_closes(ticker: str, interval="5m", range_="1d") -> pd.Series:
     try:
@@ -867,8 +1157,8 @@ def get_yahoo_closes(ticker: str, interval="5m", range_="1d") -> pd.Series:
         r   = requests.get(url, timeout=10, headers={"User-Agent":"Mozilla/5.0"})
         closes = r.json()["chart"]["result"][0]["indicators"]["quote"][0]["close"]
         return pd.Series([c for c in closes if c is not None], dtype=float)
-    except Exception: return pd.Series(dtype=float)
-
+    except Exception:
+        return pd.Series(dtype=float)
 
 def scan_yahoo_market(market_dict: dict, market_name: str) -> list:
     opps = []
@@ -889,47 +1179,57 @@ def scan_yahoo_market(market_dict: dict, market_name: str) -> list:
             if ind["mom5"] > 0.5: score += 2
             elif ind["mom5"] < -0.5: score -= 2
             if abs(score) >= 2:
-                opps.append({"symbol":ticker,"name":name,"market_type":market_name,
-                             "price":price,"score":score,
-                             "direction":"BUY" if score>0 else "SELL",
-                             "ind":ind,"patterns":[],"has_alert":False})
-        except Exception as e: print(f"[YAHOO] {ticker}: {e}")
+                opps.append({
+                    "symbol":ticker,"name":name,"market_type":market_name,
+                    "price":price,"score":score,
+                    "direction":"BUY" if score>0 else "SELL",
+                    "ind":ind,"patterns":[],"has_alert":False
+                })
+        except Exception as e:
+            print(f"[YAHOO] {ticker}: {e}")
     opps.sort(key=lambda x: abs(x["score"]), reverse=True)
     return opps[:3]
-
 
 # ═══════════════════════════════════════════════════════════════
 #  INDICATEURS TECHNIQUES
 # ═══════════════════════════════════════════════════════════════
 def compute_indicators(closes: pd.Series) -> dict:
-    if len(closes) < 27: return {}
+    if len(closes) < 27:
+        return {}
     try:
         delta = closes.diff()
-        gain  = delta.clip(lower=0); loss = (-delta).clip(lower=0)
+        gain  = delta.clip(lower=0)
+        loss  = (-delta).clip(lower=0)
         rs    = (gain.ewm(com=13,adjust=False).mean() /
                  loss.ewm(com=13,adjust=False).mean().replace(0,np.nan))
         rsi   = float((100-100/(1+rs)).iloc[-1])
         ema9  = float(closes.ewm(span=9, adjust=False).mean().iloc[-1])
         ema20 = float(closes.ewm(span=20,adjust=False).mean().iloc[-1])
         ema50 = float(closes.ewm(span=50,adjust=False).mean().iloc[-1])
-        macd_l = float((closes.ewm(span=12,adjust=False).mean()-closes.ewm(span=26,adjust=False).mean()).iloc[-1])
-        macd_s = float((closes.ewm(span=12,adjust=False).mean()-closes.ewm(span=26,adjust=False).mean())
-                       .ewm(span=9,adjust=False).mean().iloc[-1])
+        macd_line   = closes.ewm(span=12,adjust=False).mean() - closes.ewm(span=26,adjust=False).mean()
+        macd_signal = macd_line.ewm(span=9,adjust=False).mean()
+        macd_l = float(macd_line.iloc[-1])
+        macd_s = float(macd_signal.iloc[-1])
         macd_h = round(macd_l-macd_s, 6)
-        sma20  = closes.rolling(20).mean(); std20 = closes.rolling(20).std()
-        bb_up  = float((sma20+2*std20).iloc[-1]); bb_lo = float((sma20-2*std20).iloc[-1])
+        sma20  = closes.rolling(20).mean()
+        std20  = closes.rolling(20).std()
+        bb_up  = float((sma20+2*std20).iloc[-1])
+        bb_lo  = float((sma20-2*std20).iloc[-1])
         bb_pct = round((float(closes.iloc[-1])-bb_lo)/(bb_up-bb_lo)*100,1) if bb_up!=bb_lo else 50.0
         mom5   = float((closes.iloc[-1]-closes.iloc[-6])/closes.iloc[-6]*100)  if len(closes)>=6  else 0.0
         mom15  = float((closes.iloc[-1]-closes.iloc[-16])/closes.iloc[-16]*100) if len(closes)>=16 else 0.0
         vol    = float(closes.pct_change().dropna().iloc[-10:].std()*100) if len(closes)>=10 else 0.0
-        return {"rsi":round(rsi,1),"ema9":round(ema9,6),"ema20":round(ema20,6),
-                "ema50":round(ema50,6),"macd_h":macd_h,"bb_pct":bb_pct,
-                "mom5":round(mom5,3),"mom15":round(mom15,3),"vol":round(vol,3),
-                "trend":"↑" if ema20>ema50 else "↓",
-                "ema_cross":"BULL" if ema9>ema20 else "BEAR",
-                "price":float(closes.iloc[-1])}
-    except Exception as e: print(f"[IND] {e}"); return {}
-
+        return {
+            "rsi":round(rsi,1),"ema9":round(ema9,6),"ema20":round(ema20,6),
+            "ema50":round(ema50,6),"macd_h":macd_h,"bb_pct":bb_pct,
+            "mom5":round(mom5,3),"mom15":round(mom15,3),"vol":round(vol,3),
+            "trend":"↑" if ema20>ema50 else "↓",
+            "ema_cross":"BULL" if ema9>ema20 else "BEAR",
+            "price":float(closes.iloc[-1])
+        }
+    except Exception as e:
+        print(f"[IND] {e}")
+        return {}
 
 def get_multi_tf(symbol: str) -> dict:
     result = {}
@@ -937,36 +1237,41 @@ def get_multi_tf(symbol: str) -> dict:
         closes = get_klines(symbol, interval, 80)
         if not closes.empty:
             ind = compute_indicators(closes)
-            if ind: result[label] = ind
+            if ind:
+                result[label] = ind
     return result
-
 
 def tf_score(mtf: dict) -> dict:
     score = 0; sigs = []
     for tf, ind in mtf.items():
-        rsi  = ind.get("rsi",50); macd = ind.get("macd_h",0)
-        mom5 = ind.get("mom5",0); cross = ind.get("ema_cross","BEAR")
-        if rsi < 32: score += 2; sigs.append(f"{tf}:RSI_survente")
+        rsi   = ind.get("rsi",50)
+        macd  = ind.get("macd_h",0)
+        mom5  = ind.get("mom5",0)
+        cross = ind.get("ema_cross","BEAR")
+        if rsi < 32:   score += 2; sigs.append(f"{tf}:RSI_survente")
         elif rsi < 45: score += 1
         elif rsi > 68: score -= 2; sigs.append(f"{tf}:RSI_surachat")
         elif rsi > 55: score -= 1
-        if macd > 0: score += 1; sigs.append(f"{tf}:MACD↑")
-        else: score -= 1
-        if mom5 > 0.5: score += 1
+        if macd > 0:  score += 1; sigs.append(f"{tf}:MACD↑")
+        else:         score -= 1
+        if mom5 > 0.5:  score += 1
         elif mom5 < -0.5: score -= 1
         if cross == "BULL": score += 1; sigs.append(f"{tf}:EMA_bull")
-        else: score -= 1
+        else:               score -= 1
     direction = "LONG" if score>=4 else "SHORT" if score<=-4 else "NEUTRE"
     return {"score":score,"direction":direction,"signals":sigs[:6]}
-
 
 def detect_patterns(symbol: str, ind: dict, vols: list) -> list:
     patterns = []
     try:
-        rsi=ind.get("rsi",50); mom5=ind.get("mom5",0); mom15=ind.get("mom15",0)
-        bb_pct=ind.get("bb_pct",50); macd_h=ind.get("macd_h",0); ema_cross=ind.get("ema_cross","BEAR")
-        avg_vol  = sum(vols[:-1])/max(len(vols)-1,1) if vols else 0
-        last_vol = vols[-1] if vols else 0
+        rsi      = ind.get("rsi",50)
+        mom5     = ind.get("mom5",0)
+        mom15    = ind.get("mom15",0)
+        bb_pct   = ind.get("bb_pct",50)
+        macd_h   = ind.get("macd_h",0)
+        ema_cross= ind.get("ema_cross","BEAR")
+        avg_vol   = sum(vols[:-1])/max(len(vols)-1,1) if vols else 0
+        last_vol  = vols[-1] if vols else 0
         vol_ratio = last_vol/avg_vol if avg_vol > 0 else 1
         if rsi<28 and bb_pct<5:
             patterns.append({"name":"Survente extrême","signal":"BUY","strength":"fort","score":3})
@@ -986,9 +1291,9 @@ def detect_patterns(symbol: str, ind: dict, vols: list) -> list:
             patterns.append({"name":"Momentum baissier","signal":"SELL","strength":"modéré","score":2})
         if abs(mom5)>4 and vol_ratio>5:
             patterns.append({"name":"⚠️ Pump/Dump","signal":"HOLD","strength":"ALERTE"})
-    except Exception as e: print(f"[PAT] {e}")
+    except Exception as e:
+        print(f"[PAT] {e}")
     return patterns
-
 
 def scan_market() -> list:
     opps = []; prices = get_prices_batch()
@@ -1016,13 +1321,15 @@ def scan_market() -> list:
             else: score-=1
             score += get_symbol_confidence_bonus(symbol) // 5
             has_alert = any(p["signal"]=="HOLD" for p in pats)
-            opps.append({"symbol":symbol,"price":price,"score":score,
-                         "direction":"BUY" if score>0 else "SELL",
-                         "ind":ind,"patterns":pats,"has_alert":has_alert})
-        except Exception: pass
+            opps.append({
+                "symbol":symbol,"price":price,"score":score,
+                "direction":"BUY" if score>0 else "SELL",
+                "ind":ind,"patterns":pats,"has_alert":has_alert
+            })
+        except Exception:
+            pass
     opps.sort(key=lambda x: abs(x["score"]), reverse=True)
     return opps[:10]
-
 
 # ═══════════════════════════════════════════════════════════════
 #  ANALYSE COMPLÈTE
@@ -1033,10 +1340,14 @@ def analyze(opp: dict, fear_greed: str) -> dict:
     mtf = get_multi_tf(symbol); conf = tf_score(mtf)
     ob  = get_order_book(symbol)
     in_pos    = any(p["symbol"]==symbol for p in sim["positions"].values())
-    best_p    = db_best_patterns(symbol); worst_p = db_worst_patterns(symbol)
-    liq_data  = get_liquidations(); onchain = get_onchain_data()
-    whales    = get_whale_alerts(); arb_opps = detect_arbitrage()
-    options   = get_options_data(); poly_mkts = get_polymarket_markets()
+    best_p    = db_best_patterns(symbol)
+    worst_p   = db_worst_patterns(symbol)
+    liq_data  = get_liquidations()
+    onchain   = get_onchain_data()
+    whales    = get_whale_alerts()
+    arb_opps  = detect_arbitrage()
+    options   = get_options_data()
+    poly_mkts = get_polymarket_markets()
     kelly_pct = dynamic_position_size(70,"SPOT",symbol)
     trader_sigs = get_db_trader_signals_summary()
     my_rules  = get_active_rules()
@@ -1045,14 +1356,17 @@ def analyze(opp: dict, fear_greed: str) -> dict:
     vp        = get_volume_profile(symbol)
     vp_str    = ""
     if vp:
-        if vp.get("near_support"): vp_str = f"📍 Proche support ${vp['support']:.4f}"
-        elif vp.get("near_resistance"): vp_str = f"📍 Proche résistance ${vp['resistance']:.4f}"
-    sym_bonus = get_symbol_confidence_bonus(symbol)
-    fg_value  = get_fear_greed_value()
+        if vp.get("near_support"):
+            vp_str = f"📍 Proche support ${vp['support']:.4f}"
+        elif vp.get("near_resistance"):
+            vp_str = f"📍 Proche résistance ${vp['resistance']:.4f}"
+    sym_bonus  = get_symbol_confidence_bonus(symbol)
+    fg_value   = get_fear_greed_value()
     fg_context = ""
-    if fg_value < 20: fg_context = "⚠️ EXTREME FEAR → Opportunité"
+    if fg_value < 20:   fg_context = "⚠️ EXTREME FEAR → Opportunité"
     elif fg_value < 35: fg_context = "Fear élevé → potentielle opportunité"
-    prompt = f"""{symbol} ${price:.4f}
+    ws_status = "WS✅" if _ws_connected else "REST"
+    prompt = f"""{symbol} ${price:.4f} [{ws_status}]
 RSI:{ind.get('rsi','?')} MACD:{ind.get('macd_h','?')} mom5:{ind.get('mom5','?')}% trend:{ind.get('trend','?')}
 OB:{ob['pressure']} TFscore:{conf['score']}/9
 Fear&Greed:{fg_value}/100 {fg_context}
@@ -1073,70 +1387,83 @@ JSON:{{"signal":"BUY/SELL/HOLD","confidence":0-100,"reason":"raison","risk":"LOW
     result = vote(prompt)
     if sym_bonus != 0 and result.get("signal") != "HOLD":
         result["confidence"] = max(0, min(100, result.get("confidence",0) + sym_bonus))
-    result.update({"symbol":symbol,"price":price,"patterns":pats,
-                   "confluence":conf,"ob":ob,"ind":ind,"kelly_pct":kelly_pct})
+    result.update({
+        "symbol":symbol,"price":price,"patterns":pats,
+        "confluence":conf,"ob":ob,"ind":ind,"kelly_pct":kelly_pct
+    })
     return result
-
 
 # ═══════════════════════════════════════════════════════════════
 #  GESTION DES POSITIONS
 # ═══════════════════════════════════════════════════════════════
-def get_equity() -> float: return get_equity_safe()
-
+def get_equity() -> float:
+    return get_equity_safe()
 
 def get_stats() -> dict:
     closed = [t for t in sim["trades"] if t.get("pnl") is not None]
     if not closed:
         return {"total":0,"wins":0,"losses":0,"win_rate":0,"best":0,"worst":0,"total_pnl":0,"avg_dur":0}
-    pnls = [t["pnl"] for t in closed]; wins = [p for p in pnls if p>0]
+    pnls = [t["pnl"] for t in closed]
+    wins = [p for p in pnls if p>0]
     durs = [t.get("duration_min",0) for t in closed if t.get("duration_min")]
-    return {"total":len(closed),"wins":len(wins),"losses":len(closed)-len(wins),
-            "win_rate":round(len(wins)/len(closed)*100,1),
-            "best":round(max(pnls),4),"worst":round(min(pnls),4),
-            "total_pnl":round(sum(pnls),4),
-            "avg_dur":round(sum(durs)/len(durs),1) if durs else 0}
-
+    return {
+        "total":len(closed),"wins":len(wins),"losses":len(closed)-len(wins),
+        "win_rate":round(len(wins)/len(closed)*100,1),
+        "best":round(max(pnls),4),"worst":round(min(pnls),4),
+        "total_pnl":round(sum(pnls),4),
+        "avg_dur":round(sum(durs)/len(durs),1) if durs else 0
+    }
 
 def can_open_trade(symbol: str, market: str, send_fn) -> bool:
     if not check_risk_limits(send_fn): return False
+    if not validate_symbol(symbol): return False
     if is_blacklisted(symbol): return False
     if is_correlated(symbol): return False
     if market not in ("MEME","MICRO") and is_fg_neutral(): return False
     return True
 
-
 def open_trade(analysis: dict, send_fn) -> dict | None:
     symbol = analysis["symbol"]; price = analysis["price"]
     signal = analysis["signal"]; conf  = analysis["confidence"]
-    reason = analysis["reason"]; market = analysis.get("market","SPOT")
-    pats   = analysis.get("patterns",[]); side = "LONG" if signal=="BUY" else "SHORT"
+    reason = sanitize_string(analysis["reason"])
+    market = analysis.get("market","SPOT")
+    pats   = analysis.get("patterns",[])
+    side   = "LONG" if signal=="BUY" else "SHORT"
     if signal == "SELL" and market == "SPOT": return None
     if not can_open_trade(symbol, market, send_fn): return None
     if any(p["symbol"]==symbol for p in sim["positions"].values()): return None
     if len(sim["positions"]) >= MAX_POSITIONS: return None
     if sim["cash"] < 20: return None
+    if not validate_amount(price, 0.000001, 1_000_000): return None
     kelly_pct = analysis.get("kelly_pct") or dynamic_position_size(conf,market,symbol)
     if analysis.get("_forced_pct"): kelly_pct = analysis["_forced_pct"]
     leverage  = LEVERAGE_SIM if market=="FUTURES" else 1
-    amount    = sim["cash"] * kelly_pct; qty = amount/price; sim["cash"] -= amount
-    trade = {"id":len(sim["trades"])+1,"symbol":symbol,"market":market,"side":side,
-             "price_in":price,"price_out":None,"qty":qty,"amount_usd":amount,
-             "confidence":conf,"reason":reason,"exit_reason":None,
-             "time_in":datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-             "time_out":None,"pnl":None,"pnl_pct":None,"duration_min":None,
-             "patterns":[p["name"] for p in pats if p.get("signal")!="HOLD"],
-             "leverage":leverage,"peak_price":price,"trough_price":price,"kelly_pct":kelly_pct}
+    amount    = sim["cash"] * kelly_pct
+    qty       = amount/price
+    sim["cash"] -= amount
+    trade = {
+        "id":len(sim["trades"])+1,"symbol":symbol,"market":market,"side":side,
+        "price_in":price,"price_out":None,"qty":qty,"amount_usd":amount,
+        "confidence":conf,"reason":reason,"exit_reason":None,
+        "time_in":datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "time_out":None,"pnl":None,"pnl_pct":None,"duration_min":None,
+        "patterns":[p["name"] for p in pats if p.get("signal")!="HOLD"],
+        "leverage":leverage,"peak_price":price,"trough_price":price,"kelly_pct":kelly_pct
+    }
     pos_key = f"{market}_{symbol}_{side}_{trade['id']}"
-    sim["trades"].append(trade); sim["positions"][pos_key] = {**trade,"pos_key":pos_key}
-    db_save_trade(trade); save_data(); bot_state["trades_today"] += 1
+    sim["trades"].append(trade)
+    sim["positions"][pos_key] = {**trade,"pos_key":pos_key}
+    db_save_trade(trade); save_data()
+    bot_state["trades_today"] += 1
     sl = price*(1-STOP_LOSS_PCT) if side=="LONG" else price*(1+STOP_LOSS_PCT)
     tp = price*(1+TAKE_PROFIT_PCT) if side=="LONG" else price*(1-TAKE_PROFIT_PCT)
     coin  = symbol.replace("USDT","")
-    mtype = analysis.get("market_type",market); name = analysis.get("name",coin)
+    mtype = analysis.get("market_type",market)
+    name  = analysis.get("name",coin)
     asset_label = f"{name} ({mtype})" if mtype in ("STOCK","FOREX","COMMODITY") else f"{coin} (Crypto)"
-    learning = "🎓" if analysis.get("_forced_pct") else ""
-    macro    = bot_state.get("macro_trend","NEUTRAL")
-    macro_e  = "🐂" if macro=="BULL" else "🐻" if macro=="BEAR" else "➡️"
+    learning    = "🎓" if analysis.get("_forced_pct") else ""
+    macro       = bot_state.get("macro_trend","NEUTRAL")
+    macro_e     = "🐂" if macro=="BULL" else "🐻" if macro=="BEAR" else "➡️"
     send_fn(
         f"{'🟢' if side=='LONG' else '🔴'} {learning} {asset_label}\n"
         f"━━━━━━━━━━━━━━━━━━━\n"
@@ -1150,35 +1477,43 @@ def open_trade(analysis: dict, send_fn) -> dict | None:
     )
     return trade
 
-
 def close_trade(pos_key: str, price: float, reason: str, send_fn) -> dict | None:
     pos = sim["positions"].pop(pos_key, None)
     if not pos: return None
-    side = pos["side"]; entry = pos["price_in"]; amt = pos["amount_usd"]; lev = pos.get("leverage",1)
+    side  = pos["side"]; entry = pos["price_in"]
+    amt   = pos["amount_usd"]; lev = pos.get("leverage",1)
     if side == "LONG":
-        pnl = (price-entry)/entry*amt*lev; pnl_pct = (price-entry)/entry*100*lev
+        pnl     = (price-entry)/entry*amt*lev
+        pnl_pct = (price-entry)/entry*100*lev
     else:
-        pnl = (entry-price)/entry*amt*lev; pnl_pct = (entry-price)/entry*100*lev
+        pnl     = (entry-price)/entry*amt*lev
+        pnl_pct = (entry-price)/entry*100*lev
     sim["cash"] += amt + pnl
     duration = 0
     try:
         t_in = datetime.strptime(pos["time_in"],"%Y-%m-%d %H:%M:%S")
         duration = int((datetime.now()-t_in).total_seconds()/60)
-    except Exception: pass
+    except Exception:
+        pass
     trade = next((t for t in reversed(sim["trades"]) if t["id"]==pos["id"]), None)
     if trade:
-        trade.update({"price_out":price,"time_out":datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                      "pnl":round(pnl,4),"pnl_pct":round(pnl_pct,2),
-                      "exit_reason":reason,"duration_min":duration})
+        trade.update({
+            "price_out":price,
+            "time_out":datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "pnl":round(pnl,4),"pnl_pct":round(pnl_pct,2),
+            "exit_reason":reason,"duration_min":duration
+        })
         db_save_trade(trade); learn_from_trade(trade,send_fn=send_fn)
     won = pnl > 0
-    if won: memory["total_wins"]  = memory.get("total_wins",0)+1
+    if won: memory["total_wins"]   = memory.get("total_wins",0)+1
     else:   memory["total_losses"] = memory.get("total_losses",0)+1
     update_symbol_score(pos["symbol"], won)
     update_blacklist(pos["symbol"], won)
     save_data()
-    equity_now = get_equity_safe(); pnl_total = equity_now - sim["initial"]
-    coin = pos["symbol"].replace("USDT",""); chg = (price-entry)/entry*100
+    equity_now = get_equity_safe()
+    pnl_total  = equity_now - sim["initial"]
+    coin = pos["symbol"].replace("USDT","")
+    chg  = (price-entry)/entry*100
     send_fn(
         f"{'✅' if pnl>0 else '❌'} {coin} fermé — #{pos['id']}\n"
         f"  ${entry:.4f}→${price:.4f} ({chg:+.2f}%)\n"
@@ -1187,13 +1522,13 @@ def close_trade(pos_key: str, price: float, reason: str, send_fn) -> dict | None
     )
     return trade
 
-
 def monitor_positions(send_fn):
     if not sim["positions"]: return
     prices = get_prices_batch()
     for pos_key, pos in list(sim["positions"].items()):
         if pos.get("trade_type") in ("MICRO","MEME"): continue
-        symbol = pos["symbol"]; side = pos["side"]; entry = pos["price_in"]; lev = pos.get("leverage",1)
+        symbol = pos["symbol"]; side = pos["side"]
+        entry  = pos["price_in"]; lev = pos.get("leverage",1)
         price  = prices.get(symbol) or get_price(symbol)
         if not price: continue
         if side == "LONG":
@@ -1210,16 +1545,16 @@ def monitor_positions(send_fn):
         elif change*lev > 0.008 and trailing >= TRAILING_PCT: reason = f"📐 TRAIL ({trailing*100:.2f}%)"
         if reason: close_trade(pos_key, price, reason, send_fn)
 
-
 # ═══════════════════════════════════════════════════════════════
 #  MICRO-TRADING
 # ═══════════════════════════════════════════════════════════════
 def micro_signal(symbol: str, price: float) -> dict:
     try:
         closes = get_klines_1m_cached(symbol)
-        if len(closes) < 14: return {"signal":"HOLD","score":0,"conf":0}
-        ema5  = float(closes.ewm(span=5, adjust=False).mean().iloc[-1])
-        ema13 = float(closes.ewm(span=13,adjust=False).mean().iloc[-1])
+        if len(closes) < 14:
+            return {"signal":"HOLD","score":0,"conf":0}
+        ema5       = float(closes.ewm(span=5, adjust=False).mean().iloc[-1])
+        ema13      = float(closes.ewm(span=13,adjust=False).mean().iloc[-1])
         ema5_prev  = float(closes.ewm(span=5, adjust=False).mean().iloc[-2])
         ema13_prev = float(closes.ewm(span=13,adjust=False).mean().iloc[-2])
         delta = closes.diff()
@@ -1227,22 +1562,24 @@ def micro_signal(symbol: str, price: float) -> dict:
         loss  = (-delta).clip(lower=0).ewm(com=6,adjust=False).mean()
         rsi7  = float((100-100/(1+gain/loss.replace(0,np.nan))).iloc[-1])
         mom3  = float((closes.iloc[-1]-closes.iloc[-4])/closes.iloc[-4]*100) if len(closes)>=4 else 0
-        sma10 = closes.rolling(10).mean(); std10 = closes.rolling(10).std()
-        bb_up = float((sma10+1.5*std10).iloc[-1]); bb_lo = float((sma10-1.5*std10).iloc[-1])
-        bb_pct = (price-bb_lo)/(bb_up-bb_lo)*100 if bb_up!=bb_lo else 50
-        vols   = get_volume_data(symbol,"1",10)
-        avg_vol = sum(vols[:-1])/max(len(vols)-1,1) if len(vols)>1 else 1
+        sma10 = closes.rolling(10).mean()
+        std10 = closes.rolling(10).std()
+        bb_up = float((sma10+1.5*std10).iloc[-1])
+        bb_lo = float((sma10-1.5*std10).iloc[-1])
+        bb_pct= (price-bb_lo)/(bb_up-bb_lo)*100 if bb_up!=bb_lo else 50
+        vols      = get_volume_data(symbol,"1",10)
+        avg_vol   = sum(vols[:-1])/max(len(vols)-1,1) if len(vols)>1 else 1
         vol_ratio = vols[-1]/avg_vol if avg_vol > 0 else 1.0
         score = 0
-        if ema5_prev<=ema13_prev and ema5>ema13: score += 2
+        if ema5_prev<=ema13_prev and ema5>ema13:  score += 2
         elif ema5_prev>=ema13_prev and ema5<ema13: score -= 2
-        if rsi7<28: score+=2
+        if rsi7<28:   score+=2
         elif rsi7<40: score+=1
         elif rsi7>72: score-=2
         elif rsi7>60: score-=1
-        if mom3>0.6: score+=1
+        if mom3>0.6:  score+=1
         elif mom3<-0.6: score-=1
-        if bb_pct<8: score+=1
+        if bb_pct<8:  score+=1
         elif bb_pct>92: score-=1
         if vol_ratio>2.5 and score>0: score+=1
         if vol_ratio>2.5 and score<0: score-=1
@@ -1250,8 +1587,8 @@ def micro_signal(symbol: str, price: float) -> dict:
         if score>=4:    return {"signal":"BUY","score":score,"conf":min(95,60+score*7),"reason":reason}
         elif score<=-4: return {"signal":"SELL","score":score,"conf":min(95,60+abs(score)*7),"reason":reason}
         return {"signal":"HOLD","score":score,"conf":0}
-    except Exception: return {"signal":"HOLD","score":0,"conf":0}
-
+    except Exception:
+        return {"signal":"HOLD","score":0,"conf":0}
 
 def open_micro_trade(symbol: str, price: float, signal: dict, send_fn) -> dict | None:
     if signal["signal"] == "SELL": return None
@@ -1261,53 +1598,65 @@ def open_micro_trade(symbol: str, price: float, signal: dict, send_fn) -> dict |
     if sim["cash"] < 15: return None
     night_factor = 0.5 if is_night_time() else 1.0
     amount = sim["cash"] * MICRO_MAX_PCT * night_factor
-    qty = amount/price; sim["cash"] -= amount
-    trade = {"id":len(sim["trades"])+1,"symbol":symbol,"market":"MICRO","side":"LONG",
-             "trade_type":"MICRO","price_in":price,"price_out":None,"qty":qty,
-             "amount_usd":amount,"confidence":signal["conf"],"reason":signal.get("reason",""),
-             "exit_reason":None,"time_in":datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-             "time_out":None,"pnl":None,"pnl_pct":None,"duration_min":None,
-             "patterns":[f"score={signal['score']}"],"leverage":1,
-             "peak_price":price,"open_time":time.time(),"kelly_pct":MICRO_MAX_PCT}
+    qty    = amount/price
+    sim["cash"] -= amount
+    trade = {
+        "id":len(sim["trades"])+1,"symbol":symbol,"market":"MICRO","side":"LONG",
+        "trade_type":"MICRO","price_in":price,"price_out":None,"qty":qty,
+        "amount_usd":amount,"confidence":signal["conf"],"reason":signal.get("reason",""),
+        "exit_reason":None,"time_in":datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "time_out":None,"pnl":None,"pnl_pct":None,"duration_min":None,
+        "patterns":[f"score={signal['score']}"],"leverage":1,
+        "peak_price":price,"open_time":time.time(),"kelly_pct":MICRO_MAX_PCT
+    }
     pos_key = f"MICRO_{symbol}_{trade['id']}"
-    sim["trades"].append(trade); sim["positions"][pos_key] = {**trade,"pos_key":pos_key}
-    db_save_trade(trade); bot_state["trades_today"] += 1
+    sim["trades"].append(trade)
+    sim["positions"][pos_key] = {**trade,"pos_key":pos_key}
+    db_save_trade(trade)
+    bot_state["trades_today"] += 1
     bot_state["micro_count"] = bot_state.get("micro_count",0)+1
     coin = symbol.replace("USDT","")
     send_fn(f"⚡ Micro {coin} #{trade['id']} | ${price:.4f} | {signal.get('reason','')[:60]}")
     return trade
 
-
 def monitor_micro_positions(send_fn):
-    now = time.time(); prices = get_prices_batch()
+    now = time.time()
+    prices = get_prices_batch()
     for pos_key, pos in list(sim["positions"].items()):
         if pos.get("trade_type") != "MICRO": continue
-        symbol = pos["symbol"]; price = prices.get(symbol) or get_price(symbol,force=True)
+        symbol = pos["symbol"]
+        price  = prices.get(symbol) or get_price(symbol,force=True)
         if not price: continue
-        entry = pos["price_in"]; change = (price-entry)/entry; elapsed = now-pos.get("open_time",now)
+        entry   = pos["price_in"]
+        change  = (price-entry)/entry
+        elapsed = now-pos.get("open_time",now)
         pos["peak_price"] = max(pos.get("peak_price",entry), price)
         trailing = (pos["peak_price"]-price)/pos["peak_price"]
         reason = None
-        if change <= -MICRO_SL_PCT:          reason = f"🛑 MICRO SL ({change*100:+.2f}%)"
-        elif change >= MICRO_TP_PCT:          reason = f"🎯 MICRO TP ({change*100:+.2f}%)"
-        elif change>0.003 and trailing>=MICRO_TRAILING_PCT: reason = f"📐 TRAIL ({trailing*100:.2f}%)"
-        elif elapsed >= MICRO_MAX_DURATION:   reason = f"⏱ TIMEOUT {int(elapsed)}s"
+        if change <= -MICRO_SL_PCT:                          reason = f"🛑 MICRO SL ({change*100:+.2f}%)"
+        elif change >= MICRO_TP_PCT:                         reason = f"🎯 MICRO TP ({change*100:+.2f}%)"
+        elif change>0.003 and trailing>=MICRO_TRAILING_PCT:  reason = f"📐 TRAIL ({trailing*100:.2f}%)"
+        elif elapsed >= MICRO_MAX_DURATION:                  reason = f"⏱ TIMEOUT {int(elapsed)}s"
         if reason:
-            pnl = change*pos["amount_usd"]; sim["cash"] += pos["amount_usd"]+pnl
+            pnl = change*pos["amount_usd"]
+            sim["cash"] += pos["amount_usd"]+pnl
             trade = next((t for t in reversed(sim["trades"]) if t["id"]==pos["id"]), None)
             if trade:
-                trade.update({"price_out":price,"time_out":datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                              "pnl":round(pnl,6),"pnl_pct":round(change*100,3),
-                              "exit_reason":reason,"duration_min":max(1,int(elapsed/60))})
+                trade.update({
+                    "price_out":price,
+                    "time_out":datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "pnl":round(pnl,6),"pnl_pct":round(change*100,3),
+                    "exit_reason":reason,"duration_min":max(1,int(elapsed/60))
+                })
                 db_save_trade(trade); learn_from_trade(trade,send_fn=None)
             del sim["positions"][pos_key]; save_data()
             coin = symbol.replace("USDT","")
             send_fn(f"{'✅' if pnl>0 else '❌'} Micro {coin}: ${pnl:+.4f} | {reason}")
             won = pnl > 0
-            if won: memory["total_wins"]  = memory.get("total_wins",0)+1
+            if won: memory["total_wins"]   = memory.get("total_wins",0)+1
             else:   memory["total_losses"] = memory.get("total_losses",0)+1
-            update_symbol_score(symbol, won); update_blacklist(symbol, won)
-
+            update_symbol_score(symbol, won)
+            update_blacklist(symbol, won)
 
 def run_micro_cycle(send_fn):
     max_micro = 1 if is_night_time() else MAX_MICRO_POSITIONS
@@ -1324,7 +1673,6 @@ def run_micro_cycle(send_fn):
         if sig["signal"] != "HOLD" and sig["conf"] >= MICRO_CONF_MIN:
             open_micro_trade(symbol, price, sig, send_fn)
 
-
 # ═══════════════════════════════════════════════════════════════
 #  MEMECOINS
 # ═══════════════════════════════════════════════════════════════
@@ -1339,21 +1687,26 @@ def dex_get_pair(query: str) -> dict:
         pairs = r.json().get("pairs",[])
         if not pairs: return {}
         best = max(pairs, key=lambda p: float(p.get("liquidity",{}).get("usd",0) or 0))
-        d = {"symbol":best.get("baseToken",{}).get("symbol","?"),
-             "price":float(best.get("priceUsd",0) or 0),
-             "change_5m":float(best.get("priceChange",{}).get("m5",0) or 0),
-             "change_1h":float(best.get("priceChange",{}).get("h1",0) or 0),
-             "volume_1h":float(best.get("volume",{}).get("h1",0) or 0),
-             "liquidity":float(best.get("liquidity",{}).get("usd",0) or 0),
-             "chain":best.get("chainId","?"),"url":best.get("url","")}
-        _dex_cache[query] = (now, d); return d
-    except Exception: return {}
-
+        d = {
+            "symbol":   best.get("baseToken",{}).get("symbol","?"),
+            "price":    float(best.get("priceUsd",0) or 0),
+            "change_5m":float(best.get("priceChange",{}).get("m5",0) or 0),
+            "change_1h":float(best.get("priceChange",{}).get("h1",0) or 0),
+            "volume_1h":float(best.get("volume",{}).get("h1",0) or 0),
+            "liquidity":float(best.get("liquidity",{}).get("usd",0) or 0),
+            "chain":    best.get("chainId","?"),
+            "url":      best.get("url","")
+        }
+        _dex_cache[query] = (now, d)
+        return d
+    except Exception:
+        return {}
 
 def dex_get_trending() -> list:
     global _trending_cache, _trending_ts
     now = time.time()
-    if now-_trending_ts < 120 and _trending_cache: return _trending_cache
+    if now-_trending_ts < 120 and _trending_cache:
+        return _trending_cache
     results = []
     try:
         r = requests.get(DEXSCREENER_NEW, timeout=8, headers={"User-Agent":"Mozilla/5.0"})
@@ -1363,21 +1716,24 @@ def dex_get_trending() -> list:
             addr = b.get("tokenAddress","")
             if not addr: continue
             data = dex_get_pair(addr)
-            if data and data.get("liquidity",0) > 50000: results.append(data)
+            if data and data.get("liquidity",0) > 50000:
+                results.append(data)
             if len(results) >= 8: break
-    except Exception: pass
-    _trending_cache = results; _trending_ts = now
+    except Exception:
+        pass
+    _trending_cache = results
+    _trending_ts = now
     return results
 
-
 def meme_signal_score(token: dict) -> int:
-    score = 0; c1h = token.get("change_1h",0); c5m = token.get("change_5m",0)
+    score = 0
+    c1h = token.get("change_1h",0); c5m = token.get("change_5m",0)
     vol = token.get("volume_1h",0); liq = token.get("liquidity",0)
     if liq < 10000: return 0
     if c1h>50: score+=4
     elif c1h>20: score+=3
     elif c1h>10: score+=2
-    elif c1h>5: score+=1
+    elif c1h>5:  score+=1
     if c5m>10: score+=3
     elif c5m>5: score+=2
     elif c5m>2: score+=1
@@ -1389,7 +1745,6 @@ def meme_signal_score(token: dict) -> int:
     elif c1h<-5: score-=1
     return max(0,min(10,score))
 
-
 def _open_meme_trade(token: dict, score: int, source: str, send_fn) -> dict | None:
     symbol = token.get("symbol","?"); price = token.get("price",0)
     if not price or price <= 0: return None
@@ -1397,32 +1752,40 @@ def _open_meme_trade(token: dict, score: int, source: str, send_fn) -> dict | No
     meme_count = sum(1 for p in sim["positions"].values() if p.get("trade_type")=="MEME")
     if meme_count >= 2: return None
     if any(p.get("meme_symbol")==symbol for p in sim["positions"].values()): return None
-    amount = sim["cash"] * MEME_MAX_PCT; qty = amount/price; sim["cash"] -= amount
-    trade = {"id":len(sim["trades"])+1,"symbol":symbol,"market":"MEME","side":"LONG",
-             "trade_type":"MEME","meme_symbol":symbol,"price_in":price,"price_out":None,
-             "qty":qty,"amount_usd":amount,"confidence":min(95,50+score*7),
-             "reason":f"Score {score}/10 | @{source}","exit_reason":None,
-             "time_in":datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-             "time_out":None,"pnl":None,"pnl_pct":None,"duration_min":None,
-             "patterns":["memecoin"],"leverage":1,"peak_price":price,
-             "open_time":time.time(),"kelly_pct":MEME_MAX_PCT}
+    amount = sim["cash"] * MEME_MAX_PCT
+    qty    = amount/price
+    sim["cash"] -= amount
+    trade = {
+        "id":len(sim["trades"])+1,"symbol":symbol,"market":"MEME","side":"LONG",
+        "trade_type":"MEME","meme_symbol":symbol,"price_in":price,"price_out":None,
+        "qty":qty,"amount_usd":amount,"confidence":min(95,50+score*7),
+        "reason":f"Score {score}/10 | @{source}","exit_reason":None,
+        "time_in":datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "time_out":None,"pnl":None,"pnl_pct":None,"duration_min":None,
+        "patterns":["memecoin"],"leverage":1,"peak_price":price,
+        "open_time":time.time(),"kelly_pct":MEME_MAX_PCT
+    }
     pos_key = f"MEME_{symbol}_{trade['id']}"
-    sim["trades"].append(trade); sim["positions"][pos_key] = {**trade,"pos_key":pos_key}
-    db_save_trade(trade); bot_state["trades_today"] += 1
+    sim["trades"].append(trade)
+    sim["positions"][pos_key] = {**trade,"pos_key":pos_key}
+    db_save_trade(trade)
+    bot_state["trades_today"] += 1
     send_fn(f"🐸 MEME ${symbol} | ${price:.8f} | Score:{score}/10 | {source}")
     return trade
-
 
 def _monitor_meme_positions(send_fn):
     now = time.time()
     for pos_key, pos in list(sim["positions"].items()):
         if pos.get("trade_type") != "MEME": continue
-        symbol = pos.get("meme_symbol",pos["symbol"]); entry = pos["price_in"]
+        symbol  = pos.get("meme_symbol",pos["symbol"])
+        entry   = pos["price_in"]
         elapsed = now - pos.get("open_time",now)
         try:
-            data = dex_get_pair(symbol); price = data.get("price",0)
+            data  = dex_get_pair(symbol)
+            price = data.get("price",0)
             if not price: continue
-        except Exception: continue
+        except Exception:
+            continue
         change = (price-entry)/entry
         pos["peak_price"] = max(pos.get("peak_price",entry), price)
         trailing = (pos["peak_price"]-price)/pos["peak_price"] if pos["peak_price"]>0 else 0
@@ -1432,25 +1795,28 @@ def _monitor_meme_positions(send_fn):
         elif change>0.05 and trailing>=MEME_TRAILING_PCT: reason = "📐 MEME TRAIL"
         elif elapsed >= MEME_MAX_DURATION: reason = "⏱ TIMEOUT"
         if reason:
-            pnl = change*pos["amount_usd"]; sim["cash"] += pos["amount_usd"]+pnl
+            pnl = change*pos["amount_usd"]
+            sim["cash"] += pos["amount_usd"]+pnl
             trade = next((t for t in reversed(sim["trades"]) if t["id"]==pos["id"]), None)
             if trade:
-                trade.update({"price_out":price,"time_out":datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                              "pnl":round(pnl,6),"pnl_pct":round(change*100,2),
-                              "exit_reason":reason,"duration_min":max(1,int(elapsed/60))})
+                trade.update({
+                    "price_out":price,
+                    "time_out":datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "pnl":round(pnl,6),"pnl_pct":round(change*100,2),
+                    "exit_reason":reason,"duration_min":max(1,int(elapsed/60))
+                })
                 db_save_trade(trade); learn_from_trade(trade,send_fn=None)
             del sim["positions"][pos_key]; save_data()
             send_fn(f"{'✅' if pnl>0 else '❌'} MEME ${symbol}: ${pnl:+.4f} | {reason}")
             won = pnl > 0
-            if won: memory["total_wins"]  = memory.get("total_wins",0)+1
+            if won: memory["total_wins"]   = memory.get("total_wins",0)+1
             else:   memory["total_losses"] = memory.get("total_losses",0)+1
-
 
 def run_meme_cycle(send_fn):
     trending = dex_get_trending()
     for data in trending[:3]:
         if not data or data.get("price",0) <= 0: continue
-        symbol = data["symbol"]
+        symbol  = data["symbol"]
         already = any(p.get("meme_symbol")==symbol for p in sim["positions"].values())
         if already: continue
         if data.get("change_5m",0)>5 and data.get("volume_1h",0)>5000:
@@ -1468,25 +1834,25 @@ def run_meme_cycle(send_fn):
         ind = compute_indicators(closes)
         if not ind: continue
         score = 0
-        if ind.get("rsi",50) < 30: score += 3
-        if ind.get("mom5",0) > 4: score += 3
+        if ind.get("rsi",50) < 30:  score += 3
+        if ind.get("mom5",0) > 4:   score += 3
         if ind.get("macd_h",0) > 0: score += 2
         if score >= 6:
             meme_count = sum(1 for p in sim["positions"].values() if p.get("trade_type")=="MEME")
             if meme_count < 2:
-                token_data = {"symbol":sym.replace("USDT",""),"price":price,
-                              "change_1h":ind.get("mom5",0),"change_5m":0,
-                              "volume_1h":0,"liquidity":999999,"chain":"binance"}
+                token_data = {
+                    "symbol":sym.replace("USDT",""),"price":price,
+                    "change_1h":ind.get("mom5",0),"change_5m":0,
+                    "volume_1h":0,"liquidity":999999,"chain":"binance"
+                }
                 _open_meme_trade(token_data, score, "Binance", send_fn)
     _monitor_meme_positions(send_fn)
-
 
 # ═══════════════════════════════════════════════════════════════
 #  SURVEILLANCE TRADERS
 # ═══════════════════════════════════════════════════════════════
 def _signal_hash(content: str) -> str:
     return hashlib.md5(content.encode()).hexdigest()[:12]
-
 
 def scrape_nitter(username: str) -> list:
     signals = []
@@ -1500,38 +1866,45 @@ def scrape_nitter(username: str) -> list:
                 h = _signal_hash(text)
                 if h in _signal_cache: continue
                 _signal_cache.add(h)
-                signals.append({"source":"Twitter","author":username,
-                                "content":text[:300],"url":entry.get("link",""),
-                                "hash":h,"ts":datetime.now().strftime("%Y-%m-%d %H:%M")})
+                signals.append({
+                    "source":"Twitter","author":username,
+                    "content":text[:300],"url":entry.get("link",""),
+                    "hash":h,"ts":datetime.now().strftime("%Y-%m-%d %H:%M")
+                })
             break
-        except Exception: continue
+        except Exception:
+            continue
     return signals
-
 
 def scrape_youtube_titles(channel_id: str, channel_name: str) -> list:
     signals = []
     try:
         feed = feedparser.parse(f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}")
         for entry in feed.entries[:2]:
-            title = entry.get("title",""); h = _signal_hash(title)
+            title = entry.get("title","")
+            h = _signal_hash(title)
             if h in _signal_cache or not title: continue
             _signal_cache.add(h)
-            signals.append({"source":"YouTube","author":channel_name,
-                            "content":title,"url":entry.get("link",""),
-                            "hash":h,"ts":datetime.now().strftime("%Y-%m-%d %H:%M")})
-    except Exception: pass
+            signals.append({
+                "source":"YouTube","author":channel_name,
+                "content":title,"url":entry.get("link",""),
+                "hash":h,"ts":datetime.now().strftime("%Y-%m-%d %H:%M")
+            })
+    except Exception:
+        pass
     return signals
-
 
 def analyze_signal_sentiment(signal: dict) -> dict:
     try:
         prompt = f"""Message trader @{signal['author']}: "{signal['content']}"
 JSON: {{"sentiment":"bullish/bearish/neutral","symbol":"BTC","strength":2,"summary":"résumé"}}"""
         r = ask_ai(prompt)
-        signal.update({"sentiment":r.get("sentiment","neutral"),
-                       "symbol":r.get("symbol","GENERAL"),
-                       "strength":r.get("strength",1),
-                       "summary":r.get("summary","")})
+        signal.update({
+            "sentiment": r.get("sentiment","neutral"),
+            "symbol":    r.get("symbol","GENERAL"),
+            "strength":  r.get("strength",1),
+            "summary":   r.get("summary","")
+        })
     except Exception:
         signal.update({"sentiment":"neutral","symbol":"GENERAL","strength":1})
     try:
@@ -1543,9 +1916,9 @@ JSON: {{"sentiment":"bullish/bearish/neutral","symbol":"BTC","strength":2,"summa
              signal["sentiment"],signal["symbol"],signal["strength"],
              signal["ts"],signal["url"],signal["hash"]))
         con.commit(); con.close()
-    except Exception: pass
+    except Exception:
+        pass
     return signal
-
 
 def get_trader_intelligence() -> dict:
     all_signals = []
@@ -1556,7 +1929,8 @@ def get_trader_intelligence() -> dict:
         try: all_signals.extend(scrape_nitter(account))
         except Exception: pass
     yt_items = list(YOUTUBE_CHANNELS.items())
-    yt_idx = bot_state.get("yt_idx",0) % len(yt_items); bot_state["yt_idx"] = yt_idx+1
+    yt_idx   = bot_state.get("yt_idx",0) % len(yt_items)
+    bot_state["yt_idx"] = yt_idx+1
     ch_name, ch_id = yt_items[yt_idx]
     try: all_signals.extend(scrape_youtube_titles(ch_id, ch_name))
     except Exception: pass
@@ -1565,10 +1939,11 @@ def get_trader_intelligence() -> dict:
     for s in analyzed[:3]:
         e = "📈" if s["sentiment"]=="bullish" else "📉" if s["sentiment"]=="bearish" else "➡️"
         parts.append(f"{e} @{s['author']}: {s.get('summary',s['content'][:60])}")
-    return {"bullish":[s for s in analyzed if s["sentiment"]=="bullish"],
-            "bearish":[s for s in analyzed if s["sentiment"]=="bearish"],
-            "summary":"\n".join(parts),"count":len(analyzed)}
-
+    return {
+        "bullish": [s for s in analyzed if s["sentiment"]=="bullish"],
+        "bearish": [s for s in analyzed if s["sentiment"]=="bearish"],
+        "summary": "\n".join(parts), "count": len(analyzed)
+    }
 
 # ═══════════════════════════════════════════════════════════════
 #  ÉPARGNE
@@ -1576,19 +1951,25 @@ def get_trader_intelligence() -> dict:
 def scan_airdrops() -> list:
     found = []
     try:
-        r = requests.get("https://coinmarketcap.com/airdrop/", timeout=10,
-                         headers={"User-Agent":"Mozilla/5.0"})
+        r = requests.get(
+            "https://coinmarketcap.com/airdrop/", timeout=10,
+            headers={"User-Agent":"Mozilla/5.0"}
+        )
         if r.status_code == 200:
             matches = re.findall(
                 r'"name":"([^"]+)","slug":"([^"]+)".*?"status":"(ONGOING|UPCOMING)"',
-                r.text[:50000])
+                r.text[:50000]
+            )
             for name, slug, status in matches[:10]:
                 h = hashlib.md5(slug.encode()).hexdigest()[:8]
                 if h not in [a.get("hash") for a in epargne["airdrops_claimed"]]:
-                    found.append({"name":name,"status":status,
-                                  "url":f"https://coinmarketcap.com/airdrop/{slug}/",
-                                  "hash":h,"source":"CoinMarketCap"})
-    except Exception as e: print(f"[AIRDROP-CMC] {e}")
+                    found.append({
+                        "name":name,"status":status,
+                        "url":f"https://coinmarketcap.com/airdrop/{slug}/",
+                        "hash":h,"source":"CoinMarketCap"
+                    })
+    except Exception as e:
+        print(f"[AIRDROP-CMC] {e}")
     try:
         feed = feedparser.parse("https://airdrops.io/feed/")
         for entry in feed.entries[:5]:
@@ -1596,11 +1977,13 @@ def scan_airdrops() -> list:
             h = hashlib.md5(link.encode()).hexdigest()[:8]
             if h not in [a.get("hash") for a in epargne["airdrops_claimed"]]:
                 if any(kw in title.lower() for kw in ["airdrop","free","drop","token","claim"]):
-                    found.append({"name":title[:60],"url":link,"hash":h,
-                                  "source":"RSS","status":"AVAILABLE"})
-    except Exception as e: print(f"[AIRDROP-RSS] {e}")
+                    found.append({
+                        "name":title[:60],"url":link,"hash":h,
+                        "source":"RSS","status":"AVAILABLE"
+                    })
+    except Exception as e:
+        print(f"[AIRDROP-RSS] {e}")
     return found[:10]
-
 
 def scan_faucets() -> list:
     available = []
@@ -1608,26 +1991,31 @@ def scan_faucets() -> list:
         try:
             r = requests.get(faucet["url"], timeout=8, headers={"User-Agent":"Mozilla/5.0"})
             status = "✅ En ligne" if r.status_code==200 else f"⚠️ HTTP {r.status_code}"
-        except Exception: status = "❌ Hors ligne"
-        available.append({"name":faucet["name"],"url":faucet["url"],
-                          "crypto":faucet["crypto"],"status":status})
+        except Exception:
+            status = "❌ Hors ligne"
+        available.append({
+            "name":faucet["name"],"url":faucet["url"],
+            "crypto":faucet["crypto"],"status":status
+        })
     return available
 
-
 def scan_promo_codes() -> list:
-    promos = []; keywords = ["bonus","promo","voucher","free","reward","cashback","referral"]
+    promos   = []
+    keywords = ["bonus","promo","voucher","free","reward","cashback","referral"]
     for exchange in PROMO_EXCHANGES:
         try:
             r = requests.get(exchange["url"], timeout=8, headers={"User-Agent":"Mozilla/5.0"})
             if r.status_code == 200:
-                text = r.text.lower()
+                text     = r.text.lower()
                 found_kw = [kw for kw in keywords if kw in text]
                 if found_kw:
-                    promos.append({"exchange":exchange["name"],"url":exchange["url"],
-                                   "keywords":found_kw[:3],"status":"✅ Promos détectées"})
-        except Exception: pass
+                    promos.append({
+                        "exchange":exchange["name"],"url":exchange["url"],
+                        "keywords":found_kw[:3],"status":"✅ Promos détectées"
+                    })
+        except Exception:
+            pass
     return promos
-
 
 def auto_fill_form(url: str, form_type: str) -> dict:
     if not all([USER_EMAIL, USER_FIRSTNAME, USER_LASTNAME, USER_WALLET]):
@@ -1645,21 +2033,27 @@ def auto_fill_form(url: str, form_type: str) -> dict:
         "country":"Australia","terms":"1","agree":"1","subscribe":"1",
     }
     try:
-        session = requests.Session(); session.headers.update(headers)
-        r_get = session.get(url, timeout=10)
-        for pattern in [r'name=["\']csrf_token["\'].*?value=["\']([^"\']+)["\']',
-                        r'name=["\']_token["\'].*?value=["\']([^"\']+)["\']']:
+        session = requests.Session()
+        session.headers.update(headers)
+        r_get   = session.get(url, timeout=10)
+        for pattern in [
+            r'name=["\']csrf_token["\'].*?value=["\']([^"\']+)["\']',
+            r'name=["\']_token["\'].*?value=["\']([^"\']+)["\']'
+        ]:
             match = re.search(pattern, r_get.text, re.IGNORECASE)
             if match:
                 token = match.group(1)
-                form_data["csrf_token"] = token; form_data["_token"] = token; break
+                form_data["csrf_token"] = token
+                form_data["_token"]     = token
+                break
         action_match = re.search(r'<form[^>]*action=["\']([^"\']+)["\']', r_get.text, re.IGNORECASE)
-        submit_url = url
+        submit_url   = url
         if action_match:
             action = action_match.group(1)
-            if action.startswith("http"): submit_url = action
+            if action.startswith("http"):
+                submit_url = action
             elif action.startswith("/"):
-                parsed = urlparse(url)
+                parsed     = urlparse(url)
                 submit_url = f"{parsed.scheme}://{parsed.netloc}{action}"
         r_post = session.post(submit_url, data=form_data, timeout=15, allow_redirects=True)
         success_kw = ["success","thank","confirm","registered","submitted"]
@@ -1673,10 +2067,10 @@ def auto_fill_form(url: str, form_type: str) -> dict:
     except Exception as e:
         return {"success":False,"reason":str(e)[:100]}
 
-
 def run_epargne_scan(send_fn):
     airdrops = scan_airdrops(); faucets = scan_faucets(); promos = scan_promo_codes()
-    epargne["last_scan"] = time.time(); epargne["promos_found"] = promos
+    epargne["last_scan"]    = time.time()
+    epargne["promos_found"] = promos
     results = []
     if USER_WALLET and airdrops:
         for airdrop in airdrops[:3]:
@@ -1692,29 +2086,32 @@ def run_epargne_scan(send_fn):
                         "date":datetime.now().strftime("%Y-%m-%d %H:%M"),"url":url,
                     })
                 time.sleep(2)
-            except Exception as e: print(f"[AUTOFILL] {e}")
-    online = [f for f in faucets if "✅" in f["status"]]
+            except Exception as e:
+                print(f"[AUTOFILL] {e}")
+    online       = [f for f in faucets if "✅" in f["status"]]
     new_airdrops = [a for a in airdrops if a.get("hash") not in [c.get("hash") for c in epargne["airdrops_claimed"]]]
     if new_airdrops or len(online) >= 3:
         lines = ["💰 ÉPARGNE — Nouvelles opportunités\n━━━━━━━━━━━━━"]
         if new_airdrops: lines.append(f"🪂 {len(new_airdrops)} nouveaux airdrops")
-        if online: lines.append(f"💧 {len(online)} faucets en ligne")
-        if promos: lines.append(f"🎟️ {len(promos)} exchanges avec promos")
-        if results: lines.append("\n📝 Auto-remplissage:"); lines.extend(results[:3])
+        if online:       lines.append(f"💧 {len(online)} faucets en ligne")
+        if promos:       lines.append(f"🎟️ {len(promos)} exchanges avec promos")
+        if results:
+            lines.append("\n📝 Auto-remplissage:")
+            lines.extend(results[:3])
         lines.append("\n💡 /epargne pour les détails | /faucets pour les liens")
         send_fn("\n".join(lines))
     save_data()
-
 
 def get_epargne_info() -> str:
     wallet_ok = "✅" if USER_WALLET else "❌ Non configuré"
     email_ok  = "✅" if USER_EMAIL  else "❌ Non configuré"
     last = datetime.fromtimestamp(epargne['last_scan']).strftime('%H:%M') if epargne['last_scan'] else 'Jamais'
-    return (f"💰 ÉPARGNE IA\n━━━━━━━━━━━━━\n"
-            f"Wallet : {wallet_ok}\nEmail  : {email_ok}\n"
-            f"Airdrops vus : {len(epargne['airdrops_claimed'])}\n"
-            f"Dernier scan : {last}")
-
+    return (
+        f"💰 ÉPARGNE IA\n━━━━━━━━━━━━━\n"
+        f"Wallet : {wallet_ok}\nEmail  : {email_ok}\n"
+        f"Airdrops vus : {len(epargne['airdrops_claimed'])}\n"
+        f"Dernier scan : {last}"
+    )
 
 # ═══════════════════════════════════════════════════════════════
 #  BASE DE DONNÉES
@@ -1752,8 +2149,12 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         timestamp TEXT, type TEXT, name TEXT, url TEXT,
         amount REAL, status TEXT, notes TEXT)""")
+    c.execute("""CREATE TABLE IF NOT EXISTS backtest_results(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp TEXT, symbol TEXT, period TEXT,
+        total_trades INTEGER, win_rate REAL, total_pnl REAL,
+        sharpe REAL, max_drawdown REAL, params TEXT)""")
     con.commit(); con.close()
-
 
 def db_save_trade(t: dict):
     try:
@@ -1764,10 +2165,11 @@ def db_save_trade(t: dict):
             t.get("pnl"),t.get("pnl_pct"),t["confidence"],t["reason"],
             t.get("exit_reason"),t.get("duration_min"),
             t["time_in"],t.get("time_out"),
-            json.dumps(t.get("patterns",[])),t.get("leverage",1),t.get("kelly_pct",0),))
+            json.dumps(t.get("patterns",[])),t.get("leverage",1),t.get("kelly_pct",0),
+        ))
         con.commit(); con.close()
-    except Exception as e: print(f"[DB] {e}")
-
+    except Exception as e:
+        print(f"[DB] {e}")
 
 def db_save_lesson(l: dict):
     try:
@@ -1775,10 +2177,11 @@ def db_save_lesson(l: dict):
         con.execute("""INSERT INTO lessons (trade_id,symbol,market,pnl,lecon,pattern,action_future,type,date)
             VALUES(?,?,?,?,?,?,?,?,?)""", (
             l.get("trade_id"),l.get("symbol"),l.get("market","SPOT"),l.get("pnl"),
-            l.get("lecon"),l.get("pattern"),l.get("action_future"),l.get("type"),l.get("date"),))
+            l.get("lecon"),l.get("pattern"),l.get("action_future"),l.get("type"),l.get("date"),
+        ))
         con.commit(); con.close()
-    except Exception as e: print(f"[DB-L] {e}")
-
+    except Exception as e:
+        print(f"[DB-L] {e}")
 
 def db_save_equity(equity, cash, open_pos, daily_pnl):
     try:
@@ -1786,20 +2189,23 @@ def db_save_equity(equity, cash, open_pos, daily_pnl):
         con.execute("""INSERT INTO equity (timestamp,equity,cash,open_positions,daily_pnl)
             VALUES(?,?,?,?,?)""", (
             datetime.now().strftime("%Y-%m-%d %H:%M"),
-            round(equity,2),round(cash,2),open_pos,round(daily_pnl,2),))
+            round(equity,2),round(cash,2),open_pos,round(daily_pnl,2),
+        ))
         con.commit(); con.close()
-    except Exception: pass
-
+    except Exception:
+        pass
 
 def db_win_rate(n=30) -> float:
     try:
         con  = sqlite3.connect(DB_FILE)
-        rows = con.execute("SELECT pnl FROM trades WHERE pnl IS NOT NULL ORDER BY id DESC LIMIT ?", (n,)).fetchall()
+        rows = con.execute(
+            "SELECT pnl FROM trades WHERE pnl IS NOT NULL ORDER BY id DESC LIMIT ?", (n,)
+        ).fetchall()
         con.close()
         if not rows: return 50.0
         return round(sum(1 for r in rows if r[0]>0)/len(rows)*100, 1)
-    except Exception: return 50.0
-
+    except Exception:
+        return 50.0
 
 def db_symbol_stats() -> list:
     try:
@@ -1811,41 +2217,47 @@ def db_symbol_stats() -> list:
             GROUP BY symbol ORDER BY avg_pnl DESC LIMIT 5""").fetchall()
         con.close()
         return [{"s":r[0].replace("USDT",""),"n":r[1],"pnl":round(r[2],2),"wr":round(r[3],0)} for r in rows]
-    except Exception: return []
-
+    except Exception:
+        return []
 
 def db_best_patterns(symbol: str) -> list:
     try:
         con  = sqlite3.connect(DB_FILE)
         rows = con.execute("""SELECT pattern FROM lessons WHERE symbol=? AND type='succes'
             GROUP BY pattern ORDER BY COUNT(*) DESC LIMIT 5""", (symbol,)).fetchall()
-        con.close(); return [r[0] for r in rows if r[0]]
-    except Exception: return []
-
+        con.close()
+        return [r[0] for r in rows if r[0]]
+    except Exception:
+        return []
 
 def db_worst_patterns(symbol: str) -> list:
     try:
         con  = sqlite3.connect(DB_FILE)
         rows = con.execute("""SELECT pattern FROM lessons WHERE symbol=? AND type='erreur'
             GROUP BY pattern ORDER BY COUNT(*) DESC LIMIT 5""", (symbol,)).fetchall()
-        con.close(); return [r[0] for r in rows if r[0]]
-    except Exception: return []
-
+        con.close()
+        return [r[0] for r in rows if r[0]]
+    except Exception:
+        return []
 
 def get_active_rules() -> str:
     try:
         con  = sqlite3.connect(DB_FILE)
-        rows = con.execute("SELECT rule FROM trading_rules WHERE active=1 ORDER BY win_rate DESC LIMIT 5").fetchall()
+        rows = con.execute(
+            "SELECT rule FROM trading_rules WHERE active=1 ORDER BY win_rate DESC LIMIT 5"
+        ).fetchall()
         con.close()
         if not rows: return ""
         return "MES RÈGLES:\n" + "".join(f"• {r[0]}\n" for r in rows)
-    except Exception: return ""
-
+    except Exception:
+        return ""
 
 def get_db_trader_signals_summary() -> str:
     try:
         con  = sqlite3.connect(DB_FILE)
-        rows = con.execute("SELECT author,sentiment,symbol,timestamp FROM trader_signals ORDER BY id DESC LIMIT 8").fetchall()
+        rows = con.execute(
+            "SELECT author,sentiment,symbol,timestamp FROM trader_signals ORDER BY id DESC LIMIT 8"
+        ).fetchall()
         con.close()
         if not rows: return "Aucun signal"
         lines = []
@@ -1853,8 +2265,227 @@ def get_db_trader_signals_summary() -> str:
             e = "📈" if r[1]=="bullish" else "📉" if r[1]=="bearish" else "➡️"
             lines.append(f"{e} @{r[0]} [{r[2]}] ({r[3][11:16]})")
         return "\n".join(lines)
-    except Exception: return ""
+    except Exception:
+        return ""
 
+# ═══════════════════════════════════════════════════════════════
+#  BACKTESTING HISTORIQUE
+# ═══════════════════════════════════════════════════════════════
+def fetch_historical_klines(symbol: str, interval: str, days: int) -> pd.DataFrame:
+    """Récupère les klines historiques depuis Binance REST."""
+    try:
+        limit  = min(1000, days * {"1m":1440,"5m":288,"15m":96,"1h":24,"4h":6,"1d":1}.get(interval,24))
+        r = requests.get(
+            f"{BINANCE_BASE}/api/v3/klines",
+            params={"symbol":symbol,"interval":interval,"limit":limit},
+            timeout=15, headers={"User-Agent":"Mozilla/5.0"}
+        )
+        if r.status_code == 200:
+            data = r.json()
+            df = pd.DataFrame(data, columns=[
+                "open_time","open","high","low","close","volume",
+                "close_time","quote_vol","trades","taker_base","taker_quote","ignore"
+            ])
+            df["close"]  = df["close"].astype(float)
+            df["open"]   = df["open"].astype(float)
+            df["high"]   = df["high"].astype(float)
+            df["low"]    = df["low"].astype(float)
+            df["volume"] = df["volume"].astype(float)
+            df["open_time"] = pd.to_datetime(df["open_time"], unit="ms")
+            return df
+    except Exception as e:
+        print(f"[BT-FETCH] {e}")
+    return pd.DataFrame()
+
+def backtest_strategy(
+    symbol: str,
+    interval: str = "5m",
+    days: int = 30,
+    sl_pct: float = None,
+    tp_pct: float = None,
+    capital: float = 1000.0
+) -> dict:
+    """
+    Backtesting complet sur données historiques Binance.
+    Retourne: trades, win_rate, PnL, Sharpe, Max Drawdown.
+    """
+    sl_pct = sl_pct or STOP_LOSS_PCT
+    tp_pct = tp_pct or TAKE_PROFIT_PCT
+
+    df = fetch_historical_klines(symbol, interval, days)
+    if df.empty or len(df) < 50:
+        return {"error": f"Données insuffisantes pour {symbol}"}
+
+    closes = df["close"]
+    bt_trades = []
+    equity    = capital
+    equity_curve = [capital]
+    in_trade  = False
+    entry_price = 0.0
+    entry_idx   = 0
+    peak_equity = capital
+
+    for i in range(50, len(closes)):
+        window = closes.iloc[max(0,i-80):i]
+        if len(window) < 27:
+            continue
+        ind = compute_indicators(window)
+        if not ind:
+            continue
+
+        price = float(closes.iloc[i])
+
+        if in_trade:
+            change = (price - entry_price) / entry_price
+            if change <= -sl_pct:
+                pnl = change * (equity * 0.20)
+                equity += pnl
+                bt_trades.append({"entry":entry_price,"exit":price,"pnl":round(pnl,4),
+                                   "pnl_pct":round(change*100,2),"exit_reason":"SL","idx":i})
+                in_trade = False
+            elif change >= tp_pct:
+                pnl = change * (equity * 0.20)
+                equity += pnl
+                bt_trades.append({"entry":entry_price,"exit":price,"pnl":round(pnl,4),
+                                   "pnl_pct":round(change*100,2),"exit_reason":"TP","idx":i})
+                in_trade = False
+            elif i - entry_idx > 100:
+                pnl = change * (equity * 0.20)
+                equity += pnl
+                bt_trades.append({"entry":entry_price,"exit":price,"pnl":round(pnl,4),
+                                   "pnl_pct":round(change*100,2),"exit_reason":"TIMEOUT","idx":i})
+                in_trade = False
+            equity_curve.append(equity)
+            continue
+
+        # Signal d'entrée
+        score = 0
+        if ind["rsi"] < 35:        score += 3
+        elif ind["rsi"] < 45:      score += 1
+        if ind["rsi"] > 70:        score -= 3
+        if ind["macd_h"] > 0:      score += 2
+        else:                       score -= 1
+        if ind["mom5"] > 1:        score += 2
+        elif ind["mom5"] < -1:     score -= 2
+        if ind["ema_cross"]=="BULL": score += 1
+        else:                        score -= 1
+
+        if score >= 4 and not in_trade:
+            in_trade    = True
+            entry_price = price
+            entry_idx   = i
+        equity_curve.append(equity)
+
+    if not bt_trades:
+        return {"error": "Aucun trade généré sur cette période"}
+
+    wins       = [t for t in bt_trades if t["pnl"] > 0]
+    losses     = [t for t in bt_trades if t["pnl"] <= 0]
+    total_pnl  = sum(t["pnl"] for t in bt_trades)
+    win_rate   = round(len(wins)/len(bt_trades)*100, 1)
+    pnl_pcts   = [t["pnl_pct"]/100 for t in bt_trades]
+
+    # Sharpe Ratio
+    if len(pnl_pcts) > 1:
+        avg_r  = np.mean(pnl_pcts)
+        std_r  = np.std(pnl_pcts)
+        sharpe = round((avg_r / std_r) * np.sqrt(252) if std_r > 0 else 0, 2)
+    else:
+        sharpe = 0.0
+
+    # Max Drawdown
+    eq_series  = pd.Series(equity_curve)
+    rolling_max= eq_series.expanding().max()
+    drawdowns  = (eq_series - rolling_max) / rolling_max
+    max_dd     = round(float(drawdowns.min()) * 100, 2)
+
+    # Profit Factor
+    gross_profit = sum(t["pnl"] for t in wins) if wins else 0
+    gross_loss   = abs(sum(t["pnl"] for t in losses)) if losses else 0.001
+    profit_factor= round(gross_profit / gross_loss, 2)
+
+    result = {
+        "symbol":       symbol,
+        "interval":     interval,
+        "days":         days,
+        "total_trades": len(bt_trades),
+        "wins":         len(wins),
+        "losses":       len(losses),
+        "win_rate":     win_rate,
+        "total_pnl":    round(total_pnl, 2),
+        "total_pnl_pct":round((equity - capital) / capital * 100, 2),
+        "sharpe":       sharpe,
+        "max_drawdown": max_dd,
+        "profit_factor":profit_factor,
+        "best_trade":   round(max((t["pnl_pct"] for t in bt_trades), default=0), 2),
+        "worst_trade":  round(min((t["pnl_pct"] for t in bt_trades), default=0), 2),
+        "avg_trade":    round(np.mean([t["pnl_pct"] for t in bt_trades]), 2),
+        "final_equity": round(equity, 2),
+        "sl_used":      sl_pct,
+        "tp_used":      tp_pct,
+        "trades":       bt_trades[-10:],
+    }
+
+    # Sauvegarde en DB
+    try:
+        con = sqlite3.connect(DB_FILE)
+        con.execute("""INSERT INTO backtest_results
+            (timestamp,symbol,period,total_trades,win_rate,total_pnl,sharpe,max_drawdown,params)
+            VALUES(?,?,?,?,?,?,?,?,?)""", (
+            datetime.now().strftime("%Y-%m-%d %H:%M"),
+            symbol, f"{days}d/{interval}",
+            len(bt_trades), win_rate, round(total_pnl,2),
+            sharpe, max_dd,
+            json.dumps({"sl":sl_pct,"tp":tp_pct})
+        ))
+        con.commit(); con.close()
+    except Exception:
+        pass
+
+    return result
+
+def format_backtest_result(r: dict) -> str:
+    if "error" in r:
+        return f"❌ Backtest: {r['error']}"
+    pnl_e = "✅" if r["total_pnl"] >= 0 else "❌"
+    sharpe_e = "🟢" if r["sharpe"] > 1 else "🟡" if r["sharpe"] > 0 else "🔴"
+    dd_e     = "🟢" if r["max_drawdown"] > -10 else "🟡" if r["max_drawdown"] > -20 else "🔴"
+    return (
+        f"📊 BACKTEST {r['symbol']} — {r['days']}j/{r['interval']}\n"
+        f"━━━━━━━━━━━━━━━━━━━\n"
+        f"📈 Trades   : {r['total_trades']} ({r['wins']}✅/{r['losses']}❌)\n"
+        f"🏆 Win Rate : {r['win_rate']}%\n"
+        f"{pnl_e} PnL     : ${r['total_pnl']:+.2f} ({r['total_pnl_pct']:+.1f}%)\n"
+        f"{sharpe_e} Sharpe  : {r['sharpe']}\n"
+        f"{dd_e} Max DD  : {r['max_drawdown']}%\n"
+        f"💹 P.Factor: {r['profit_factor']}\n"
+        f"📉 Pire     : {r['worst_trade']:+.2f}%\n"
+        f"📈 Meilleur : {r['best_trade']:+.2f}%\n"
+        f"💰 Capital  : ${r['final_equity']:.2f}\n"
+        f"SL:{r['sl_used']*100:.1f}% TP:{r['tp_used']*100:.1f}%"
+    )
+
+def run_multi_backtest(symbols: list, interval="5m", days=30) -> str:
+    """Lance le backtest sur plusieurs symbols et compare les résultats."""
+    results = []
+    for sym in symbols[:5]:
+        r = backtest_strategy(sym, interval, days)
+        if "error" not in r:
+            results.append(r)
+    if not results:
+        return "❌ Aucun résultat de backtest"
+    results.sort(key=lambda x: x["sharpe"], reverse=True)
+    lines = [f"📊 MULTI-BACKTEST ({days}j/{interval})\n━━━━━━━━━━━━━"]
+    for r in results[:5]:
+        e = "✅" if r["total_pnl"] >= 0 else "❌"
+        lines.append(
+            f"{e} {r['symbol'].replace('USDT',''):6s} "
+            f"WR:{r['win_rate']}% PnL:{r['total_pnl_pct']:+.1f}% "
+            f"Sharpe:{r['sharpe']} DD:{r['max_drawdown']}%"
+        )
+    best = results[0]
+    lines.append(f"\n🏆 Meilleur: {best['symbol'].replace('USDT','')} (Sharpe:{best['sharpe']})")
+    return "\n".join(lines)
 
 # ═══════════════════════════════════════════════════════════════
 #  PERSISTANCE JSON + GITHUB
@@ -1865,15 +2496,18 @@ def save_data():
         DATA_FILE.write_text(data)
         if GITHUB_TOKEN and GITHUB_REPO:
             headers = {"Authorization":f"token {GITHUB_TOKEN}","Content-Type":"application/json"}
-            api_url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/sim_portfolio_v6.json"
+            api_url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/sim_portfolio_v7.json"
             r   = requests.get(api_url, headers=headers, timeout=10)
             sha = r.json().get("sha","") if r.status_code==200 else ""
-            payload = {"message":"auto: save bot state",
-                       "content":base64.b64encode(data.encode()).decode(),"branch":"main"}
+            payload = {
+                "message": "auto: save bot state v7",
+                "content": base64.b64encode(data.encode()).decode(),
+                "branch":  "main"
+            }
             if sha: payload["sha"] = sha
             requests.put(api_url, headers=headers, json=payload, timeout=15)
-    except Exception as e: print(f"[SAVE] {e}")
-
+    except Exception as e:
+        print(f"[SAVE] {e}")
 
 def load_data():
     global sim, memory, epargne
@@ -1881,36 +2515,43 @@ def load_data():
     if GITHUB_TOKEN and GITHUB_REPO:
         try:
             headers = {"Authorization":f"token {GITHUB_TOKEN}"}
-            api_url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/sim_portfolio_v6.json"
+            api_url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/sim_portfolio_v7.json"
             r = requests.get(api_url, headers=headers, timeout=10)
             if r.status_code == 200:
                 content = base64.b64decode(r.json()["content"]).decode()
                 d = json.loads(content)
-                sim = d.get("sim",{}); memory = d.get("memory",{})
+                sim = d.get("sim",{})
+                memory = d.get("memory",{})
                 epargne_loaded = d.get("epargne",{})
                 if epargne_loaded: epargne.update(epargne_loaded)
                 loaded = True
                 print(f"[LOAD-GH] {len(sim.get('trades',[]))} trades | {len(memory.get('lessons',[]))} leçons")
-        except Exception as e: print(f"[LOAD-GH] {e}")
+        except Exception as e:
+            print(f"[LOAD-GH] {e}")
     if not loaded and DATA_FILE.exists():
         try:
             d = json.loads(DATA_FILE.read_text())
-            sim = d.get("sim",{}); memory = d.get("memory",{})
+            sim = d.get("sim",{})
+            memory = d.get("memory",{})
             epargne_loaded = d.get("epargne",{})
             if epargne_loaded: epargne.update(epargne_loaded)
             loaded = True
             print(f"[LOAD-LOCAL] {len(sim.get('trades',[]))} trades")
-        except Exception as e: print(f"[LOAD] {e}")
-    for k,v in {"cash":CAPITAL_INITIAL,"initial":CAPITAL_INITIAL,"positions":{},
-                "trades":[],"equity_history":[],"session":1,
-                "peak_equity":CAPITAL_INITIAL,"daily_start_equity":CAPITAL_INITIAL,
-                "daily_start_date":""}.items():
+        except Exception as e:
+            print(f"[LOAD] {e}")
+    for k,v in {
+        "cash":CAPITAL_INITIAL,"initial":CAPITAL_INITIAL,"positions":{},
+        "trades":[],"equity_history":[],"session":1,
+        "peak_equity":CAPITAL_INITIAL,"daily_start_equity":CAPITAL_INITIAL,
+        "daily_start_date":""
+    }.items():
         sim.setdefault(k,v)
-    for k,v in {"lessons":[],"patterns_to_avoid":[],"patterns_that_work":[],
-                "confidence_threshold":CONFIDENCE_BASE,"total_wins":0,"total_losses":0,
-                "symbol_scores":{},"symbol_blacklist":{},"consecutive_losses":{}}.items():
+    for k,v in {
+        "lessons":[],"patterns_to_avoid":[],"patterns_that_work":[],
+        "confidence_threshold":CONFIDENCE_BASE,"total_wins":0,"total_losses":0,
+        "symbol_scores":{},"symbol_blacklist":{},"consecutive_losses":{}
+    }.items():
         memory.setdefault(k,v)
-
 
 # ═══════════════════════════════════════════════════════════════
 #  APPRENTISSAGE
@@ -1927,12 +2568,18 @@ Raison:{trade['reason']} | Sortie:{trade.get('exit_reason','')}
 JSON:{{"lecon":"leçon","pattern":"pattern","action_future":"règle","type":"erreur ou succes"}}"""
         r = groq_client.chat.completions.create(
             model=GROQ_FAST_MODEL, max_tokens=100, temperature=0.2,
-            messages=[{"role":"user","content":prompt}])
-        lesson = json.loads(r.choices[0].message.content.replace("```json","").replace("```","").strip())
-        lesson.update({"trade_id":trade["id"],"pnl":trade["pnl"],
-                       "symbol":trade["symbol"],"market":trade.get("market","SPOT"),
-                       "date":datetime.now().strftime("%Y-%m-%d %H:%M")})
-        memory["lessons"].append(lesson); db_save_lesson(lesson)
+            messages=[{"role":"user","content":prompt}]
+        )
+        lesson = json.loads(
+            r.choices[0].message.content.replace("```json","").replace("```","").strip()
+        )
+        lesson.update({
+            "trade_id":trade["id"],"pnl":trade["pnl"],
+            "symbol":trade["symbol"],"market":trade.get("market","SPOT"),
+            "date":datetime.now().strftime("%Y-%m-%d %H:%M")
+        })
+        memory["lessons"].append(lesson)
+        db_save_lesson(lesson)
         key = "patterns_that_work" if lesson["type"]=="succes" else "patterns_to_avoid"
         memory[key].append(lesson["pattern"])
         memory["lessons"]            = memory["lessons"][-MAX_LESSONS:]
@@ -1943,17 +2590,21 @@ JSON:{{"lecon":"leçon","pattern":"pattern","action_future":"règle","type":"err
         if send_fn:
             stats = get_stats(); e = "✅" if lesson["type"]=="succes" else "❌"
             coin  = trade["symbol"].replace("USDT","")
-            send_fn(f"📚 Leçon #{len(memory['lessons'])} — {coin}\n"
-                    f"{e} {lesson['lecon']}\n→ {lesson['action_future']}\n"
-                    f"📊 WR:{stats['win_rate']}% ({stats['wins']}✅/{stats['losses']}❌)")
-    except Exception as e: print(f"[LEARN] {e}")
-
+            send_fn(
+                f"📚 Leçon #{len(memory['lessons'])} — {coin}\n"
+                f"{e} {lesson['lecon']}\n→ {lesson['action_future']}\n"
+                f"📊 WR:{stats['win_rate']}% ({stats['wins']}✅/{stats['losses']}❌)"
+            )
+    except Exception as e:
+        print(f"[LEARN] {e}")
 
 def auto_adjust():
-    wr  = db_win_rate(20); cur = memory.get("confidence_threshold",CONFIDENCE_BASE)
-    if wr > 62 and cur > CONFIDENCE_MIN: memory["confidence_threshold"] = max(CONFIDENCE_MIN,cur-2)
-    elif wr < 40 and cur < CONFIDENCE_MAX: memory["confidence_threshold"] = min(CONFIDENCE_MAX,cur+3)
-
+    wr  = db_win_rate(20)
+    cur = memory.get("confidence_threshold",CONFIDENCE_BASE)
+    if wr > 62 and cur > CONFIDENCE_MIN:
+        memory["confidence_threshold"] = max(CONFIDENCE_MIN,cur-2)
+    elif wr < 40 and cur < CONFIDENCE_MAX:
+        memory["confidence_threshold"] = min(CONFIDENCE_MAX,cur+3)
 
 def auto_adjust_sl_tp():
     global STOP_LOSS_PCT, TAKE_PROFIT_PCT
@@ -1963,7 +2614,6 @@ def auto_adjust_sl_tp():
     sl_hits = sum(1 for t in recent if "STOP-LOSS" in (t.get("exit_reason","") or ""))
     if sl_hits/len(recent) > 0.5 and STOP_LOSS_PCT < 0.04:
         STOP_LOSS_PCT = round(min(0.04, STOP_LOSS_PCT+0.003), 3)
-
 
 def generate_trading_rules():
     closed = [t for t in sim["trades"] if t.get("pnl") is not None]
@@ -1976,7 +2626,8 @@ def generate_trading_rules():
 Conf gagnants:{round(sum(t['confidence'] for t in wins)/max(len(wins),1),1)}%
 Kelly:{avg_kelly}% SL={STOP_LOSS_PCT*100:.1f}% TP={TAKE_PROFIT_PCT*100:.1f}%
 JSON:{{"rules":["règle1","règle2","règle3"],"insight":"insight"}}"""
-        r = ask_ai(prompt); rules = r.get("rules",[])
+        r = ask_ai(prompt)
+        rules = r.get("rules",[])
         for rule in rules:
             try:
                 con = sqlite3.connect(DB_FILE)
@@ -1984,31 +2635,37 @@ JSON:{{"rules":["règle1","règle2","règle3"],"insight":"insight"}}"""
                     (rule,condition,action,win_rate,sample_size,created_date,last_updated)
                     VALUES(?,?,?,?,?,?,?)""",
                     (rule,"auto","appliquer",len(wins)/len(recent)*100,len(recent),
-                     datetime.now().strftime("%Y-%m-%d"),datetime.now().strftime("%Y-%m-%d %H:%M")))
+                     datetime.now().strftime("%Y-%m-%d"),
+                     datetime.now().strftime("%Y-%m-%d %H:%M")))
                 con.commit(); con.close()
-            except Exception: pass
+            except Exception:
+                pass
         return r
-    except Exception as e: print(f"[RULES] {e}"); return None
-
+    except Exception as e:
+        print(f"[RULES] {e}")
+        return None
 
 def test_strategy_variation(send_fn):
     closed = [t for t in sim["trades"] if t.get("pnl") is not None]
     if len(closed) < 20: return
     current_wr = db_win_rate(20)
-    strategies = [{"name":"conservateur","sl":0.02,"tp":0.03,"conf":75},
-                  {"name":"équilibré",   "sl":0.025,"tp":0.04,"conf":65},
-                  {"name":"agressif",    "sl":0.035,"tp":0.06,"conf":55}]
+    strategies = [
+        {"name":"conservateur","sl":0.02,"tp":0.03,"conf":75},
+        {"name":"équilibré",   "sl":0.025,"tp":0.04,"conf":65},
+        {"name":"agressif",    "sl":0.035,"tp":0.06,"conf":55},
+    ]
     recent = closed[-20:]; best_wr = 0; best_strat = None
     for strat in strategies:
         sw = sum(1 for t in recent if t.get("pnl_pct",0) >= strat["tp"]*100)
         wr = sw/len(recent)*100
-        if wr > best_wr: best_wr = wr; best_strat = strat
+        if wr > best_wr:
+            best_wr = wr; best_strat = strat
     if best_strat and best_wr > current_wr+5:
         global STOP_LOSS_PCT, TAKE_PROFIT_PCT
-        STOP_LOSS_PCT = best_strat["sl"]; TAKE_PROFIT_PCT = best_strat["tp"]
+        STOP_LOSS_PCT  = best_strat["sl"]
+        TAKE_PROFIT_PCT= best_strat["tp"]
         memory["confidence_threshold"] = best_strat["conf"]
         send_fn(f"🧬 ÉVOLUTION: {best_strat['name']}\nWR:{best_wr:.0f}% vs {current_wr:.0f}%")
-
 
 # ═══════════════════════════════════════════════════════════════
 #  BOUCLE PRINCIPALE
@@ -2017,18 +2674,20 @@ def trading_loop(send_fn):
     kelly_init = kelly_criterion()
     hf_status  = "✅" if HF_KEY else "❌ Non configuré"
     gh_status  = "✅" if GITHUB_TOKEN else "❌ Non configuré"
+    ws_status  = "✅ WebSocket" if WS_AVAILABLE else "⚠️ REST fallback"
     equity     = get_equity_safe()
     sim["peak_equity"]        = equity
     sim["daily_start_equity"] = equity
     sim["daily_start_date"]   = datetime.utcnow().strftime("%Y-%m-%d")
     send_fn(
-        f"🚀 BOT v6 DÉMARRÉ\n━━━━━━━━━━━━━━━━━━━\n"
+        f"🚀 BOT v7 DÉMARRÉ\n━━━━━━━━━━━━━━━━━━━\n"
         f"💰 Capital     : ${CAPITAL_INITIAL:,.2f} (virtuel)\n"
         f"📐 Kelly init  : {kelly_init*100:.1f}% / trade\n"
         f"━━━━━━━━━━━━━━━━━━━\n"
         f"🧠 Groq        : ✅ (priorité)\n"
         f"🤗 HuggingFace : {hf_status} (backup)\n"
         f"💾 GitHub sync : {gh_status}\n"
+        f"📡 Data source : {ws_status}\n"
         f"━━━━━━━━━━━━━━━━━━━\n"
         f"🛡️  Stop jour.  : -{MAX_DAILY_LOSS_PCT*100:.0f}%\n"
         f"📉 Drawdown max: -{MAX_DRAWDOWN_PCT*100:.0f}%\n"
@@ -2038,7 +2697,8 @@ def trading_loop(send_fn):
         f"🎯 Polymarket  : actif\n"
         f"⚡ Arbitrage   : Binance/KuCoin\n"
         f"🐸 Memecoins   : DexScreener actif\n"
-        f"💰 Épargne     : scan toutes les heures"
+        f"💰 Épargne     : scan toutes les heures\n"
+        f"📊 Backtest    : /backtest disponible"
     )
     fear_greed = get_fear_greed()
 
@@ -2104,38 +2764,51 @@ def trading_loop(send_fn):
                                 if abs(opp["score"]) < 5 or opp["has_alert"]: continue
                                 in_pos = any(p["symbol"]==opp["symbol"] for p in sim["positions"].values())
                                 if not in_pos and len(sim["positions"]) < MAX_POSITIONS:
-                                    fake = {"signal":"BUY" if opp["score"]>0 else "SELL",
-                                            "confidence":min(80,50+abs(opp["score"])*5),
-                                            "reason":f"Algo pur score={opp['score']}",
-                                            "risk":"MEDIUM","market":"SPOT",
-                                            "symbol":opp["symbol"],"price":opp["price"],
-                                            "patterns":opp["patterns"],"ind":opp["ind"],
-                                            "kelly_pct":kelly_criterion()}
+                                    fake = {
+                                        "signal":"BUY" if opp["score"]>0 else "SELL",
+                                        "confidence":min(80,50+abs(opp["score"])*5),
+                                        "reason":f"Algo pur score={opp['score']}",
+                                        "risk":"MEDIUM","market":"SPOT",
+                                        "symbol":opp["symbol"],"price":opp["price"],
+                                        "patterns":opp["patterns"],"ind":opp["ind"],
+                                        "kelly_pct":kelly_criterion()
+                                    }
                                     open_trade(fake, send_fn)
 
-                    for market_dict, market_name in [(STOCKS_SYMBOLS,"STOCK"),
-                                                      (FOREX_SYMBOLS,"FOREX"),
-                                                      (COMMODITY_SYMBOLS,"COMMODITY")]:
+                    for market_dict, market_name in [
+                        (STOCKS_SYMBOLS,"STOCK"),
+                        (FOREX_SYMBOLS,"FOREX"),
+                        (COMMODITY_SYMBOLS,"COMMODITY")
+                    ]:
                         try:
                             yahoo_opps = scan_yahoo_market(market_dict, market_name)
                             for o in yahoo_opps[:1]:
                                 in_pos = any(p["symbol"]==o["symbol"] for p in sim["positions"].values())
                                 if in_pos or len(sim["positions"]) >= MAX_POSITIONS: continue
                                 if not _can_call_ai(): continue
-                                prompt = f"""{o['name']} ({o['symbol']}) ${o['price']:.4f}
-RSI:{o['ind'].get('rsi','?')} mom5:{o['ind'].get('mom5','?')}% score:{o['score']:+d} {fear_greed}
-JSON:{{"signal":"{o['direction']}/HOLD","confidence":0-100,"reason":"raison","risk":"LOW/MEDIUM/HIGH","market":"SPOT"}}"""
+                                prompt = (
+                                    f"{o['name']} ({o['symbol']}) ${o['price']:.4f}\n"
+                                    f"RSI:{o['ind'].get('rsi','?')} mom5:{o['ind'].get('mom5','?')}% "
+                                    f"score:{o['score']:+d} {fear_greed}\n"
+                                    f"JSON:{{\"signal\":\"{o['direction']}/HOLD\","
+                                    f"\"confidence\":0-100,\"reason\":\"raison\","
+                                    f"\"risk\":\"LOW/MEDIUM/HIGH\",\"market\":\"SPOT\"}}"
+                                )
                                 result = vote(prompt)
-                                result.update({"symbol":o["symbol"],"price":o["price"],"patterns":[],
-                                               "market":"SPOT","name":o["name"],"market_type":market_name,
-                                               "kelly_pct":kelly_criterion()})
+                                result.update({
+                                    "symbol":o["symbol"],"price":o["price"],"patterns":[],
+                                    "market":"SPOT","name":o["name"],"market_type":market_name,
+                                    "kelly_pct":kelly_criterion()
+                                })
                                 if (result["signal"] in ("BUY","SELL") and
                                         result["confidence"] >= threshold and
                                         result["risk"] in ("LOW","MEDIUM")):
                                     open_trade(result, send_fn)
-                        except Exception as e: print(f"[YAHOO] {e}")
+                        except Exception as e:
+                            print(f"[YAHOO] {e}")
 
-            except Exception as e: print(f"[SCALP] {e}")
+            except Exception as e:
+                print(f"[SCALP] {e}")
             bot_state["last_scalp"] = now
 
         if now - bot_state["last_deep"] >= CYCLE_DEEP:
@@ -2149,7 +2822,9 @@ JSON:{{"signal":"{o['direction']}/HOLD","confidence":0-100,"reason":"raison","ri
                 send_fn("🔬 Analyse profonde\n" + "\n".join([
                     format_onchain(onchain), format_options(options),
                     interpret_liquidations(liq), format_whale_alerts(whales),
-                    f"📊 Macro: {macro_e} {macro} | F&G:{fg_val}/100"]))
+                    f"📊 Macro: {macro_e} {macro} | F&G:{fg_val}/100",
+                    f"📡 WS: {'✅ Connecté' if _ws_connected else '⚠️ REST mode'}"
+                ]))
                 for symbol in ["BTCUSDT","ETHUSDT","SOLUSDT"]:
                     try:
                         mtf  = get_multi_tf(symbol); conf = tf_score(mtf)
@@ -2163,11 +2838,14 @@ JSON:{{"signal":"{o['direction']}/HOLD","confidence":0-100,"reason":"raison","ri
                         direction = "BUY" if conf["direction"]=="LONG" else "SELL"
                         if macro == "BEAR" and direction == "BUY" and ind5m.get("rsi",50) > 35: continue
                         if macro == "BULL" and direction == "SELL" and ind5m.get("rsi",50) < 65: continue
-                        prompt = f"""{symbol} FUTURES x{LEVERAGE_SIM} ${price:.2f}
-TF:{conf['score']}/9→{conf['direction']} RSI:{ind5m.get('rsi','?')} OB:{ob['pressure']}
-{fear_greed} Macro:{macro}
-Kelly:{kelly_pct*100:.1f}%
-JSON:{{"signal":"{direction}/HOLD","confidence":0-100,"reason":"raison","risk":"LOW/MEDIUM/HIGH","market":"FUTURES"}}"""
+                        prompt = (
+                            f"{symbol} FUTURES x{LEVERAGE_SIM} ${price:.2f}\n"
+                            f"TF:{conf['score']}/9→{conf['direction']} RSI:{ind5m.get('rsi','?')} OB:{ob['pressure']}\n"
+                            f"{fear_greed} Macro:{macro}\nKelly:{kelly_pct*100:.1f}%\n"
+                            f"JSON:{{\"signal\":\"{direction}/HOLD\","
+                            f"\"confidence\":0-100,\"reason\":\"raison\","
+                            f"\"risk\":\"LOW/MEDIUM/HIGH\",\"market\":\"FUTURES\"}}"
+                        )
                         result = vote(prompt)
                         result.update({"symbol":symbol,"price":price,"patterns":[],
                                        "market":"FUTURES","kelly_pct":kelly_pct})
@@ -2175,7 +2853,8 @@ JSON:{{"signal":"{direction}/HOLD","confidence":0-100,"reason":"raison","risk":"
                                 result["confidence"] >= thresh and
                                 result["risk"] in ("LOW","MEDIUM")):
                             open_trade(result, send_fn)
-                    except Exception as e: print(f"[DEEP] {symbol}: {e}")
+                    except Exception as e:
+                        print(f"[DEEP] {symbol}: {e}")
                 threading.Thread(target=get_trader_intelligence, daemon=True).start()
                 auto_adjust_sl_tp()
                 rules = generate_trading_rules()
@@ -2184,7 +2863,8 @@ JSON:{{"signal":"{direction}/HOLD","confidence":0-100,"reason":"raison","risk":"
                 closed_n = len([t for t in sim["trades"] if t.get("pnl")])
                 if closed_n >= 20 and closed_n%50 == 0:
                     test_strategy_variation(send_fn)
-            except Exception as e: print(f"[DEEP] {e}")
+            except Exception as e:
+                print(f"[DEEP] {e}")
             bot_state["last_deep"] = now
 
         if now - bot_state.get("last_epargne",0) >= CYCLE_EPARGNE:
@@ -2205,11 +2885,11 @@ JSON:{{"signal":"{direction}/HOLD","confidence":0-100,"reason":"raison","risk":"
                 daily_pct   = daily_pnl/daily_start*100 if daily_start>0 else 0
                 bl_count    = len(memory.get("symbol_blacklist",{}))
                 macro_e     = "🐂" if macro=="BULL" else "🐻" if macro=="BEAR" else "➡️"
-                if fg_val < 20:   trader_tip = "💡 Saylor/Buffett : Fear extrême = opportunité"
-                elif fg_val < 35: trader_tip = "💡 Buffett : Sois avide quand les autres ont peur"
-                elif fg_val > 75: trader_tip = "💡 Tudor Jones : Protège le capital"
+                if fg_val < 20:        trader_tip = "💡 Saylor/Buffett : Fear extrême = opportunité"
+                elif fg_val < 35:      trader_tip = "💡 Buffett : Sois avide quand les autres ont peur"
+                elif fg_val > 75:      trader_tip = "💡 Tudor Jones : Protège le capital"
                 elif stats["win_rate"] > 60: trader_tip = "💡 Livermore : Laisse courir les gagnants"
-                else: trader_tip = "💡 Cathie Wood : Focus momentum"
+                else:                  trader_tip = "💡 Cathie Wood : Focus momentum"
                 pos_lines = ""
                 if sim["positions"]:
                     prices = get_prices_batch()
@@ -2218,8 +2898,9 @@ JSON:{{"signal":"{direction}/HOLD","confidence":0-100,"reason":"raison","risk":"
                         chg = (p-pos["price_in"])/pos["price_in"]*100*pos.get("leverage",1)
                         pos_lines += f"\n  {'📈' if chg>0 else '📉'} {pos['symbol'].replace('USDT',''):6s} {chg:+.2f}%"
                 stop_str = "🛑 STOP JOUR ACTIF" if bot_state.get("daily_stopped") else ""
+                ws_str   = "📡 WS✅" if _ws_connected else "📡 REST"
                 send_fn(
-                    f"📊 BILAN v6 — {datetime.now().strftime('%H:%M')}\n━━━━━━━━━━━━━━━━━━━\n"
+                    f"📊 BILAN v7 — {datetime.now().strftime('%H:%M')}\n━━━━━━━━━━━━━━━━━━━\n"
                     f"💰 Capital  : ${equity:.2f} ({pnl/sim['initial']*100:+.1f}%)\n"
                     f"📅 Auj.     : ${daily_pnl:+.2f} ({daily_pct:+.1f}%)\n"
                     f"📍 Positions: {len(sim['positions'])}/{MAX_POSITIONS}{pos_lines}\n"
@@ -2228,21 +2909,22 @@ JSON:{{"signal":"{direction}/HOLD","confidence":0-100,"reason":"raison","risk":"
                     f"📐 Kelly    : {kelly*100:.1f}% / trade\n"
                     f"⚡ Micro    : {micro_c} trades\n"
                     f"📊 WR DB(30): {wr_db}%\n"
-                    f"🧠 AI Pool  : {_pool_stats['last_provider']} ({_pool_stats['total_calls']} appels)\n"
+                    f"🧠 AI Pool  : {_pool_stats['last_provider']} ({_pool_stats['total_calls']} appels | cache:{_pool_stats['cache_hits']})\n"
                     f"📊 Macro    : {macro_e} {macro} | F&G:{fg_val}/100\n"
                     f"🚫 Blacklist: {bl_count} symbols\n"
                     f"🥇 Top      : {sym_str}\n"
                     f"📚 Leçons   : {len(memory['lessons'])}/{MAX_LESSONS}\n"
+                    f"{ws_str}\n"
                     f"━━━━━━━━━━━━━━━━━━━\n"
                     f"{stop_str}\n{trader_tip}"
                 )
                 db_save_equity(equity, sim["cash"], len(sim["positions"]), pnl)
-            except Exception as e: print(f"[STATUS] {e}")
+            except Exception as e:
+                print(f"[STATUS] {e}")
             bot_state["last_status"] = now
 
         bot_state["last_heartbeat"] = datetime.now()
         time.sleep(3)
-
 
 # ═══════════════════════════════════════════════════════════════
 #  WATCHDOG + RÉSUMÉ JOURNALIER
@@ -2256,9 +2938,10 @@ def watchdog(send_fn):
         if not last: continue
         elapsed = (datetime.now()-last).total_seconds()
         if elapsed > 300 and not alerted:
-            send_fn(f"⚠️ WATCHDOG: Inactif {int(elapsed//60)} min"); alerted = True
-        elif elapsed <= 300: alerted = False
-
+            send_fn(f"⚠️ WATCHDOG: Inactif {int(elapsed//60)} min")
+            alerted = True
+        elif elapsed <= 300:
+            alerted = False
 
 def daily_summary(send_fn):
     while True:
@@ -2269,15 +2952,19 @@ def daily_summary(send_fn):
             equity = get_equity_safe(); pnl = equity - sim["initial"]
             stats  = get_stats(); today = now.strftime("%Y-%m-%d")
             t_day  = [t for t in sim["trades"] if t.get("time_in","").startswith(today)]
-            pnl_day = sum(t["pnl"] for t in t_day if t.get("pnl"))
+            pnl_day= sum(t["pnl"] for t in t_day if t.get("pnl"))
             sym_s  = db_symbol_stats()
-            best3  = "\n".join(f"  🏅 {s['s']}: WR {s['wr']:.0f}% ({s['n']} trades)"
-                               for s in sym_s[:3]) or "  Aucun"
-            lessons = "\n".join(f"  {'✅' if l['type']=='succes' else '❌'} {l['lecon']}"
-                                for l in memory["lessons"][-3:]) or "  Aucune"
+            best3  = "\n".join(
+                f"  🏅 {s['s']}: WR {s['wr']:.0f}% ({s['n']} trades)"
+                for s in sym_s[:3]
+            ) or "  Aucun"
+            lessons = "\n".join(
+                f"  {'✅' if l['type']=='succes' else '❌'} {l['lecon']}"
+                for l in memory["lessons"][-3:]
+            ) or "  Aucune"
             bl_count = len(memory.get("symbol_blacklist",{}))
             send_fn(
-                f"📊 RÉSUMÉ JOURNALIER v6 — {now.strftime('%d/%m/%Y')}\n━━━━━━━━━━━━━━━━━━━\n"
+                f"📊 RÉSUMÉ JOURNALIER v7 — {now.strftime('%d/%m/%Y')}\n━━━━━━━━━━━━━━━━━━━\n"
                 f"💰 Capital  : ${equity:.2f} ({pnl/sim['initial']*100:+.1f}%)\n"
                 f"📅 PnL jour : ${pnl_day:+.2f} ({len(t_day)} trades)\n"
                 f"📐 Kelly    : {kelly_criterion()*100:.1f}%\n"
@@ -2287,11 +2974,11 @@ def daily_summary(send_fn):
                 f"📚 Leçons   : {len(memory['lessons'])}/{MAX_LESSONS}\n━━━━━━━━━━━━━━━━━━━\n"
                 f"🥇 Top coins:\n{best3}\n💡 Leçons récentes:\n{lessons}"
             )
-            bot_state["daily_stopped"] = False
-            sim["daily_start_equity"]  = equity
-            sim["daily_start_date"]    = (now+timedelta(days=1)).strftime("%Y-%m-%d")
-        except Exception as e: print(f"[DAILY] {e}")
-
+            bot_state["daily_stopped"]    = False
+            sim["daily_start_equity"]     = equity
+            sim["daily_start_date"]       = (now+timedelta(days=1)).strftime("%Y-%m-%d")
+        except Exception as e:
+            print(f"[DAILY] {e}")
 
 def self_ping():
     time.sleep(60)
@@ -2299,7 +2986,6 @@ def self_ping():
         try: requests.get(f"{WEBHOOK_URL.rstrip('/')}/health", timeout=10)
         except Exception: pass
         time.sleep(270)
-
 
 # ═══════════════════════════════════════════════════════════════
 #  DASHBOARD HTML
@@ -2321,74 +3007,91 @@ def generate_dashboard() -> str:
     daily_pnl   = equity - daily_start
     daily_pct2  = daily_pnl/daily_start*100 if daily_start > 0 else 0
     bl_list     = memory.get("symbol_blacklist",{})
+    ws_str      = "✅ WebSocket" if _ws_connected else "⚠️ REST"
 
     pos_html = ""
     for pk, pos in sim["positions"].items():
         p   = prices.get(pos["symbol"], pos["price_in"])
         chg = (p-pos["price_in"])/pos["price_in"]*100*pos.get("leverage",1)
         color = "#2ecc71" if chg>=0 else "#e74c3c"
-        pos_html += (f"<tr><td>{pos['symbol'].replace('USDT','')}</td><td>{pos['market']}</td>"
-                     f"<td>{pos['side']}</td><td>${pos['price_in']:.4f}</td><td>${p:.4f}</td>"
-                     f'<td style="color:{color}">{chg:+.2f}%</td>'
-                     f"<td>{pos.get('kelly_pct',0)*100:.1f}%</td></tr>")
+        pos_html += (
+            f"<tr><td>{pos['symbol'].replace('USDT','')}</td><td>{pos['market']}</td>"
+            f"<td>{pos['side']}</td><td>${pos['price_in']:.4f}</td><td>${p:.4f}</td>"
+            f'<td style="color:{color}">{chg:+.2f}%</td>'
+            f"<td>{pos.get('kelly_pct',0)*100:.1f}%</td></tr>"
+        )
 
     trades_html = ""
     for t in reversed(sim["trades"][-25:]):
         if t.get("pnl") is not None:
             c  = "#2ecc71" if t["pnl"]>0 else "#e74c3c"
             ps = f'<span style="color:{c}">${t["pnl"]:+.4f}</span>'
-        else: ps = '<span style="color:#f39c12">ouvert</span>'
-        trades_html += (f"<tr><td>{t['id']}</td><td>{t['symbol'].replace('USDT','')}</td>"
-                        f"<td>{t['market']}</td><td>{t['side']}</td>"
-                        f"<td>${t['price_in']:.4f}</td><td>{ps}</td>"
-                        f"<td>{t['confidence']}%</td><td>{t.get('kelly_pct',0)*100:.1f}%</td>"
-                        f"<td>{t['time_in'][11:16]}</td></tr>")
+        else:
+            ps = '<span style="color:#f39c12">ouvert</span>'
+        trades_html += (
+            f"<tr><td>{t['id']}</td><td>{t['symbol'].replace('USDT','')}</td>"
+            f"<td>{t['market']}</td><td>{t['side']}</td>"
+            f"<td>${t['price_in']:.4f}</td><td>{ps}</td>"
+            f"<td>{t['confidence']}%</td><td>{t.get('kelly_pct',0)*100:.1f}%</td>"
+            f"<td>{t['time_in'][11:16]}</td></tr>"
+        )
 
     lessons_html = ""
     for l in reversed(memory["lessons"][-12:]):
         c = "#2ecc71" if l["type"]=="succes" else "#e74c3c"
-        lessons_html += (f'<tr><td style="color:{c}">{"✅" if l["type"]=="succes" else "❌"}</td>'
-                         f'<td style="color:{c}">${l.get("pnl",0):+.4f}</td>'
-                         f"<td>{l['lecon'][:55]}</td><td>{l['action_future'][:50]}</td>"
-                         f"<td>{l['date']}</td></tr>")
+        lessons_html += (
+            f'<tr><td style="color:{c}">{"✅" if l["type"]=="succes" else "❌"}</td>'
+            f'<td style="color:{c}">${l.get("pnl",0):+.4f}</td>'
+            f"<td>{l['lecon'][:55]}</td><td>{l['action_future'][:50]}</td>"
+            f"<td>{l['date']}</td></tr>"
+        )
 
     arb_html = ""
     for o in arb_opps[:3]:
-        coin  = o["symbol"].replace("USDT",""); color = "#2ecc71" if o["profit_est"]>0 else "#e74c3c"
-        arb_html += (f"<tr><td>{coin}</td><td>${o.get('binance',0):.2f}</td>"
-                     f"<td>${o.get('kucoin',0):.2f}</td>"
-                     f"<td>{o['spread_pct']:.3f}%</td>"
-                     f'<td style="color:{color}">{o["profit_est"]:.3f}%</td></tr>')
+        coin  = o["symbol"].replace("USDT","")
+        color = "#2ecc71" if o["profit_est"]>0 else "#e74c3c"
+        arb_html += (
+            f"<tr><td>{coin}</td><td>${o.get('binance',0):.2f}</td>"
+            f"<td>${o.get('kucoin',0):.2f}</td>"
+            f"<td>{o['spread_pct']:.3f}%</td>"
+            f'<td style="color:{color}">{o["profit_est"]:.3f}%</td></tr>'
+        )
 
     poly_html = ""
     for m in poly_mkts[:3]:
         color = "#2ecc71" if m["inefficiency"]>2 else "#f39c12"
-        poly_html += (f"<tr><td>{m['question'][:50]}</td><td>{m['yes_price']:.2f}</td>"
-                      f"<td>{m['no_price']:.2f}</td>"
-                      f'<td style="color:{color}">{m["inefficiency"]:.1f}%</td></tr>')
+        poly_html += (
+            f"<tr><td>{m['question'][:50]}</td><td>{m['yes_price']:.2f}</td>"
+            f"<td>{m['no_price']:.2f}</td>"
+            f'<td style="color:{color}">{m["inefficiency"]:.1f}%</td></tr>'
+        )
 
     epargne_html = ""
     for p in epargne.get("promos_found",[])[:3]:
-        epargne_html += (f"<tr><td>🏦 {p['exchange']}</td>"
-                         f"<td>{', '.join(p['keywords'][:2])}</td>"
-                         f"<td><a href='{p['url']}' style='color:#58a6ff'>Voir</a></td></tr>")
+        epargne_html += (
+            f"<tr><td>🏦 {p['exchange']}</td>"
+            f"<td>{', '.join(p['keywords'][:2])}</td>"
+            f"<td><a href='{p['url']}' style='color:#58a6ff'>Voir</a></td></tr>"
+        )
 
     bl_html = ""
     for sym, info in list(bl_list.items())[:5]:
         bl_html += f"<tr><td>{sym.replace('USDT','')}</td><td>{info.get('reason','')}</td></tr>"
 
-    pcr = options.get("put_call_ratio","N/A")
-    btc_dom = onchain.get("btc_dominance","N/A"); mcap_chg = onchain.get("mcap_change_24h",0)
+    pcr      = options.get("put_call_ratio","N/A")
+    btc_dom  = onchain.get("btc_dominance","N/A")
+    mcap_chg = onchain.get("mcap_change_24h",0)
     macro_color = "#2ecc71" if macro=="BULL" else "#e74c3c" if macro=="BEAR" else "#f39c12"
     sym_str = "".join(
         f"<span style='background:#161b22;border-radius:5px;padding:2px 7px;"
         f"font-size:.75em;margin:2px;display:inline-block;color:#2ecc71'>"
-        f"{s['s']} WR:{s['wr']:.0f}%</span>" for s in sym_s
+        f"{s['s']} WR:{s['wr']:.0f}%</span>"
+        for s in sym_s
     ) or "<span style='color:#8b949e'>Aucun</span>"
 
     return f"""<!DOCTYPE html><html><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Bot v6</title>
+<title>Bot v7</title>
 <style>
 body{{font-family:Arial,sans-serif;background:#0d1117;color:#c9d1d9;margin:0;padding:14px}}
 h1{{color:#58a6ff;text-align:center;font-size:1.2em;margin-bottom:2px}}
@@ -2408,9 +3111,9 @@ code{{color:#58a6ff}}
 </style>
 <meta http-equiv="refresh" content="20">
 </head><body>
-<h1>🤖 Trading Bot v6 — Binance API</h1>
-<div style="text-align:center;font-size:.78em;color:#8b949e">{status} | {hb} | Cycle #{bot_state['cycle_count']}</div>
-<div style="text-align:center;font-size:.78em;color:#8b949e">Kelly:{kelly*100:.1f}% | Seuil:{thresh}% | WR(30):{wr_db}%</div>
+<h1>🤖 Trading Bot v7 — WebSocket + Backtest + Sécurité</h1>
+<div style="text-align:center;font-size:.78em;color:#8b949e">{status} | {hb} | Cycle #{bot_state['cycle_count']} | 📡 {ws_str}</div>
+<div style="text-align:center;font-size:.78em;color:#8b949e">Kelly:{kelly*100:.1f}% | Seuil:{thresh}% | WR(30):{wr_db}% | Cache AI:{_pool_stats['cache_hits']}</div>
 <div style="text-align:center">{sym_str}</div>
 <div class="grid">
   <div class="card"><div class="label">Capital simulé</div><div class="value blue">${equity:.2f}</div></div>
@@ -2427,15 +3130,16 @@ code{{color:#58a6ff}}
 <div class="grid3">
   <div class="card"><div class="label">BTC Dom.</div><div class="value">{btc_dom}%</div></div>
   <div class="card"><div class="label">MCap 24h</div><div class="value {'green' if mcap_chg>=0 else 'red'}">{mcap_chg:+.1f}%</div></div>
-  <div class="card"><div class="label">AI Pool</div><div class="value" style="font-size:.8em">Groq:{ai_groq['calls']}/{ai_groq['max_calls_per_hour']}/h<br>HF:{ai_hf['calls']}/{ai_hf['max_calls_per_hour']}/h</div></div>
+  <div class="card"><div class="label">AI Pool</div><div class="value" style="font-size:.8em">Groq:{ai_groq['calls']}/{ai_groq['max_calls_per_hour']}/h<br>HF:{ai_hf['calls']}/{ai_hf['max_calls_per_hour']}/h<br>Cache:{_pool_stats['cache_hits']}</div></div>
 </div>
-<div class="cmds"><b>Commandes:</b>
+<div class="cmds"><b>Commandes v7:</b>
 <code>/start</code> <code>/stop</code> <code>/status</code> <code>/portfolio</code>
 <code>/positions</code> <code>/lecons</code> <code>/scan</code> <code>/arbitrage</code>
 <code>/polymarket</code> <code>/kelly</code> <code>/marches</code> <code>/memes</code>
 <code>/signaux</code> <code>/regles</code> <code>/stats</code> <code>/pool</code>
 <code>/macro</code> <code>/risque</code> <code>/blacklist</code>
 <code>/epargne</code> <code>/airdrops</code> <code>/faucets</code>
+<code>/backtest</code> <code>/backtest_multi</code>
 <code>/fermer</code> <code>/reset</code> <code>/help</code>
 </div>
 <h2>Positions Ouvertes</h2>
@@ -2464,95 +3168,104 @@ code{{color:#58a6ff}}
 </tbody></table>
 </body></html>"""
 
-
 # ═══════════════════════════════════════════════════════════════
 #  SERVEUR HTTP + WEBHOOK
 # ═══════════════════════════════════════════════════════════════
 class BotHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/health":
-            self.send_response(200); self.send_header("Content-type","text/plain")
-            self.end_headers(); self.wfile.write(b"OK")
+            self.send_response(200)
+            self.send_header("Content-type","text/plain")
+            self.end_headers()
+            self.wfile.write(b"OK")
         else:
-            self.send_response(200); self.send_header("Content-type","text/html; charset=utf-8")
-            self.end_headers(); self.wfile.write(generate_dashboard().encode("utf-8"))
+            self.send_response(200)
+            self.send_header("Content-type","text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(generate_dashboard().encode("utf-8"))
+
     def do_POST(self):
-        print(f"[POST] reçu path={self.path}")
         if self.path != WEBHOOK_PATH:
-            print(f"[POST] mauvais path attendu={WEBHOOK_PATH}")
             self.send_response(404); self.end_headers(); return
-        n = int(self.headers.get("Content-Length",0))
+        n    = int(self.headers.get("Content-Length",0))
         body = self.rfile.read(n)
-        print(f"[POST] body={body[:100]}")
         if _app and _main_loop:
             asyncio.run_coroutine_threadsafe(_process_update(body), _main_loop)
-        else:
-            print(f"[POST] _app={_app} _main_loop={_main_loop}")
         self.send_response(200); self.end_headers()
-    def log_message(self, fmt, *args): pass
 
+    def log_message(self, fmt, *args):
+        pass
 
 async def _process_update(body: bytes):
     try:
         update = Update.de_json(json.loads(body), _app.bot)
         await _app.process_update(update)
-    except Exception as e: print(f"[WH] {e}")
-
+    except Exception as e:
+        print(f"[WH] {e}")
 
 def run_server():
     HTTPServer(("0.0.0.0", WEBHOOK_PORT), BotHandler).serve_forever()
-
 
 # ═══════════════════════════════════════════════════════════════
 #  TELEGRAM COMMANDS
 # ═══════════════════════════════════════════════════════════════
 def make_send(chat_id: str):
     def send(msg: str):
-        if _app is None or _main_loop is None: print(f"[MSG] {msg[:80]}"); return
+        if _app is None or _main_loop is None:
+            print(f"[MSG] {msg[:80]}")
+            return
         f = asyncio.run_coroutine_threadsafe(
-            _app.bot.send_message(chat_id=chat_id, text=msg), _main_loop)
+            _app.bot.send_message(chat_id=chat_id, text=msg), _main_loop
+        )
         try: f.result(timeout=15)
         except Exception as e: print(f"[MSG] {e}")
     return send
 
 def _auth(update: Update) -> bool:
-    chat_id = str(update.effective_chat.id)
+    chat_id  = str(update.effective_chat.id)
     expected = str(TELEGRAM_CHAT_ID)
-    print(f"[AUTH] reçu={chat_id} attendu={expected} match={chat_id==expected}")
-    return chat_id == expected
-
+    return secure_compare(chat_id, expected)
 
 async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
-    if bot_state["running"]: await update.message.reply_text("Déjà en cours !"); return
-    bot_state.update({"running":True,"trades_today":0,"cycle_count":0,
-                      "last_heartbeat":None,"last_monitor":0,"last_micro":0,
-                      "last_scalp":0,"last_deep":0,"last_status":0,
-                      "last_meme":0,"last_epargne":0,"daily_stopped":False})
+    if not check_rate_limit(f"cmd_{update.effective_chat.id}", 10, 60):
+        await update.message.reply_text("⚠️ Trop de commandes, attends un peu.")
+        return
+    if bot_state["running"]:
+        await update.message.reply_text("Déjà en cours !")
+        return
+    bot_state.update({
+        "running":True,"trades_today":0,"cycle_count":0,
+        "last_heartbeat":None,"last_monitor":0,"last_micro":0,
+        "last_scalp":0,"last_deep":0,"last_status":0,
+        "last_meme":0,"last_epargne":0,"daily_stopped":False
+    })
     send = make_send(TELEGRAM_CHAT_ID)
     threading.Thread(target=trading_loop,  args=(send,), daemon=True).start()
     threading.Thread(target=watchdog,      args=(send,), daemon=True).start()
     threading.Thread(target=daily_summary, args=(send,), daemon=True).start()
 
-
 async def cmd_stop(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
-    bot_state["running"] = False; equity = get_equity_safe(); stats = get_stats()
+    bot_state["running"] = False
+    equity = get_equity_safe(); stats = get_stats()
     await update.message.reply_text(
         f"🛑 Arrêté.\nCapital:${equity:.2f} | PnL:${equity-sim['initial']:+.2f}\n"
-        f"Trades:{stats['total']} | WR:{stats['win_rate']}%")
-
+        f"Trades:{stats['total']} | WR:{stats['win_rate']}%"
+    )
 
 async def cmd_status(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
-    equity = get_equity_safe(); pnl = equity - sim["initial"]; stats = get_stats()
-    kelly  = kelly_criterion(); thresh = memory.get("confidence_threshold",CONFIDENCE_BASE)
+    equity = get_equity_safe(); pnl = equity - sim["initial"]
+    stats  = get_stats(); kelly = kelly_criterion()
+    thresh = memory.get("confidence_threshold",CONFIDENCE_BASE)
     macro  = get_macro_trend(); fg_val = get_fear_greed_value()
     macro_e = "🐂" if macro=="BULL" else "🐻" if macro=="BEAR" else "➡️"
     daily_start = sim.get("daily_start_equity", CAPITAL_INITIAL)
     daily_pnl   = equity - daily_start
     stop_str    = "\n🛑 STOP JOURNALIER ACTIF" if bot_state.get("daily_stopped") else ""
-    pos_lines = ""
+    ws_str      = "📡 WS✅" if _ws_connected else "📡 REST"
+    pos_lines   = ""
     if sim["positions"]:
         prices = get_prices_batch()
         for pos in sim["positions"].values():
@@ -2566,25 +3279,59 @@ async def cmd_status(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         f"📐 Kelly    : {kelly*100:.1f}%\n"
         f"🏆 WR       : {stats['win_rate']}% ({stats['total']} trades)\n"
         f"📍 Positions: {len(sim['positions'])}{pos_lines}\n"
-        f"📊 Macro    : {macro_e} {macro} | F&G:{fg_val}/100"
-        f"{stop_str}")
+        f"📊 Macro    : {macro_e} {macro} | F&G:{fg_val}/100\n"
+        f"{ws_str}{stop_str}"
+    )
 
+async def cmd_backtest(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    if not _auth(update): return
+    args = ctx.args if ctx.args else []
+    symbol   = args[0].upper() if len(args) > 0 else "BTCUSDT"
+    interval = args[1] if len(args) > 1 else "5m"
+    days     = int(args[2]) if len(args) > 2 else 30
+    if not validate_symbol(symbol):
+        await update.message.reply_text("❌ Symbol invalide. Ex: BTCUSDT")
+        return
+    if interval not in ("1m","5m","15m","1h","4h"):
+        await update.message.reply_text("❌ Interval invalide. Options: 1m 5m 15m 1h 4h")
+        return
+    days = max(1, min(90, days))
+    await update.message.reply_text(f"🔄 Backtest {symbol} {interval} {days}j en cours...")
+    try:
+        result = backtest_strategy(symbol, interval, days)
+        await update.message.reply_text(format_backtest_result(result))
+    except Exception as e:
+        await update.message.reply_text(f"❌ Erreur backtest: {e}")
+
+async def cmd_backtest_multi(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    if not _auth(update): return
+    await update.message.reply_text("🔄 Multi-backtest en cours (BTC/ETH/SOL/BNB/XRP)...")
+    try:
+        result = run_multi_backtest(
+            ["BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT","XRPUSDT"],
+            interval="5m", days=14
+        )
+        await update.message.reply_text(result)
+    except Exception as e:
+        await update.message.reply_text(f"❌ Erreur: {e}")
 
 async def cmd_macro(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
     macro   = get_macro_trend(); fg_val = get_fear_greed_value()
     onchain = get_onchain_data(); options = get_options_data()
     macro_e = "🐂" if macro=="BULL" else "🐻" if macro=="BEAR" else "➡️"
-    fg_zone = "Extrême Fear" if fg_val<20 else "Fear" if fg_val<40 else "Neutre" if fg_val<60 else "Greed" if fg_val<80 else "Extrême Greed"
+    fg_zone = ("Extrême Fear" if fg_val<20 else "Fear" if fg_val<40
+               else "Neutre" if fg_val<60 else "Greed" if fg_val<80 else "Extrême Greed")
     await update.message.reply_text(
-        f"📊 MACRO v6\n━━━━━━━━━━━━━\n"
+        f"📊 MACRO v7\n━━━━━━━━━━━━━\n"
         f"Tendance  : {macro_e} {macro}\n"
         f"Fear&Greed: {fg_val}/100 ({fg_zone})\n"
         f"BTC Dom.  : {onchain.get('btc_dominance','N/A')}%\n"
         f"MCap 24h  : {onchain.get('mcap_change_24h',0):+.1f}%\n"
         f"{format_options(options)}\n"
-        f"🌙 Mode nuit: {'Actif' if is_night_time() else 'Inactif'}")
-
+        f"📡 WS     : {'✅ Connecté' if _ws_connected else '⚠️ REST mode'}\n"
+        f"🌙 Mode nuit: {'Actif' if is_night_time() else 'Inactif'}"
+    )
 
 async def cmd_risque(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
@@ -2596,30 +3343,31 @@ async def cmd_risque(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     drawdown    = (equity-peak)/peak*100 if peak > 0 else 0
     stop_status = "🛑 ACTIF" if bot_state.get("daily_stopped") else "✅ Normal"
     await update.message.reply_text(
-        f"🛡️ RISK MANAGEMENT\n━━━━━━━━━━━━━\n"
+        f"🛡️ RISK MANAGEMENT v7\n━━━━━━━━━━━━━\n"
         f"Stop journalier: {stop_status}\n"
         f"PnL aujourd'hui: ${daily_pnl:+.2f} ({daily_pct:+.1f}%)\n"
         f"Limite jour    : -{MAX_DAILY_LOSS_PCT*100:.0f}%\n"
         f"Drawdown actuel: {drawdown:+.1f}%\n"
         f"Pic capital    : ${peak:.2f}\n"
-        f"Limite DD      : -{MAX_DRAWDOWN_PCT*100:.0f}%")
-
+        f"Limite DD      : -{MAX_DRAWDOWN_PCT*100:.0f}%\n"
+        f"Rate limit AI  : {len(_rate_limits.get('ask_ai_global', []))}/200/h"
+    )
 
 async def cmd_blacklist(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
     bl = memory.get("symbol_blacklist",{})
-    if not bl: await update.message.reply_text("🚫 Blacklist vide."); return
+    if not bl:
+        await update.message.reply_text("🚫 Blacklist vide.")
+        return
     lines = ["🚫 BLACKLIST\n━━━━━━━━━━━━━"]
     for sym, info in bl.items():
         exp = datetime.fromtimestamp(info["ts"]+86400).strftime("%H:%M")
         lines.append(f"  {sym.replace('USDT','')}: {info.get('reason','')} (exp:{exp})")
     await update.message.reply_text("\n".join(lines))
 
-
 async def cmd_pool(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
     await update.message.reply_text(get_pool_status())
-
 
 async def cmd_kelly(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
@@ -2632,32 +3380,38 @@ async def cmd_kelly(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         f"Kelly (30) : {kelly*100:.1f}% ← utilisé\n"
         f"Kelly (50) : {k50*100:.1f}%\n"
         f"Trades : {len(closed)} | Wins:{len(wins)}\n"
-        f"WR     : {len(wins)/max(len(closed),1)*100:.1f}%")
-
+        f"WR     : {len(wins)/max(len(closed),1)*100:.1f}%"
+    )
 
 async def cmd_arbitrage(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
     await update.message.reply_text("🔍 Scan arbitrage...")
     opps = detect_arbitrage()
-    if not opps: await update.message.reply_text("Aucune opportunité."); return
+    if not opps:
+        await update.message.reply_text("Aucune opportunité.")
+        return
     lines = ["⚡ ARBITRAGE Binance/KuCoin\n━━━━━━━━━━━━━"]
     for o in opps:
         coin = o["symbol"].replace("USDT","")
-        lines.append(f"💰 {coin}\n  Binance:${o.get('binance',0):.2f} | KuCoin:${o.get('kucoin',0):.2f}\n"
-                     f"  Spread:{o['spread_pct']:.3f}% → ~{o['profit_est']:.3f}% net")
+        lines.append(
+            f"💰 {coin}\n  Binance:${o.get('binance',0):.2f} | KuCoin:${o.get('kucoin',0):.2f}\n"
+            f"  Spread:{o['spread_pct']:.3f}% → ~{o['profit_est']:.3f}% net"
+        )
     await update.message.reply_text("\n".join(lines))
-
 
 async def cmd_polymarket(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
     markets = get_polymarket_markets()
-    if not markets: await update.message.reply_text("Aucune inefficacité."); return
+    if not markets:
+        await update.message.reply_text("Aucune inefficacité.")
+        return
     lines = ["🎯 POLYMARKET\n━━━━━━━━━━━━━"]
     for m in markets:
-        lines.append(f"❓ {m['question']}\n  YES:{m['yes_price']:.2f} NO:{m['no_price']:.2f} "
-                     f"(ineff:{m['inefficiency']:.1f}%)")
+        lines.append(
+            f"❓ {m['question']}\n  YES:{m['yes_price']:.2f} NO:{m['no_price']:.2f} "
+            f"(ineff:{m['inefficiency']:.1f}%)"
+        )
     await update.message.reply_text("\n".join(lines))
-
 
 async def cmd_epargne(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
@@ -2665,17 +3419,17 @@ async def cmd_epargne(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     send = make_send(TELEGRAM_CHAT_ID)
     threading.Thread(target=run_epargne_scan, args=(send,), daemon=True).start()
 
-
 async def cmd_airdrops(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
     await update.message.reply_text("🪂 Scan airdrops...")
     airdrops = scan_airdrops()
-    if not airdrops: await update.message.reply_text("Aucun airdrop détecté."); return
+    if not airdrops:
+        await update.message.reply_text("Aucun airdrop détecté.")
+        return
     lines = [f"🪂 AIRDROPS ({len(airdrops)})\n━━━━━━━━━━━━━"]
     for a in airdrops[:5]:
         lines.append(f"🎁 {a['name']}\n  {a['url']}")
     await update.message.reply_text("\n".join(lines))
-
 
 async def cmd_faucets(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
@@ -2685,124 +3439,142 @@ async def cmd_faucets(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         lines.append(f"{f['status']} {f['name']} ({f['crypto']})\n  {f['url']}")
     await update.message.reply_text("\n".join(lines))
 
-
 async def cmd_portfolio(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
-    equity = get_equity_safe(); pnl = equity - sim["initial"]; stats = get_stats()
-    kelly  = kelly_criterion(); sym_s = db_symbol_stats()
+    equity = get_equity_safe(); pnl = equity - sim["initial"]
+    stats  = get_stats(); kelly = kelly_criterion(); sym_s = db_symbol_stats()
     sym_str = " | ".join(f"{s['s']}:{s['wr']:.0f}%WR" for s in sym_s) or "Aucun"
     await update.message.reply_text(
-        f"💼 Portefeuille\nInitial:${sim['initial']:,.2f}\n"
+        f"💼 Portefeuille v7\nInitial:${sim['initial']:,.2f}\n"
         f"Actuel :${equity:.2f} ({pnl:+.2f})\nCash   :${sim['cash']:.2f}\n"
-        f"Kelly:{kelly*100:.1f}% | Trades:{stats['total']} WR:{stats['win_rate']}%\nTop:{sym_str}")
-
+        f"Kelly:{kelly*100:.1f}% | Trades:{stats['total']} WR:{stats['win_rate']}%\nTop:{sym_str}"
+    )
 
 async def cmd_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
-    if not sim["positions"]: await update.message.reply_text("Aucune position."); return
-    prices = get_prices_batch(); lines = ["📍 Positions\n━━━━━━━━━━━━━"]
+    if not sim["positions"]:
+        await update.message.reply_text("Aucune position.")
+        return
+    prices = get_prices_batch()
+    lines  = ["📍 Positions\n━━━━━━━━━━━━━"]
     for pk, pos in sim["positions"].items():
         p   = prices.get(pos["symbol"], pos["price_in"])
         chg = (p-pos["price_in"])/pos["price_in"]*100*pos.get("leverage",1)
-        lines.append(f"{'📈' if chg>0 else '📉'} {pos['symbol'].replace('USDT','')} "
-                     f"{pos['market']} | ${pos['price_in']:.4f}→${p:.4f} ({chg:+.2f}%)")
+        lines.append(
+            f"{'📈' if chg>0 else '📉'} {pos['symbol'].replace('USDT','')} "
+            f"{pos['market']} | ${pos['price_in']:.4f}→${p:.4f} ({chg:+.2f}%)"
+        )
     await update.message.reply_text("\n".join(lines))
-
 
 async def cmd_lecons(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
-    if not memory["lessons"]: await update.message.reply_text("Aucune leçon encore."); return
+    if not memory["lessons"]:
+        await update.message.reply_text("Aucune leçon encore.")
+        return
     msg = f"📚 Leçons ({len(memory['lessons'])}/{MAX_LESSONS}):\n\n"
     for l in memory["lessons"][-5:]:
         e = "✅" if l["type"]=="succes" else "❌"
         msg += f"{e} ${l.get('pnl',0):+.4f}\n{l['lecon']}\n→ {l['action_future']}\n\n"
     await update.message.reply_text(msg)
 
-
 async def cmd_scan(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
     await update.message.reply_text("🔍 Scan...")
-    opps  = scan_market(); lines = ["🎯 Top opportunités\n━━━━━━━━━━━━━"]
+    opps  = scan_market()
+    lines = ["🎯 Top opportunités\n━━━━━━━━━━━━━"]
     for o in opps[:7]:
-        e = "🟢" if o["direction"]=="BUY" else "🔴"; alert = " ⚠️" if o["has_alert"] else ""
+        e     = "🟢" if o["direction"]=="BUY" else "🔴"
+        alert = " ⚠️" if o["has_alert"] else ""
         bonus = get_symbol_confidence_bonus(o["symbol"])
         bonus_str = f" ({bonus:+d})" if bonus != 0 else ""
-        lines.append(f"{e}{alert} {o['symbol'].replace('USDT',''):6s} score={o['score']:+d}"
-                     f"{bonus_str} RSI={o['ind'].get('rsi',0):.0f}")
+        lines.append(
+            f"{e}{alert} {o['symbol'].replace('USDT',''):6s} score={o['score']:+d}"
+            f"{bonus_str} RSI={o['ind'].get('rsi',0):.0f}"
+        )
     await update.message.reply_text("\n".join(lines))
-
 
 async def cmd_marches(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
     await update.message.reply_text("📊 Récupération prix...")
     try:
-        lines  = ["📊 MARCHÉS\n━━━━━━━━━━━━━"]; prices = get_prices_batch()
+        lines  = ["📊 MARCHÉS v7\n━━━━━━━━━━━━━"]; prices = get_prices_batch()
+        lines.append(f"📡 Source: {'WebSocket' if _ws_connected else 'REST'}")
         lines.append("🪙 CRYPTO")
         for sym in ["BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT","XRPUSDT"]:
-            p = prices.get(sym,0); lines.append(f"  {sym.replace('USDT',''):6s} ${p:,.4f}")
+            p = prices.get(sym,0)
+            lines.append(f"  {sym.replace('USDT',''):6s} ${p:,.4f}")
         lines.append("\n📈 ACTIONS US")
         for ticker, name in list(STOCKS_SYMBOLS.items())[:5]:
-            p = get_yahoo_price(ticker); lines.append(f"  {name:12s} ${p:,.2f}")
+            p = get_yahoo_price(ticker)
+            lines.append(f"  {name:12s} ${p:,.2f}")
         lines.append("\n💱 FOREX")
         for ticker, name in list(FOREX_SYMBOLS.items())[:4]:
-            p = get_yahoo_price(ticker); lines.append(f"  {name:10s} {p:.4f}")
+            p = get_yahoo_price(ticker)
+            lines.append(f"  {name:10s} {p:.4f}")
         await update.message.reply_text("\n".join(lines))
-    except Exception as e: await update.message.reply_text(f"Erreur: {e}")
-
+    except Exception as e:
+        await update.message.reply_text(f"Erreur: {e}")
 
 async def cmd_memes(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
     await update.message.reply_text("🐸 Scan memecoins...")
     try:
-        trending = dex_get_trending(); lines = ["🐸 MEMECOINS\n━━━━━━━━━━━━━"]
+        trending = dex_get_trending()
+        lines    = ["🐸 MEMECOINS\n━━━━━━━━━━━━━"]
         if trending:
             for t in trending[:5]:
-                score = meme_signal_score(t); e = "🚀" if score>=7 else "📈" if score>=5 else "📊"
+                score = meme_signal_score(t)
+                e = "🚀" if score>=7 else "📈" if score>=5 else "📊"
                 lines.append(f"  {e} ${t['symbol']} {t.get('change_1h',0):+.1f}%/1h Score:{score}/10")
         await update.message.reply_text("\n".join(lines))
-    except Exception as e: await update.message.reply_text(f"Erreur: {e}")
-
+    except Exception as e:
+        await update.message.reply_text(f"Erreur: {e}")
 
 async def cmd_signaux(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
     summary = get_db_trader_signals_summary()
     await update.message.reply_text(f"📡 SIGNAUX TRADERS\n━━━━━━━━━━━━━\n{summary}")
 
-
 async def cmd_regles(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
     try:
         con  = sqlite3.connect(DB_FILE)
-        rows = con.execute("SELECT rule,win_rate,sample_size FROM trading_rules WHERE active=1 ORDER BY win_rate DESC LIMIT 10").fetchall()
+        rows = con.execute(
+            "SELECT rule,win_rate,sample_size FROM trading_rules WHERE active=1 ORDER BY win_rate DESC LIMIT 10"
+        ).fetchall()
         con.close()
-        if not rows: await update.message.reply_text("Aucune règle encore."); return
+        if not rows:
+            await update.message.reply_text("Aucune règle encore.")
+            return
         lines = [f"🧠 MES RÈGLES ({len(rows)})\n━━━━━━━━━━━━━"]
         for r in rows:
             lines.append(f"• {r[0]}\n  WR:{r[1]:.0f}% sur {r[2]} trades")
         await update.message.reply_text("\n".join(lines))
-    except Exception as e: await update.message.reply_text(f"Erreur: {e}")
-
+    except Exception as e:
+        await update.message.reply_text(f"Erreur: {e}")
 
 async def cmd_stats(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
-    stats     = get_stats(); wr_db = db_win_rate(30); sym_s = db_symbol_stats()
-    equity    = get_equity_safe(); pnl = equity - sim["initial"]; kelly = kelly_criterion()
+    stats      = get_stats(); wr_db = db_win_rate(30); sym_s = db_symbol_stats()
+    equity     = get_equity_safe(); pnl = equity - sim["initial"]; kelly = kelly_criterion()
     all_closed = [t for t in sim["trades"] if t.get("pnl") is not None]
     micro_t  = [t for t in all_closed if t.get("market")=="MICRO"]
     meme_t   = [t for t in all_closed if t.get("market")=="MEME"]
     normal_t = [t for t in all_closed if t.get("market") not in ("MICRO","MEME")]
     def wr(trades): return round(sum(1 for t in trades if t["pnl"]>0)/max(len(trades),1)*100,1)
-    sym_lines = "\n".join(f"  {s['s']:8s} WR:{s['wr']:.0f}% ({s['n']}t)"
-                          for s in sym_s[:5]) or "  Aucun"
+    sym_lines = "\n".join(
+        f"  {s['s']:8s} WR:{s['wr']:.0f}% ({s['n']}t)" for s in sym_s[:5]
+    ) or "  Aucun"
     await update.message.reply_text(
-        f"📊 STATS v6\nCapital:${equity:.2f} ({pnl:+.2f})\n"
+        f"📊 STATS v7\nCapital:${equity:.2f} ({pnl:+.2f})\n"
         f"WR global:{stats['win_rate']}% | Kelly:{kelly*100:.1f}%\n"
         f"⚡ Micro:{len(micro_t)} WR:{wr(micro_t)}%\n"
         f"🐸 Meme:{len(meme_t)} WR:{wr(meme_t)}%\n"
         f"🔍 Classiq:{len(normal_t)} WR:{wr(normal_t)}%\n"
         f"Blacklist:{len(memory.get('symbol_blacklist',{}))} symbols\n"
-        f"📚 Leçons:{len(memory['lessons'])}/{MAX_LESSONS}")
-
+        f"📚 Leçons:{len(memory['lessons'])}/{MAX_LESSONS}\n"
+        f"🧠 Cache AI:{_pool_stats['cache_hits']} hits"
+    )
 
 async def cmd_apprendre(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
@@ -2811,43 +3583,50 @@ async def cmd_apprendre(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     status = "✅ ACTIVÉ" if LEARN_MODE_ENABLED else "⏸ DÉSACTIVÉ"
     await update.message.reply_text(f"🎓 Mode apprentissage: {status}")
 
-
 async def cmd_fermer(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
-    if not sim["positions"]: await update.message.reply_text("Aucune position."); return
-    send = make_send(TELEGRAM_CHAT_ID); prices = get_prices_batch(); count = 0
+    if not sim["positions"]:
+        await update.message.reply_text("Aucune position.")
+        return
+    send = make_send(TELEGRAM_CHAT_ID)
+    prices = get_prices_batch(); count = 0
     for pk in list(sim["positions"].keys()):
         pos = sim["positions"].get(pk)
         if not pos: continue
         price = prices.get(pos["symbol"], pos["price_in"])
-        close_trade(pk, price, "Fermeture manuelle", send); count += 1
+        close_trade(pk, price, "Fermeture manuelle", send)
+        count += 1
     await update.message.reply_text(f"✅ {count} position(s) fermée(s).")
-
 
 async def cmd_reset(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
-    bot_state["running"] = False; bot_state["daily_stopped"] = False
+    bot_state["running"] = False
+    bot_state["daily_stopped"] = False
     lessons_saved = memory.get("lessons",[])
-    sym_scores = memory.get("symbol_scores",{})
-    sim.update({"cash":CAPITAL_INITIAL,"initial":CAPITAL_INITIAL,
-                "positions":{},"trades":[],"equity_history":[],
-                "session":sim.get("session",0)+1,
-                "peak_equity":CAPITAL_INITIAL,"daily_start_equity":CAPITAL_INITIAL,
-                "daily_start_date":datetime.utcnow().strftime("%Y-%m-%d")})
-    memory.update({"lessons":lessons_saved,"patterns_to_avoid":[],"patterns_that_work":[],
-                   "confidence_threshold":CONFIDENCE_BASE,"total_wins":0,"total_losses":0,
-                   "symbol_scores":sym_scores,"symbol_blacklist":{},"consecutive_losses":{}})
+    sym_scores    = memory.get("symbol_scores",{})
+    sim.update({
+        "cash":CAPITAL_INITIAL,"initial":CAPITAL_INITIAL,
+        "positions":{},"trades":[],"equity_history":[],
+        "session":sim.get("session",0)+1,
+        "peak_equity":CAPITAL_INITIAL,"daily_start_equity":CAPITAL_INITIAL,
+        "daily_start_date":datetime.utcnow().strftime("%Y-%m-%d")
+    })
+    memory.update({
+        "lessons":lessons_saved,"patterns_to_avoid":[],"patterns_that_work":[],
+        "confidence_threshold":CONFIDENCE_BASE,"total_wins":0,"total_losses":0,
+        "symbol_scores":sym_scores,"symbol_blacklist":{},"consecutive_losses":{}
+    })
     save_data()
     await update.message.reply_text(
         f"🔄 Session #{sim['session']} — ${CAPITAL_INITIAL:,.2f}\n"
-        f"📚 Leçons conservées: {len(lessons_saved)}")
-
+        f"📚 Leçons conservées: {len(lessons_saved)}"
+    )
 
 async def cmd_help(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
     kelly = kelly_criterion()
     await update.message.reply_text(
-        f"🤖 Trading Bot v6 — Binance API\n━━━━━━━━━━━━━\n"
+        f"🤖 Trading Bot v7\n━━━━━━━━━━━━━\n"
         f"▶️  /start /stop /reset\n"
         f"📊 /status /portfolio /positions\n"
         f"📚 /lecons /stats /regles\n"
@@ -2856,9 +3635,12 @@ async def cmd_help(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         f"📡 /signaux /pool /macro /risque\n"
         f"🚫 /blacklist /apprendre\n"
         f"💰 /epargne /airdrops /faucets\n"
+        f"📊 /backtest [SYMBOL] [interval] [jours]\n"
+        f"📊 /backtest_multi\n"
         f"⚡ /fermer /help\n━━━━━━━━━━━━━\n"
-        f"SL:{STOP_LOSS_PCT*100:.1f}% TP:{TAKE_PROFIT_PCT*100:.1f}% Kelly:{kelly*100:.1f}%")
-
+        f"SL:{STOP_LOSS_PCT*100:.1f}% TP:{TAKE_PROFIT_PCT*100:.1f}% Kelly:{kelly*100:.1f}%\n"
+        f"📡 WS: {'✅ Connecté' if _ws_connected else '⚠️ REST'}"
+    )
 
 # ═══════════════════════════════════════════════════════════════
 #  APPLICATION TELEGRAM
@@ -2868,8 +3650,10 @@ async def run_telegram():
     _main_loop = asyncio.get_event_loop()
     _app = (ApplicationBuilder()
             .token(TELEGRAM_TOKEN)
-            .request(HTTPXRequest(connection_pool_size=8,pool_timeout=30.0,
-                                  connect_timeout=30.0,read_timeout=30.0,write_timeout=30.0))
+            .request(HTTPXRequest(
+                connection_pool_size=8,pool_timeout=30.0,
+                connect_timeout=30.0,read_timeout=30.0,write_timeout=30.0
+            ))
             .updater(None).build())
     for cmd, fn in [
         ("start",cmd_start),("stop",cmd_stop),("status",cmd_status),
@@ -2881,6 +3665,7 @@ async def run_telegram():
         ("pool",cmd_pool),("epargne",cmd_epargne),
         ("airdrops",cmd_airdrops),("faucets",cmd_faucets),("help",cmd_help),
         ("macro",cmd_macro),("risque",cmd_risque),("blacklist",cmd_blacklist),
+        ("backtest",cmd_backtest),("backtest_multi",cmd_backtest_multi),
     ]:
         _app.add_handler(CommandHandler(cmd, fn))
     await _app.initialize()
@@ -2895,36 +3680,38 @@ async def run_telegram():
             await asyncio.sleep(5)
             await _app.bot.set_webhook(url=full,drop_pending_updates=True,allowed_updates=["message"])
         print(f"Webhook: {full}")
-    print("Bot v6 prêt — /start pour lancer")
+    print("Bot v7 prêt — /start pour lancer")
     try:
         while True: await asyncio.sleep(1)
     finally:
         if WEBHOOK_URL: await _app.bot.delete_webhook()
         await _app.stop()
         await _app.shutdown()
-       
-
 
 # ═══════════════════════════════════════════════════════════════
 #  AUTO-START + ENTRYPOINT
 # ═══════════════════════════════════════════════════════════════
 def auto_start():
-    time.sleep(5); send = make_send(TELEGRAM_CHAT_ID)
+    time.sleep(5)
+    send = make_send(TELEGRAM_CHAT_ID)
     if bot_state["running"]: return
-    bot_state.update({"running":True,"trades_today":0,"cycle_count":0,
-                      "last_heartbeat":None,"last_monitor":0,"last_micro":0,
-                      "last_scalp":0,"last_deep":0,"last_status":0,
-                      "last_meme":0,"last_epargne":0,"daily_stopped":False})
+    bot_state.update({
+        "running":True,"trades_today":0,"cycle_count":0,
+        "last_heartbeat":None,"last_monitor":0,"last_micro":0,
+        "last_scalp":0,"last_deep":0,"last_status":0,
+        "last_meme":0,"last_epargne":0,"daily_stopped":False
+    })
     kelly = kelly_criterion()
-    send(f"🔄 Bot v6 redémarré\nKelly:{kelly*100:.1f}% | /stop pour arrêter")
+    send(f"🔄 Bot v7 redémarré\nKelly:{kelly*100:.1f}% | /stop pour arrêter\n📡 WS: {'✅' if _ws_connected else '⚠️ REST'}")
     threading.Thread(target=trading_loop,  args=(send,), daemon=True).start()
     threading.Thread(target=watchdog,      args=(send,), daemon=True).start()
     threading.Thread(target=daily_summary, args=(send,), daemon=True).start()
 
-
 if __name__ == "__main__":
-    print("🚀 Trading Bot v6 — Risk Management Avancé")
+    print("🚀 Trading Bot v7 — WebSocket + Backtest + Sécurité")
     init_db(); load_data()
+    # Démarrage WebSocket Binance
+    start_websocket()
     threading.Thread(target=run_server,  daemon=True).start()
     threading.Thread(target=self_ping,   daemon=True).start()
     threading.Thread(target=auto_start,  daemon=True).start()
