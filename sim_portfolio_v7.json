@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 1.2650720980959151e+73,
+    "cash": 1.2607440613100813e+73,
     "initial": 1000.0,
     "positions": {
       "MEME_7_166": {
@@ -31,21 +31,21 @@
         "kelly_pct": 0.05,
         "pos_key": "MEME_7_166"
       },
-      "MEME_PIXELS_215": {
-        "id": 215,
-        "symbol": "PIXELS",
+      "MEME_Clippy_216": {
+        "id": 216,
+        "symbol": "Clippy",
         "market": "MEME",
         "side": "LONG",
         "trade_type": "MEME",
-        "meme_symbol": "PIXELS",
-        "price_in": 0.0003251,
+        "meme_symbol": "Clippy",
+        "price_in": 0.0006299,
         "price_out": null,
-        "qty": 2.4162471385737413e+74,
-        "amount_usd": 7.855219447503232e+70,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
+        "qty": 1.0041848691029649e+75,
+        "amount_usd": 6.325360490479575e+71,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
         "exit_reason": null,
-        "time_in": "2026-03-23 21:37:37",
+        "time_in": "2026-03-23 21:38:25",
         "time_out": null,
         "pnl": null,
         "pnl_pct": null,
@@ -54,10 +54,10 @@
           "memecoin"
         ],
         "leverage": 1,
-        "peak_price": 0.04618,
-        "open_time": 1774301857.1234488,
+        "peak_price": 0.0006299,
+        "open_time": 1774301905.4218469,
         "kelly_pct": 0.05,
-        "pos_key": "MEME_PIXELS_215"
+        "pos_key": "MEME_Clippy_216"
       }
     },
     "trades": [
@@ -5865,6 +5865,33 @@
         "peak_price": 0.0003251,
         "open_time": 1774301857.1234488,
         "kelly_pct": 0.05
+      },
+      {
+        "id": 216,
+        "symbol": "Clippy",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "Clippy",
+        "price_in": 0.0006299,
+        "price_out": 0.0005868,
+        "qty": 1.0041848691029649e+75,
+        "amount_usd": 6.325360490479575e+71,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": "\ud83d\uded1 MEME SL (-6.8%)",
+        "time_in": "2026-03-23 21:38:25",
+        "time_out": "2026-03-23 21:38:26",
+        "pnl": -4.3280367858337803e+70,
+        "pnl_pct": -6.84,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0006299,
+        "open_time": 1774301905.4218469,
+        "kelly_pct": 0.05
       }
     ],
     "equity_history": [],
@@ -5875,17 +5902,6 @@
   },
   "memory": {
     "lessons": [
-      {
-        "trade_id": -3,
-        "pnl": -1.7219,
-        "symbol": "SOLUSDT",
-        "market": "BACKTEST",
-        "lecon": "Entr\u00e9e trop agressive",
-        "pattern": "backtest_5m",
-        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
-        "type": "erreur",
-        "date": "2026-03-23 07:16"
-      },
       {
         "trade_id": 23,
         "pnl": 296.571255,
@@ -8074,6 +8090,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-23 21:37"
+      },
+      {
+        "trade_id": 216,
+        "pnl": -4.3280367858337803e+70,
+        "symbol": "Clippy",
+        "market": "MEME",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "memecoin",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-23 21:38"
       }
     ],
     "patterns_to_avoid": [
@@ -8092,6 +8119,7 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "memecoin",
       "memecoin",
       "memecoin",
       "memecoin",
@@ -8245,7 +8273,7 @@
       "memecoin"
     ],
     "confidence_threshold": 55,
-    "total_wins": 141,
+    "total_wins": 142,
     "total_losses": 71,
     "symbol_scores": {
       "BTCUSDT": -2,
@@ -8261,7 +8289,8 @@
       "LOL": 15,
       "CHIBIDOOM": -1,
       "PIXELS": 15,
-      "BOB": -15
+      "BOB": -15,
+      "Clippy": -3
     },
     "symbol_blacklist": {},
     "consecutive_losses": {},
