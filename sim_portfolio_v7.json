@@ -30,34 +30,6 @@
         "open_time": 1774285567.7282703,
         "kelly_pct": 0.05,
         "pos_key": "MEME_7_166"
-      },
-      "MEME_PIXELS_196": {
-        "id": 196,
-        "symbol": "PIXELS",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "PIXELS",
-        "price_in": 0.0003461,
-        "price_out": null,
-        "qty": 8.877913806529896e+62,
-        "amount_usd": 3.072645968439997e+59,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-23 21:04:11",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.04618,
-        "open_time": 1774299851.4899948,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_PIXELS_196"
       }
     },
     "trades": [
