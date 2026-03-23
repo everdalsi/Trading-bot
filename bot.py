@@ -7,7 +7,7 @@ AMÉLIORATIONS v7:
   ✅ Sécurité renforcée (rate limiting, validation inputs, HMAC auth)
 """
 
-import os, time, threading, feedparser, requests, asyncio
+import os, time, threading, feedparser, requests, asyncio, threading
 import json, sqlite3, re, hashlib, base64, hmac, secrets
 import pandas as pd
 import numpy as np
@@ -3810,18 +3810,20 @@ def auto_start():
 
 if __name__ == "__main__":
     print("🚀 Trading Bot v7 — WebSocket + Backtest + Sécurité")
+
     init_db()
     load_data()
 
+    # 🔥 AUTO TRAINING (IMPORTANT)
     threading.Thread(target=auto_training, daemon=True).start()
 
-    # Démarrage WebSocket Binance
+    # WebSocket Binance
     start_websocket()
 
+    # Serveur + ping
     threading.Thread(target=run_server, daemon=True).start()
     threading.Thread(target=self_ping, daemon=True).start()
-    # threading.Thread(target=auto_start, daemon=True).start()
 
     print("Serveur HTTP port 8000")
+
     asyncio.run(run_telegram())
-    
