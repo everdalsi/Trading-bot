@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 994.6788084864406,
+    "cash": 978.2105215392615,
     "initial": 1000.0,
     "positions": {},
     "trades": [
@@ -408,6 +408,33 @@
         "peak_price": 0.003476,
         "open_time": 1774248155.5270612,
         "kelly_pct": 0.05
+      },
+      {
+        "id": 16,
+        "symbol": "ChibiBeast",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "ChibiBeast",
+        "price_in": 0.003476,
+        "price_out": 0.002325,
+        "qty": 14307.807947158239,
+        "amount_usd": 49.733940424322036,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": "\ud83d\uded1 MEME SL (-33.1%)",
+        "time_in": "2026-03-23 06:43:20",
+        "time_out": "2026-03-23 06:43:21",
+        "pnl": -16.468287,
+        "pnl_pct": -33.11,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.003476,
+        "open_time": 1774248200.5904975,
+        "kelly_pct": 0.05
       }
     ],
     "equity_history": [],
@@ -422,7 +449,7 @@
     "patterns_that_work": [],
     "confidence_threshold": 65,
     "total_wins": 5,
-    "total_losses": 7,
+    "total_losses": 8,
     "symbol_scores": {},
     "symbol_blacklist": {},
     "consecutive_losses": {}
