@@ -1,63 +1,8 @@
 {
   "sim": {
-    "cash": 4017.778245215581,
+    "cash": 4960.2200558217055,
     "initial": 1000.0,
-    "positions": {
-      "MICRO_BTCUSDT_7": {
-        "id": 7,
-        "symbol": "BTCUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 67860.4,
-        "price_out": null,
-        "qty": 0.007309447123538479,
-        "amount_usd": 496.02200558217055,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=28 mom=-0.16% vol=3.2x",
-        "exit_reason": null,
-        "time_in": "2026-03-23 00:33:20",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 67860.4,
-        "open_time": 1774226000.729698,
-        "kelly_pct": 0.1,
-        "pos_key": "MICRO_BTCUSDT_7"
-      },
-      "MICRO_SOLUSDT_8": {
-        "id": 8,
-        "symbol": "SOLUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 85.96,
-        "price_out": null,
-        "qty": 5.19334347398736,
-        "amount_usd": 446.4198050239535,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=19 mom=-0.35% vol=4.0x",
-        "exit_reason": null,
-        "time_in": "2026-03-23 00:33:21",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 85.96,
-        "open_time": 1774226001.4909225,
-        "kelly_pct": 0.1,
-        "pos_key": "MICRO_SOLUSDT_8"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
@@ -216,58 +161,6 @@
         "peak_price": 0.0005832,
         "open_time": 1774223951.1705775,
         "kelly_pct": 0.05
-      },
-      {
-        "id": 7,
-        "symbol": "BTCUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 67860.4,
-        "price_out": null,
-        "qty": 0.007309447123538479,
-        "amount_usd": 496.02200558217055,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=28 mom=-0.16% vol=3.2x",
-        "exit_reason": null,
-        "time_in": "2026-03-23 00:33:20",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 67860.4,
-        "open_time": 1774226000.729698,
-        "kelly_pct": 0.1
-      },
-      {
-        "id": 8,
-        "symbol": "SOLUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 85.96,
-        "price_out": null,
-        "qty": 5.19334347398736,
-        "amount_usd": 446.4198050239535,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=19 mom=-0.35% vol=4.0x",
-        "exit_reason": null,
-        "time_in": "2026-03-23 00:33:21",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 85.96,
-        "open_time": 1774226001.4909225,
-        "kelly_pct": 0.1
       }
     ],
     "equity_history": [],
@@ -330,16 +223,6 @@
     "faucets_used": [],
     "promos_found": [
       {
-        "exchange": "Bybit",
-        "url": "https://www.bybit.com/en/promo/",
-        "keywords": [
-          "bonus",
-          "promo",
-          "free"
-        ],
-        "status": "\u2705 Promos d\u00e9tect\u00e9es"
-      },
-      {
         "exchange": "KuCoin",
         "url": "https://www.kucoin.com/news/bonus",
         "keywords": [
@@ -350,6 +233,6 @@
         "status": "\u2705 Promos d\u00e9tect\u00e9es"
       }
     ],
-    "last_scan": 1774226112.8386252
+    "last_scan": 1774226118.6569781
   }
 }
