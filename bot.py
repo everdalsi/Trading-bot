@@ -552,49 +552,63 @@ def dynamic_position_size(confidence: int, market: str, symbol: str) -> float:
 # ═══════════════════════════════════════════════════════════════
 #  DONNÉES DE MARCHÉ — BINANCE (zéro blocage géographique)
 # ═══════════════════════════════════════════════════════════════
-def get_price(symbol: str, force=False) -> float:
-    now = time.time()
-    if not force and symbol in _price_cache:
-        ts, p = _price_cache[symbol]
-        if now-ts < 8: return p
-    try:
-        r = requests.get(f"{BINANCE_BASE}/api/v3/ticker/price",
-                         params={"symbol": symbol}, timeout=8,
-                         headers={"User-Agent":"Mozilla/5.0"})
-        data = r.json()
-        if isinstance(data, list):
-            p = float(data[0]["price"])
-        else:
-            p = float(data["price"])
-        _price_cache[symbol] = (now, p); return p
-    except Exception as e:
-        print(f"[PRICE] {e}")
-        return _price_cache.get(symbol, (0, 0.0))[1]
-
+COINGECKO_IDS = {
+    "BTCUSDT":"bitcoin","ETHUSDT":"ethereum","SOLUSDT":"solana",
+    "BNBUSDT":"binancecoin","XRPUSDT":"ripple","DOGEUSDT":"dogecoin",
+    "ADAUSDT":"cardano","AVAXUSDT":"avalanche-2","MATICUSDT":"matic-network",
+    "LINKUSDT":"chainlink","DOTUSDT":"polkadot","UNIUSDT":"uniswap",
+    "ATOMUSDT":"cosmos","LTCUSDT":"litecoin","NEARUSDT":"near",
+    "APTUSDT":"aptos","ARBUSDT":"arbitrum","OPUSDT":"optimism",
+    "INJUSDT":"injective-protocol","SUIUSDT":"sui","FETUSDT":"fetch-ai",
+    "RENDERUSDT":"render-token","WLDUSDT":"worldcoin-wld","JUPUSDT":"jupiter-exchange-solana",
+    "TIAUSDT":"celestia","SEIUSDT":"sei-network","ENAUSDT":"ethena",
+    "BONKUSDT":"bonk","WIFUSDT":"dogwifcoin","SHIBUSDT":"shiba-inu",
+    "PEPEUSDT":"pepe","FLOKIUSDT":"floki",
+}
 
 def get_prices_batch() -> dict:
     prices = {}
     try:
-        r = requests.get(f"{BINANCE_BASE}/api/v3/ticker/price", timeout=8,
-                         headers={"User-Agent":"Mozilla/5.0"})
-        print(f"[PRICE-DEBUG] status={r.status_code} body={r.text[:200]}")
+        ids = ",".join(COINGECKO_IDS.values())
+        r = requests.get(
+            "https://api.coingecko.com/api/v3/simple/price",
+            params={"ids": ids, "vs_currencies": "usd"},
+            timeout=15, headers={"User-Agent":"Mozilla/5.0"}
+        )
         if r.status_code == 200:
-            for item in r.json():
-                if item["symbol"] in ALL_SYMBOLS:
-                    p = float(item["price"]); prices[item["symbol"]] = p
-                    _price_cache[item["symbol"]] = (time.time(), p)
+            data = r.json()
+            for symbol, cg_id in COINGECKO_IDS.items():
+                if cg_id in data:
+                    p = float(data[cg_id]["usd"])
+                    prices[symbol] = p
+                    _price_cache[symbol] = (time.time(), p)
     except Exception as e: print(f"[PRICE] {e}")
     return prices
 
+def get_price(symbol: str, force=False) -> float:
+    now = time.time()
+    if not force and symbol in _price_cache:
+        ts, p = _price_cache[symbol]
+        if now-ts < 15: return p
+    prices = get_prices_batch()
+    return prices.get(symbol, _price_cache.get(symbol, (0, 0.0))[1])
+
 
 def get_klines(symbol: str, interval: str, limit=100) -> pd.Series:
-    binance_interval = INTERVAL_MAP.get(interval, interval)
+    cg_id = COINGECKO_IDS.get(symbol)
+    if not cg_id: return pd.Series(dtype=float)
+    days_map = {"1":"1","5":"1","15":"1","60":"7","240":"14","D":"30","1D":"30"}
+    days = days_map.get(interval, "1")
     try:
-        r = requests.get(f"{BINANCE_BASE}/api/v3/klines",
-                         params={"symbol":symbol,"interval":binance_interval,"limit":limit},
-                         timeout=8, headers={"User-Agent":"Mozilla/5.0"})
+        r = requests.get(
+            f"https://api.coingecko.com/api/v3/coins/{cg_id}/market_chart",
+            params={"vs_currency":"usd","days":days},
+            timeout=15, headers={"User-Agent":"Mozilla/5.0"}
+        )
         if r.status_code == 200:
-            return pd.Series([float(c[4]) for c in r.json()], dtype=float)
+            prices_list = r.json().get("prices",[])
+            closes = pd.Series([float(p[1]) for p in prices_list], dtype=float)
+            return closes.tail(limit)
     except Exception as e: print(f"[KLINE] {e}")
     return pd.Series(dtype=float)
 
@@ -620,31 +634,23 @@ def get_klines_1m_cached(symbol: str) -> pd.Series:
 
 
 def get_volume_data(symbol: str, interval="5", limit=20) -> list:
-    binance_interval = INTERVAL_MAP.get(interval, interval)
+    cg_id = COINGECKO_IDS.get(symbol)
+    if not cg_id: return []
     try:
-        r = requests.get(f"{BINANCE_BASE}/api/v3/klines",
-                         params={"symbol":symbol,"interval":binance_interval,"limit":limit},
-                         timeout=8, headers={"User-Agent":"Mozilla/5.0"})
+        r = requests.get(
+            f"https://api.coingecko.com/api/v3/coins/{cg_id}/market_chart",
+            params={"vs_currency":"usd","days":"1"},
+            timeout=15, headers={"User-Agent":"Mozilla/5.0"}
+        )
         if r.status_code == 200:
-            return [float(c[5]) for c in r.json()]
-    except Exception: pass
+            vols = r.json().get("total_volumes",[])
+            return [float(v[1]) for v in vols[-limit:]]
+    except Exception as e: print(f"[VOL] {e}")
     return []
 
 
 def get_order_book(symbol: str) -> dict:
-    try:
-        r = requests.get(f"{BINANCE_BASE}/api/v3/depth",
-                         params={"symbol":symbol,"limit":20}, timeout=8,
-                         headers={"User-Agent":"Mozilla/5.0"})
-        if r.status_code == 200:
-            ob   = r.json()
-            bids = sum(float(b[1]) for b in ob["bids"])
-            asks = sum(float(a[1]) for a in ob["asks"])
-            ratio = round(bids/asks, 2) if asks > 0 else 1.0
-            return {"ratio":ratio,
-                    "pressure":"acheteurs" if ratio>1.3 else "vendeurs" if ratio<0.77 else "neutre"}
-    except Exception: pass
-    return {"ratio":1.0, "pressure":"N/A"}
+    return {"ratio": 1.0, "pressure": "neutre"}
 
 
 def get_liquidations() -> dict:
