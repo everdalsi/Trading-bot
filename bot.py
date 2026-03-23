@@ -2514,7 +2514,7 @@ def learn_from_backtest_result(result: dict):
     sample = result.get("trades", [])
     symbol = result.get("symbol", "BTCUSDT")
 
-    for i, t in enumerate(sample[-5:], start=1):
+    for i, t in enumerate(sample[-20:], start=1):  # 🔥 boost à 20 trades
         fake_trade = {
             "id": -i,
             "symbol": symbol,
@@ -2529,6 +2529,13 @@ def learn_from_backtest_result(result: dict):
             "patterns": [f"backtest_{result.get('interval','5m')}"]
         }
         learn_from_trade(fake_trade, send_fn=None)
+
+def auto_training():
+    pairs = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
+
+    for p in pairs:
+        result = backtest_strategy(p, "5m", 30)
+        learn_from_backtest_result(result)
 
 def run_multi_backtest(symbols: list, interval="5m", days=30) -> str:
     """Lance le backtest sur plusieurs symbols et compare les résultats."""
@@ -3811,3 +3818,5 @@ if __name__ == "__main__":
     # threading.Thread(target=auto_start,  daemon=True).start()
     print("Serveur HTTP port 8000")
     asyncio.run(run_telegram())
+    import threading
+threading.Thread(target=auto_training, daemon=True).start()
