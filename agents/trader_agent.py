@@ -20,15 +20,16 @@ class TraderAgent(BaseAgent):
             confidence = 0.5
 
         # 🧠 2. ENREGISTRER LE TRADE
-        if memory is not None:
-            trade = {
-                "decision": decision,
-                "macro": macro,
-                "confidence": confidence,
-                "result": None  # sera rempli plus tard (win/loss)
-            }
+if memory is not None:
+    trade = {
+        "decision": decision,
+        "macro": macro,
+        "confidence": confidence,
+        "entry_price": context.get("price"),
+        "result": None  # sera rempli plus tard
+    }
 
-            memory["trades"].append(trade)
+    memory["trades"].append(trade)
 
         # 📊 3. ARGUMENTS DYNAMIQUES
         arguments = []
