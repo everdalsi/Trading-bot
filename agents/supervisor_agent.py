@@ -44,7 +44,7 @@ class SupervisorAgent(BaseAgent):
         has_buy  = "BUY" in trader_summary or trader_decision_val == "BUY"
         has_sell = "SELL" in trader_summary or trader_decision_val == "SELL"
 
-        # === OVERRIDE APPRENTISSAGE MAX (force tout, réponse naturelle) ===
+        # === OVERRIDE ULTRA-FORCÉ POUR APPRENTISSAGE (réponse naturelle comme Grok) ===
         learning_mode = any(word in question.lower() for word in [
             "max de trade", "apprenez", "affûtez", "apprendre", "max trade",
             "beaucoup de trades", "vrai argent", "vrai portefeuille", "gérer un vrai"
