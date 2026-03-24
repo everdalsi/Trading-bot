@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 6.48005207107866e+121,
+    "cash": 6.156049467524727e+121,
     "initial": 1000.0,
     "positions": {
       "MEME_7_166": {
@@ -30,6 +30,34 @@
         "open_time": 1774285567.7282703,
         "kelly_pct": 0.05,
         "pos_key": "MEME_7_166"
+      },
+      "MEME_LOL_381": {
+        "id": 381,
+        "symbol": "LOL",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "LOL",
+        "price_in": 0.002924,
+        "price_out": null,
+        "qty": 1.1080800395141349e+123,
+        "amount_usd": 3.2400260355393304e+120,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-24 18:35:02",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.003242,
+        "open_time": 1774377302.2801962,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_LOL_381"
       }
     },
     "trades": [
@@ -10291,6 +10319,33 @@
         "leverage": 1,
         "peak_price": 0.0003067,
         "open_time": 1774370505.362591,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 381,
+        "symbol": "LOL",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "LOL",
+        "price_in": 0.002924,
+        "price_out": null,
+        "qty": 1.1080800395141349e+123,
+        "amount_usd": 3.2400260355393304e+120,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-24 18:35:02",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.002924,
+        "open_time": 1774377302.2801962,
         "kelly_pct": 0.05
       }
     ],
@@ -25855,6 +25910,6 @@
         "status": "\u2705 Promos d\u00e9tect\u00e9es"
       }
     ],
-    "last_scan": 1774375608.1090846
+    "last_scan": 1774377308.4352124
   }
 }
