@@ -8,7 +8,7 @@ Améliorations vs V2 :
 - Intègre les auto_rules et best_patterns dans la décision
 - Anti-overtrading renforcé
 - Confiance basée sur le score composite (learning + global + macro)
-  “””
+  """
 
 from agents.base_agent import BaseAgent
 from typing import Dict, Any
