@@ -123,7 +123,7 @@ FG_NEUTRAL_MIN       = 40
 FG_NEUTRAL_MAX       = 60
 NIGHT_HOURS_UTC      = range(2, 6)
 BLACKLIST_MAX_LOSSES = 5
-MAX_LESSONS          = 200
+MAX_LESSONS = 999_999_999 # Mémoire infinie — stockée en SQLite
 CORRELATED_PAIRS     = [
     {"BTCUSDT","ETHUSDT"},
     {"SOLUSDT","AVAXUSDT"},
@@ -1826,7 +1826,8 @@ def run_micro_cycle(send_fn):
 
     # Correction : on utilise la bonne fonction de mise à jour
     for symbol, price in prices.items():
-        memory = update_performance(memory, price)   # ← ligne corrigée
+    update_performance(memory, price)  # ← PAS de "memory ="
+
 
     for symbol in MICRO_SYMBOLS:
         if not bot_state["running"]: break
@@ -2573,7 +2574,6 @@ def backtest_strategy(
         "tp_used": tp_pct,
         "trades": bt_trades[-10:],
     }
-    return result
 
     # Sauvegarde en DB
     try:
@@ -2660,22 +2660,6 @@ def learn_from_backtest_result(result: dict):
             "patterns": [f"backtest_{result.get('interval','5m')}"]
         }
         learn_from_trade(fake_trade, send_fn=None)
-
-def auto_training():
-    while True:
-        try:
-            print("[AUTO-TRAIN] lancement")
-
-            for symbol in ["BTCUSDT","ETHUSDT","SOLUSDT"]:
-                result = run_backtest(symbol, "5m", 30)
-                learn_from_backtest_result(result)
-
-            print("[AUTO-TRAIN] terminé")
-
-        except Exception as e:
-            print(f"[AUTO-TRAIN ERROR] {e}")
-
-        time.sleep(300)  # toutes les 5 min
 
 def auto_training():
     pairs = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
@@ -2822,13 +2806,19 @@ def learn_from_trade(trade: dict, send_fn=None):
 
         memory["lessons"].append(lesson)
         db_save_lesson(lesson)
+        # Sauvegarde dans la mémoire infinie LearningAgent
+try:
+    orchestrator.learning.save_lesson(lesson)
+except Exception as ex:
+    print(f"[LEARN-INFINITE] {ex}")
+
 
         key = "patterns_that_work" if lesson_type == "succes" else "patterns_to_avoid"
         memory[key].append(pattern)
 
-        memory["lessons"] = memory["lessons"][-MAX_LESSONS:]
-        memory["patterns_that_work"] = memory["patterns_that_work"][-100:]
-        memory["patterns_to_avoid"] = memory["patterns_to_avoid"][-100:]
+        memory["lessons"] = memory["lessons"][-500:]     # 500 en RAM, infini en DB
+memory["patterns_that_work"] = memory["patterns_that_work"][-200:]
+memory["patterns_to_avoid"] = memory["patterns_to_avoid"][-200:]
 
         update_symbol_score(trade["symbol"], pnl > 0)
         auto_adjust()
@@ -3998,7 +3988,7 @@ async def cmd_help(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         f"/scan /portfolio /positions /kelly\n"
         f"/stats /signaux /fermer\n\n"
         f"🧠 Intelligence & analyse\n"
-        f"/resume /agent /lecons /apprendre\n"
+        f"/resume /agent /lecons /memoire /apprendre\n"
         f"/macro /risque /regles /blacklist\n\n"
         f"🌍 Opportunités\n"
         f"/marches /memes /arbitrage /polymarket\n"
@@ -4315,7 +4305,19 @@ if __name__ == "__main__":
     threading.Thread(target=self_ping, daemon=True).start()
 
     # ✅ AUTO TRAINING ICI
-    threading.Thread(target=auto_training, daemon=True).start()
+    def _auto_training_loop():
+    time.sleep(60)
+    while True:
+        try:
+            print("[AUTO-TRAIN] lancement")
+            auto_training()
+            print("[AUTO-TRAIN] terminé")
+        except Exception as e:
+            print(f"[AUTO-TRAIN ERROR] {e}")
+        time.sleep(300)
+
+threading.Thread(target=_auto_training_loop, daemon=True).start()
+
 
     print("Serveur HTTP port 8000")
 
