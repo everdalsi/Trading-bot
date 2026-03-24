@@ -5,6 +5,7 @@ Trading Bot v7 — AI Pool + Épargne + Risk Management Avancé
 import os, time, threading, feedparser, requests, asyncio, threading
 import json, sqlite3, re, hashlib, base64, hmac, secrets
 import pandas as pd
+import ccxt
 import numpy as np
 from datetime import datetime, timedelta
 from http.server import HTTPServer, BaseHTTPRequestHandler
@@ -100,6 +101,10 @@ USER_WALLET    = os.environ.get("USER_WALLET", "")
 
 AGENT_CHAT_SESSIONS = set()
 AGENT_CHAT_MEMORY = defaultdict(list)
+LIVE_MODE = False                    # ← CHANGE EN True QUAND TU VEUX PASSER EN VRAI ARGENT
+WARMUP_TRADES_NEEDED = 50            # Nombre de trades simulés avant autorisation live
+LIVE_MAX_PCT_PER_TRADE = 0.08        # ← très conservateur en live (8 % max)
+
 
 
 CAPITAL_INITIAL   = 1000.0
@@ -142,6 +147,7 @@ MICRO_MAX_DURATION  = 60
 MICRO_MAX_PCT       = 0.48       # ← augmenté pour plus de volume en micro
 MICRO_CONF_MIN      = 8         # ← fortement baissé → beaucoup plus de micro-trades
 MAX_MICRO_POSITIONS = 100        # ← très augmenté pour maximiser l’entraînement
+WARMUP_TRADES_NEEDED = 50
 
 MEME_SL_PCT       = 0.05
 MEME_TP_PCT       = 0.15
@@ -1528,7 +1534,18 @@ def can_open_trade(symbol: str, market: str, send_fn) -> bool:
 # ═══════════════════════════════════════════════════════════════
 #  OPEN_TRADE — FORCE MAX VOLUME EN MODE EXTREME
 # ═══════════════════════════════════════════════════════════════
-def open_trade(analysis: dict, send_fn) -> dict | None:
+def is_warmup_done() -> bool:
+    """Retourne True quand on a assez de trades simulés pour passer en live"""
+    closed = [t for t in sim["trades"] if t.get("pnl") is not None]
+    if len(closed) >= WARMUP_TRADES_NEEDED:
+        bot_state["warmup_done"] = True
+        return True
+    return False
+
+def can_open_trade(symbol: str, market: str, send_fn) -> bool:
+    if LIVE_MODE and not is_warmup_done():
+        send_fn(f"🔥 Warm-up en cours : {len([t for t in sim['trades'] if t.get('pnl') is not None])}/{WARMUP_TRADES_NEEDED} trades simulés")
+        return True
     symbol = analysis["symbol"]; price = analysis["price"]
     signal = analysis["signal"]; conf  = analysis["confidence"]
     reason = sanitize_string(analysis["reason"])
@@ -1553,6 +1570,20 @@ def open_trade(analysis: dict, send_fn) -> dict | None:
     qty       = amount / price
 
     sim["cash"] -= amount
+    
+    if LIVE_MODE and exchange and bot_state.get("warmup_done", False):
+        try:
+            symbol = analysis["symbol"]
+            side = "buy" if analysis["signal"] == "BUY" else "sell"
+            amount = trade["qty"]  # quantité calculée
+
+            order = exchange.create_market_order(symbol, side, amount)
+            trade["live_order_id"] = order["id"]
+            trade["live_status"] = "placed"
+            send_fn(f"✅ ORDRE LIVE PLACÉ #{trade['id']} | {side.upper()} {symbol} @ marché")
+        except Exception as e:
+            send_fn(f"❌ ERREUR LIVE ORDER: {e}")
+            return None
 
     trade = {
         "id":len(sim["trades"])+1,"symbol":symbol,"market":market,"side":side,
@@ -1605,6 +1636,14 @@ def open_trade(analysis: dict, send_fn) -> dict | None:
 
 def close_trade(pos_key: str, price: float, reason: str, send_fn) -> dict | None:
     pos = sim["positions"].pop(pos_key, None)
+    if LIVE_MODE and exchange and "live_order_id" in pos:
+        try:
+            # Close position (market)
+            side = "sell" if pos["side"] == "LONG" else "buy"
+            exchange.create_market_order(pos["symbol"], side, pos["qty"])
+            send_fn(f"✅ POSITION LIVE FERMÉE #{pos['id']}")
+        except Exception as e:
+            send_fn(f"⚠️ Erreur fermeture live: {e}")
     if not pos: return None
     side  = pos["side"]; entry = pos["price_in"]
     amt   = pos["amount_usd"]; lev = pos.get("leverage",1)
