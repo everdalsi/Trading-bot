@@ -30,34 +30,6 @@
         "open_time": 1774285567.7282703,
         "kelly_pct": 0.05,
         "pos_key": "MEME_7_166"
-      },
-      "MEME_WRT_254": {
-        "id": 254,
-        "symbol": "WRT",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "WRT",
-        "price_in": 0.0009228,
-        "price_out": null,
-        "qty": 5.8079572215956696e+81,
-        "amount_usd": 5.359582924088484e+78,
-        "confidence": 95,
-        "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-24 01:41:22",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.006602,
-        "open_time": 1774316482.4366298,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_WRT_254"
       }
     },
     "trades": [
