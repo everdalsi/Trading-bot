@@ -2,8 +2,9 @@ from agents.analyst_agent import AnalystAgent
 from agents.risk_agent import RiskAgent
 from agents.trader_agent import TraderAgent
 from agents.supervisor_agent import SupervisorAgent
-from agents.learning_agent import LearningAgent
+from agents.learning_agent import adjust_confidence, should_blacklist
 from agents.performance_tracker import PerformanceTracker
+
 
 class Orchestrator:
     def __init__(self):
@@ -11,10 +12,10 @@ class Orchestrator:
         self.risk = RiskAgent()
         self.trader = TraderAgent()
         self.supervisor = SupervisorAgent()
+        self.performance = PerformanceTracker()
 
     async def run(self, market_data, memory):
 
-        # 🔒 SAFE CONTEXT
         symbol = market_data.get("symbol", "UNKNOWN")
 
         context = {
@@ -23,63 +24,50 @@ class Orchestrator:
             "memory": memory
         }
 
-        # 💀 BLACKLIST CHECK
         try:
-            if memory.is_bad_symbol(symbol):
-                print(f"⛔ Skipping bad symbol: {symbol}")
-                return {"decision": "NO TRADE", "reason": "blacklisted"}
-        except Exception as e:
-            print(f"⚠️ Memory blacklist check error: {e}")
+            if should_blacklist(memory.data, symbol):
+                return {"decision": "NO TRADE", "reason": "learning blacklist"}
+        except Exception:
+            pass
 
         try:
-            # 1. ANALYST 🧠
             analysis = await self.analyst.respond("analyze", context)
             context["analysis"] = analysis or {}
 
-            # 2. RISK 📉
             risk = await self.risk.respond("assess_risk", context)
             context["risk"] = risk or {}
 
-            # 🔥 SYMBOL SCORE (learning par coin)
             try:
                 symbol_score = memory.get_symbol_score(symbol)
             except Exception:
-                symbol_score = 0.5  # fallback safe
+                symbol_score = 0.5
 
             context["symbol_score"] = symbol_score
 
-            # 3. SCORE 🔥 (fusion intelligence)
             base_score = self.compute_score(context["analysis"], context["risk"])
-
-            # 🔥 boost avec historique
             score = (base_score * 0.8) + (symbol_score * 0.2)
-            score = max(0, min(score, 1))  # clamp sécurité
+            score = adjust_confidence(score, memory.data, symbol)
+            score = max(0, min(score, 1))
 
             context["score"] = score
 
-            # 4. TRADER 💰
             decision = await self.trader.respond("decide", context)
             context["decision"] = decision or {}
 
-            # 5. SUPERVISOR 🧠
             final = await self.supervisor.respond("validate", context)
 
-            # ❗ sécurité si supervisor fail
             if not final:
                 return {"decision": "NO TRADE", "reason": "no supervisor output"}
 
-            # 💰 POSITION SIZING
             try:
                 final["position_size"] = self.get_position_size(
-                    balance=1000,  # 👉 à connecter à ton wallet plus tard
+                    balance=1000,
                     risk_per_trade=0.02,
                     confidence=score
                 )
-            except Exception as e:
-                print(f"⚠️ Position sizing error: {e}")
+            except Exception:
                 final["position_size"] = 0
 
-            # 🧠 MEMORY LOG (safe)
             decision_value = final.get("decision")
 
             if decision_value in ["BUY", "SELL"]:
@@ -90,10 +78,18 @@ class Orchestrator:
                         "confidence": score,
                         "result": "pending"
                     })
-                except Exception as e:
-                    print(f"⚠️ Memory add_trade error: {e}")
+                except Exception:
+                    pass
 
-            # 🔍 DEBUG (propre)
+            try:
+                self.performance.log_trade({
+                    "symbol": symbol,
+                    "decision": decision_value,
+                    "confidence": score
+                })
+            except Exception:
+                pass
+
             print(f"""
             ===== TRADE DEBUG =====
             Symbol: {symbol}
@@ -108,10 +104,8 @@ class Orchestrator:
             return final
 
         except Exception as e:
-            print(f"🔥 ERROR in orchestrator: {e}")
             return {"decision": "ERROR", "error": str(e)}
 
-    # 🔥 SCORE ENGINE
     def compute_score(self, analysis, risk):
         try:
             trend = analysis.get("trend_score", 0.5)
@@ -127,17 +121,13 @@ class Orchestrator:
             )
 
             return max(0, min(score, 1))
-
-        except Exception as e:
-            print(f"⚠️ Score computation error: {e}")
+        except Exception:
             return 0.5
 
-    # 💰 POSITION SIZING
     def get_position_size(self, balance, risk_per_trade, confidence):
         try:
             base_risk = balance * risk_per_trade
             adjusted = base_risk * confidence
             return round(adjusted, 2)
-        except Exception as e:
-            print(f"⚠️ Position size error: {e}")
+        except Exception:
             return 0
