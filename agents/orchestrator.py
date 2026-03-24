@@ -18,6 +18,7 @@ from agents.trader_agent import TraderAgent
 from agents.supervisor_agent import SupervisorAgent
 from agents.learning_agent import LearningAgent
 from agents.performance_tracker import PerformanceTracker
+from agents.research_agent import ResearchAgent   # ← ajouté pour Twitter KOLs
 
 
 class Orchestrator:
@@ -29,7 +30,8 @@ class Orchestrator:
         self.supervisor = SupervisorAgent()
         self.learning   = LearningAgent()
         self.performance = PerformanceTracker()
-        self.research = ResearchAgent()
+        self.research   = ResearchAgent()          # ← nouveau ResearchAgent
+
     # ─────────────────────────────────────────────────────────────
     #  ask_all — Interroge tous les agents en parallèle
     # ─────────────────────────────────────────────────────────────
@@ -50,13 +52,13 @@ class Orchestrator:
             self.risk.respond(question, enriched_ctx),
             self.trader.respond(question, enriched_ctx),
             self.learning.respond(question, enriched_ctx),
-            self.research.respond(question, enriched_ctx),
+            self.research.respond(question, enriched_ctx),   # ← ajout ResearchAgent
         ]
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         responses = []
-        agent_names = ["analyst", "risk", "trader", "learning"]
+        agent_names = ["analyst", "risk", "trader", "learning", "research"]
         for i, res in enumerate(results):
             if isinstance(res, Exception):
                 responses.append({
@@ -77,7 +79,6 @@ class Orchestrator:
         supervisor_ctx = {
             **enriched_ctx,
             "agent_outputs": responses,
-            "twitter_kols": twitter_resp
             "trader_decision": trader_resp,
             "risk": risk_resp,
             "score": enriched_ctx.get("global_score", 0.5),
