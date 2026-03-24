@@ -1,24 +1,33 @@
-from agents.analyst_agent import AnalystAgent
-from agents.risk_agent import RiskAgent
-from agents.trader_agent import TraderAgent
-from agents.supervisor_agent import SupervisorAgent
+from agents.base_agent import BaseAgent
 
-class Orchestrator:
+class AnalystAgent(BaseAgent):
+
     def __init__(self):
-        self.analyst = AnalystAgent()
-        self.risk = RiskAgent()
-        self.trader = TraderAgent()
-        self.supervisor = SupervisorAgent()
+        super().__init__("analyst", "Analyse performance et stats")
 
-    async def ask_all(self, question, context):
-        responses = []
+    async def respond(self, question, context):
+        sim = context.get("sim", {})
 
-        for agent in [self.analyst, self.risk, self.trader]:
-            res = await agent.respond(question, context)
-            responses.append(res)
+        trades = [
+            t for t in sim.get("trades", [])
+            if isinstance(t.get("pnl"), (int, float))
+        ]
 
-        context["agent_outputs"] = responses
+        wins = [t for t in trades if t["pnl"] > 0]
 
-        final = await self.supervisor.respond(question, context)
+        total = len(trades)
+        wr = (len(wins) / total) * 100 if total > 0 else 0
 
-        return responses, final
+        return {
+            "agent": self.name,
+            "summary": f"WR actuel estimé à {wr:.1f}%",
+            "arguments": [
+                f"{total} trades analysés",
+                f"{len(wins)} trades gagnants"
+            ],
+            "risks": [
+                "échantillon faible si peu de trades récents"
+            ],
+            "confidence": 0.7,
+            "recommendation": "Continuer à monitor le WR sur 30 trades"
+        }
