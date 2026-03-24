@@ -8197,28 +8197,6 @@
   "memory": {
     "lessons": [
       {
-        "trade_id": 105,
-        "pnl": -72026069.919993,
-        "symbol": "Optimistic",
-        "market": "MEME",
-        "lecon": "Entr\u00e9e trop agressive",
-        "pattern": "memecoin",
-        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
-        "type": "erreur",
-        "date": "2026-03-23 11:18"
-      },
-      {
-        "trade_id": 106,
-        "pnl": -71390545.77364,
-        "symbol": "Optimistic",
-        "market": "MEME",
-        "lecon": "Entr\u00e9e trop agressive",
-        "pattern": "memecoin",
-        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
-        "type": "erreur",
-        "date": "2026-03-23 11:19"
-      },
-      {
         "trade_id": 107,
         "pnl": -37557064.897813,
         "symbol": "Optimistic",
@@ -10395,6 +10373,28 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-24 04:21"
+      },
+      {
+        "trade_id": -1,
+        "pnl": 0.0916,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-24 04:21"
+      },
+      {
+        "trade_id": -2,
+        "pnl": -1.7215,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-24 04:21"
       }
     ],
     "patterns_to_avoid": [
@@ -10493,6 +10493,7 @@
       "memecoin",
       "memecoin",
       "memecoin",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m"
@@ -10597,7 +10598,7 @@
       "memecoin",
       "memecoin",
       "memecoin",
-      "memecoin"
+      "backtest_5m"
     ],
     "confidence_threshold": 55,
     "total_wins": 199,
@@ -10605,7 +10606,7 @@
     "symbol_scores": {
       "BTCUSDT": -5,
       "ETHUSDT": -15,
-      "SOLUSDT": 2,
+      "SOLUSDT": 1,
       "Computer": 15,
       "CHIBILAND": -13,
       "USDUC": 4,
