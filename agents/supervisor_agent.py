@@ -10,6 +10,22 @@ class SupervisorAgent(BaseAgent):
         )
 
     async def respond(self, question: str, context: dict) -> Dict[str, Any]:
+    extreme_learning = context.get("extreme_learning_mode", False) or context.get("learning_mode", False)
+
+    # === MODE APPRENTISSAGE EXTRÊME → FORCE MAX TRADES ===
+    if extreme_learning:
+        return {
+            "agent": self.name,
+            "decision": "BUY",
+            "summary": "FORCE MAX TRADES — Apprentissage extrême activé (veto ignoré)",
+            "arguments": ["Volume maximum prioritaire — objectif : milliers de leçons"],
+            "risks": [],
+            "confidence": 0.98,
+            "recommendation": "FORCE MAX TRADES — Apprentissage prioritaire (tous veto ignorés)",
+            "full_summary": "Mode apprentissage extrême activé. Je force le volume maximum pour accumuler un maximum de leçons rapidement.",
+            "final_decision": "BUY",
+        }
+        
         agent_outputs    = context.get("agent_outputs", [])
         trader_decision  = context.get("trader_decision", {})
         risk             = context.get("risk", {})
