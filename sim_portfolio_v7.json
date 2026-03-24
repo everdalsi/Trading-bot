@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 1.5682303134937473e+142,
+    "cash": 1.48981879781906e+142,
     "initial": 1000.0,
     "positions": {
       "MEME_7_166": {
@@ -30,6 +30,34 @@
         "open_time": 1774285567.7282703,
         "kelly_pct": 0.05,
         "pos_key": "MEME_7_166"
+      },
+      "MEME_CIA_409": {
+        "id": 409,
+        "symbol": "CIA",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "CIA",
+        "price_in": 0.0002581,
+        "price_out": null,
+        "qty": 3.038028503474908e+144,
+        "amount_usd": 7.841151567468737e+140,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-24 23:16:10",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0002581,
+        "open_time": 1774394170.5800552,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_CIA_409"
       }
     },
     "trades": [
@@ -11048,6 +11076,33 @@
         "peak_price": 0.0002502,
         "open_time": 1774394124.1962605,
         "kelly_pct": 0.05
+      },
+      {
+        "id": 409,
+        "symbol": "CIA",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "CIA",
+        "price_in": 0.0002581,
+        "price_out": null,
+        "qty": 3.038028503474908e+144,
+        "amount_usd": 7.841151567468737e+140,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-24 23:16:10",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0002581,
+        "open_time": 1774394170.5800552,
+        "kelly_pct": 0.05
       }
     ],
     "equity_history": [],
@@ -11058,17 +11113,6 @@
   },
   "memory": {
     "lessons": [
-      {
-        "trade_id": -1,
-        "pnl": -0.0084,
-        "symbol": "SOLUSDT",
-        "market": "BACKTEST",
-        "lecon": "Entr\u00e9e trop agressive",
-        "pattern": "backtest_5m",
-        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
-        "type": "erreur",
-        "date": "2026-03-24 21:52"
-      },
       {
         "trade_id": -2,
         "pnl": -1.8177,
@@ -16557,6 +16601,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-24 23:16"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -0.0084,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-24 23:16"
       }
     ],
     "patterns_to_avoid": [
@@ -16969,7 +17024,7 @@
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -13,
+      "SOLUSDT": -15,
       "Computer": 15,
       "CHIBILAND": -13,
       "USDUC": 4,
