@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 1.581849097152119e+143,
+    "cash": 1.484520330831607e+144,
     "initial": 1000.0,
     "positions": {
       "MEME_7_166": {
@@ -30,6 +30,34 @@
         "open_time": 1774285567.7282703,
         "kelly_pct": 0.05,
         "pos_key": "MEME_7_166"
+      },
+      "MEME_CIA_411": {
+        "id": 411,
+        "symbol": "CIA",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "CIA",
+        "price_in": 0.0002581,
+        "price_out": null,
+        "qty": 3.0644112691827186e+145,
+        "amount_usd": 7.909245485760596e+141,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-24 23:17:40",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.04354,
+        "open_time": 1774394260.6659482,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_CIA_411"
       }
     },
     "trades": [
@@ -11102,6 +11130,33 @@
         "peak_price": 0.0002581,
         "open_time": 1774394214.1594489,
         "kelly_pct": 0.05
+      },
+      {
+        "id": 411,
+        "symbol": "CIA",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "CIA",
+        "price_in": 0.0002581,
+        "price_out": 0.04354,
+        "qty": 3.0644112691827186e+145,
+        "amount_usd": 7.909245485760596e+141,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": "\ud83c\udfaf MEME TP (+16769.4%)",
+        "time_in": "2026-03-24 23:17:40",
+        "time_out": "2026-03-24 23:17:41",
+        "pnl": 1.326335421116395e+144,
+        "pnl_pct": 16769.43,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0002581,
+        "open_time": 1774394260.6659482,
+        "kelly_pct": 0.05
       }
     ],
     "equity_history": [],
@@ -11112,17 +11167,6 @@
   },
   "memory": {
     "lessons": [
-      {
-        "trade_id": -2,
-        "pnl": -1.6244,
-        "symbol": "ETHUSDT",
-        "market": "BACKTEST",
-        "lecon": "Entr\u00e9e trop agressive",
-        "pattern": "backtest_5m",
-        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
-        "type": "erreur",
-        "date": "2026-03-24 21:55"
-      },
       {
         "trade_id": -1,
         "pnl": -0.0084,
@@ -16611,6 +16655,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-24 23:17"
+      },
+      {
+        "trade_id": 411,
+        "pnl": 1.326335421116395e+144,
+        "symbol": "CIA",
+        "market": "MEME",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "memecoin",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-24 23:17"
       }
     ],
     "patterns_to_avoid": [
@@ -16878,7 +16933,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
@@ -17015,7 +17069,8 @@
       "backtest_5m",
       "memecoin",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "memecoin"
     ],
     "confidence_threshold": 8,
     "total_wins": 581,
@@ -17046,7 +17101,7 @@
       "TERAFAB": -3,
       "APES": 15,
       "BioLLM": 4,
-      "CIA": 10
+      "CIA": 12
     },
     "symbol_blacklist": {},
     "consecutive_losses": {},
