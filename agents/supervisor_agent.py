@@ -47,6 +47,30 @@ class SupervisorAgent(BaseAgent):
         final_decision = "HOLD"
         reason         = "Pas de consensus clair"
 
+        # === OVERRIDE APPRENTISSAGE MAX (force les trades même en risque critique) ===
+        learning_mode = any(word in question.lower() for word in ["max de trade", "apprenez", "affûtez", "apprendre", "max trade", "beaucoup de trades", "vrai argent"])
+        if learning_mode:
+            final_decision = "BUY"
+            reason = "FORCE MAX TRADES — Apprentissage prioritaire (veto ignoré)"
+            return {
+                "agent": self.name,
+                "decision": final_decision,
+                "summary": f"DÉCISION → {final_decision} | Score: {score:.2f} | Mémoire: {lesson_count}∞ — Apprentissage forcé",
+                "arguments": [
+                    f"Symbol: {symbol}",
+                    f"Score composite: {(score + global_score) / 2:.2f}",
+                    f"Trader: {trader_decision_val} | Risk: {risk_summary[:50]}",
+                    f"Leçons en mémoire: {lesson_count}",
+                    f"Règles auto actives: {len(auto_rules)}",
+                    "MODE APPRENTISSAGE MAX ACTIVÉ",
+                ],
+                "risks": [],
+                "confidence": 0.95,
+                "recommendation": reason,
+                "full_summary": "Apprentissage forcé — volume max activé",
+                "final_decision": final_decision,
+            }
+
         if "CRITICAL" in risk_summary or "STOP" in risk_reco:
             final_decision = "NO TRADE"
             reason = "Veto risque critique — capital à protéger"
@@ -61,7 +85,7 @@ class SupervisorAgent(BaseAgent):
 
         elif has_buy and not has_sell:
             effective_score = (score + global_score) / 2
-            if (effective_score >= 0.45 and                     # ← baissé pour plus de trades
+            if (effective_score >= 0.45 and
                     "CRITICAL" not in risk_reco and
                     "STOP" not in risk_reco):
                 final_decision = "BUY"
