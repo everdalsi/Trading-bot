@@ -11,6 +11,7 @@ import os, time, threading, feedparser, requests, asyncio, threading
 import json, sqlite3, re, hashlib, base64, hmac, secrets
 import pandas as pd
 import numpy as np
+from agents.performance_tracker import update_trade_results
 from datetime import datetime, timedelta
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
