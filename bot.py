@@ -4096,37 +4096,6 @@ async def _ask_agent_multi(chat_id: int, query: str) -> str:
 
     return msg
 
-async def cmd_agent(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    if not _auth(update):
-        return
-
-    chat_id = update.effective_chat.id if update.effective_chat else None
-    query = " ".join(ctx.args).strip() if ctx.args else ""
-
-    if chat_id is None:
-        await update.message.reply_text("Chat introuvable.")
-        return
-
-    if not query:
-        AGENT_CHAT_SESSIONS.add(chat_id)
-        AGENT_CHAT_MEMORY.setdefault(chat_id, [])
-        await update.message.reply_text(
-            "🧠 Mode Agent activé.\n"
-            "Tu peux maintenant m’écrire normalement.\n\n"
-            "Exemples :\n"
-            "• analyse mon winrate\n"
-            "• explique le risque actuel\n"
-            "• que penses-tu du Kelly ?\n"
-            "• analyse le marché\n\n"
-            "Pour quitter : /agent_stop"
-        )
-        return
-
-    AGENT_CHAT_SESSIONS.add(chat_id)
-    AGENT_CHAT_MEMORY.setdefault(chat_id, [])
-
-    reply = await _ask_agent_multi(chat_id, query)
-    await update.message.reply_text(reply)
 
 # ═══════════════════════════════════════════════════════════════
 #  NOUVEAU : MODE SECRÉTAIRE (ce que tu voulais)
