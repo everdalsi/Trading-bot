@@ -4281,18 +4281,28 @@ async def run_telegram():
 def auto_start():
     time.sleep(5)
     send = make_send(TELEGRAM_CHAT_ID)
-    if bot_state["running"]: return
+    if bot_state["running"]: 
+        return
     bot_state.update({
-        "running":True,"trades_today":0,"cycle_count":0,
-        "last_heartbeat":None,"last_monitor":0,"last_micro":0,
-        "last_scalp":0,"last_deep":0,"last_status":0,
-        "last_meme":0,"last_epargne":0,"daily_stopped":False
+        "running": True,
+        "trades_today": 0,
+        "cycle_count": 0,
+        "last_heartbeat": None,
+        "last_monitor": 0,
+        "last_micro": 0,
+        "last_scalp": 0,
+        "last_deep": 0,
+        "last_status": 0,
+        "last_meme": 0,
+        "last_epargne": 0,
+        "daily_stopped": False
     })
     kelly = kelly_criterion()
     send(f"🔄 Bot v7.1 redémarré\nKelly:{kelly*100:.1f}% | /stop pour arrêter\n📡 WS: {'✅' if _ws_connected else '⚠️ REST'}")
     threading.Thread(target=trading_loop,  args=(send,), daemon=True).start()
     threading.Thread(target=watchdog,      args=(send,), daemon=True).start()
     threading.Thread(target=daily_summary, args=(send,), daemon=True).start()
+
 
 if __name__ == "__main__":
     print("🚀 Trading Bot v7.1 — WebSocket + Backtest + Sécurité + Agent Conscience")
@@ -4307,18 +4317,17 @@ if __name__ == "__main__":
 
     # ✅ AUTO TRAINING ICI
     def _auto_training_loop():
-    time.sleep(60)
-    while True:
-        try:
-            print("[AUTO-TRAIN] lancement")
-            auto_training()
-            print("[AUTO-TRAIN] terminé")
-        except Exception as e:
-            print(f"[AUTO-TRAIN ERROR] {e}")
-        time.sleep(300)
+        time.sleep(60)          # ← maintenant bien indenté
+        while True:
+            try:
+                print("[AUTO-TRAIN] lancement")
+                auto_training()
+                print("[AUTO-TRAIN] terminé")
+            except Exception as e:
+                print(f"[AUTO-TRAIN ERROR] {e}")
+            time.sleep(300)
 
-threading.Thread(target=_auto_training_loop, daemon=True).start()
-
+    threading.Thread(target=_auto_training_loop, daemon=True).start()
 
     print("Serveur HTTP port 8000")
 
