@@ -47,7 +47,6 @@ def update_performance(memory, price):
     memory = performance_tracker.update_trade_results(memory, price)
 
     stats = performance_tracker.get_global_stats(memory)
-    print(f"[PERF] Trades: {stats.get('total_trades')} | Winrate: {stats.get('winrate')}")
 
     return memory
 
