@@ -90,6 +90,7 @@ USER_ADDRESS   = os.environ.get("USER_ADDRESS", "")
 USER_WALLET    = os.environ.get("USER_WALLET", "")
 
 AGENT_CHAT_SESSIONS = set()
+AGENT_CHAT_MEMORY = defaultdict(list)
 
 
 CAPITAL_INITIAL   = 1000.0
@@ -3998,49 +3999,126 @@ Macro: {get_macro_trend()}
 Blacklist: {len(memory.get('symbol_blacklist',{}))}
 """
 
-def _ask_agent_text(query: str) -> str:
+def _build_multi_agent_context():
+    sim = load_json("sim_portfolio_v7.json", {})
+    return {
+        "sim": sim,
+        "kelly": 0.22,
+        "drawdown": -0.1,
+        "macro": "neutral"
+    }
+
+def _select_agents_for_query(query: str):
+    q = query.lower()
+
+    selected = []
+
+    if any(k in q for k in ["winrate", "wr", "pnl", "trade", "performance", "stat"]):
+        selected.append(orchestrator.analyst)
+
+    if any(k in q for k in ["risk", "risque", "kelly", "drawdown", "exposition"]):
+        selected.append(orchestrator.risk)
+
+    if any(k in q for k in ["marché", "marche", "signal", "trade", "entry", "entrée", "setup"]):
+        selected.append(orchestrator.trader)
+
+    if not selected:
+        selected = [orchestrator.analyst, orchestrator.risk, orchestrator.trader]
+
+    # éviter doublons
+    seen = set()
+    unique = []
+    for agent in selected:
+        if agent.name not in seen:
+            unique.append(agent)
+            seen.add(agent.name)
+
+    return unique
+
+async def _ask_agent_multi(chat_id: int, query: str) -> str:
     query = sanitize_string(query, 1500).strip()
-    state = _build_agent_state()
-    prompt = f"""Tu es la Conscience du Trading Bot v7.1.
-Réponds en français, de façon claire, utile et structurée.
-Tu peux analyser le bot, ses stats, ses paramètres et son comportement.
-Tu n'exécutes aucun trade réel et tu ne modifies rien automatiquement.
-Si on te demande une modification, propose le code exact à changer.
-Si la question est vague, aide l'utilisateur concrètement.
 
-État actuel :
-{state}
+    ctx = _build_multi_agent_context()
+    selected_agents = _select_agents_for_query(query)
 
-Message utilisateur : {query}
-"""
-    response = ask_ai(prompt)
-    return response.get("reason") or response.get("signal") or "Je réfléchis..."
+    responses = []
+    for agent in selected_agents:
+        try:
+            res = await agent.respond(query, ctx)
+            responses.append(res)
+        except Exception as e:
+            responses.append({
+                "agent": agent.name,
+                "summary": f"Erreur agent: {e}",
+                "arguments": [],
+                "risks": [],
+                "confidence": 0.0,
+                "recommendation": "Vérifier l'agent"
+            })
+
+    final = await orchestrator.supervisor.respond(
+        query,
+        {**ctx, "agent_outputs": responses}
+    )
+
+    AGENT_CHAT_MEMORY[chat_id].append({"role": "user", "content": query})
+    AGENT_CHAT_MEMORY[chat_id].append({"role": "assistant", "content": final["arguments"][0] if final.get("arguments") else final.get("summary", "")})
+
+    AGENT_CHAT_MEMORY[chat_id] = AGENT_CHAT_MEMORY[chat_id][-12:]
+
+    msg = "🧠 Agent Conscience\n\n"
+    for r in responses:
+        msg += f"🔹 {r['agent']} : {r['summary']}\n"
+
+    msg += "\n👑 Synthèse :\n"
+    if final.get("arguments"):
+        msg += final["arguments"][0]
+    else:
+        msg += final.get("summary", "Pas de synthèse.")
+
+    if final.get("recommendation"):
+        msg += f"\n\n✅ Recommandation : {final['recommendation']}"
+
+    return msg
 
 async def cmd_agent(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    if not _auth(update): return
-    query = ' '.join(ctx.args).strip() if ctx.args else ''
+    if not _auth(update):
+        return
+
     chat_id = update.effective_chat.id if update.effective_chat else None
+    query = " ".join(ctx.args).strip() if ctx.args else ""
+
+    if chat_id is None:
+        await update.message.reply_text("Chat introuvable.")
+        return
+
     if not query:
-        if chat_id is not None:
-            AGENT_CHAT_SESSIONS.add(chat_id)
+        AGENT_CHAT_SESSIONS.add(chat_id)
+        AGENT_CHAT_MEMORY.setdefault(chat_id, [])
         await update.message.reply_text(
             "🧠 Mode Agent activé.\n"
-            "Envoie-moi maintenant des messages normaux et je te répondrai comme un assistant du bot.\n\n"
+            "Tu peux maintenant m’écrire normalement.\n\n"
             "Exemples :\n"
             "• analyse mon winrate\n"
-            "• explique pourquoi le scan est faible\n"
-            "• propose un meilleur Kelly\n"
-            "• montre le code de open_trade\n\n"
+            "• explique le risque actuel\n"
+            "• que penses-tu du Kelly ?\n"
+            "• analyse le marché\n\n"
             "Pour quitter : /agent_stop"
         )
         return
-    await update.message.reply_text(_ask_agent_text(query))
+
+    AGENT_CHAT_SESSIONS.add(chat_id)
+    AGENT_CHAT_MEMORY.setdefault(chat_id, [])
+
+    reply = await _ask_agent_multi(chat_id, query)
+    await update.message.reply_text(reply)
 
 async def cmd_agent_stop(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
     chat_id = update.effective_chat.id if update.effective_chat else None
     if chat_id in AGENT_CHAT_SESSIONS:
         AGENT_CHAT_SESSIONS.discard(chat_id)
+        AGENT_CHAT_MEMORY.pop(chat_id, None)
         await update.message.reply_text("🛑 Mode Agent désactivé.")
     else:
         await update.message.reply_text("ℹ️ Le mode Agent n'était pas actif.")
@@ -4050,13 +4128,17 @@ async def handle_agent_chat(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return
     if not _auth(update):
         return
+
     chat_id = update.effective_chat.id if update.effective_chat else None
     if chat_id not in AGENT_CHAT_SESSIONS:
         return
+
     text = update.message.text.strip()
     if not text or text.startswith('/'):
         return
-    await update.message.reply_text(_ask_agent_text(text))
+
+    reply = await _ask_agent_multi(chat_id, text)
+    await update.message.reply_text(reply)
 
 async def telegram_error_handler(update: object, ctx: ContextTypes.DEFAULT_TYPE):
     print(f"[TG-ERROR] {ctx.error}")
