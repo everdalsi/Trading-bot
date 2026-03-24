@@ -4212,7 +4212,7 @@ if __name__ == "__main__":
 
     # ✅ AUTO TRAINING (déjà présent)
     def _auto_training_loop():
-        time.sleep(60)
+        time.sleep(30)
         while True:
             try:
                 print("[AUTO-TRAIN] lancement")
@@ -4220,7 +4220,7 @@ if __name__ == "__main__":
                 print("[AUTO-TRAIN] terminé")
             except Exception as e:
                 print(f"[AUTO-TRAIN ERROR] {e}")
-            time.sleep(300)
+            time.sleep(45)
 
     threading.Thread(target=_auto_training_loop, daemon=True).start()
 
