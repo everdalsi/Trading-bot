@@ -8197,28 +8197,6 @@
   "memory": {
     "lessons": [
       {
-        "trade_id": 191,
-        "pnl": 1.5217538457221703e+57,
-        "symbol": "PIXELS",
-        "market": "MEME",
-        "lecon": "Scalp rapide gagnant",
-        "pattern": "memecoin",
-        "action_future": "Conserver ce setup pour micro-trading",
-        "type": "succes",
-        "date": "2026-03-23 20:41"
-      },
-      {
-        "trade_id": 192,
-        "pnl": 1.1784265415472558e+58,
-        "symbol": "PIXELS",
-        "market": "MEME",
-        "lecon": "Scalp rapide gagnant",
-        "pattern": "memecoin",
-        "action_future": "Conserver ce setup pour micro-trading",
-        "type": "succes",
-        "date": "2026-03-23 20:42"
-      },
-      {
         "trade_id": 193,
         "pnl": 9.094261616675677e+58,
         "symbol": "PIXELS",
@@ -10387,8 +10365,30 @@
       },
       {
         "trade_id": -1,
-        "pnl": -0.9032,
-        "symbol": "BTCUSDT",
+        "pnl": -0.5759,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-24 05:59"
+      },
+      {
+        "trade_id": -2,
+        "pnl": -1.6244,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-24 05:59"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -0.0084,
+        "symbol": "SOLUSDT",
         "market": "BACKTEST",
         "lecon": "Entr\u00e9e trop agressive",
         "pattern": "backtest_5m",
@@ -10421,8 +10421,8 @@
       "memecoin",
       "memecoin",
       "memecoin",
-      "memecoin",
-      "memecoin",
+      "backtest_5m",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -10602,8 +10602,8 @@
       "backtest_5m"
     ],
     "confidence_threshold": 55,
-    "total_wins": 210,
-    "total_losses": 131,
+    "total_wins": 211,
+    "total_losses": 130,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
@@ -12093,29 +12093,50 @@
         ]
       },
       {
-        "symbol": "BTCUSDT",
+        "symbol": "SOLUSDT",
         "interval": "5m",
         "days": 30,
-        "total_trades": 1,
-        "wins": 0,
-        "losses": 1,
-        "win_rate": 0.0,
-        "total_pnl": -0.9,
-        "total_pnl_pct": -0.09,
-        "sharpe": 0.0,
-        "max_drawdown": -0.09,
-        "profit_factor": 0.0,
-        "best_trade": -0.45,
-        "worst_trade": -0.45,
-        "final_equity": 999.1,
+        "total_trades": 4,
+        "wins": 1,
+        "losses": 3,
+        "win_rate": 25.0,
+        "total_pnl": 7.74,
+        "total_pnl_pct": 0.77,
+        "sharpe": 5.5,
+        "max_drawdown": -0.2,
+        "profit_factor": 3.01,
+        "best_trade": 5.82,
+        "worst_trade": -1.0,
+        "final_equity": 1007.74,
         "sl_used": 0.025,
         "tp_used": 0.04,
         "trades": [
           {
-            "entry": 68989.187355,
-            "exit": 68677.17,
-            "pnl": -0.9032,
-            "pnl_pct": -0.45,
+            "entry": 87.37366499999999,
+            "exit": 87.37,
+            "pnl": -0.0084,
+            "pnl_pct": -0.0,
+            "exit_reason": "TIMEOUT"
+          },
+          {
+            "entry": 87.18356999999999,
+            "exit": 86.39,
+            "pnl": -1.8177,
+            "pnl_pct": -0.91,
+            "exit_reason": "TIMEOUT"
+          },
+          {
+            "entry": 85.75285499999998,
+            "exit": 90.74,
+            "pnl": 11.5928,
+            "pnl_pct": 5.82,
+            "exit_reason": "TP"
+          },
+          {
+            "entry": 91.22559,
+            "exit": 90.31,
+            "pnl": -2.0239,
+            "pnl_pct": -1.0,
             "exit_reason": "TIMEOUT"
           }
         ]
