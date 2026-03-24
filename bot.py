@@ -4166,37 +4166,49 @@ def _build_multi_agent_context():
 async def _ask_secretary(chat_id: int, question: str) -> str:
     try:
         ctx = _build_multi_agent_context()
-        # On enrichit avec ResearchAgent
-        if "symbol" in question.lower() or any(s in question.upper() for s in CRYPTO_SYMBOLS):
-            symbol = next((s for s in CRYPTO_SYMBOLS if s in question.upper()), "BTCUSDT")
+        
+        # Enrichissement avec ResearchAgent si un symbole est mentionné
+        symbol = None
+        for s in CRYPTO_SYMBOLS:
+            if s in question.upper():
+                symbol = s
+                break
+        if symbol:
             ctx["research_data"] = await orchestrator.research.get_multi_source_intelligence(symbol)
 
         responses, final = await orchestrator.ask_all(question, ctx)
 
-        # === Réponse ultra-actionnable ===
-        msg = "🧠 **Agent Conscience — Rapport Actionnable**\n\n"
+        # === STYLE GROK : réponse naturelle, engageante et actionable ===
+        msg = f"🧠 **Hey, c’est ton Agent Conscience qui te parle !**\n\n"
         msg += f"**Question :** {question}\n\n"
 
+        # Résumé fluide des agents (pas de liste sèche)
+        insights = []
         for r in responses:
-            emoji = {"analyst": "📊", "risk": "🛡️", "trader": "💼", "learning": "🧪", "research": "🔍"}.get(r.get('agent'), "🔹")
-            agent_name = r.get('agent', 'Expert').title()
-            msg += f"{emoji} **{agent_name}** :\n{r.get('summary', 'Analyse en cours...')}\n\n"
+            agent = r.get('agent', '').title()
+            summary = r.get('summary', '')
+            if agent and summary:
+                insights.append(f"→ {agent} dit : {summary}")
 
-        # Synthèse CEO + recommandation claire
-        final_text = final.get("arguments", [""])[0] if final.get("arguments") else final.get("summary", "Pas de synthèse disponible.")
-        msg += f"👑 **Synthèse finale (CEO)** :\n{final_text}\n\n"
+        if insights:
+            msg += "\n".join(insights[:4]) + "\n\n"
+
+        # Synthèse finale + recommandation claire et humaine
+        final_text = final.get("arguments", [""])[0] if final.get("arguments") else final.get("summary", "")
+        if final_text:
+            msg += f"**👑 Ce que je pense vraiment (CEO) :** {final_text}\n\n"
 
         if final.get("recommendation"):
-            msg += f"✅ **ACTION RECOMMANDÉE** : {final['recommendation']}\n"
+            msg += f"✅ **Action recommandée :** {final['recommendation']}\n\n"
 
-        # Ajout de détails pratiques
+        # Ajout de données clés de façon naturelle
         if "research_data" in ctx and ctx["research_data"]:
             rd = ctx["research_data"]
-            msg += f"\n🔍 Research : {rd.get('sentiment','').upper()} | Force : {rd.get('strength',0)}/10\n"
+            msg += f"🔍 **Research rapide :** {rd.get('sentiment','').upper()} • Force {rd.get('strength',0)}/10\n"
 
-        msg += "\n💡 *Ton équipe a analysé en temps réel et te donne une action claire.*"
+        msg += "\n💡 *Ton équipe a bossé en temps réel. Si tu veux creuser un symbole ou une stratégie précise, dis-moi, je suis là.*"
 
-        # Mémoire de conversation
+        # Sauvegarde de la conversation
         AGENT_CHAT_MEMORY[chat_id].append({"role": "user", "content": question})
         AGENT_CHAT_MEMORY[chat_id].append({"role": "assistant", "content": msg})
 
@@ -4204,7 +4216,7 @@ async def _ask_secretary(chat_id: int, question: str) -> str:
 
     except Exception as e:
         print(f"[SECRETARY-ERROR] {e}")
-        return "⚠️ Petite erreur interne. Je réessaie dans 2 secondes."
+        return "⚠️ Petite erreur interne, je réessaie dans 2 secondes. En attendant, dis-moi ce que tu veux faire ?"
 # ═══════════════════════════════════════════════════════════════
 #  HANDLERS MODE SECRÉTAIRE (obligatoires)
 # ═══════════════════════════════════════════════════════════════
