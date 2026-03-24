@@ -30,34 +30,6 @@
         "open_time": 1774285567.7282703,
         "kelly_pct": 0.05,
         "pos_key": "MEME_7_166"
-      },
-      "MEME_Tsuki_373": {
-        "id": 373,
-        "symbol": "Tsuki",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "Tsuki",
-        "price_in": 0.0004506,
-        "price_out": null,
-        "qty": 8.243608431545785e+108,
-        "amount_usd": 3.714569959254531e+105,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-24 15:22:37",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 8.79,
-        "open_time": 1774365757.725914,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_Tsuki_373"
       }
     },
     "trades": [
@@ -10143,17 +10115,6 @@
     "lessons": [
       {
         "trade_id": -1,
-        "pnl": -0.5759,
-        "symbol": "ETHUSDT",
-        "market": "BACKTEST",
-        "lecon": "Entr\u00e9e trop agressive",
-        "pattern": "backtest_5m",
-        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
-        "type": "erreur",
-        "date": "2026-03-24 06:00"
-      },
-      {
-        "trade_id": -1,
         "pnl": -0.9032,
         "symbol": "BTCUSDT",
         "market": "BACKTEST",
@@ -15640,6 +15601,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-24 15:22"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -0.5759,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-24 15:22"
       }
     ],
     "patterns_to_avoid": [
@@ -15708,7 +15680,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "memecoin",
@@ -15790,6 +15761,7 @@
       "backtest_5m",
       "backtest_5m",
       "memecoin",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
