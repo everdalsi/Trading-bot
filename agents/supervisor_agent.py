@@ -27,6 +27,10 @@ class SupervisorAgent(BaseAgent):
         streak_type   = context.get("streak_type", "neutral")
         streak_count  = context.get("streak_count", 0)
 
+        # === NOUVEAU : données réelles du portefeuille ===
+        open_positions = len(context.get("memory", {}).get("positions", {})) if context.get("memory") else 0
+        recent_trades  = context.get("memory", {}).get("trades", [])[-5:] if context.get("memory") else []
+
         trader_summary = str(trader_decision.get("summary", "")).upper()
         trader_decision_val = str(trader_decision.get("decision", "HOLD")).upper()
         risk_summary   = str(risk.get("summary", "")).upper()
@@ -39,19 +43,36 @@ class SupervisorAgent(BaseAgent):
             "max de trade", "apprenez", "affûtez", "apprendre", "max trade",
             "beaucoup de trades", "vrai argent", "vrai portefeuille", "gérer un vrai"
         ])
+
+        # === MODE EXTREME LEARNING → ON MONTRE LES VRAIES DONNÉES + ON FORCE LES TRADES ===
         if learning_mode or extreme_learning:
+            positions_str = f"{open_positions} positions ouvertes" if open_positions > 0 else "aucune position ouverte pour l’instant"
+            lessons_str   = f"{lesson_count} leçons accumulées"
+            last_trades   = "\n".join([f"• {t.get('symbol','?')} → {t.get('decision','BUY')}" for t in recent_trades]) or "aucun trade récent"
+
             return {
                 "agent": self.name,
                 "decision": "BUY",
-                "summary": "FORCE MAX TRADES — Apprentissage prioritaire activé",
-                "arguments": ["Apprentissage forcé — volume max"],
+                "summary": f"FORCE MAX TRADES — Apprentissage extrême activé | {positions_str} | {lessons_str}",
+                "arguments": [
+                    f"Positions ouvertes : {open_positions}",
+                    f"Leçons en mémoire : {lesson_count}",
+                    f"Derniers trades :\n{last_trades}",
+                    "Mode apprentissage extrême → volume maximum prioritaire"
+                ],
                 "risks": [],
-                "confidence": 0.95,
+                "confidence": 0.98,
                 "recommendation": "FORCE MAX TRADES — Apprentissage prioritaire (veto ignoré)",
-                "full_summary": "Je force le volume maximum pour que tu accumules un max de leçons rapidement.",
+                "full_summary": f"Je force le volume maximum. Actuellement : {positions_str} | {lessons_str}. Derniers trades visibles ci-dessus.",
                 "final_decision": "BUY",
+                "live_status": {
+                    "open_positions": open_positions,
+                    "lesson_count": lesson_count,
+                    "recent_trades": recent_trades
+                }
             }
 
+        # (le reste du code original reste IDENTIQUE – aucune ligne supprimée)
         final_decision = "HOLD"
         reason         = "Pas de consensus clair"
 
