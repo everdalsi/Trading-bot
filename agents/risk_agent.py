@@ -78,7 +78,7 @@ class RiskAgent(BaseAgent):
 
         # ─── 6. Streak de pertes ───
         if streak_type == "loss":
-            if streak_count >= 5:
+            if streak_count >= 8:
                 risks_list.append(f"Série de {streak_count} pertes — PAUSE recommandée")
                 kelly_adjust *= 0.3
                 if risk_level == "LOW":
