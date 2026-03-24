@@ -8197,17 +8197,6 @@
   "memory": {
     "lessons": [
       {
-        "trade_id": 104,
-        "pnl": -3689748.948742,
-        "symbol": "Optimistic",
-        "market": "MEME",
-        "lecon": "Entr\u00e9e trop agressive",
-        "pattern": "memecoin",
-        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
-        "type": "erreur",
-        "date": "2026-03-23 11:17"
-      },
-      {
         "trade_id": 105,
         "pnl": -72026069.919993,
         "symbol": "Optimistic",
@@ -10395,6 +10384,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-24 04:20"
+      },
+      {
+        "trade_id": -2,
+        "pnl": -1.5278,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-24 04:21"
       }
     ],
     "patterns_to_avoid": [
@@ -10493,6 +10493,7 @@
       "memecoin",
       "memecoin",
       "memecoin",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m"
     ],
