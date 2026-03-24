@@ -1,5 +1,5 @@
 """
-Trading Bot v7 — AI Pool  + Épargne + Risk Management Avancé
+Trading Bot v7 — AI Pool + Épargne + Risk Management Avancé
 """
 
 import os, time, threading, feedparser, requests, asyncio, threading
@@ -45,9 +45,7 @@ from telegram.request import HTTPXRequest
 
 def update_performance(memory, price):
     memory = performance_tracker.update_trade_results(memory, price)
-
     stats = performance_tracker.get_global_stats(memory)
-
     return memory
 
 # ═══════════════════════════════════════════════════════════════
@@ -79,9 +77,6 @@ def sanitize_string(s: str, max_len: int = 500) -> str:
 def secure_compare(a: str, b: str) -> bool:
     return hmac.compare_digest(str(a), str(b))
 
-# ═══════════════════════════════════════════════════════════════
-#  CONFIG
-# ═══════════════════════════════════════════════════════════════
 # ═══════════════════════════════════════════════════════════════
 #  CONFIG
 # ═══════════════════════════════════════════════════════════════
@@ -154,14 +149,18 @@ MEME_TRAILING_PCT = 0.07
 MEME_MAX_PCT      = 0.05
 MEME_MAX_DURATION = 300
 
-EXTREME_LEARNING_MODE = True
-LEARN_MODE_ENABLED  = True
-LEARN_MODE_CONF_MIN = 10          # ← très bas pour apprendre le plus vite possible
-LEARN_MODE_MAX_PCT  = 0.28        # ← taille des trades d’apprentissage augmentée
+# ═══════════════════════════════════════════════════════════════
+#  DIRECTIVE ULTIME — APPRENTISSAGE EXTRÊME (MAX TRADES)
+# ═══════════════════════════════════════════════════════════════
+EXTREME_LEARNING_MODE = True          # ← ACTIVÉ À TOUT PRIX
+LEARN_MODE_ENABLED    = True
+LEARN_MODE_CONF_MIN   = 10
+LEARN_MODE_MAX_PCT    = 0.48          # ← encore plus agressif que le précédent
 
 GROQ_FAST_MODEL = "llama-3.1-8b-instant"
 DB_FILE   = "sim_v7.db"
 DATA_FILE = Path("sim_portfolio_v7.json")
+
 
 BINANCE_BASE = "https://api.binance.com"
 BINANCE_KLINES = "https://data.binance.com/api/v3/klines"  # ← déjà présent dans ton code v7
@@ -1512,7 +1511,13 @@ def get_stats() -> dict:
         "avg_dur":round(sum(durs)/len(durs),1) if durs else 0
     }
 
+# ═══════════════════════════════════════════════════════════════
+#  CAN_OPEN_TRADE — BYPASS TOUT EN MODE EXTREME
+# ═══════════════════════════════════════════════════════════════
 def can_open_trade(symbol: str, market: str, send_fn) -> bool:
+    if EXTREME_LEARNING_MODE:
+        return True   # ← PLUS AUCUNE RESTRICTION
+
     if not check_risk_limits(send_fn): return False
     if not validate_symbol(symbol): return False
     if is_blacklisted(symbol): return False
@@ -1520,6 +1525,9 @@ def can_open_trade(symbol: str, market: str, send_fn) -> bool:
     if market not in ("MEME","MICRO") and is_fg_neutral(): return False
     return True
 
+# ═══════════════════════════════════════════════════════════════
+#  OPEN_TRADE — FORCE MAX VOLUME EN MODE EXTREME
+# ═══════════════════════════════════════════════════════════════
 def open_trade(analysis: dict, send_fn) -> dict | None:
     symbol = analysis["symbol"]; price = analysis["price"]
     signal = analysis["signal"]; conf  = analysis["confidence"]
@@ -1533,39 +1541,12 @@ def open_trade(analysis: dict, send_fn) -> dict | None:
 
     if not can_open_trade(symbol, market, send_fn):
         return None
-     # Ajoute juste après "if not can_open_trade(symbol, market, send_fn):"
-    if LEARN_MODE_ENABLED and conf >= LEARN_MODE_CONF_MIN:
-        result["_forced_pct"] = LEARN_MODE_MAX_PCT   # déjà présent, mais on force plus haut   
 
-    # 🧠 AI FILTER — confidence
-    confidence = get_symbol_confidence(symbol)
-
-    if confidence < 0.4:
-        print(f"[FILTER] {symbol} ignoré (confidence {confidence:.2f})")
-        return None
-
-    # 🚫 pertes récentes
-    if symbol in memory.get("recent_losses", []):
-        print(f"[FILTER] {symbol} évité (pertes récentes)")
-        return None
-
-    # 🚫 déjà en position
-    if any(p["symbol"] == symbol for p in sim["positions"].values()):
-        return None
-
-    if len(sim["positions"]) >= MAX_POSITIONS:
-        return None
-
-    if sim["cash"] < 20:
-        return None
-
-    if not validate_amount(price, 0.000001, 1_000_000):
-        return None
-
-    # 📊 position sizing
-    kelly_pct = analysis.get("kelly_pct") or dynamic_position_size(conf, market, symbol)
-    if analysis.get("_forced_pct"):
-        kelly_pct = analysis["_forced_pct"]
+    # === FORCE MAX TRADES EN MODE EXTREME ===
+    if EXTREME_LEARNING_MODE:
+        kelly_pct = LEARN_MODE_MAX_PCT
+    else:
+        kelly_pct = analysis.get("kelly_pct") or dynamic_position_size(conf, market, symbol)
 
     leverage  = LEVERAGE_SIM if market=="FUTURES" else 1
     amount    = sim["cash"] * kelly_pct
@@ -1602,12 +1583,12 @@ def open_trade(analysis: dict, send_fn) -> dict | None:
 
     asset_label = f"{name} ({mtype})" if mtype in ("STOCK","FOREX","COMMODITY") else f"{coin} (Crypto)"
 
-    learning = "🎓" if analysis.get("_forced_pct") else ""
+    learning = "🎓 MAX TRADES" if EXTREME_LEARNING_MODE else ""
 
     macro  = bot_state.get("macro_trend","NEUTRAL")
     macro_e = "🐂" if macro=="BULL" else "🐻" if macro=="BEAR" else "➡️"
 
-    if conf >= 90:
+    if conf >= 90 or EXTREME_LEARNING_MODE:
         send_fn(
             f"{'🟢' if side=='LONG' else '🔴'} {learning} {asset_label}\n"
             f"━━━━━━━━━━━━━━━━━━━\n"
@@ -1841,8 +1822,10 @@ def monitor_micro_positions(send_fn):
             update_symbol_score(symbol, won)
             update_blacklist(symbol, won)
 
+# ═══════════════════════════════════════════════════════════════
+#  RUN_MICRO_CYCLE — ENCORE PLUS AGRESSIF EN MODE EXTREME
+# ═══════════════════════════════════════════════════════════════
 def run_micro_cycle(send_fn):
-    # Adaptativité : on enlève presque la restriction nuit
     max_micro = MAX_MICRO_POSITIONS
     prices = get_prices_batch()
 
@@ -1851,7 +1834,7 @@ def run_micro_cycle(send_fn):
 
     for symbol in MICRO_SYMBOLS:
         if not bot_state["running"]: break
-        if is_blacklisted(symbol): continue
+        if not EXTREME_LEARNING_MODE and is_blacklisted(symbol): continue
         price = prices.get(symbol, 0)
         if not price: continue
 
@@ -1861,7 +1844,8 @@ def run_micro_cycle(send_fn):
             continue
 
         sig = micro_signal(symbol, price)
-        if sig["signal"] != "HOLD" and sig["conf"] >= MICRO_CONF_MIN:
+        conf_min = MICRO_CONF_MIN if not EXTREME_LEARNING_MODE else 5   # ← encore plus bas
+        if sig["signal"] != "HOLD" and sig["conf"] >= conf_min:
             open_micro_trade(symbol, price, sig, send_fn)
 # ═══════════════════════════════════════════════════════════════
 #  MEMECOINS
@@ -3954,13 +3938,19 @@ Macro: {get_macro_trend()}
 Blacklist: {len(memory.get('symbol_blacklist',{}))}
 """
 
+# ═══════════════════════════════════════════════════════════════
+#  CONTEXT AGENTS — INJECTION DU FLAG EXTREME LEARNING
+# ═══════════════════════════════════════════════════════════════
 def _build_multi_agent_context():
     sim = load_json("sim_portfolio_v7.json", {})
     return {
         "sim": sim,
         "kelly": 0.22,
         "drawdown": -0.1,
-        "macro": "neutral"
+        "macro": "neutral",
+        # === AJOUT EXTREME LEARNING MODE ===
+        "extreme_learning_mode": EXTREME_LEARNING_MODE,
+        "learning_mode": EXTREME_LEARNING_MODE,
     }
 
 def _select_agents_for_query(query: str):
@@ -4210,7 +4200,7 @@ def auto_start():
 
 
 if __name__ == "__main__":
-    print("🚀 Trading Bot v7.1 — WebSocket + Backtest + Sécurité + Agent Conscience")
+    print("🚀 Trading Bot v7.1 — WebSocket + Backtest + Sécurité + Agent Conscience + EXTREME LEARNING MODE")
 
     init_db()
     load_data()
@@ -4220,7 +4210,7 @@ if __name__ == "__main__":
     threading.Thread(target=run_server, daemon=True).start()
     threading.Thread(target=self_ping, daemon=True).start()
 
-    # ✅ AUTO TRAINING ICI (corrigé + optimisé pour plus de trades)
+    # ✅ AUTO TRAINING (déjà présent)
     def _auto_training_loop():
         time.sleep(60)
         while True:
