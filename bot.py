@@ -4163,55 +4163,46 @@ def _build_multi_agent_context():
     }
 
 
-async def _ask_secretary(chat_id: int, question: str) -> str:
-    try:
-        ctx = _build_multi_agent_context()
-        
-        # Détection symbole si besoin
-        symbol = None
-        for s in CRYPTO_SYMBOLS:
-            if s in question.upper():
-                symbol = s
-                break
-        if symbol:
-            ctx["research_data"] = await orchestrator.research.get_multi_source_intelligence(symbol)
-
-        responses, final = await orchestrator.ask_all(question, ctx)
-
-        # === STYLE GROK FULL : conversationnel, direct, avec personnalité ===
-        msg = f"🧠 **Hey boss, c’est ton Agent Conscience qui te parle !**\n\n"
-        msg += f"**Ta question :** {question}\n\n"
-
-        # On intègre les insights de façon fluide, sans liste robotique
-        insights = [r.get('summary', '') for r in responses if r.get('summary')]
-        if insights:
-            msg += " ".join(insights[:3]) + "\n\n"
-
-        # Synthèse CEO naturelle et motivante
-        final_text = final.get("arguments", [""])[0] if final.get("arguments") else final.get("summary", "Je n’ai pas de synthèse claire pour l’instant.")
-        msg += f"**👑 Ce que je pense vraiment :** {final_text}\n\n"
-
-        # Action recommandée ultra-claire
-        if final.get("recommendation"):
-            msg += f"✅ **Ma décision :** {final['recommendation']}\n\n"
-
-        # Recherche rapide intégrée naturellement
-        if ctx.get("research_data"):
-            rd = ctx["research_data"]
-            msg += f"🔍 Research en live : {rd.get('sentiment','NEUTRAL').upper()} • Force {rd.get('strength',5)}/10\n"
-
-        # Touche perso + encouragement
-        msg += "\n💡 Je suis chaud pour qu’on avance. Dis-moi si tu veux que je force un trade précis ou qu’on analyse un symbole en détail, je gère."
-
-        # Sauvegarde conversation
-        AGENT_CHAT_MEMORY[chat_id].append({"role": "user", "content": question})
-        AGENT_CHAT_MEMORY[chat_id].append({"role": "assistant", "content": msg})
-
-        return msg
-
-    except Exception as e:
-        print(f"[SECRETARY-ERROR] {e}")
-        return "⚠️ Petite glitch, je recalcule en 2 secondes. En attendant, dis-moi ce que tu veux vraiment faire ?"
+Starting Container
+[WS] Thread WebSocket démarré
+Serveur HTTP port 8000
+[WS] Connecté à Binance WebSocket ✅
+[WS] Pré-remplissage buffers depuis Binance REST...
+Webhook: https://web-production-52b6c.up.railway.app/webhook
+Bot v7.1 prêt — /start | /resume | /agent (chat) | /agent_stop
+[WS] Pré-remplissage terminé ✅
+[PERF] Trades: 0 | Winrate: 0.0
+[PERF] Trades: 0 | Winrate: 0.0
+[PERF] Trades: 0 | Winrate: 0.0
+[PERF] Trades: 0 | Winrate: 0.0
+[PERF] Trades: 0 | Winrate: 0.0
+[PERF] Trades: 0 | Winrate: 0.0
+[PERF] Trades: 0 | Winrate: 0.0
+[PERF] Trades: 0 | Winrate: 0.0
+[PERF] Trades: 0 | Winrate: 0.0
+[PERF] Trades: 0 | Winrate: 0.0
+[PERF] Trades: 0 | Winrate: 0.0
+[PERF] Trades: 0 | Winrate: 0.0
+[PERF] Trades: 0 | Winrate: 0.0
+[PERF] Trades: 0 | Winrate: 0.0
+[PERF] Trades: 0 | Winrate: 0.0
+[PERF] Trades: 0 | Winrate: 0.0
+[PERF] Trades: 0 | Winrate: 0.0
+[PERF] Trades: 0 | Winrate: 0.0
+[PERF] Trades: 0 | Winrate: 0.0
+[PERF] Trades: 0 | Winrate: 0.0
+[PERF] Trades: 0 | Winrate: 0.0
+[PERF] Trades: 0 | Winrate: 0.0
+[PERF] Trades: 0 | Winrate: 0.0
+[PERF] Trades: 0 | Winrate: 0.0
+[PERF] Trades: 0 | Winrate: 0.0
+[PERF] Trades: 0 | Winrate: 0.0
+[PERF] Trades: 0 | Winrate: 0.0
+[AI] groq ✅ BUY 0%
+[PERF] Trades: 0 | Winrate: 0.0
+[PERF] Trades: 0 | Winrate: 0.0
+[PERF] Trades: 0 | Winrate: 0.0
+[AI] huggingface err: HF HTTP 400: {"error":{"message":"The requested
 # ═══════════════════════════════════════════════════════════════
 #  HANDLERS MODE SECRÉTAIRE (obligatoires)
 # ═══════════════════════════════════════════════════════════════
