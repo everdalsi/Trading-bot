@@ -1,8 +1,3 @@
-from agents.analyst_agent import AnalystAgent
-from agents.risk_agent import RiskAgent
-from agents.trader_agent import TraderAgent
-from agents.supervisor_agent import SupervisorAgent
-
 class Orchestrator:
     def __init__(self):
         self.analyst = AnalystAgent()
@@ -10,15 +5,26 @@ class Orchestrator:
         self.trader = TraderAgent()
         self.supervisor = SupervisorAgent()
 
-    async def ask_all(self, question, context):
-        responses = []
+    async def run(self, market_data, memory):
 
-        for agent in [self.analyst, self.risk, self.trader]:
-            res = await agent.respond(question, context)
-            responses.append(res)
+        context = {
+            "market_data": market_data,
+            "memory": memory
+        }
 
-        context["agent_outputs"] = responses
+        # 1. ANALYST
+        analysis = await self.analyst.respond("analyze", context)
+        context["analysis"] = analysis
 
-        final = await self.supervisor.respond(question, context)
+        # 2. RISK
+        risk = await self.risk.respond("assess_risk", context)
+        context["risk"] = risk
 
-        return responses, final
+        # 3. TRADER
+        decision = await self.trader.respond("decide", context)
+        context["decision"] = decision
+
+        # 4. SUPERVISOR 🔥
+        final = await self.supervisor.respond("validate", context)
+
+        return final
