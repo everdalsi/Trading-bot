@@ -30,34 +30,6 @@
         "open_time": 1774285567.7282703,
         "kelly_pct": 0.05,
         "pos_key": "MEME_7_166"
-      },
-      "MEME_Ghibli_306": {
-        "id": 306,
-        "symbol": "Ghibli",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "Ghibli",
-        "price_in": 0.0006253,
-        "price_out": null,
-        "qty": 6.375085682205334e+86,
-        "amount_usd": 3.9863410770829947e+83,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-24 11:12:05",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0006253,
-        "open_time": 1774350725.9679737,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_Ghibli_306"
       }
     },
     "trades": [
