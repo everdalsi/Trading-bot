@@ -10385,17 +10385,6 @@
   "memory": {
     "lessons": [
       {
-        "trade_id": 364,
-        "pnl": 7.323044244337457e+84,
-        "symbol": "Tsuki",
-        "market": "MEME",
-        "lecon": "Scalp rapide gagnant",
-        "pattern": "memecoin",
-        "action_future": "Conserver ce setup pour micro-trading",
-        "type": "succes",
-        "date": "2026-03-24 14:31"
-      },
-      {
         "trade_id": 365,
         "pnl": 8.12514936491646e+84,
         "symbol": "Tsuki",
@@ -15883,6 +15872,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-24 19:03"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -0.9032,
+        "symbol": "BTCUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-24 19:04"
       }
     ],
     "patterns_to_avoid": [
