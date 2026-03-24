@@ -8197,28 +8197,6 @@
   "memory": {
     "lessons": [
       {
-        "trade_id": 168,
-        "pnl": 9.463137511512679e+52,
-        "symbol": "LOL",
-        "market": "MEME",
-        "lecon": "Scalp rapide gagnant",
-        "pattern": "memecoin",
-        "action_future": "Conserver ce setup pour micro-trading",
-        "type": "succes",
-        "date": "2026-03-23 18:23"
-      },
-      {
-        "trade_id": 169,
-        "pnl": 9.894729777576421e+52,
-        "symbol": "LOL",
-        "market": "MEME",
-        "lecon": "Scalp rapide gagnant",
-        "pattern": "memecoin",
-        "action_future": "Conserver ce setup pour micro-trading",
-        "type": "succes",
-        "date": "2026-03-23 18:24"
-      },
-      {
         "trade_id": 170,
         "pnl": 1.0625151427475732e+53,
         "symbol": "LOL",
@@ -10395,6 +10373,28 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-24 05:53"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -0.0084,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-24 05:53"
+      },
+      {
+        "trade_id": -2,
+        "pnl": -1.8177,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-24 05:53"
       }
     ],
     "patterns_to_avoid": [
@@ -10441,8 +10441,8 @@
       "memecoin",
       "memecoin",
       "memecoin",
-      "memecoin",
-      "memecoin",
+      "backtest_5m",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -10607,7 +10607,7 @@
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -13,
+      "SOLUSDT": -15,
       "Computer": 15,
       "CHIBILAND": -13,
       "USDUC": 4,
