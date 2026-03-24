@@ -16,6 +16,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse
 from collections import defaultdict, deque
+from agents.orchestrator import Orchestrator
 
 try:
     import websocket
@@ -3471,6 +3472,65 @@ def _auth(update: Update) -> bool:
     expected = str(TELEGRAM_CHAT_ID)
     return secure_compare(chat_id, expected)
 
+async def cmd_ask(update, context):
+    try:
+        if not context.args:
+            await update.message.reply_text("Usage: /ask <agent> <question>")
+            return
+
+        agent_name = context.args[0]
+        question = " ".join(context.args[1:])
+
+        sim = load_json("sim_portfolio_v7.json", {})
+
+        ctx = {
+            "sim": sim,
+            "kelly": 0.22,
+            "drawdown": -0.1,
+            "macro": "neutral"
+        }
+
+        responses, final = await orchestrator.ask_all(question, ctx)
+
+        msg = "🧠 Réponses agents:\n\n"
+
+        for r in responses:
+            msg += f"🔹 {r['agent']} → {r['summary']}\n"
+
+        msg += f"\n👑 FINAL:\n{final['arguments'][0]}"
+
+        await update.message.reply_text(msg)
+
+    except Exception as e:
+        await update.message.reply_text(f"Erreur: {e}")
+
+async def cmd_debate(update, context):
+    try:
+        question = " ".join(context.args)
+
+        sim = load_json("sim_portfolio_v7.json", {})
+
+        ctx = {
+            "sim": sim,
+            "kelly": 0.22,
+            "drawdown": -0.1,
+            "macro": "neutral"
+        }
+
+        responses, final = await orchestrator.ask_all(question, ctx)
+
+        msg = f"🔥 DÉBAT: {question}\n\n"
+
+        for r in responses:
+            msg += f"🧠 {r['agent']}:\n{r['summary']}\n\n"
+
+        msg += f"👑 VERDICT:\n{final['arguments'][0]}"
+
+        await update.message.reply_text(msg)
+
+    except Exception as e:
+        await update.message.reply_text(f"Erreur: {e}")
+
 async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
     if not check_rate_limit(f"cmd_{update.effective_chat.id}", 10, 60):
@@ -4027,6 +4087,8 @@ async def run_telegram():
         _app.add_handler(CommandHandler(cmd, fn))
     _app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_agent_chat))
     _app.add_error_handler(telegram_error_handler)
+    app.add_handler(CommandHandler("ask", cmd_ask))
+app.add_handler(CommandHandler("debate", cmd_debate))
     await _app.initialize()
     await _app.start()
     if WEBHOOK_URL:
