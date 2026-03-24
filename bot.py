@@ -141,19 +141,13 @@ INTERVAL_MAP = {
     "60":"1h","120":"2h","240":"4h","D":"1d","1D":"1d"
 }
 
+# Coins solides uniquement (nettoyé des shitcoins)
 CRYPTO_SYMBOLS = [
-    "BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT","XRPUSDT",
-    "DOGEUSDT","ADAUSDT","AVAXUSDT","MATICUSDT","LINKUSDT",
-    "DOTUSDT","UNIUSDT","ATOMUSDT","LTCUSDT","NEARUSDT",
-    "APTUSDT","ARBUSDT","OPUSDT","INJUSDT","SUIUSDT",
-    "FETUSDT","RENDERUSDT","WLDUSDT","STRKUSDT","PYTHUSDT",
-    "JUPUSDT","TIAUSDT","SEIUSDT","ENAUSDT","EIGENUSDT",
+    "BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT","XRPUSDT","DOGEUSDT","ADAUSDT",
+    "AVAXUSDT","LINKUSDT","DOTUSDT","UNIUSDT","LTCUSDT","NEARUSDT","APTUSDT",
+    "ARBUSDT","OPUSDT","INJUSDT","SUIUSDT","FETUSDT","RENDERUSDT"
 ]
-MICRO_SYMBOLS = [
-    "BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT","XRPUSDT",
-    "DOGEUSDT","AVAXUSDT","LINKUSDT","ARBUSDT","APTUSDT",
-    "FETUSDT","INJUSDT","NEARUSDT","SUIUSDT","OPUSDT",
-]
+MICRO_SYMBOLS = CRYPTO_SYMBOLS[:12]
 MEMECOIN_SOLANA = ["BONKUSDT","WIFUSDT","POPCATUSDT","JUPUSDT"]
 MEMECOIN_ETH    = ["SHIBUSDT","FLOKIUSDT","PEPEUSDT","DOGEUSDT"]
 STOCKS_SYMBOLS = {
@@ -816,7 +810,13 @@ def kelly_criterion(n_recent: int=30) -> float:
         return MAX_PCT_PER_TRADE
     b = avg_win/avg_loss
     kelly = (p*b - q) / b
-    return round(max(0.03, min(MAX_PCT_PER_TRADE, kelly/4)), 3)
+    base = round(max(0.03, min(MAX_PCT_PER_TRADE, kelly/4)), 3)
+
+    # Boost Fear extrême
+    fg = get_fear_greed_value()
+    if fg < 25:
+        base = min(0.25, base * 1.3)
+    return base
 
 def dynamic_position_size(confidence: int, market: str, symbol: str) -> float:
     base        = kelly_criterion(30)
