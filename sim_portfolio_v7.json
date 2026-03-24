@@ -8197,28 +8197,6 @@
   "memory": {
     "lessons": [
       {
-        "trade_id": 214,
-        "pnl": 1.3759420525024054e+72,
-        "symbol": "PIXELS",
-        "market": "MEME",
-        "lecon": "Scalp rapide gagnant",
-        "pattern": "memecoin",
-        "action_future": "Conserver ce setup pour micro-trading",
-        "type": "succes",
-        "date": "2026-03-23 21:36"
-      },
-      {
-        "trade_id": 215,
-        "pnl": 1.1079677091458503e+73,
-        "symbol": "PIXELS",
-        "market": "MEME",
-        "lecon": "Scalp rapide gagnant",
-        "pattern": "memecoin",
-        "action_future": "Conserver ce setup pour micro-trading",
-        "type": "succes",
-        "date": "2026-03-23 21:37"
-      },
-      {
         "trade_id": 216,
         "pnl": -4.3280367858337803e+70,
         "symbol": "Clippy",
@@ -10395,14 +10373,36 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-24 06:16"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -0.5759,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-24 06:16"
+      },
+      {
+        "trade_id": -2,
+        "pnl": -1.6244,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-24 06:16"
       }
     ],
     "patterns_to_avoid": [
       "memecoin",
       "memecoin",
       "memecoin",
-      "memecoin",
-      "memecoin",
+      "backtest_5m",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
