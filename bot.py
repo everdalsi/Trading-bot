@@ -4143,17 +4143,17 @@ async def _ask_agent_multi(chat_id: int, query: str) -> str:
 # ═══════════════════════════════════════════════════════════════
 
 async def _ask_secretary(chat_id: int, question: str) -> str:
-    """Agent Conscience — Une seule voix naturelle (comme Grok)"""
+    """Agent Conscience — UNE SEULE VOIX naturelle (comme Grok)"""
     try:
         ctx = _build_multi_agent_context()
         responses, final = await orchestrator.ask_all(question, ctx)
 
-        # === Réponse ultra-naturelle, fluide, une seule personne ===
+        # === Réponse 100% naturelle, une seule personne ===
         msg = "🧠 **Hey boss**, c’est ton Agent Conscience qui te parle !\n\n"
         msg += f"**Ta question :** {question}\n\n"
 
-        # On prend la synthèse finale du Supervisor (le CEO de l’équipe)
-        synthesis = final.get("full_summary") or final.get("summary", "J’ai analysé la situation avec toute l’équipe.")
+        # On prend UNIQUEMENT la synthèse finale du CEO (Supervisor)
+        synthesis = final.get("full_summary") or final.get("summary", "J’ai consulté toute l’équipe.")
         recommendation = final.get("recommendation", "")
 
         msg += f"{synthesis}\n\n"
@@ -4163,7 +4163,7 @@ async def _ask_secretary(chat_id: int, question: str) -> str:
 
         msg += "Je suis chaud. Dis-moi si tu veux que je force un trade précis, qu’on analyse un symbole en détail, ou qu’on ajuste la stratégie — je gère tout pour toi."
 
-        # Sauvegarde mémoire conversation
+        # Sauvegarde de la conversation
         AGENT_CHAT_MEMORY[chat_id].append({"role": "user", "content": question})
         AGENT_CHAT_MEMORY[chat_id].append({"role": "assistant", "content": msg})
 
@@ -4172,18 +4172,6 @@ async def _ask_secretary(chat_id: int, question: str) -> str:
     except Exception as e:
         print(f"[SECRETARY-ERROR] {e}")
         return "⚠️ Petite erreur interne, je réessaie dans 2 secondes frérot."
-
-
-async def cmd_agent(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not _auth(update):
-        return
-    AGENT_CHAT_SESSIONS.add(TELEGRAM_CHAT_ID)
-    await update.message.reply_text(
-        "🧠 **Mode Secrétaire activé**\n\n"
-        "Pose-moi n’importe quelle question (ex: « Analyse mon portefeuille », « Tu te sens prêt pour du vrai argent ? »...)\n"
-        "Je consulte tous les agents et te réponds de façon naturelle.\n\n"
-        "Tape /agent_stop pour quitter le mode secrétaire."
-    )
 
 async def cmd_agent_stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not _auth(update):
