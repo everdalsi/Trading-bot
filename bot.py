@@ -4167,7 +4167,7 @@ async def _ask_secretary(chat_id: int, question: str) -> str:
     try:
         ctx = _build_multi_agent_context()
         
-        # Enrichissement avec ResearchAgent si un symbole est mentionné
+        # Détection symbole si besoin
         symbol = None
         for s in CRYPTO_SYMBOLS:
             if s in question.upper():
@@ -4178,37 +4178,32 @@ async def _ask_secretary(chat_id: int, question: str) -> str:
 
         responses, final = await orchestrator.ask_all(question, ctx)
 
-        # === STYLE GROK : réponse naturelle, engageante et actionable ===
-        msg = f"🧠 **Hey, c’est ton Agent Conscience qui te parle !**\n\n"
-        msg += f"**Question :** {question}\n\n"
+        # === STYLE GROK FULL : conversationnel, direct, avec personnalité ===
+        msg = f"🧠 **Hey boss, c’est ton Agent Conscience qui te parle !**\n\n"
+        msg += f"**Ta question :** {question}\n\n"
 
-        # Résumé fluide des agents (pas de liste sèche)
-        insights = []
-        for r in responses:
-            agent = r.get('agent', '').title()
-            summary = r.get('summary', '')
-            if agent and summary:
-                insights.append(f"→ {agent} dit : {summary}")
-
+        # On intègre les insights de façon fluide, sans liste robotique
+        insights = [r.get('summary', '') for r in responses if r.get('summary')]
         if insights:
-            msg += "\n".join(insights[:4]) + "\n\n"
+            msg += " ".join(insights[:3]) + "\n\n"
 
-        # Synthèse finale + recommandation claire et humaine
-        final_text = final.get("arguments", [""])[0] if final.get("arguments") else final.get("summary", "")
-        if final_text:
-            msg += f"**👑 Ce que je pense vraiment (CEO) :** {final_text}\n\n"
+        # Synthèse CEO naturelle et motivante
+        final_text = final.get("arguments", [""])[0] if final.get("arguments") else final.get("summary", "Je n’ai pas de synthèse claire pour l’instant.")
+        msg += f"**👑 Ce que je pense vraiment :** {final_text}\n\n"
 
+        # Action recommandée ultra-claire
         if final.get("recommendation"):
-            msg += f"✅ **Action recommandée :** {final['recommendation']}\n\n"
+            msg += f"✅ **Ma décision :** {final['recommendation']}\n\n"
 
-        # Ajout de données clés de façon naturelle
-        if "research_data" in ctx and ctx["research_data"]:
+        # Recherche rapide intégrée naturellement
+        if ctx.get("research_data"):
             rd = ctx["research_data"]
-            msg += f"🔍 **Research rapide :** {rd.get('sentiment','').upper()} • Force {rd.get('strength',0)}/10\n"
+            msg += f"🔍 Research en live : {rd.get('sentiment','NEUTRAL').upper()} • Force {rd.get('strength',5)}/10\n"
 
-        msg += "\n💡 *Ton équipe a bossé en temps réel. Si tu veux creuser un symbole ou une stratégie précise, dis-moi, je suis là.*"
+        # Touche perso + encouragement
+        msg += "\n💡 Je suis chaud pour qu’on avance. Dis-moi si tu veux que je force un trade précis ou qu’on analyse un symbole en détail, je gère."
 
-        # Sauvegarde de la conversation
+        # Sauvegarde conversation
         AGENT_CHAT_MEMORY[chat_id].append({"role": "user", "content": question})
         AGENT_CHAT_MEMORY[chat_id].append({"role": "assistant", "content": msg})
 
@@ -4216,7 +4211,7 @@ async def _ask_secretary(chat_id: int, question: str) -> str:
 
     except Exception as e:
         print(f"[SECRETARY-ERROR] {e}")
-        return "⚠️ Petite erreur interne, je réessaie dans 2 secondes. En attendant, dis-moi ce que tu veux faire ?"
+        return "⚠️ Petite glitch, je recalcule en 2 secondes. En attendant, dis-moi ce que tu veux vraiment faire ?"
 # ═══════════════════════════════════════════════════════════════
 #  HANDLERS MODE SECRÉTAIRE (obligatoires)
 # ═══════════════════════════════════════════════════════════════
