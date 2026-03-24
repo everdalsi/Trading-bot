@@ -19,249 +19,248 @@ from agents.supervisor_agent import SupervisorAgent
 from agents.learning_agent import LearningAgent
 from agents.performance_tracker import PerformanceTracker
 
+
 class Orchestrator:
 
-```
-def __init__(self):
-    self.analyst    = AnalystAgent()
-    self.risk       = RiskAgent()
-    self.trader     = TraderAgent()
-    self.supervisor = SupervisorAgent()
-    self.learning   = LearningAgent()
-    self.performance = PerformanceTracker()
+    def __init__(self):
+        self.analyst    = AnalystAgent()
+        self.risk       = RiskAgent()
+        self.trader     = TraderAgent()
+        self.supervisor = SupervisorAgent()
+        self.learning   = LearningAgent()
+        self.performance = PerformanceTracker()
 
-# ─────────────────────────────────────────────────────────────
-#  ask_all — Interroge tous les agents en parallèle
-# ─────────────────────────────────────────────────────────────
-async def ask_all(
-    self, question: str, context: dict
-) -> Tuple[List[Dict], Dict]:
-    """
-    Lance tous les agents en parallèle, enrichit le contexte
-    avec leurs résultats, puis demande au Supervisor de synthétiser.
-    """
-    print(f"[ORCHESTRATOR] ask_all → {question[:80]}...")
+    # ─────────────────────────────────────────────────────────────
+    #  ask_all — Interroge tous les agents en parallèle
+    # ─────────────────────────────────────────────────────────────
+    async def ask_all(
+        self, question: str, context: dict
+    ) -> Tuple[List[Dict], Dict]:
+        """
+        Lance tous les agents en parallèle, enrichit le contexte
+        avec leurs résultats, puis demande au Supervisor de synthétiser.
+        """
+        print(f"[ORCHESTRATOR] ask_all → {question[:80]}...")
 
-    # === Enrichir le contexte avec les stats de mémoire infinie ===
-    enriched_ctx = self._enrich_context(context)
+        # === Enrichir le contexte avec les stats de mémoire infinie ===
+        enriched_ctx = self._enrich_context(context)
 
-    tasks = [
-        self.analyst.respond(question, enriched_ctx),
-        self.risk.respond(question, enriched_ctx),
-        self.trader.respond(question, enriched_ctx),
-        self.learning.respond(question, enriched_ctx),
-    ]
+        tasks = [
+            self.analyst.respond(question, enriched_ctx),
+            self.risk.respond(question, enriched_ctx),
+            self.trader.respond(question, enriched_ctx),
+            self.learning.respond(question, enriched_ctx),
+        ]
 
-    results = await asyncio.gather(*tasks, return_exceptions=True)
+        results = await asyncio.gather(*tasks, return_exceptions=True)
 
-    responses = []
-    agent_names = ["analyst", "risk", "trader", "learning"]
-    for i, res in enumerate(results):
-        if isinstance(res, Exception):
-            responses.append({
-                "agent": agent_names[i],
-                "summary": f"Erreur interne: {str(res)[:100]}",
-                "arguments": [],
-                "risks": [],
-                "confidence": 0.0,
-                "recommendation": "Vérifier l'agent",
-            })
-        else:
-            responses.append(res)
+        responses = []
+        agent_names = ["analyst", "risk", "trader", "learning"]
+        for i, res in enumerate(results):
+            if isinstance(res, Exception):
+                responses.append({
+                    "agent": agent_names[i],
+                    "summary": f"Erreur interne: {str(res)[:100]}",
+                    "arguments": [],
+                    "risks": [],
+                    "confidence": 0.0,
+                    "recommendation": "Vérifier l'agent",
+                })
+            else:
+                responses.append(res)
 
-    # Extraire trader et risk pour le supervisor
-    trader_resp = next((r for r in responses if r.get("agent") == "trader"), {})
-    risk_resp   = next((r for r in responses if r.get("agent") == "risk"), {})
+        # Extraire trader et risk pour le supervisor
+        trader_resp = next((r for r in responses if r.get("agent") == "trader"), {})
+        risk_resp   = next((r for r in responses if r.get("agent") == "risk"), {})
 
-    supervisor_ctx = {
-        **enriched_ctx,
-        "agent_outputs": responses,
-        "trader_decision": trader_resp,
-        "risk": risk_resp,
-        "score": enriched_ctx.get("global_score", 0.5),
-    }
-
-    final = await self.supervisor.respond(question, supervisor_ctx)
-
-    print(
-        f"[ORCHESTRATOR] ask_all terminé → {len(responses)} réponses | "
-        f"Final: {final.get('summary', '')[:80]}..."
-    )
-    return responses, final
-
-# ─────────────────────────────────────────────────────────────
-#  run — Pipeline de trading complet
-# ─────────────────────────────────────────────────────────────
-async def run(self, market_data: dict, memory: dict) -> Dict[str, Any]:
-    """
-    Pipeline complet : blacklist check → analyse → risk → trade → décision.
-    """
-    symbol = market_data.get("symbol", "UNKNOWN")
-
-    context = {
-        "symbol": symbol,
-        "market_data": market_data,
-        "memory": memory,
-        "sim": memory.get("sim", {}),
-        "base_confidence": 0.65,
-    }
-
-    # === Enrichir avec mémoire infinie + perf tracker ===
-    context = self._enrich_context(context)
-
-    # === Blacklist check via LearningAgent ===
-    blacklist_check = await self.learning.respond(
-        "should I blacklist this symbol?", context
-    )
-    if blacklist_check.get("recommendation", "").lower().startswith("⛔"):
-        return {
-            "decision": "NO TRADE",
-            "reason": "learning_blacklist",
-            "score": 0.0,
+        supervisor_ctx = {
+            **enriched_ctx,
+            "agent_outputs": responses,
+            "trader_decision": trader_resp,
+            "risk": risk_resp,
+            "score": enriched_ctx.get("global_score", 0.5),
         }
 
-    try:
-        # === Analyses parallèles ===
-        analysis, risk_result, trader_decision = await asyncio.gather(
-            self.analyst.respond("analyze current market", context),
-            self.risk.respond("assess risk", context),
-            self.trader.respond("make trading decision", context),
+        final = await self.supervisor.respond(question, supervisor_ctx)
+
+        print(
+            f"[ORCHESTRATOR] ask_all terminé → {len(responses)} réponses | "
+            f"Final: {final.get('summary', '')[:80]}..."
         )
+        return responses, final
 
-        context.update({
-            "analysis": analysis,
-            "risk": risk_result,
-            "trader_decision": trader_decision,
-        })
+    # ─────────────────────────────────────────────────────────────
+    #  run — Pipeline de trading complet
+    # ─────────────────────────────────────────────────────────────
+    async def run(self, market_data: dict, memory: dict) -> Dict[str, Any]:
+        """
+        Pipeline complet : blacklist check → analyse → risk → trade → décision.
+        """
+        symbol = market_data.get("symbol", "UNKNOWN")
 
-        # === Score final via LearningAgent ===
-        learning_result = await self.learning.respond(
-            "compute global and symbol score", context
+        context = {
+            "symbol": symbol,
+            "market_data": market_data,
+            "memory": memory,
+            "sim": memory.get("sim", {}),
+            "base_confidence": 0.65,
+        }
+
+        # === Enrichir avec mémoire infinie + perf tracker ===
+        context = self._enrich_context(context)
+
+        # === Blacklist check via LearningAgent ===
+        blacklist_check = await self.learning.respond(
+            "should I blacklist this symbol?", context
         )
-
-        final_score = learning_result.get("confidence", 0.5)
-        context["score"] = final_score
-
-        # === Décision finale via Supervisor ===
-        final = await self.supervisor.respond("validate final decision", context)
-
-        if not final or final.get("decision") == "NO TRADE":
+        if blacklist_check.get("recommendation", "").lower().startswith("⛔"):
             return {
                 "decision": "NO TRADE",
-                "reason": final.get("reason", "supervisor_rejected"),
-                "score": final_score,
+                "reason": "learning_blacklist",
+                "score": 0.0,
             }
 
-        # === Position sizing ===
-        position_size = self.get_position_size(
-            balance=1000,
-            risk_per_trade=0.02,
-            confidence=final_score,
-        )
-        final["position_size"] = position_size
+        try:
+            # === Analyses parallèles ===
+            analysis, risk_result, trader_decision = await asyncio.gather(
+                self.analyst.respond("analyze current market", context),
+                self.risk.respond("assess risk", context),
+                self.trader.respond("make trading decision", context),
+            )
 
-        # === Logging du trade ===
-        if final.get("decision") in ("BUY", "SELL"):
-            trade_entry = {
-                "symbol": symbol,
-                "decision": final["decision"],
-                "confidence": final_score,
-                "result": "pending",
-                "timestamp": "now",
-            }
-            try:
-                memory.setdefault("trades", []).append(trade_entry)
-            except Exception:
-                pass
-            try:
-                self.performance.log_trade({
+            context.update({
+                "analysis": analysis,
+                "risk": risk_result,
+                "trader_decision": trader_decision,
+            })
+
+            # === Score final via LearningAgent ===
+            learning_result = await self.learning.respond(
+                "compute global and symbol score", context
+            )
+
+            final_score = learning_result.get("confidence", 0.5)
+            context["score"] = final_score
+
+            # === Décision finale via Supervisor ===
+            final = await self.supervisor.respond("validate final decision", context)
+
+            if not final or final.get("decision") == "NO TRADE":
+                return {
+                    "decision": "NO TRADE",
+                    "reason": final.get("reason", "supervisor_rejected"),
+                    "score": final_score,
+                }
+
+            # === Position sizing ===
+            position_size = self.get_position_size(
+                balance=1000,
+                risk_per_trade=0.02,
+                confidence=final_score,
+            )
+            final["position_size"] = position_size
+
+            # === Logging du trade ===
+            if final.get("decision") in ("BUY", "SELL"):
+                trade_entry = {
                     "symbol": symbol,
                     "decision": final["decision"],
                     "confidence": final_score,
-                })
-            except Exception:
-                pass
+                    "result": "pending",
+                    "timestamp": "now",
+                }
+                try:
+                    memory.setdefault("trades", []).append(trade_entry)
+                except Exception:
+                    pass
+                try:
+                    self.performance.log_trade({
+                        "symbol": symbol,
+                        "decision": final["decision"],
+                        "confidence": final_score,
+                    })
+                except Exception:
+                    pass
 
-        print(
-            f"\n===== ORCHESTRATOR DECISION =====\n"
-            f"Symbol     : {symbol}\n"
-            f"Score final: {final_score:.3f}\n"
-            f"Decision   : {final.get('decision')}\n"
-            f"Position   : ${position_size}\n"
-            f"Reason     : {final.get('reason', 'N/A')}\n"
-            f"================================="
-        )
-        return final
+            print(
+                f"\n===== ORCHESTRATOR DECISION =====\n"
+                f"Symbol     : {symbol}\n"
+                f"Score final: {final_score:.3f}\n"
+                f"Decision   : {final.get('decision')}\n"
+                f"Position   : ${position_size}\n"
+                f"Reason     : {final.get('reason', 'N/A')}\n"
+                f"================================="
+            )
+            return final
 
-    except Exception as e:
-        print(f"[ORCHESTRATOR ERROR] {e}")
-        return {"decision": "ERROR", "reason": str(e)[:100], "score": 0.0}
+        except Exception as e:
+            print(f"[ORCHESTRATOR ERROR] {e}")
+            return {"decision": "ERROR", "reason": str(e)[:100], "score": 0.0}
 
-# ─────────────────────────────────────────────────────────────
-#  ENRICHISSEMENT DU CONTEXTE
-# ─────────────────────────────────────────────────────────────
-def _enrich_context(self, context: dict) -> dict:
-    """
-    Enrichit le contexte avec :
-      - Stats mémoire infinie (LearningAgent DB)
-      - Stats PerformanceTracker temps réel
-    """
-    enriched = dict(context)
+    # ─────────────────────────────────────────────────────────────
+    #  ENRICHISSEMENT DU CONTEXTE
+    # ─────────────────────────────────────────────────────────────
+    def _enrich_context(self, context: dict) -> dict:
+        """
+        Enrichit le contexte avec :
+          - Stats mémoire infinie (LearningAgent DB)
+          - Stats PerformanceTracker temps réel
+        """
+        enriched = dict(context)
 
-    try:
-        # Stats depuis la mémoire infinie (DB)
-        symbol = context.get("symbol")
-        global_stats  = self.learning.get_global_stats_db(window=100)
-        symbol_stats  = self.learning.get_symbol_stats_db(symbol, window=20) if symbol else global_stats
-        best_patterns = self.learning.get_best_patterns(symbol, limit=3)
-        worst_patterns= self.learning.get_worst_patterns(symbol, limit=3)
-        auto_rules    = self.learning.get_auto_rules()
-        insights      = self.learning.get_active_insights(limit=3)
-        lesson_count  = self.learning.get_lesson_count()
+        try:
+            # Stats depuis la mémoire infinie (DB)
+            symbol = context.get("symbol")
+            global_stats  = self.learning.get_global_stats_db(window=100)
+            symbol_stats  = self.learning.get_symbol_stats_db(symbol, window=20) if symbol else global_stats
+            best_patterns = self.learning.get_best_patterns(symbol, limit=3)
+            worst_patterns= self.learning.get_worst_patterns(symbol, limit=3)
+            auto_rules    = self.learning.get_auto_rules()
+            insights      = self.learning.get_active_insights(limit=3)
+            lesson_count  = self.learning.get_lesson_count()
 
-        enriched.update({
-            "global_score":   global_stats["score"],
-            "symbol_score":   symbol_stats["score"],
-            "lesson_count":   lesson_count,
-            "best_patterns":  best_patterns,
-            "worst_patterns": worst_patterns,
-            "auto_rules":     auto_rules,
-            "insights":       insights,
-        })
-    except Exception as e:
-        print(f"[ORCHESTRATOR] enrich learning error: {e}")
-
-    try:
-        # Stats depuis PerformanceTracker
-        memory = context.get("memory", {})
-        if memory:
-            stats = self.performance.get_global_stats(memory)
             enriched.update({
-                "wr_live":       stats["winrate"],
-                "wins_live":     stats["wins"],
-                "losses_live":   stats["losses"],
-                "total_trades":  stats["total_trades"],
-                "sharpe":        stats.get("sharpe", 0.0),
-                "profit_factor": stats.get("profit_factor", 0.0),
-                "streak_type":   stats.get("streak_type", "neutral"),
-                "streak_count":  stats.get("streak_count", 0),
-                "degraded":      stats.get("degraded", False),
+                "global_score":   global_stats["score"],
+                "symbol_score":   symbol_stats["score"],
+                "lesson_count":   lesson_count,
+                "best_patterns":  best_patterns,
+                "worst_patterns": worst_patterns,
+                "auto_rules":     auto_rules,
+                "insights":       insights,
             })
-    except Exception as e:
-        print(f"[ORCHESTRATOR] enrich perf error: {e}")
+        except Exception as e:
+            print(f"[ORCHESTRATOR] enrich learning error: {e}")
 
-    return enriched
+        try:
+            # Stats depuis PerformanceTracker
+            memory = context.get("memory", {})
+            if memory:
+                stats = self.performance.get_global_stats(memory)
+                enriched.update({
+                    "wr_live":       stats["winrate"],
+                    "wins_live":     stats["wins"],
+                    "losses_live":   stats["losses"],
+                    "total_trades":  stats["total_trades"],
+                    "sharpe":        stats.get("sharpe", 0.0),
+                    "profit_factor": stats.get("profit_factor", 0.0),
+                    "streak_type":   stats.get("streak_type", "neutral"),
+                    "streak_count":  stats.get("streak_count", 0),
+                    "degraded":      stats.get("degraded", False),
+                })
+        except Exception as e:
+            print(f"[ORCHESTRATOR] enrich perf error: {e}")
 
-# ─────────────────────────────────────────────────────────────
-#  POSITION SIZING
-# ─────────────────────────────────────────────────────────────
-def get_position_size(
-    self, balance: float, risk_per_trade: float, confidence: float
-) -> float:
-    try:
-        base_risk = balance * risk_per_trade
-        adjusted  = base_risk * max(0.3, confidence)
-        return round(adjusted, 2)
-    except Exception:
-        return 0.0
-```
+        return enriched
+
+    # ─────────────────────────────────────────────────────────────
+    #  POSITION SIZING
+    # ─────────────────────────────────────────────────────────────
+    def get_position_size(
+        self, balance: float, risk_per_trade: float, confidence: float
+    ) -> float:
+        try:
+            base_risk = balance * risk_per_trade
+            adjusted  = base_risk * max(0.3, confidence)
+            return round(adjusted, 2)
+        except Exception:
+            return 0.0
