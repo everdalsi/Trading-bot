@@ -1,5 +1,5 @@
 """
-🔍 RESEARCH AGENT ULTIME — Performance maximale + Smart Money + Order Book + Spoofing ULTRA AVANCÉ V3 + Wash Trading
+🔍 RESEARCH AGENT ULTIME — Performance maximale + Smart Money + Order Book + Spoofing Ultra Avancé V3 + Wash Trading Avancé
 """
 
 import asyncio
@@ -48,12 +48,12 @@ Retourne UNIQUEMENT JSON valide :
         except:
             pass
 
-        # 2. On-chain + TA + SMART MONEY + ORDER BOOK + SPOOFING ULTRA AVANCÉ V3 + WASH TRADING
+        # 2. On-chain + TA + SMART MONEY + ORDER BOOK + SPOOFING ULTRA AVANCÉ V3 + WASH TRADING AVANCÉ
         onchain = {}
         smart_money = {"score": 5, "signal": "neutral", "alerts": 0}
         order_book = {"ratio": 1.0, "pressure": "neutre", "wall_size": 0, "depth_ratio": 1.0}
         spoofing = {"detected": False, "score": 0, "level": "none", "reason": "", "algo": "ultra_advanced_v3"}
-        wash_trading = {"detected": False, "score": 0, "level": "none", "reason": ""}
+        wash_trading = {"detected": False, "score": 0, "level": "none", "reason": "", "algo": "advanced_v2"}
 
         try:
             closes = get_klines_5m_cached(symbol)
@@ -98,56 +98,37 @@ Retourne UNIQUEMENT JSON valide :
             ob_wall_size = order_book.get("wall_size", 0)
             ob_depth_ratio = order_book.get("depth_ratio", 1.0)
 
-            # SPOOFING ULTRA AVANCÉ V3 — Algorithmes optimisés et pondérés
+            # SPOOFING ULTRA AVANCÉ V3 (conservé)
             spoof_score = 0.0
             spoof_reasons = []
-
-            # Algo 1: Extreme Layering / Iceberg (poids élevé)
             if ob_ratio > 9.0 or ob_ratio < 0.08:
                 spoof_score += 8.5
                 spoof_reasons.append("layering extrême / iceberg")
-
-            # Algo 2: Wall vs Real Depth Mismatch (poids élevé)
             if ob_wall_size > 600000 and ob_depth_ratio > 6.0:
                 spoof_score += 7.5
                 spoof_reasons.append("wall massif vs depth très faible")
-
-            # Algo 3: Volume Spike + Wall Correlation (poids très élevé)
             if volume_spike and (ob_ratio > 5.0 or ob_wall_size > 350000):
                 spoof_score += 9.0
                 spoof_reasons.append("spike volume + wall suspect")
-
-            # Algo 4: Pressure Imbalance + Rapid Wall Creation
             if ob_pressure in ("buy", "sell") and ob_ratio > 7.0 and ob_wall_size > 400000:
                 spoof_score += 6.0
                 spoof_reasons.append("pression unilatérale + wall soudain")
-
-            # Algo 5: Low Liquidity Spoof Filter (RSI + funding)
             if onchain.get("rsi", 50) < 35 and ob_wall_size > 300000 and funding < 0.0004:
                 spoof_score += 5.5
                 spoof_reasons.append("low liquidity + wall artificiel")
-
-            # Algo 6: Temporal Spoof Pattern (prix plat + wall massif + volume)
             if price_change_pct < 0.5 and ob_wall_size > 500000 and volume_spike:
                 spoof_score += 10.0
                 spoof_reasons.append("prix plat + wall massif + volume artificiel")
-
-            # Algo 7: Funding Anomaly + Wall (poids moyen)
             if abs(funding) < 0.0002 and ob_wall_size > 250000:
                 spoof_score += 4.5
                 spoof_reasons.append("funding anormalement bas + wall")
-
-            # Algo 8: Whale Activity vs Wall Mismatch (nouveau poids)
             if smart_money["alerts"] > 0 and ob_wall_size > 400000 and price_change_pct < 1.0:
                 spoof_score += 6.5
                 spoof_reasons.append("whale activity vs wall non corrélé")
-
-            # Algo 9: RSI + Order Book Divergence (nouveau)
             if (onchain.get("rsi", 50) < 30 or onchain.get("rsi", 50) > 70) and ob_ratio > 4.0:
                 spoof_score += 5.0
                 spoof_reasons.append("RSI extrême + order book divergence")
 
-            # Classification finale ultra-optimisée
             if spoof_score >= 14.0:
                 spoof_detected = True
                 spoof_level = "critical"
@@ -169,29 +150,48 @@ Retourne UNIQUEMENT JSON valide :
                 "algo": "ultra_advanced_v3"
             }
 
-            # Wash Trading (conservé tel quel)
-            wash_score = 0
+            # WASH TRADING AVANCÉ V2 — Algorithmes optimisés et pondérés
+            wash_score = 0.0
             wash_reasons = []
-            if volume_spike and price_change_pct < 0.8 and total_volume > 500000:
-                wash_score += 8
-                wash_reasons.append("volume élevé + prix quasi-stable")
-            if price_change_pct < 0.5 and total_volume > 800000:
-                wash_score += 6
-                wash_reasons.append("flat price + volume massif")
-            if onchain.get("rsi", 50) > 45 and onchain.get("rsi", 50) < 55 and volume_spike:
-                wash_score += 5
-                wash_reasons.append("RSI neutre + volume artificiel")
-            if funding < 0.0003 and total_volume > 1000000:
-                wash_score += 4
-                wash_reasons.append("funding faible + volume suspect")
 
-            if wash_score >= 10:
+            # Algo 1: Volume/Price Ratio Extrême (wash classique)
+            if volume_spike and price_change_pct < 0.6 and total_volume > 600000:
+                wash_score += 9.0
+                wash_reasons.append("volume massif + prix quasi-stable")
+
+            # Algo 2: Flat Price + Volume Massif (wash répété)
+            if price_change_pct < 0.4 and total_volume > 1000000:
+                wash_score += 8.5
+                wash_reasons.append("prix plat extrême + volume artificiel")
+
+            # Algo 3: RSI Neutre + Volume Spike (wash de consolidation)
+            if 45 < onchain.get("rsi", 50) < 55 and volume_spike and total_volume > 700000:
+                wash_score += 7.5
+                wash_reasons.append("RSI neutre + volume artificiel")
+
+            # Algo 4: Funding Anomaly + Volume (wash sur futures)
+            if abs(funding) < 0.00025 and total_volume > 1200000:
+                wash_score += 6.5
+                wash_reasons.append("funding très faible + volume suspect")
+
+            # Algo 5: Whale Activity + Wash Pattern (nouveau)
+            if smart_money["alerts"] > 0 and price_change_pct < 0.7 and total_volume > 800000:
+                wash_score += 7.0
+                wash_reasons.append("whale activity + wash pattern")
+
+            # Algo 6: Temporal Wash (volume constant sur plusieurs intervalles)
+            if price_change_pct < 0.3 and volume_spike:
+                wash_score += 8.0
+                wash_reasons.append("wash temporel répété")
+
+            # Classification finale
+            if wash_score >= 14.0:
                 wash_detected = True
                 wash_level = "critical"
-            elif wash_score >= 7:
+            elif wash_score >= 10.0:
                 wash_detected = True
                 wash_level = "high"
-            elif wash_score >= 4:
+            elif wash_score >= 6.0:
                 wash_detected = True
                 wash_level = "medium"
             else:
@@ -200,9 +200,10 @@ Retourne UNIQUEMENT JSON valide :
 
             wash_trading = {
                 "detected": wash_detected,
-                "score": min(10, wash_score),
+                "score": min(10, int(wash_score)),
                 "level": wash_level,
-                "reason": ", ".join(wash_reasons) if wash_reasons else "aucun"
+                "reason": ", ".join(wash_reasons) if wash_reasons else "aucun",
+                "algo": "advanced_v2"
             }
 
             onchain.update({
@@ -271,7 +272,7 @@ Retourne UNIQUEMENT JSON valide :
             "wash_trading_level": wash_trading["level"],
             "wash_trading_reason": wash_trading["reason"],
             "urgency": 9 if combined_strength >= 8 else 6,
-            "source": "Twitter KOLs + On-chain + TA + Smart Money + Order Book + Spoofing Ultra Avancé V3 + Wash Trading"
+            "source": "Twitter KOLs + On-chain + TA + Smart Money + Order Book + Spoofing Ultra Avancé V3 + Wash Trading Avancé V2"
         }
 
         self.cache[cache_key] = result
@@ -318,7 +319,8 @@ Retourne UNIQUEMENT JSON valide :
                 "detected": data["wash_trading_detected"],
                 "score": data["wash_trading_score"],
                 "level": data["wash_trading_level"],
-                "reason": data["wash_trading_reason"]
+                "reason": data["wash_trading_reason"],
+                "algo": "advanced_v2"
             },
             "urgency": data.get("urgency", 6),
             "source": "ULTIME multi-sources"
