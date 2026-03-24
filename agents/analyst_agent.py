@@ -7,12 +7,15 @@ class AnalystAgent(BaseAgent):
     async def respond(self, question, context):
         sim = context.get("sim", {})
 
-        trades = [t for t in sim.get("trades", []) if isinstance(t.get("pnl"), (int, float))]
-        valid_trades = [t for t in trades if t.get("pnl") is not None]
+trades = [
+    t for t in sim.get("trades", [])
+    if isinstance(t.get("pnl"), (int, float))
+]
 
-        wins = [t for t in trades if t["pnl"] > 0]
+wins = [t for t in trades if t["pnl"] > 0]
 
-        wr = (len(wins) / max(len(trades), 1)) * 100
+total = len(trades)
+wr = (len(wins) / total) * 100 if total > 0 else 0
 
         return {
             "agent": self.name,
