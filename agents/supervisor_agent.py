@@ -117,7 +117,7 @@ class SupervisorAgent(BaseAgent):
 
         confidence_final = round(max(0.50, min(0.95, (score + global_score) / 2 * 0.9)), 2)
 
-                return {
+        return {
             "agent": self.name,
             "decision": final_decision,
             "summary": (
