@@ -4152,9 +4152,12 @@ async def _ask_secretary(chat_id: int, question: str) -> str:
         msg = "🧠 **Hey boss**, c’est ton Agent Conscience qui te parle !\n\n"
         msg += f"**Ta question :** {question}\n\n"
 
-        # On prend UNIQUEMENT la synthèse finale du CEO (Supervisor)
+        # On prend UNIQUEMENT la synthèse finale du CEO
         synthesis = final.get("full_summary") or final.get("summary", "J’ai consulté toute l’équipe.")
         recommendation = final.get("recommendation", "")
+
+        # On nettoie les éventuels bullets qui pourraient rester
+        synthesis = synthesis.replace("• ", "").replace("- ", "").strip()
 
         msg += f"{synthesis}\n\n"
 
@@ -4163,7 +4166,7 @@ async def _ask_secretary(chat_id: int, question: str) -> str:
 
         msg += "Je suis chaud. Dis-moi si tu veux que je force un trade précis, qu’on analyse un symbole en détail, ou qu’on ajuste la stratégie — je gère tout pour toi."
 
-        # Sauvegarde de la conversation
+        # Sauvegarde conversation
         AGENT_CHAT_MEMORY[chat_id].append({"role": "user", "content": question})
         AGENT_CHAT_MEMORY[chat_id].append({"role": "assistant", "content": msg})
 
