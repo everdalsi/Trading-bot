@@ -17,10 +17,10 @@ class TraderAgent(BaseAgent):
         price = context.get("price")
         analysis = context.get("analysis", {})
         risk = context.get("risk", {})
-        learning = context.get("learning", {})          # résultat du LearningAgent
+        learning = context.get("learning", {})
         global_score = context.get("score", 0.5)
 
-        # Instance du LearningAgent pour réutiliser ses méthodes
+        # Instance du LearningAgent
         learning_agent = LearningAgent()
 
         # 1. BLACKLIST via LearningAgent
@@ -51,19 +51,19 @@ class TraderAgent(BaseAgent):
             reason = "Macro baissier + faible score learning"
         elif symbol_score > 0.75:
             decision = "BUY"
-            reason = "Score symbole très fort (indépendamment du macro)"
+            reason = "Score symbole très fort"
         elif symbol_score < 0.25:
             decision = "HOLD"
             reason = "Score symbole trop faible"
 
-        # 4. Anti-overtrading (évite de spammer le même symbole)
+        # 4. Anti-overtrading
         recent_trades = context.get("memory", {}).get("trades", [])[-8:]
         same_symbol = [t for t in recent_trades if t.get("symbol") == symbol]
         if len(same_symbol) >= 3:
             decision = "HOLD"
             reason = "Trop de trades récents sur ce symbole"
 
-        # 5. Ajustement final de confiance
+        # 5. Confiance finale
         confidence = round(max(0.1, min(0.95, global_score * 1.1 if decision != "HOLD" else 0.4)), 2)
 
         return {
