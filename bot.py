@@ -83,6 +83,9 @@ def secure_compare(a: str, b: str) -> bool:
 # ═══════════════════════════════════════════════════════════════
 #  CONFIG
 # ═══════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════
+#  CONFIG
+# ═══════════════════════════════════════════════════════════════
 GROQ_KEY = os.environ.get("GROQ_API_KEY")
 TELEGRAM_TOKEN   = os.environ.get("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
@@ -106,7 +109,7 @@ AGENT_CHAT_MEMORY = defaultdict(list)
 
 
 CAPITAL_INITIAL   = 1000.0
-MAX_POSITIONS     = 4
+MAX_POSITIONS     = 12          # ← augmenté pour plus de positions simultanées
 MAX_PCT_PER_TRADE = 0.25
 STOP_LOSS_PCT     = 0.025
 TAKE_PROFIT_PCT   = 0.04
@@ -142,9 +145,9 @@ MICRO_SL_PCT        = 0.008
 MICRO_TP_PCT        = 0.012
 MICRO_TRAILING_PCT  = 0.005
 MICRO_MAX_DURATION  = 90
-MICRO_MAX_PCT       = 0.10
-MICRO_CONF_MIN      = 72
-MAX_MICRO_POSITIONS = 3
+MICRO_MAX_PCT       = 0.25        # ← augmenté pour plus de volume en micro
+MICRO_CONF_MIN      = 35          # ← fortement baissé → beaucoup plus de micro-trades
+MAX_MICRO_POSITIONS = 15          # ← très augmenté pour maximiser l’entraînement
 
 MEME_SL_PCT       = 0.05
 MEME_TP_PCT       = 0.15
@@ -153,8 +156,8 @@ MEME_MAX_PCT      = 0.05
 MEME_MAX_DURATION = 300
 
 LEARN_MODE_ENABLED  = True
-LEARN_MODE_CONF_MIN = 45
-LEARN_MODE_MAX_PCT  = 0.05
+LEARN_MODE_CONF_MIN = 30          # ← très bas pour apprendre le plus vite possible
+LEARN_MODE_MAX_PCT  = 0.25        # ← taille des trades d’apprentissage augmentée
 
 GROQ_FAST_MODEL = "llama-3.1-8b-instant"
 DB_FILE   = "sim_v7.db"
@@ -1515,6 +1518,9 @@ def open_trade(analysis: dict, send_fn) -> dict | None:
 
     if not can_open_trade(symbol, market, send_fn):
         return None
+     # Ajoute juste après "if not can_open_trade(symbol, market, send_fn):"
+    if LEARN_MODE_ENABLED and conf >= LEARN_MODE_CONF_MIN:
+        result["_forced_pct"] = LEARN_MODE_MAX_PCT   # déjà présent, mais on force plus haut   
 
     # 🧠 AI FILTER — confidence
     confidence = get_symbol_confidence(symbol)
@@ -1824,23 +1830,19 @@ def run_micro_cycle(send_fn):
     max_micro = 1 if is_night_time() else MAX_MICRO_POSITIONS
     prices = get_prices_batch()
 
-    # Correction : on utilise la bonne fonction de mise à jour
+    # Mise à jour performance sur tous les symbols (déjà bon)
     for symbol, price in prices.items():
-        update_performance(memory, price)  # ← PAS de "memory ="
+        update_performance(memory, price)
 
     for symbol in MICRO_SYMBOLS:
-        if not bot_state["running"]:
-            break
-        if is_blacklisted(symbol):
-            continue
+        if not bot_state["running"]: break
+        if is_blacklisted(symbol): continue
         price = prices.get(symbol, 0)
-        if not price:
-            continue
+        if not price: continue
 
         micro_count = sum(1 for p in sim["positions"].values() if p.get("trade_type") == "MICRO")
-        if micro_count >= max_micro:
-            break
-        if any(p["symbol"] == symbol and p.get("trade_type") == "MICRO" for p in sim["positions"].values()):
+        if micro_count >= max_micro: break
+        if any(p["symbol"] == symbol and p.get("trade_type") == "MICRO" for p in sim["positions"].values()): 
             continue
 
         sig = micro_signal(symbol, price)
