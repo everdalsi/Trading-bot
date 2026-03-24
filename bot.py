@@ -4138,7 +4138,6 @@ async def _ask_agent_multi(chat_id: int, query: str) -> str:
 
     return msg
 
-
 # ═══════════════════════════════════════════════════════════════
 #  HANDLERS MODE SECRÉTAIRE (obligatoires)
 # ═══════════════════════════════════════════════════════════════
@@ -4158,7 +4157,7 @@ async def _ask_secretary(chat_id: int, question: str) -> str:
 
         responses, final = await orchestrator.ask_all(question, ctx)
 
-        # === STYLE GROK MAXIMAL + OVERRIDE APPRENTISSAGE ===
+        # STYLE GROK + OVERRIDE APPRENTISSAGE MAX
         msg = f"🧠 **Hey boss, c’est ton Agent Conscience qui te parle !**\n\n"
         msg += f"**Ta question :** {question}\n\n"
 
@@ -4183,7 +4182,6 @@ async def _ask_secretary(chat_id: int, question: str) -> str:
 
         msg += "\n💡 Je suis chaud. Dis-moi si tu veux que je force un trade précis ou qu’on analyse un symbole en détail, je gère tout."
 
-        # Sauvegarde conversation
         AGENT_CHAT_MEMORY[chat_id].append({"role": "user", "content": question})
         AGENT_CHAT_MEMORY[chat_id].append({"role": "assistant", "content": msg})
 
@@ -4192,6 +4190,18 @@ async def _ask_secretary(chat_id: int, question: str) -> str:
     except Exception as e:
         print(f"[SECRETARY-ERROR] {e}")
         return "⚠️ Petite glitch, je recalcule. Dis-moi ce que tu veux faire ?"
+
+
+async def cmd_agent(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not _auth(update):
+        return
+    AGENT_CHAT_SESSIONS.add(TELEGRAM_CHAT_ID)
+    await update.message.reply_text(
+        "🧠 **Mode Secrétaire activé**\n\n"
+        "Pose-moi n’importe quelle question (ex: « Analyse mon portefeuille », « Tu te sens prêt pour du vrai argent ? »...)\n"
+        "Je consulte tous les agents et te réponds de façon naturelle.\n\n"
+        "Tape /agent_stop pour quitter le mode secrétaire."
+    )
 
 async def cmd_agent_stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not _auth(update):
@@ -4218,6 +4228,14 @@ async def handle_agent_chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         print(f"[SECRETARY-CHAT] {e}")
         await update.message.reply_text("⚠️ Petite erreur interne, réessaie dans 2 secondes.")
+
+async def telegram_error_handler(update: object, ctx: ContextTypes.DEFAULT_TYPE):
+    print(f"[TG-ERROR] {ctx.error}")
+    try:
+        if update and getattr(update, 'effective_message', None):
+            await update.effective_message.reply_text("⚠️ Une erreur est survenue. Réessaie ou tape /help.")
+    except Exception:
+        pass
         
 # ═══════════════════════════════════════════════════════════════        
 #  APPLICATION TELEGRAM
