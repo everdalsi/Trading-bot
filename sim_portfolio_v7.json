@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 5.726451206899134e+123,
+    "cash": 5.440128646554178e+123,
     "initial": 1000.0,
     "positions": {
       "MEME_7_166": {
@@ -30,6 +30,34 @@
         "open_time": 1774285567.7282703,
         "kelly_pct": 0.05,
         "pos_key": "MEME_7_166"
+      },
+      "MEME_APES_385": {
+        "id": 385,
+        "symbol": "APES",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "APES",
+        "price_in": 0.0004151,
+        "price_out": null,
+        "qty": 6.897676712718784e+125,
+        "amount_usd": 2.8632256034495674e+122,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-24 19:49:37",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0004151,
+        "open_time": 1774381777.190558,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_APES_385"
       }
     },
     "trades": [
@@ -10400,6 +10428,33 @@
         "peak_price": 0.0004151,
         "open_time": 1774381731.8412082,
         "kelly_pct": 0.05
+      },
+      {
+        "id": 385,
+        "symbol": "APES",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "APES",
+        "price_in": 0.0004151,
+        "price_out": null,
+        "qty": 6.897676712718784e+125,
+        "amount_usd": 2.8632256034495674e+122,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-24 19:49:37",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0004151,
+        "open_time": 1774381777.190558,
+        "kelly_pct": 0.05
       }
     ],
     "equity_history": [],
@@ -16316,7 +16371,7 @@
       "memecoin"
     ],
     "confidence_threshold": 74,
-    "total_wins": 407,
+    "total_wins": 408,
     "total_losses": 458,
     "symbol_scores": {
       "BTCUSDT": -15,
