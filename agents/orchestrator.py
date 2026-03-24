@@ -269,3 +269,35 @@ class Orchestrator:
             return round(adjusted, 2)
         except Exception:
             return 0.0
+            
+    # ─────────────────────────────────────────────────────────────
+    #  AUTO-AJUSTEMENT + AUTO-EXÉCUTION (cerveau + mains des agents)
+    # ─────────────────────────────────────────────────────────────
+    async def self_tune_and_execute(self, memory: dict):
+        """Les agents s’auto-ajustent et forcent des trades en mode extrême"""
+        if not EXTREME_LEARNING_MODE:
+            return
+
+        lesson_count = self.learning.get_lesson_count()
+
+        # AUTO-AJUSTEMENT (le cerveau)
+        if lesson_count < 1000:
+            # On baisse les barrières pour accumuler plus de leçons
+            global MICRO_CONF_MIN, MAX_MICRO_POSITIONS, CYCLE_MICRO
+            MICRO_CONF_MIN = max(3, MICRO_CONF_MIN - 2)      # confiance plus basse
+            MAX_MICRO_POSITIONS = min(200, MAX_MICRO_POSITIONS + 20)
+            CYCLE_MICRO = max(5, CYCLE_MICRO - 2)            # cycle encore plus rapide
+
+            print(f"[SELF-TUNE] Leçons = {lesson_count} → paramètres agressifs : conf_min={MICRO_CONF_MIN}, max_pos={MAX_MICRO_POSITIONS}, cycle={CYCLE_MICRO}s")
+
+        # AUTO-EXÉCUTION (les mains)
+        # Force un micro-trade immédiat sur le meilleur symbole
+        try:
+            best_symbol = self.learning.get_best_patterns()[0]["pattern"].split()[0] if self.learning.get_best_patterns() else "BTCUSDT"
+            context = self._enrich_context({"symbol": best_symbol, "memory": memory})
+            trader_resp = await self.trader.respond("force micro trade maintenant", context)
+            if trader_resp.get("decision") == "BUY":
+                print(f"[AUTO-EXEC] Ouverture forcée sur {best_symbol} (apprentissage extrême)")
+                # Ici tu peux appeler ta fonction open_trade si tu veux
+        except:
+            pass       
