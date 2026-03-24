@@ -30,34 +30,6 @@
         "open_time": 1774285567.7282703,
         "kelly_pct": 0.05,
         "pos_key": "MEME_7_166"
-      },
-      "MEME_CIA_412": {
-        "id": 412,
-        "symbol": "CIA",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "CIA",
-        "price_in": 0.0002486,
-        "price_out": null,
-        "qty": 2.9857609228310675e+146,
-        "amount_usd": 7.422601654158035e+142,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-24 23:37:10",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.04354,
-        "open_time": 1774395430.5477993,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_CIA_412"
       }
     },
     "trades": [
@@ -11195,17 +11167,6 @@
   "memory": {
     "lessons": [
       {
-        "trade_id": -3,
-        "pnl": 11.5928,
-        "symbol": "SOLUSDT",
-        "market": "BACKTEST",
-        "lecon": "Scalp rapide gagnant",
-        "pattern": "backtest_5m",
-        "action_future": "Conserver ce setup pour micro-trading",
-        "type": "succes",
-        "date": "2026-03-24 22:16"
-      },
-      {
         "trade_id": -4,
         "pnl": -2.0239,
         "symbol": "SOLUSDT",
@@ -16686,6 +16647,17 @@
       {
         "trade_id": -1,
         "pnl": -0.5759,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-24 23:37"
+      },
+      {
+        "trade_id": -2,
+        "pnl": -1.6244,
         "symbol": "ETHUSDT",
         "market": "BACKTEST",
         "lecon": "Entr\u00e9e trop agressive",
