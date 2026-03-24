@@ -1,78 +1,78 @@
 from agents.base_agent import BaseAgent
-from agents.learning_agent import adjust_confidence, compute_symbol_score, should_blacklist
-
+from agents.learning_agent import LearningAgent
+from typing import Dict, Any
 
 class TraderAgent(BaseAgent):
-    def __init__(self):
-        super().__init__("trader", "Décision trading")
+    """
+    TraderAgent V3 - Décision finale d'achat/vente
+    Combine macro, score learning, analyse et risk pour une décision intelligente.
+    """
 
-    async def respond(self, question, context):
+    def __init__(self):
+        super().__init__("trader", "Décision trading (BUY / SELL / HOLD)")
+
+    async def respond(self, question: str, context: dict) -> Dict[str, Any]:
         macro = context.get("macro", "neutral")
-        memory = context.get("memory", {})
         symbol = context.get("symbol", "UNKNOWN")
         price = context.get("price")
+        analysis = context.get("analysis", {})
+        risk = context.get("risk", {})
+        learning = context.get("learning", {})          # résultat du LearningAgent
+        global_score = context.get("score", 0.5)
 
-        # 🔥 0. BLACKLIST CHECK
-        if should_blacklist(memory, symbol):
+        # Instance du LearningAgent pour réutiliser ses méthodes
+        learning_agent = LearningAgent()
+
+        # 1. BLACKLIST via LearningAgent
+        blacklist_check = await learning_agent.respond("should I blacklist this symbol?", context)
+        if blacklist_check.get("recommendation", "").lower().startswith("éviter"):
             return {
                 "agent": self.name,
                 "symbol": symbol,
-                "decision": "SKIP",
-                "confidence": 0,
-                "summary": f"{symbol} blacklisté ❌",
+                "decision": "HOLD",
+                "confidence": 0.0,
+                "summary": f"{symbol} blacklisté par Learning Agent",
                 "reason": "mauvaises performances historiques"
             }
 
-        # 🔥 1. BASE DECISION (direction)
-        if macro == "bullish":
-            base_decision = "BUY"
-            base_confidence = 0.7
-        elif macro == "bearish":
-            base_decision = "SELL"
-            base_confidence = 0.7
-        else:
-            base_decision = "HOLD"
-            base_confidence = 0.5
+        # 2. Score par symbole
+        symbol_score = learning.get("symbol_score", global_score)
 
-        # 🧠 2. LEARNING PAR SYMBOL
-        confidence = adjust_confidence(base_confidence, memory, symbol)
+        # 3. Décision intelligente
+        decision = "HOLD"
+        reason = "Pas de signal clair"
 
-        # 🔥 3. DECISION FINALE
-        if confidence < 0.4:
-            decision = "HOLD"  # trop risqué
-        else:
-            decision = base_decision
-
-        # 🚫 4. ANTI OVERTRADING (évite spam trades)
-        recent_trades = memory.get("trades", [])[-5:]
-        same_symbol_trades = [t for t in recent_trades if t.get("symbol") == symbol]
-
-        if len(same_symbol_trades) >= 2:
+        if macro == "bullish" and symbol_score >= 0.62 and global_score >= 0.65:
+            if "CRITICAL" not in str(risk.get("summary", "")) and "HIGH RISK" not in str(risk.get("recommendation", "")):
+                decision = "BUY"
+                reason = "Macro haussier + bon score learning + risque OK"
+        elif macro == "bearish" and symbol_score <= 0.38 and global_score <= 0.35:
+            decision = "SELL"
+            reason = "Macro baissier + faible score learning"
+        elif symbol_score > 0.75:
+            decision = "BUY"
+            reason = "Score symbole très fort (indépendamment du macro)"
+        elif symbol_score < 0.25:
             decision = "HOLD"
+            reason = "Score symbole trop faible"
 
-        # 🧠 5. SAVE TRADE
-        if "trades" not in memory:
-            memory["trades"] = []
+        # 4. Anti-overtrading (évite de spammer le même symbole)
+        recent_trades = context.get("memory", {}).get("trades", [])[-8:]
+        same_symbol = [t for t in recent_trades if t.get("symbol") == symbol]
+        if len(same_symbol) >= 3:
+            decision = "HOLD"
+            reason = "Trop de trades récents sur ce symbole"
 
-        trade = {
-            "symbol": symbol,
-            "decision": decision,
-            "macro": macro,
-            "confidence": confidence,
-            "entry_price": price,
-            "result": None
-        }
-
-        memory["trades"].append(trade)
-
-        # 📊 6. SCORE
-        score = compute_symbol_score(memory, symbol)
+        # 5. Ajustement final de confiance
+        confidence = round(max(0.1, min(0.95, global_score * 1.1 if decision != "HOLD" else 0.4)), 2)
 
         return {
             "agent": self.name,
             "symbol": symbol,
             "decision": decision,
-            "confidence": round(confidence, 2),
-            "symbol_score": round(score, 2),
-            "summary": f"{symbol} | {decision} | score={round(score,2)}"
+            "confidence": confidence,
+            "symbol_score": round(symbol_score, 2),
+            "summary": f"{symbol} → {decision} | score={round(symbol_score, 2)} | conf={confidence}",
+            "reason": reason,
+            "macro": macro
         }
