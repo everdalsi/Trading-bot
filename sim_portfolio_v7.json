@@ -10330,17 +10330,6 @@
   "memory": {
     "lessons": [
       {
-        "trade_id": 321,
-        "pnl": -6.514023236299356e+82,
-        "symbol": "Ghibli",
-        "market": "MEME",
-        "lecon": "Entr\u00e9e trop agressive",
-        "pattern": "memecoin",
-        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
-        "type": "erreur",
-        "date": "2026-03-24 13:21"
-      },
-      {
         "trade_id": 322,
         "pnl": -6.46387798805334e+82,
         "symbol": "Ghibli",
@@ -15828,6 +15817,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-24 18:41"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -0.9032,
+        "symbol": "BTCUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-24 18:42"
       }
     ],
     "patterns_to_avoid": [
@@ -16234,7 +16234,7 @@
       "backtest_5m",
       "backtest_5m"
     ],
-    "confidence_threshold": 37,
+    "confidence_threshold": 35,
     "total_wins": 354,
     "total_losses": 354,
     "symbol_scores": {
