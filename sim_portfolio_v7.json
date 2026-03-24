@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 7.522155135757696e+84,
+    "cash": 7.960065289175431e+84,
     "initial": 1000.0,
     "positions": {
       "MEME_7_166": {
@@ -8412,17 +8412,17 @@
         "trade_type": "MEME",
         "meme_symbol": "Ghibli",
         "price_in": 0.0005127,
-        "price_out": null,
+        "price_out": 0.0005671,
         "qty": 7.721921238189663e+86,
         "amount_usd": 3.95902901881984e+83,
         "confidence": 85,
         "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT",
         "time_in": "2026-03-24 11:53:10",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-24 11:58:49",
+        "pnl": 4.20072515357517e+82,
+        "pnl_pct": 10.61,
+        "duration_min": 5,
         "patterns": [
           "memecoin"
         ],
@@ -11178,6 +11178,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-24 11:54"
+      },
+      {
+        "trade_id": 310,
+        "pnl": 4.20072515357517e+82,
+        "symbol": "Ghibli",
+        "market": "MEME",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "memecoin",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-24 11:58"
       }
     ],
     "patterns_to_avoid": [
@@ -11431,9 +11442,10 @@
       "backtest_5m",
       "backtest_5m",
       "memecoin",
-      "backtest_5m"
+      "backtest_5m",
+      "memecoin"
     ],
-    "confidence_threshold": 66,
+    "confidence_threshold": 64,
     "total_wins": 235,
     "total_losses": 187,
     "symbol_scores": {
@@ -11456,7 +11468,7 @@
       "WRT": 15,
       "VDOR": -15,
       "Aspen": -5,
-      "Ghibli": -13
+      "Ghibli": -11
     },
     "symbol_blacklist": {},
     "consecutive_losses": {},
