@@ -30,7 +30,6 @@ class RiskAgent(BaseAgent):
         is_night       = context.get("is_night", False)
         macro          = context.get("macro", "neutral")
 
-        # Données PerformanceTracker
         sharpe        = context.get("sharpe", 0.0) or 0.0
         profit_factor = context.get("profit_factor", 0.0) or 0.0
         degraded      = context.get("degraded", False)
@@ -42,21 +41,18 @@ class RiskAgent(BaseAgent):
         kelly_adjust  = 1.0
         recommendation = "Risk acceptable — trading autorisé"
 
-        # ─── 1. Drawdown critique ───
         if drawdown <= -0.08:
             risk_level = "CRITICAL"
             risks_list.append(f"Drawdown dangereux ({drawdown*100:.1f}%)")
             recommendation = "STOP TRADING — Protéger le capital immédiatement"
             kelly_adjust = 0.0
 
-        # ─── 2. Daily loss ───
         elif daily_pnl_pct <= -0.04:
             risk_level = "HIGH"
             risks_list.append(f"Perte journalière importante ({daily_pnl_pct*100:.1f}%)")
             kelly_adjust *= 0.5
             recommendation = "Réduire fortement l'exposition"
 
-        # ─── 3. Kelly trop agressif ───
         if kelly > 0.28:
             risk_level = "HIGH" if risk_level == "LOW" else risk_level
             risks_list.append(f"Kelly trop agressif ({kelly*100:.1f}%)")
@@ -65,20 +61,17 @@ class RiskAgent(BaseAgent):
             risks_list.append(f"Kelly élevé ({kelly*100:.1f}%) — surveiller")
             kelly_adjust *= 0.85
 
-        # ─── 4. Positions saturées ───
         if open_positions >= max_positions:
             risks_list.append(f"Positions max atteint ({open_positions}/{max_positions})")
             recommendation = "Attendre la fermeture d'une position"
 
-        # ─── 5. Dégradation de performance ───
         if degraded:
             risk_level = "HIGH" if risk_level == "LOW" else risk_level
             risks_list.append("Performance en dégradation sur les 30 derniers trades")
             kelly_adjust *= 0.7
 
-        # ─── 6. Streak de pertes ───
         if streak_type == "loss":
-            if streak_count >= 8:
+            if streak_count >= 8:                     # ← augmenté pour plus de trades
                 risks_list.append(f"Série de {streak_count} pertes — PAUSE recommandée")
                 kelly_adjust *= 0.3
                 if risk_level == "LOW":
@@ -87,7 +80,6 @@ class RiskAgent(BaseAgent):
                 risks_list.append(f"Série de {streak_count} pertes — réduire la taille")
                 kelly_adjust *= 0.6
 
-        # ─── 7. Sharpe négatif ───
         if sharpe < 0:
             risks_list.append(f"Sharpe négatif ({sharpe:.2f}) — stratégie peu rentable")
             kelly_adjust *= 0.8
@@ -95,17 +87,14 @@ class RiskAgent(BaseAgent):
             risks_list.append(f"Profit Factor < 1 ({profit_factor:.2f}) — pertes > gains")
             kelly_adjust *= 0.7
 
-        # ─── 8. Mode nuit ───
         if is_night:
             risks_list.append("Mode nuit → réduction automatique du risque")
             kelly_adjust *= 0.5
 
-        # ─── 9. Macro bearish ───
         if macro == "bearish":
             risks_list.append("Macro bearish → risque accru")
             kelly_adjust *= 0.7
 
-        # Kelly ajusté final
         kelly_final = round(max(0.01, kelly * kelly_adjust), 3)
 
         summary = (
