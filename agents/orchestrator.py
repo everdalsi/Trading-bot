@@ -12,9 +12,9 @@ class Orchestrator:
     async def run(self, market_data, memory):
 
         context = {
-    "symbol": market_data.get("symbol"),
-    "market_data": market_data,
-    "memory": memory
+            "symbol": market_data.get("symbol"),
+            "market_data": market_data,
+            "memory": memory
 }
 
         # 1. ANALYST
