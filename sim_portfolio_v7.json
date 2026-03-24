@@ -30,34 +30,6 @@
         "open_time": 1774285567.7282703,
         "kelly_pct": 0.05,
         "pos_key": "MEME_7_166"
-      },
-      "MEME_Tsuki_361": {
-        "id": 361,
-        "symbol": "Tsuki",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "Tsuki",
-        "price_in": 0.0005761,
-        "price_out": null,
-        "qty": 4.311454461626151e+87,
-        "amount_usd": 2.4838289153428256e+84,
-        "confidence": 95,
-        "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-24 14:29:07",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.001744,
-        "open_time": 1774362547.4170518,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_Tsuki_361"
       }
     },
     "trades": [
