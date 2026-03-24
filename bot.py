@@ -1546,6 +1546,9 @@ def can_open_trade(symbol: str, market: str, send_fn) -> bool:
 # ═══════════════════════════════════════════════════════════════
 #  OPEN_TRADE — FORCE MAX VOLUME EN MODE EXTREME
 # ═══════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════
+#  CAN_OPEN_TRADE + WARM-UP CHECK v7.2
+# ═══════════════════════════════════════════════════════════════
 def is_warmup_done() -> bool:
     """Retourne True quand on a assez de trades simulés pour passer en live"""
     closed = [t for t in sim["trades"] if t.get("pnl") is not None]
@@ -1556,10 +1559,33 @@ def is_warmup_done() -> bool:
 
 def can_open_trade(symbol: str, market: str, send_fn) -> bool:
     if LIVE_MODE and not is_warmup_done():
-        send_fn(f"🔥 Warm-up en cours : {len([t for t in sim['trades'] if t.get('pnl') is not None])}/{WARMUP_TRADES_NEEDED} trades simulés")
+        closed_count = len([t for t in sim["trades"] if t.get("pnl") is not None])
+        send_fn(f"🔥 Warm-up en cours : {closed_count}/{WARMUP_TRADES_NEEDED} trades simulés")
+        return True   # on continue en simulation
+
+    if EXTREME_LEARNING_MODE:
         return True
-    symbol = analysis["symbol"]; price = analysis["price"]
-    signal = analysis["signal"]; conf  = analysis["confidence"]
+
+    if not check_risk_limits(send_fn): 
+        return False
+    if not validate_symbol(symbol): 
+        return False
+    if is_blacklisted(symbol): 
+        return False
+    if is_correlated(symbol): 
+        return False
+    if market not in ("MEME","MICRO") and is_fg_neutral(): 
+        return False
+    return True
+
+# ═══════════════════════════════════════════════════════════════
+#  OPEN_TRADE v7.2 — SIM + LIVE
+# ═══════════════════════════════════════════════════════════════
+def open_trade(analysis: dict, send_fn) -> dict | None:
+    symbol = analysis["symbol"]
+    price  = analysis["price"]
+    signal = analysis["signal"]
+    conf   = analysis["confidence"]
     reason = sanitize_string(analysis["reason"])
     market = analysis.get("market","SPOT")
     pats   = analysis.get("patterns",[])
@@ -1571,69 +1597,75 @@ def can_open_trade(symbol: str, market: str, send_fn) -> bool:
     if not can_open_trade(symbol, market, send_fn):
         return None
 
-    # === FORCE MAX TRADES EN MODE EXTREME ===
+    # Position sizing
     if EXTREME_LEARNING_MODE:
         kelly_pct = LEARN_MODE_MAX_PCT
+    elif LIVE_MODE:
+        kelly_pct = LIVE_MAX_PCT_PER_TRADE
     else:
         kelly_pct = analysis.get("kelly_pct") or dynamic_position_size(conf, market, symbol)
 
-    leverage  = LEVERAGE_SIM if market=="FUTURES" else 1
-    amount    = sim["cash"] * kelly_pct
-    qty       = amount / price
+    leverage = LEVERAGE_SIM if market == "FUTURES" else 1
+    amount   = sim["cash"] * kelly_pct
+    qty      = amount / price
 
     sim["cash"] -= amount
-    
-    if LIVE_MODE and exchange and bot_state.get("warmup_done", False):
-        try:
-            symbol = analysis["symbol"]
-            side = "buy" if analysis["signal"] == "BUY" else "sell"
-            amount = trade["qty"]  # quantité calculée
-
-            order = exchange.create_market_order(symbol, side, amount)
-            trade["live_order_id"] = order["id"]
-            trade["live_status"] = "placed"
-            send_fn(f"✅ ORDRE LIVE PLACÉ #{trade['id']} | {side.upper()} {symbol} @ marché")
-        except Exception as e:
-            send_fn(f"❌ ERREUR LIVE ORDER: {e}")
-            return None
 
     trade = {
-        "id":len(sim["trades"])+1,"symbol":symbol,"market":market,"side":side,
-        "price_in":price,"price_out":None,"qty":qty,"amount_usd":amount,
-        "confidence":conf,"reason":reason,"exit_reason":None,
-        "time_in":datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "time_out":None,"pnl":None,"pnl_pct":None,"duration_min":None,
-        "patterns":[p["name"] for p in pats if p.get("signal")!="HOLD"],
-        "leverage":leverage,"peak_price":price,"trough_price":price,"kelly_pct":kelly_pct
+        "id": len(sim["trades"]) + 1,
+        "symbol": symbol,
+        "market": market,
+        "side": side,
+        "price_in": price,
+        "price_out": None,
+        "qty": qty,
+        "amount_usd": amount,
+        "confidence": conf,
+        "reason": reason,
+        "exit_reason": None,
+        "time_in": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "time_out": None,
+        "pnl": None,
+        "pnl_pct": None,
+        "duration_min": None,
+        "patterns": [p["name"] for p in pats if p.get("signal") != "HOLD"],
+        "leverage": leverage,
+        "peak_price": price,
+        "trough_price": price,
+        "kelly_pct": kelly_pct
     }
 
-    pos_key = f"{market}_{symbol}_{side}_{trade['id']}"
+    # === LIVE EXECUTION ===
+    if LIVE_MODE and exchange and bot_state.get("warmup_done", False):
+        try:
+            order_side = "buy" if side == "LONG" else "sell"
+            order = exchange.create_market_order(symbol, order_side, qty)
+            trade["live_order_id"] = order["id"]
+            trade["live_status"] = "placed"
+            send_fn(f"✅ ORDRE LIVE PLACÉ #{trade['id']} | {order_side.upper()} {symbol}")
+        except Exception as e:
+            send_fn(f"❌ ERREUR LIVE ORDER #{trade['id']}: {e}")
+            return None
 
+    pos_key = f"{market}_{symbol}_{side}_{trade['id']}"
     sim["trades"].append(trade)
-    sim["positions"][pos_key] = {**trade,"pos_key":pos_key}
+    sim["positions"][pos_key] = {**trade, "pos_key": pos_key}
 
     db_save_trade(trade)
     save_data()
-
     bot_state["trades_today"] += 1
 
-    sl = price*(1-STOP_LOSS_PCT) if side=="LONG" else price*(1+STOP_LOSS_PCT)
-    tp = price*(1+TAKE_PROFIT_PCT) if side=="LONG" else price*(1-TAKE_PROFIT_PCT)
-
-    coin  = symbol.replace("USDT","")
-    mtype = analysis.get("market_type",market)
-    name  = analysis.get("name",coin)
-
-    asset_label = f"{name} ({mtype})" if mtype in ("STOCK","FOREX","COMMODITY") else f"{coin} (Crypto)"
+    # Messages Telegram
+    sl = price * (1 - STOP_LOSS_PCT) if side == "LONG" else price * (1 + STOP_LOSS_PCT)
+    tp = price * (1 + TAKE_PROFIT_PCT) if side == "LONG" else price * (1 - TAKE_PROFIT_PCT)
 
     learning = "🎓 MAX TRADES" if EXTREME_LEARNING_MODE else ""
-
-    macro  = bot_state.get("macro_trend","NEUTRAL")
-    macro_e = "🐂" if macro=="BULL" else "🐻" if macro=="BEAR" else "➡️"
+    macro = bot_state.get("macro_trend", "NEUTRAL")
+    macro_e = "🐂" if macro == "BULL" else "🐻" if macro == "BEAR" else "➡️"
 
     if conf >= 90 or EXTREME_LEARNING_MODE:
         send_fn(
-            f"{'🟢' if side=='LONG' else '🔴'} {learning} {asset_label}\n"
+            f"{'🟢' if side=='LONG' else '🔴'} {learning} {symbol.replace('USDT','')}\n"
             f"━━━━━━━━━━━━━━━━━━━\n"
             f"💵 Prix     : ${price:.4f}\n"
             f"💰 Mise     : ${amount:.2f} (Kelly {kelly_pct*100:.1f}%)\n"
