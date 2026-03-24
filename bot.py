@@ -1812,7 +1812,7 @@ def run_micro_cycle(send_fn):
     max_micro = 1 if is_night_time() else MAX_MICRO_POSITIONS
     prices = get_prices_batch()
     for symbol, price in prices.items():
-    memory = update_trade_results(memory, price)
+        memory = update_trade_results(memory, price)
   
     for symbol in MICRO_SYMBOLS:
         if not bot_state["running"]: break
