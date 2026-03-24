@@ -4155,23 +4155,25 @@ async def _ask_secretary(chat_id: int, question: str) -> str:
         ctx = _build_multi_agent_context()
         responses, final = await orchestrator.ask_all(question, ctx)
 
-        # === Réponse ultra-propre et naturelle ===
-        msg = "🧠 **Agent Conscience — Ton secrétaire personnel**\n\n"
+        # === Réponse naturelle, claire et pro comme Grok ===
+        msg = "🧠 **Agent Conscience — Ton équipe d’experts**\n\n"
+        msg += f"**Question posée :** {question}\n\n"
 
         for r in responses:
-            emoji = "📊" if r.get('agent') == "analyst" else \
-                    "🛡️" if r.get('agent') == "risk" else \
-                    "💼" if r.get('agent') == "trader" else \
-                    "🧪" if r.get('agent') == "learning" else "🔹"
-            msg += f"{emoji} **{r.get('agent','Agent').title()}** : {r.get('summary','')}\n"
+            emoji = {"analyst": "📊", "risk": "🛡️", "trader": "💼", "learning": "🧪"}.get(r.get('agent'), "🔹")
+            agent_name = r.get('agent', 'Expert').title()
+            msg += f"{emoji} **{agent_name}** :\n{r.get('summary', 'Analyse en cours...')}\n\n"
 
+        # Synthèse finale très claire
         final_text = final.get("arguments", [""])[0] if final.get("arguments") else final.get("summary", "Pas de synthèse disponible.")
-        msg += f"\n👑 **Synthèse finale** :\n{final_text}\n"
+        msg += f"👑 **Synthèse finale (CEO)** :\n{final_text}\n\n"
 
         if final.get("recommendation"):
-            msg += f"\n✅ **Recommandation** : {final['recommendation']}"
+            msg += f"✅ **Recommandation claire** : {final['recommendation']}\n"
 
-        # Sauvegarde mémoire
+        msg += "\n💡 *Ton équipe a discuté en temps réel et s’est mise d’accord.*"
+
+        # Mémoire de conversation
         AGENT_CHAT_MEMORY[chat_id].append({"role": "user", "content": question})
         AGENT_CHAT_MEMORY[chat_id].append({"role": "assistant", "content": msg})
 
@@ -4179,8 +4181,8 @@ async def _ask_secretary(chat_id: int, question: str) -> str:
 
     except Exception as e:
         print(f"[SECRETARY-ERROR] {e}")
-        return "⚠️ Petite erreur interne, réessaie dans 2 secondes."
-   # ═══════════════════════════════════════════════════════════════
+        return "⚠️ Petite erreur interne dans l’équipe. Je réessaie dans 2 secondes."
+# ═══════════════════════════════════════════════════════════════
 #  HANDLERS MODE SECRÉTAIRE (obligatoires)
 # ═══════════════════════════════════════════════════════════════
 
