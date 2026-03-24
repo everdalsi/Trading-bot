@@ -30,34 +30,6 @@
         "open_time": 1774285567.7282703,
         "kelly_pct": 0.05,
         "pos_key": "MEME_7_166"
-      },
-      "MEME_Tsuki_372": {
-        "id": 372,
-        "symbol": "Tsuki",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "Tsuki",
-        "price_in": 0.0004506,
-        "price_out": null,
-        "qty": 8.443584787064239e+105,
-        "amount_usd": 3.804679305051146e+102,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-24 15:21:54",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 8.79,
-        "open_time": 1774365714.3025172,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_Tsuki_372"
       }
     },
     "trades": [
@@ -16020,8 +15992,8 @@
       "memecoin"
     ],
     "confidence_threshold": 55,
-    "total_wins": 308,
-    "total_losses": 278,
+    "total_wins": 309,
+    "total_losses": 279,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
@@ -23587,6 +23559,34 @@
             "exit_reason": "TIMEOUT"
           }
         ]
+      },
+      {
+        "symbol": "BTCUSDT",
+        "interval": "5m",
+        "days": 30,
+        "total_trades": 1,
+        "wins": 0,
+        "losses": 1,
+        "win_rate": 0.0,
+        "total_pnl": -0.9,
+        "total_pnl_pct": -0.09,
+        "sharpe": 0.0,
+        "max_drawdown": -0.09,
+        "profit_factor": 0.0,
+        "best_trade": -0.45,
+        "worst_trade": -0.45,
+        "final_equity": 999.1,
+        "sl_used": 0.025,
+        "tp_used": 0.04,
+        "trades": [
+          {
+            "entry": 68989.187355,
+            "exit": 68677.17,
+            "pnl": -0.9032,
+            "pnl_pct": -0.45,
+            "exit_reason": "TIMEOUT"
+          }
+        ]
       }
     ],
     "good_setups": [
@@ -23685,6 +23685,6 @@
         "status": "\u2705 Promos d\u00e9tect\u00e9es"
       }
     ],
-    "last_scan": 1774365435.7557545
+    "last_scan": 1774365744.9622152
   }
 }
