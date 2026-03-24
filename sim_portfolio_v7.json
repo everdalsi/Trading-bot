@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 8.454150983134535e+84,
+    "cash": 8.031443433977808e+84,
     "initial": 1000.0,
     "positions": {
       "MEME_7_166": {
@@ -31,21 +31,21 @@
         "kelly_pct": 0.05,
         "pos_key": "MEME_7_166"
       },
-      "MEME_Ghibli_316": {
-        "id": 316,
+      "MEME_Ghibli_317": {
+        "id": 317,
         "symbol": "Ghibli",
         "market": "MEME",
         "side": "LONG",
         "trade_type": "MEME",
         "meme_symbol": "Ghibli",
-        "price_in": 0.0004872,
+        "price_in": 0.000499,
         "price_out": null,
-        "qty": 8.605697312813174e+86,
-        "amount_usd": 4.1926957308025787e+83,
+        "qty": 8.471093169473482e+86,
+        "amount_usd": 4.2270754915672675e+83,
         "confidence": 85,
         "reason": "Score 5/10 | @DexScreener",
         "exit_reason": null,
-        "time_in": "2026-03-24 12:47:55",
+        "time_in": "2026-03-24 12:48:41",
         "time_out": null,
         "pnl": null,
         "pnl_pct": null,
@@ -55,9 +55,9 @@
         ],
         "leverage": 1,
         "peak_price": 0.0005671,
-        "open_time": 1774356475.3714938,
+        "open_time": 1774356521.8988235,
         "kelly_pct": 0.05,
-        "pos_key": "MEME_Ghibli_316"
+        "pos_key": "MEME_Ghibli_317"
       }
     },
     "trades": [
@@ -8592,6 +8592,33 @@
         "peak_price": 0.0004872,
         "open_time": 1774356475.3714938,
         "kelly_pct": 0.05
+      },
+      {
+        "id": 317,
+        "symbol": "Ghibli",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "Ghibli",
+        "price_in": 0.000499,
+        "price_out": null,
+        "qty": 8.471093169473482e+86,
+        "amount_usd": 4.2270754915672675e+83,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-24 12:48:41",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.000499,
+        "open_time": 1774356521.8988235,
+        "kelly_pct": 0.05
       }
     ],
     "equity_history": [],
@@ -12584,8 +12611,8 @@
       "memecoin"
     ],
     "confidence_threshold": 55,
-    "total_wins": 252,
-    "total_losses": 209,
+    "total_wins": 253,
+    "total_losses": 210,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
@@ -18089,6 +18116,34 @@
             "exit": 90.31,
             "pnl": -2.0239,
             "pnl_pct": -1.0,
+            "exit_reason": "TIMEOUT"
+          }
+        ]
+      },
+      {
+        "symbol": "BTCUSDT",
+        "interval": "5m",
+        "days": 30,
+        "total_trades": 1,
+        "wins": 0,
+        "losses": 1,
+        "win_rate": 0.0,
+        "total_pnl": -0.9,
+        "total_pnl_pct": -0.09,
+        "sharpe": 0.0,
+        "max_drawdown": -0.09,
+        "profit_factor": 0.0,
+        "best_trade": -0.45,
+        "worst_trade": -0.45,
+        "final_equity": 999.1,
+        "sl_used": 0.025,
+        "tp_used": 0.04,
+        "trades": [
+          {
+            "entry": 68989.187355,
+            "exit": 68677.17,
+            "pnl": -0.9032,
+            "pnl_pct": -0.45,
             "exit_reason": "TIMEOUT"
           }
         ]
