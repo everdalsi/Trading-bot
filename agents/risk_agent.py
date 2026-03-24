@@ -1,4 +1,4 @@
-“””
+"""
 🛡️ RISK AGENT V3 — Gestion du risque complète + intégration mémoire
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Améliorations vs V2 :
