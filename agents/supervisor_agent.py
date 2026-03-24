@@ -1,17 +1,5 @@
-"""
-👑 SUPERVISOR AGENT V3 — Décision finale robuste + insights mémoire
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Améliorations vs V2 :
-
-- Intègre les insights de la mémoire infinie dans la décision
-- Score composite (trader + risk + learning + patterns)
-- Veto sur dégradation de performance détectée
-- Explications plus détaillées pour le mode secrétaire
-"""
-
-from agents.base_agent import BaseAgent
 from typing import Dict, Any
-
+from agents.base_agent import BaseAgent
 
 class SupervisorAgent(BaseAgent):
 
@@ -21,7 +9,7 @@ class SupervisorAgent(BaseAgent):
             role="Synthèse finale, arbitrage et décision ultime"
         )
 
-async def respond(self, question: str, context: dict) -> Dict[str, Any]:
+    async def respond(self, question: str, context: dict) -> Dict[str, Any]:
         agent_outputs    = context.get("agent_outputs", [])
         trader_decision  = context.get("trader_decision", {})
         risk             = context.get("risk", {})
@@ -44,7 +32,6 @@ async def respond(self, question: str, context: dict) -> Dict[str, Any]:
         has_buy  = "BUY" in trader_summary or trader_decision_val == "BUY"
         has_sell = "SELL" in trader_summary or trader_decision_val == "SELL"
 
-        # === OVERRIDE ULTRA-FORCÉ POUR APPRENTISSAGE ===
         learning_mode = any(word in question.lower() for word in [
             "max de trade", "apprenez", "affûtez", "apprendre", "max trade",
             "beaucoup de trades", "vrai argent", "vrai portefeuille", "gérer un vrai"
@@ -132,7 +119,6 @@ async def respond(self, question: str, context: dict) -> Dict[str, Any]:
             ),
             "confidence": confidence_final,
             "recommendation": reason,
-            # VERSION NATURELLE (plus de bullets pour le secrétaire)
             "full_summary": f"J’ai consulté toute l’équipe. {reason}. Score composite : {(score + global_score) / 2:.2f}.",
             "final_decision": final_decision,
         }
