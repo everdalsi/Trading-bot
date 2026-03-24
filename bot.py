@@ -4180,6 +4180,48 @@ async def _ask_secretary(chat_id: int, question: str) -> str:
     except Exception as e:
         print(f"[SECRETARY-ERROR] {e}")
         return "⚠️ Petite erreur interne, réessaie dans 2 secondes."
+   # ═══════════════════════════════════════════════════════════════
+#  HANDLERS MODE SECRÉTAIRE (obligatoires)
+# ═══════════════════════════════════════════════════════════════
+
+async def cmd_agent(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not _auth(update):
+        return
+    AGENT_CHAT_SESSIONS.add(TELEGRAM_CHAT_ID)
+    await update.message.reply_text(
+        "🧠 **Mode Secrétaire activé**\n\n"
+        "Pose-moi n’importe quelle question (ex: « Analyse mon portefeuille », « Tu te sens prêt pour du vrai argent ? »...)\n"
+        "Je consulte tous les agents et te réponds de façon naturelle.\n\n"
+        "Tape /agent_stop pour quitter le mode secrétaire."
+    )
+
+async def cmd_agent_stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not _auth(update):
+        return
+    if TELEGRAM_CHAT_ID in AGENT_CHAT_SESSIONS:
+        AGENT_CHAT_SESSIONS.remove(TELEGRAM_CHAT_ID)
+        await update.message.reply_text("✅ Mode Secrétaire désactivé. Retour au mode normal.")
+    else:
+        await update.message.reply_text("Mode Secrétaire déjà désactivé.")
+
+async def handle_agent_chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Gère les messages libres quand le mode secrétaire est actif"""
+    if not _auth(update):
+        return
+    if TELEGRAM_CHAT_ID not in AGENT_CHAT_SESSIONS:
+        return  # on ignore les messages normaux
+
+    question = update.message.text.strip()
+    if not question:
+        return
+
+    send = make_send(TELEGRAM_CHAT_ID)
+    try:
+        response = await _ask_secretary(TELEGRAM_CHAT_ID, question)
+        await update.message.reply_text(response)
+    except Exception as e:
+        print(f"[SECRETARY-CHAT] {e}")
+        await update.message.reply_text("⚠️ Petite erreur interne, réessaie dans 2 secondes.")     
         
 # ═══════════════════════════════════════════════════════════════        
 #  APPLICATION TELEGRAM
