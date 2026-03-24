@@ -4141,69 +4141,6 @@ async def _ask_agent_multi(chat_id: int, query: str) -> str:
 
 
 # ═══════════════════════════════════════════════════════════════
-#  MODE SECRÉTAIRE — Version ultra-propre & naturelle
-# ═══════════════════════════════════════════════════════════════
-
-def _build_multi_agent_context():
-    """Contexte ultra-riche pour les agents"""
-    return {
-        "sim": sim,
-        "memory": memory,
-        "kelly": kelly_criterion(),
-        "drawdown": -0.1,
-        "macro": get_macro_trend(),
-        "fg_value": get_fear_greed_value(),
-        "daily_pnl_pct": 0.0,
-        "open_positions": len(sim.get("positions", {})),
-        "max_positions": MAX_POSITIONS,
-        "is_night": is_night_time(),
-        "recent_trades": [t for t in sim.get("trades", [])[-10:] if t.get("pnl") is not None],
-        "research_data": {},  # rempli par ResearchAgent
-        "current_prices": get_prices_batch()
-    }
-
-
-Starting Container
-[WS] Thread WebSocket démarré
-Serveur HTTP port 8000
-print("[WS] Connecté à Binance WebSocket")
-[WS] Pré-remplissage buffers depuis Binance REST...
-Webhook: https://web-production-52b6c.up.railway.app/webhook
-Bot v7.1 prêt — /start | /resume | /agent (chat) | /agent_stop
-[WS] Pré-remplissage terminé ✅
-[PERF] Trades: 0 | Winrate: 0.0
-[PERF] Trades: 0 | Winrate: 0.0
-[PERF] Trades: 0 | Winrate: 0.0
-[PERF] Trades: 0 | Winrate: 0.0
-[PERF] Trades: 0 | Winrate: 0.0
-[PERF] Trades: 0 | Winrate: 0.0
-[PERF] Trades: 0 | Winrate: 0.0
-[PERF] Trades: 0 | Winrate: 0.0
-[PERF] Trades: 0 | Winrate: 0.0
-[PERF] Trades: 0 | Winrate: 0.0
-[PERF] Trades: 0 | Winrate: 0.0
-[PERF] Trades: 0 | Winrate: 0.0
-[PERF] Trades: 0 | Winrate: 0.0
-[PERF] Trades: 0 | Winrate: 0.0
-[PERF] Trades: 0 | Winrate: 0.0
-[PERF] Trades: 0 | Winrate: 0.0
-[PERF] Trades: 0 | Winrate: 0.0
-[PERF] Trades: 0 | Winrate: 0.0
-[PERF] Trades: 0 | Winrate: 0.0
-[PERF] Trades: 0 | Winrate: 0.0
-[PERF] Trades: 0 | Winrate: 0.0
-[PERF] Trades: 0 | Winrate: 0.0
-[PERF] Trades: 0 | Winrate: 0.0
-[PERF] Trades: 0 | Winrate: 0.0
-[PERF] Trades: 0 | Winrate: 0.0
-[PERF] Trades: 0 | Winrate: 0.0
-[PERF] Trades: 0 | Winrate: 0.0
-[AI] groq ✅ BUY 0%
-[PERF] Trades: 0 | Winrate: 0.0
-[PERF] Trades: 0 | Winrate: 0.0
-[PERF] Trades: 0 | Winrate: 0.0
-[AI] huggingface err: HF HTTP 400: {"error":{"message":"The requested
-# ═══════════════════════════════════════════════════════════════
 #  HANDLERS MODE SECRÉTAIRE (obligatoires)
 # ═══════════════════════════════════════════════════════════════
 
