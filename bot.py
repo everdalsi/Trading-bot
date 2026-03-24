@@ -1,28 +1,25 @@
 """
 Trading Bot v7 — AI Pool + Épargne + Risk Management Avancé
-AMÉLIORATIONS v7:
-  ✅ Binance WebSocket pour données 1m/5m temps réel
-  ✅ Optimisation coûts AI (cache prompts, déduplication, batch)
-  ✅ Backtesting historique complet (Sharpe, Drawdown, Win Rate)
-  ✅ Sécurité renforcée (rate limiting, validation inputs, HMAC auth)
 """
 
 import os, time, threading, feedparser, requests, asyncio, threading
 import json, sqlite3, re, hashlib, base64, hmac, secrets
 import pandas as pd
 import numpy as np
-from agents.performance_tracker import update_trade_results
 from datetime import datetime, timedelta
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse
 from collections import defaultdict, deque
+
 from memory import Memory
+from agents.orchestrator import Orchestrator
+from agents.performance_tracker import PerformanceTracker
 
 memory = Memory()
-from agents.orchestrator import Orchestrator
-
 orchestrator = Orchestrator()
+performance_tracker = PerformanceTracker()
+
 
 def load_json(path, default=None):
     try:
@@ -31,6 +28,7 @@ def load_json(path, default=None):
     except:
         return default if default is not None else {}
 
+
 try:
     import websocket
     WS_AVAILABLE = True
@@ -38,10 +36,20 @@ except ImportError:
     WS_AVAILABLE = False
     print("[WS] websocket-client non installé — fallback REST")
 
+
 from groq import Groq
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters
 from telegram.request import HTTPXRequest
+
+
+def update_performance(memory, price):
+    memory = performance_tracker.update_trade_results(memory, price)
+
+    stats = performance_tracker.get_global_stats(memory)
+    print(f"[PERF] Trades: {stats.get('total_trades')} | Winrate: {stats.get('winrate')}")
+
+    return memory
 
 # ═══════════════════════════════════════════════════════════════
 #  SÉCURITÉ — Validation & Rate Limiting
