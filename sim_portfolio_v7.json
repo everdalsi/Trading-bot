@@ -8197,28 +8197,6 @@
   "memory": {
     "lessons": [
       {
-        "trade_id": 290,
-        "pnl": 1.9213887924306378e+83,
-        "symbol": "WRT",
-        "market": "MEME",
-        "lecon": "Scalp rapide gagnant",
-        "pattern": "memecoin",
-        "action_future": "Conserver ce setup pour micro-trading",
-        "type": "succes",
-        "date": "2026-03-24 03:03"
-      },
-      {
-        "trade_id": 291,
-        "pnl": 2.8352722833526627e+83,
-        "symbol": "WRT",
-        "market": "MEME",
-        "lecon": "Scalp rapide gagnant",
-        "pattern": "memecoin",
-        "action_future": "Conserver ce setup pour micro-trading",
-        "type": "succes",
-        "date": "2026-03-24 03:03"
-      },
-      {
         "trade_id": 292,
         "pnl": 4.153115481804415e+83,
         "symbol": "WRT",
@@ -10389,6 +10367,28 @@
         "trade_id": -1,
         "pnl": -0.9032,
         "symbol": "BTCUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-24 09:12"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -0.5759,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-24 09:12"
+      },
+      {
+        "trade_id": -2,
+        "pnl": -1.6244,
+        "symbol": "ETHUSDT",
         "market": "BACKTEST",
         "lecon": "Entr\u00e9e trop agressive",
         "pattern": "backtest_5m",
