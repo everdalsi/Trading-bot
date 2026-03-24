@@ -15,19 +15,8 @@ class RiskAgent(BaseAgent):
         )
 
     async def respond(self, question: str, context: dict) -> Dict[str, Any]:
-    extreme_learning = context.get("extreme_learning_mode", False) or context.get("learning_mode", False)
-
-    if extreme_learning:
-        return {
-            "agent": self.name,
-            "summary": "Risk: LOW | Kelly: 100% → Apprentissage extrême",
-            "arguments": ["Mode apprentissage extrême → tous les veto désactivés"],
-            "risks": ["Aucun veto actif (apprentissage prioritaire)"],
-            "confidence": 0.98,
-            "recommendation": "Risk acceptable — trading MAX autorisé",
-            "kelly_adjusted": 1.0,
-            "risk_level": "LOW",
-        }
+        # === EXTREME LEARNING MODE (MAX TRADES) ===
+        extreme_learning = context.get("extreme_learning_mode", False) or context.get("learning_mode", False)
 
         kelly          = context.get("kelly", 0.22)
         drawdown       = context.get("drawdown", 0.0)
@@ -50,7 +39,7 @@ class RiskAgent(BaseAgent):
 
         # OVERRIDE APPRENTISSAGE MAX — force les trades même en risque critique
         learning_mode = any(word in question.lower() for word in ["max de trade", "apprenez", "affûtez", "apprendre", "max trade", "beaucoup de trades", "vrai argent"])
-        if learning_mode:
+        if learning_mode or extreme_learning:
             risk_level = "LOW"
             recommendation = "FORCE MAX TRADES — Apprentissage prioritaire (veto ignoré)"
             kelly_adjust = 1.0
