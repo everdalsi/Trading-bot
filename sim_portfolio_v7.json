@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 1.00678816575415e+82,
+    "cash": 1.3426220941099992e+82,
     "initial": 1000.0,
     "positions": {
       "MEME_7_166": {
@@ -30,6 +30,34 @@
         "open_time": 1774285567.7282703,
         "kelly_pct": 0.05,
         "pos_key": "MEME_7_166"
+      },
+      "MEME_WRT_270": {
+        "id": 270,
+        "symbol": "WRT",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "WRT",
+        "price_in": 0.0008606,
+        "price_out": null,
+        "qty": 5.8493386344071e+83,
+        "amount_usd": 5.03394082877075e+80,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-24 02:17:07",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.006602,
+        "open_time": 1774318627.2753677,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_WRT_270"
       }
     },
     "trades": [
@@ -7295,6 +7323,33 @@
         "peak_price": 0.0008606,
         "open_time": 1774318582.4486747,
         "kelly_pct": 0.05
+      },
+      {
+        "id": 270,
+        "symbol": "WRT",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "WRT",
+        "price_in": 0.0008606,
+        "price_out": 0.006602,
+        "qty": 5.8493386344071e+83,
+        "amount_usd": 5.03394082877075e+80,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": "\ud83c\udfaf MEME TP (+667.1%)",
+        "time_in": "2026-03-24 02:17:07",
+        "time_out": "2026-03-24 02:17:08",
+        "pnl": 3.3583392835584925e+81,
+        "pnl_pct": 667.14,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0008606,
+        "open_time": 1774318627.2753677,
+        "kelly_pct": 0.05
       }
     ],
     "equity_history": [],
@@ -7305,17 +7360,6 @@
   },
   "memory": {
     "lessons": [
-      {
-        "trade_id": 68,
-        "pnl": -12206.942656,
-        "symbol": "CHIBILAND",
-        "market": "MEME",
-        "lecon": "Entr\u00e9e trop agressive",
-        "pattern": "memecoin",
-        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
-        "type": "erreur",
-        "date": "2026-03-23 09:06"
-      },
       {
         "trade_id": 70,
         "pnl": 1986268.97599,
@@ -9504,6 +9548,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-24 02:16"
+      },
+      {
+        "trade_id": 270,
+        "pnl": 3.3583392835584925e+81,
+        "symbol": "WRT",
+        "market": "MEME",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "memecoin",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-24 02:17"
       }
     ],
     "patterns_to_avoid": [
@@ -9697,7 +9752,7 @@
       "memecoin"
     ],
     "confidence_threshold": 55,
-    "total_wins": 173,
+    "total_wins": 174,
     "total_losses": 93,
     "symbol_scores": {
       "BTCUSDT": -2,
