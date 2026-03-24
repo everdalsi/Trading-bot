@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 8.086247171237717e+84,
+    "cash": 8.52221754418502e+84,
     "initial": 1000.0,
     "positions": {
       "MEME_7_166": {
@@ -8628,17 +8628,17 @@
         "trade_type": "MEME",
         "meme_symbol": "Ghibli",
         "price_in": 0.0005536,
-        "price_out": null,
+        "price_out": 0.0005671,
         "qty": 7.687715975089098e+86,
         "amount_usd": 4.2559195638093245e+83,
         "confidence": 85,
         "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT",
         "time_in": "2026-03-24 13:07:38",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-24 13:13:02",
+        "pnl": 1.0378416566370242e+82,
+        "pnl_pct": 2.44,
+        "duration_min": 5,
         "patterns": [
           "memecoin"
         ],
@@ -12648,6 +12648,28 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-24 13:09"
+      },
+      {
+        "trade_id": -5,
+        "pnl": 3.0211,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-24 13:09"
+      },
+      {
+        "trade_id": 318,
+        "pnl": 1.0378416566370242e+82,
+        "symbol": "Ghibli",
+        "market": "MEME",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "memecoin",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-24 13:13"
       }
     ],
     "patterns_to_avoid": [
@@ -12982,7 +13004,9 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "backtest_5m",
+      "memecoin"
     ],
     "confidence_threshold": 55,
     "total_wins": 258,
@@ -12990,7 +13014,7 @@
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -15,
+      "SOLUSDT": -13,
       "Computer": 15,
       "CHIBILAND": -13,
       "USDUC": 4,
@@ -13007,7 +13031,7 @@
       "WRT": 15,
       "VDOR": -15,
       "Aspen": -5,
-      "Ghibli": 3
+      "Ghibli": 5
     },
     "symbol_blacklist": {},
     "consecutive_losses": {},
