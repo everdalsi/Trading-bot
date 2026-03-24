@@ -91,7 +91,7 @@ class TraderAgent(BaseAgent):
 
         # Conditions BUY
         if (macro in ("bullish", "BULL")
-                and composite >= 0.58
+                and composite >= 0.45) or composite >= 0.52:
                 and "CRITICAL" not in str(risk.get("summary", ""))
                 and "STOP" not in str(risk.get("recommendation", ""))):
             decision = "BUY"
