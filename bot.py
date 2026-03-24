@@ -4162,12 +4162,10 @@ async def _ask_secretary(chat_id: int, question: str) -> str:
         msg = f"🧠 **Hey boss, c’est ton Agent Conscience qui te parle !**\n\n"
         msg += f"**Ta question :** {question}\n\n"
 
-        # Insights fluides
         insights = [r.get('summary', '') for r in responses if r.get('summary')]
         if insights:
             msg += " ".join(insights[:3]) + "\n\n"
 
-        # Détection explicite "max de trade / apprenez / affûtez / apprendre"
         learning_mode = any(word in question.lower() for word in ["max de trade", "apprenez", "affûtez", "apprendre", "max trade", "beaucoup de trades"])
 
         final_text = final.get("arguments", [""])[0] if final.get("arguments") else final.get("summary", "Je suis prêt.")
@@ -4175,7 +4173,6 @@ async def _ask_secretary(chat_id: int, question: str) -> str:
 
         if learning_mode:
             msg += "✅ **MODE APPRENTISSAGE ACTIVÉ** : Je force le volume max comme tu l’as demandé. On va prendre des trades même en peur extrême pour accumuler les leçons rapidement.\n\n"
-            # Override veto
             final["recommendation"] = "FORCE MAX TRADES — Apprentissage prioritaire"
         elif final.get("recommendation"):
             msg += f"✅ **Ma décision :** {final['recommendation']}\n\n"
@@ -4186,19 +4183,15 @@ async def _ask_secretary(chat_id: int, question: str) -> str:
 
         msg += "\n💡 Je suis chaud. Dis-moi si tu veux que je force un trade précis ou qu’on analyse un symbole en détail, je gère tout."
 
-        # Sauvegarde
+        # Sauvegarde conversation
         AGENT_CHAT_MEMORY[chat_id].append({"role": "user", "content": question})
         AGENT_CHAT_MEMORY[chat_id].append({"role": "assistant", "content": msg})
-async def cmd_agent(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not _auth(update):
-        return
-    AGENT_CHAT_SESSIONS.add(TELEGRAM_CHAT_ID)
-    await update.message.reply_text(
-        "🧠 **Mode Secrétaire activé**\n\n"
-        "Pose-moi n’importe quelle question (ex: « Analyse mon portefeuille », « Tu te sens prêt pour du vrai argent ? »...)\n"
-        "Je consulte tous les agents et te réponds de façon naturelle.\n\n"
-        "Tape /agent_stop pour quitter le mode secrétaire."
-    )
+
+        return msg
+
+    except Exception as e:
+        print(f"[SECRETARY-ERROR] {e}")
+        return "⚠️ Petite glitch, je recalcule. Dis-moi ce que tu veux faire ?"
 
 async def cmd_agent_stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not _auth(update):
