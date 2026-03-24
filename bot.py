@@ -4143,45 +4143,27 @@ async def _ask_agent_multi(chat_id: int, query: str) -> str:
 # ═══════════════════════════════════════════════════════════════
 
 async def _ask_secretary(chat_id: int, question: str) -> str:
+    """Agent Conscience — Une seule voix naturelle (comme Grok)"""
     try:
         ctx = _build_multi_agent_context()
-        
-        # Détection symbole
-        symbol = None
-        for s in CRYPTO_SYMBOLS:
-            if s in question.upper():
-                symbol = s
-                break
-        if symbol:
-            ctx["research_data"] = await orchestrator.research.get_multi_source_intelligence(symbol)
-
         responses, final = await orchestrator.ask_all(question, ctx)
 
-        # STYLE GROK + OVERRIDE APPRENTISSAGE MAX
-        msg = f"🧠 **Hey boss, c’est ton Agent Conscience qui te parle !**\n\n"
+        # === Réponse ultra-naturelle, fluide, une seule personne ===
+        msg = "🧠 **Hey boss**, c’est ton Agent Conscience qui te parle !\n\n"
         msg += f"**Ta question :** {question}\n\n"
 
-        insights = [r.get('summary', '') for r in responses if r.get('summary')]
-        if insights:
-            msg += " ".join(insights[:3]) + "\n\n"
+        # On prend la synthèse finale du Supervisor (le CEO de l’équipe)
+        synthesis = final.get("full_summary") or final.get("summary", "J’ai analysé la situation avec toute l’équipe.")
+        recommendation = final.get("recommendation", "")
 
-        learning_mode = any(word in question.lower() for word in ["max de trade", "apprenez", "affûtez", "apprendre", "max trade", "beaucoup de trades"])
+        msg += f"{synthesis}\n\n"
 
-        final_text = final.get("arguments", [""])[0] if final.get("arguments") else final.get("summary", "Je suis prêt.")
-        msg += f"**👑 Ce que je pense vraiment :** {final_text}\n\n"
+        if recommendation:
+            msg += f"**Ma décision claire :** {recommendation}\n\n"
 
-        if learning_mode:
-            msg += "✅ **MODE APPRENTISSAGE ACTIVÉ** : Je force le volume max comme tu l’as demandé. On va prendre des trades même en peur extrême pour accumuler les leçons rapidement.\n\n"
-            final["recommendation"] = "FORCE MAX TRADES — Apprentissage prioritaire"
-        elif final.get("recommendation"):
-            msg += f"✅ **Ma décision :** {final['recommendation']}\n\n"
+        msg += "Je suis chaud. Dis-moi si tu veux que je force un trade précis, qu’on analyse un symbole en détail, ou qu’on ajuste la stratégie — je gère tout pour toi."
 
-        if ctx.get("research_data"):
-            rd = ctx["research_data"]
-            msg += f"🔍 Research live : {rd.get('sentiment','NEUTRAL').upper()} • Force {rd.get('strength',5)}/10\n"
-
-        msg += "\n💡 Je suis chaud. Dis-moi si tu veux que je force un trade précis ou qu’on analyse un symbole en détail, je gère tout."
-
+        # Sauvegarde mémoire conversation
         AGENT_CHAT_MEMORY[chat_id].append({"role": "user", "content": question})
         AGENT_CHAT_MEMORY[chat_id].append({"role": "assistant", "content": msg})
 
@@ -4189,7 +4171,7 @@ async def _ask_secretary(chat_id: int, question: str) -> str:
 
     except Exception as e:
         print(f"[SECRETARY-ERROR] {e}")
-        return "⚠️ Petite glitch, je recalcule. Dis-moi ce que tu veux faire ?"
+        return "⚠️ Petite erreur interne, je réessaie dans 2 secondes frérot."
 
 
 async def cmd_agent(update: Update, context: ContextTypes.DEFAULT_TYPE):
