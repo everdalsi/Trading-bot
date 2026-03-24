@@ -1,5 +1,5 @@
 """
-Trading Bot v7 — AI Pool + Épargne + Risk Management Avancé
+Trading Bot v7 — AI Pool  + Épargne + Risk Management Avancé
 """
 
 import os, time, threading, feedparser, requests, asyncio, threading
