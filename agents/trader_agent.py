@@ -15,7 +15,6 @@ from typing import Dict, Any
 
 class TraderAgent(BaseAgent):
 
-```
 def __init__(self):
     super().__init__(
         name="trader",
