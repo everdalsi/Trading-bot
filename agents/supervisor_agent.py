@@ -21,7 +21,7 @@ class SupervisorAgent(BaseAgent):
             role="Synthèse finale, arbitrage et décision ultime"
         )
 
-    async def respond(self, question: str, context: dict) -> Dict[str, Any]:
+        async def respond(self, question: str, context: dict) -> Dict[str, Any]:
         agent_outputs    = context.get("agent_outputs", [])
         trader_decision  = context.get("trader_decision", {})
         risk             = context.get("risk", {})
@@ -44,7 +44,7 @@ class SupervisorAgent(BaseAgent):
         has_buy  = "BUY" in trader_summary or trader_decision_val == "BUY"
         has_sell = "SELL" in trader_summary or trader_decision_val == "SELL"
 
-        # === OVERRIDE ULTRA-FORCÉ POUR APPRENTISSAGE (réponse naturelle comme Grok) ===
+        # === OVERRIDE ULTRA-FORCÉ POUR APPRENTISSAGE ===
         learning_mode = any(word in question.lower() for word in [
             "max de trade", "apprenez", "affûtez", "apprendre", "max trade",
             "beaucoup de trades", "vrai argent", "vrai portefeuille", "gérer un vrai"
@@ -85,7 +85,7 @@ class SupervisorAgent(BaseAgent):
                 final_decision = "BUY"
                 reason = (
                     f"Confluence haussière | score={effective_score:.2f} "
-                    f"| mémoire={lesson_count}leçons"
+                    f"| mémoire={lesson_count} leçons"
                 )
             else:
                 final_decision = "HOLD"
@@ -104,12 +104,6 @@ class SupervisorAgent(BaseAgent):
             if len(buy_rules) >= 2:
                 final_decision = "BUY"
                 reason = f"Règles automatiques validées ({len(buy_rules)} règles actives)"
-
-        agent_lines = []
-        for out in agent_outputs[:4]:
-            agent_lines.append(
-                f"• {out.get('agent', '').title()}: {out.get('summary', '')[:80]}"
-            )
 
         insight_str = ""
         if insights:
@@ -138,7 +132,7 @@ class SupervisorAgent(BaseAgent):
             ),
             "confidence": confidence_final,
             "recommendation": reason,
-            # === VERSION NATURELLE (plus de bullets) ===
+            # VERSION NATURELLE (plus de bullets pour le secrétaire)
             "full_summary": f"J’ai consulté toute l’équipe. {reason}. Score composite : {(score + global_score) / 2:.2f}.",
             "final_decision": final_decision,
         }
