@@ -14902,6 +14902,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-24 14:12"
+      },
+      {
+        "trade_id": -3,
+        "pnl": -1.8165,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-24 14:12"
       }
     ],
     "patterns_to_avoid": [
@@ -15026,7 +15037,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "memecoin",
@@ -15100,6 +15110,7 @@
       "memecoin",
       "memecoin",
       "memecoin",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -15272,7 +15283,7 @@
       "backtest_5m",
       "backtest_5m"
     ],
-    "confidence_threshold": 73,
+    "confidence_threshold": 76,
     "total_wins": 282,
     "total_losses": 260,
     "symbol_scores": {
