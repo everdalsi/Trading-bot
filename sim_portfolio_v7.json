@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 8.249545580355398e+84,
+    "cash": 8.31719117681172e+84,
     "initial": 1000.0,
     "positions": {
       "MEME_7_166": {
@@ -30,6 +30,34 @@
         "open_time": 1774285567.7282703,
         "kelly_pct": 0.05,
         "pos_key": "MEME_7_166"
+      },
+      "MEME_Ghibli_314": {
+        "id": 314,
+        "symbol": "Ghibli",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "Ghibli",
+        "price_in": 0.0004872,
+        "price_out": null,
+        "qty": 8.466282410052749e+86,
+        "amount_usd": 4.1247727901776996e+83,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-24 12:46:23",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0005671,
+        "open_time": 1774356383.0559895,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_Ghibli_314"
       }
     },
     "trades": [
@@ -8483,6 +8511,33 @@
         "peak_price": 0.0004575,
         "open_time": 1774356198.046171,
         "kelly_pct": 0.05
+      },
+      {
+        "id": 314,
+        "symbol": "Ghibli",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "Ghibli",
+        "price_in": 0.0004872,
+        "price_out": 0.0005671,
+        "qty": 8.466282410052749e+86,
+        "amount_usd": 4.1247727901776996e+83,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": "\ud83c\udfaf MEME TP (+16.4%)",
+        "time_in": "2026-03-24 12:46:23",
+        "time_out": "2026-03-24 12:46:23",
+        "pnl": 6.764559645632142e+82,
+        "pnl_pct": 16.4,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0004872,
+        "open_time": 1774356383.0559895,
+        "kelly_pct": 0.05
       }
     ],
     "equity_history": [],
@@ -12034,6 +12089,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-24 12:43"
+      },
+      {
+        "trade_id": 314,
+        "pnl": 6.764559645632142e+82,
+        "symbol": "Ghibli",
+        "market": "MEME",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "memecoin",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-24 12:46"
       }
     ],
     "patterns_to_avoid": [
@@ -12358,10 +12424,11 @@
       "memecoin",
       "backtest_5m",
       "memecoin",
+      "memecoin",
       "memecoin"
     ],
     "confidence_threshold": 55,
-    "total_wins": 248,
+    "total_wins": 249,
     "total_losses": 207,
     "symbol_scores": {
       "BTCUSDT": -15,
@@ -12383,7 +12450,7 @@
       "WRT": 15,
       "VDOR": -15,
       "Aspen": -5,
-      "Ghibli": -5
+      "Ghibli": -3
     },
     "symbol_blacklist": {},
     "consecutive_losses": {},
