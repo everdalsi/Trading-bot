@@ -7,7 +7,7 @@ Améliorations vs V2 :
 - Score composite (trader + risk + learning + patterns)
 - Veto sur dégradation de performance détectée
 - Explications plus détaillées pour le mode secrétaire
-  “””
+  """
 
 from agents.base_agent import BaseAgent
 from typing import Dict, Any
