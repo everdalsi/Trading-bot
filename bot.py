@@ -4220,7 +4220,20 @@ async def telegram_error_handler(update: object, ctx: ContextTypes.DEFAULT_TYPE)
             await update.effective_message.reply_text("⚠️ Une erreur est survenue. Réessaie ou tape /help.")
     except Exception:
         pass
-        
+
+async def cmd_agent(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Active le mode Secrétaire (une seule voix naturelle)"""
+    if not _auth(update):
+        return
+    AGENT_CHAT_SESSIONS.add(TELEGRAM_CHAT_ID)
+    await update.message.reply_text(
+        "🧠 **Mode Secrétaire activé**\n\n"
+        "Maintenant tu parles à **une seule personne** (moi).\n"
+        "Tous les agents discutent en interne, je te donne seulement la synthèse finale naturelle.\n\n"
+        "Pose-moi n’importe quelle question.\n"
+        "Tape /agent_stop pour quitter le mode."
+    )
+    
 async def run_telegram():
     global _app, _main_loop
     _main_loop = asyncio.get_event_loop()
