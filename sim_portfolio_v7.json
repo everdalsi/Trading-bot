@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 1.1826025939150695e+142,
+    "cash": 1.2484222207906926e+142,
     "initial": 1000.0,
     "positions": {
       "MEME_7_166": {
@@ -30,34 +30,6 @@
         "open_time": 1774285567.7282703,
         "kelly_pct": 0.05,
         "pos_key": "MEME_7_166"
-      },
-      "MEME_BioLLM_404": {
-        "id": 404,
-        "symbol": "BioLLM",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "BioLLM",
-        "price_in": 0.0002923,
-        "price_out": null,
-        "qty": 2.1293958872734747e+144,
-        "amount_usd": 6.224224178500366e+140,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-24 21:44:45",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0002923,
-        "open_time": 1774388685.2990139,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_BioLLM_404"
       }
     },
     "trades": [
@@ -10950,17 +10922,17 @@
         "trade_type": "MEME",
         "meme_symbol": "BioLLM",
         "price_in": 0.0002923,
-        "price_out": null,
+        "price_out": 0.0003091,
         "qty": 2.1293958872734747e+144,
         "amount_usd": 6.224224178500366e+140,
         "confidence": 85,
         "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT",
         "time_in": "2026-03-24 21:44:45",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-24 21:50:08",
+        "pnl": 3.5773850906194314e+139,
+        "pnl_pct": 5.75,
+        "duration_min": 5,
         "patterns": [
           "memecoin"
         ],
@@ -10978,17 +10950,6 @@
   },
   "memory": {
     "lessons": [
-      {
-        "trade_id": -1,
-        "pnl": -0.0084,
-        "symbol": "SOLUSDT",
-        "market": "BACKTEST",
-        "lecon": "Entr\u00e9e trop agressive",
-        "pattern": "backtest_5m",
-        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
-        "type": "erreur",
-        "date": "2026-03-24 20:22"
-      },
       {
         "trade_id": -2,
         "pnl": -1.8177,
@@ -16477,6 +16438,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-24 21:50"
+      },
+      {
+        "trade_id": 404,
+        "pnl": 3.5773850906194314e+139,
+        "symbol": "BioLLM",
+        "market": "MEME",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "memecoin",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-24 21:50"
       }
     ],
     "patterns_to_avoid": [
@@ -16692,7 +16664,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
@@ -16881,7 +16852,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "memecoin"
     ],
     "confidence_threshold": 8,
     "total_wins": 509,
@@ -16910,7 +16882,8 @@
       "Tsuki": 15,
       "WOJAK": 6,
       "TERAFAB": -3,
-      "APES": 15
+      "APES": 15,
+      "BioLLM": 2
     },
     "symbol_blacklist": {},
     "consecutive_losses": {},
