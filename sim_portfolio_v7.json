@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 8.007815511374062e+97,
+    "cash": 7.806045087596209e+100,
     "initial": 1000.0,
     "positions": {
       "MEME_7_166": {
@@ -30,6 +30,34 @@
         "open_time": 1774285567.7282703,
         "kelly_pct": 0.05,
         "pos_key": "MEME_7_166"
+      },
+      "MEME_Tsuki_370": {
+        "id": 370,
+        "symbol": "Tsuki",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "Tsuki",
+        "price_in": 0.0004513,
+        "price_out": null,
+        "qty": 8.871942733629583e+99,
+        "amount_usd": 4.003907755687031e+96,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-24 15:13:11",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 8.79,
+        "open_time": 1774365191.2891042,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_Tsuki_370"
       }
     },
     "trades": [
@@ -9995,6 +10023,33 @@
         "peak_price": 0.0004513,
         "open_time": 1774365148.1968982,
         "kelly_pct": 0.05
+      },
+      {
+        "id": 370,
+        "symbol": "Tsuki",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "Tsuki",
+        "price_in": 0.0004513,
+        "price_out": 8.79,
+        "qty": 8.871942733629583e+99,
+        "amount_usd": 4.003907755687031e+96,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": "\ud83c\udfaf MEME TP (+1947606.6%)",
+        "time_in": "2026-03-24 15:13:11",
+        "time_out": "2026-03-24 15:13:11",
+        "pnl": 7.798037272084835e+100,
+        "pnl_pct": 1947606.63,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0004513,
+        "open_time": 1774365191.2891042,
+        "kelly_pct": 0.05
       }
     ],
     "equity_history": [],
@@ -10005,17 +10060,6 @@
   },
   "memory": {
     "lessons": [
-      {
-        "trade_id": -3,
-        "pnl": 11.5928,
-        "symbol": "SOLUSDT",
-        "market": "BACKTEST",
-        "lecon": "Scalp rapide gagnant",
-        "pattern": "backtest_5m",
-        "action_future": "Conserver ce setup pour micro-trading",
-        "type": "succes",
-        "date": "2026-03-24 05:57"
-      },
       {
         "trade_id": -4,
         "pnl": -2.0239,
@@ -15504,6 +15548,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-24 15:12"
+      },
+      {
+        "trade_id": 370,
+        "pnl": 7.798037272084835e+100,
+        "symbol": "Tsuki",
+        "market": "MEME",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "memecoin",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-24 15:13"
       }
     ],
     "patterns_to_avoid": [
@@ -15904,10 +15959,11 @@
       "backtest_5m",
       "backtest_5m",
       "memecoin",
+      "memecoin",
       "memecoin"
     ],
     "confidence_threshold": 55,
-    "total_wins": 304,
+    "total_wins": 305,
     "total_losses": 274,
     "symbol_scores": {
       "BTCUSDT": -15,
