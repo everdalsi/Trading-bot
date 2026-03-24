@@ -4321,12 +4321,12 @@ if __name__ == "__main__":
     threading.Thread(target=run_server, daemon=True).start()
     threading.Thread(target=self_ping, daemon=True).start()
 
-    # ✅ AUTO TRAINING ICI
-        def _auto_training_loop():
+    # ✅ AUTO TRAINING ICI (corrigé + optimisé pour plus de trades)
+    def _auto_training_loop():
         time.sleep(60)
         while True:
             try:
-                print("[AUTO-TRAIN] lancement — 20 derniers trades")
+                print("[AUTO-TRAIN] lancement")
                 auto_training()
                 print("[AUTO-TRAIN] terminé")
             except Exception as e:
