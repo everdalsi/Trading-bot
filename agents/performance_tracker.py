@@ -1,31 +1,84 @@
-def update_trade_results(memory, current_price):
-    trades = memory.get("trades", [])
+class PerformanceTracker:
+    def __init__(self):
+        pass
 
-    for trade in trades:
-        # ⚠️ skip si déjà traité
-        if trade["result"] is not None:
-            continue
+    def update_trade_results(self, memory, current_price):
+        try:
+            for symbol, data in memory.data.items():
+                trades = data.get("trades", [])
 
-        entry = trade.get("entry_price")
-        decision = trade.get("decision")
+                for trade in trades:
+                    if trade.get("result") != "pending":
+                        continue
 
-        if entry is None:
-            continue
+                    entry = trade.get("entry_price")
+                    decision = trade.get("decision")
 
-        # 🔥 LOGIQUE SIMPLE
-        if decision == "BUY":
-            if current_price > entry:
-                trade["result"] = "win"
-            else:
-                trade["result"] = "loss"
+                    if entry is None:
+                        continue
 
-        elif decision == "SELL":
-            if current_price < entry:
-                trade["result"] = "win"
-            else:
-                trade["result"] = "loss"
+                    if decision == "BUY":
+                        if current_price > entry:
+                            trade["result"] = "win"
+                            data["wins"] += 1
+                        else:
+                            trade["result"] = "loss"
+                            data["losses"] += 1
 
-        else:
-            trade["result"] = "neutral"
+                    elif decision == "SELL":
+                        if current_price < entry:
+                            trade["result"] = "win"
+                            data["wins"] += 1
+                        else:
+                            trade["result"] = "loss"
+                            data["losses"] += 1
 
-    return memory
+                    else:
+                        trade["result"] = "neutral"
+
+            return memory
+
+        except Exception:
+            return memory
+
+    def get_global_stats(self, memory):
+        try:
+            total_wins = 0
+            total_losses = 0
+
+            for data in memory.data.values():
+                total_wins += data.get("wins", 0)
+                total_losses += data.get("losses", 0)
+
+            total = total_wins + total_losses
+            winrate = total_wins / total if total > 0 else 0
+
+            return {
+                "total_trades": total,
+                "wins": total_wins,
+                "losses": total_losses,
+                "winrate": round(winrate, 2)
+            }
+
+        except Exception:
+            return {}
+
+    def get_symbol_stats(self, memory, symbol):
+        try:
+            data = memory.data.get(symbol, {})
+
+            wins = data.get("wins", 0)
+            losses = data.get("losses", 0)
+
+            total = wins + losses
+            winrate = wins / total if total > 0 else 0
+
+            return {
+                "symbol": symbol,
+                "wins": wins,
+                "losses": losses,
+                "winrate": round(winrate, 2)
+            }
+
+        except Exception:
+            return {}
