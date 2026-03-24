@@ -144,10 +144,10 @@ CYCLE_EPARGNE = 3600
 MICRO_SL_PCT        = 0.007
 MICRO_TP_PCT        = 0.011
 MICRO_TRAILING_PCT  = 0.004
-MICRO_MAX_DURATION  = 75
-MICRO_MAX_PCT       = 0.28       # ← augmenté pour plus de volume en micro
-MICRO_CONF_MIN      = 22         # ← fortement baissé → beaucoup plus de micro-trades
-MAX_MICRO_POSITIONS = 28.        # ← très augmenté pour maximiser l’entraînement
+MICRO_MAX_DURATION  = 60
+MICRO_MAX_PCT       = 0.32       # ← augmenté pour plus de volume en micro
+MICRO_CONF_MIN      = 15         # ← fortement baissé → beaucoup plus de micro-trades
+MAX_MICRO_POSITIONS = 45        # ← très augmenté pour maximiser l’entraînement
 
 MEME_SL_PCT       = 0.05
 MEME_TP_PCT       = 0.15
@@ -858,21 +858,32 @@ def kelly_criterion(n_recent: int=30) -> float:
 def dynamic_position_size(confidence: int, market: str, symbol: str) -> float:
     base        = kelly_criterion(30)
     conf_mult   = 0.5 + (confidence-55)/90
+
+    # === ADAPTATIVITÉ F&G + MACRO ===
+    fg = get_fear_greed_value()
+    macro = get_macro_trend()
+
+    fg_mult = 1.0
+    if fg < 25:          # Peur extrême → on attaque plus fort
+        fg_mult = 1.45
+    elif fg < 40:        # Fear
+        fg_mult = 1.25
+    elif fg > 75:        # Greed extrême → on est prudent
+        fg_mult = 0.65
+    elif fg > 65:
+        fg_mult = 0.80
+
+    macro_mult = 1.0
+    if macro == "BULL":
+        macro_mult = 1.35
+    elif macro == "BEAR":
+        macro_mult = 0.65
+
     market_mult = 0.6 if market=="FUTURES" else 0.4 if market=="MEME" else 1.0
-    vol_mult    = 1.0
     night_mult  = 0.6 if is_night_time() else 1.0
-    macro       = get_macro_trend()
-    macro_mult  = 0.7 if macro=="BEAR" else 1.1 if macro=="BULL" else 1.0
-    try:
-        closes = get_klines_5m_cached(symbol)
-        if not closes.empty:
-            vol = float(closes.pct_change().dropna().std()*100)
-            if vol > 3:   vol_mult = 0.7
-            elif vol < 1: vol_mult = 1.2
-    except Exception:
-        pass
-    return round(max(0.03, min(MAX_PCT_PER_TRADE,
-        base * conf_mult * market_mult * vol_mult * night_mult * macro_mult)), 3)
+
+    return round(max(0.03, min(0.35,
+        base * conf_mult * fg_mult * macro_mult * market_mult * night_mult)), 3)3)
 
 # ═══════════════════════════════════════════════════════════════
 #  DONNÉES DE MARCHÉ
@@ -1743,15 +1754,15 @@ def open_micro_trade(symbol: str, price: float, signal: dict, send_fn) -> dict |
         print(f"[FILTER] {symbol} évité en MICRO (pertes récentes)")
         return None
 
-    night_factor = 0.5 if is_night_time() else 1.0
-    confidence = get_symbol_confidence(symbol)
+    # === ADAPTATIVITÉ F&G + MACRO ===
+    fg = get_fear_greed_value()
+    macro = get_macro_trend()
 
-    if confidence > 0.7:
-        amount = sim["cash"] * MICRO_MAX_PCT * 1.3 * night_factor
-    elif confidence < 0.4:
-        amount = sim["cash"] * MICRO_MAX_PCT * 0.5 * night_factor
-    else:
-        amount = sim["cash"] * MICRO_MAX_PCT * night_factor
+    night_factor = 0.7 if is_night_time() else 1.0
+    fg_mult = 1.45 if fg < 25 else 1.25 if fg < 40 else 0.65 if fg > 75 else 0.85
+    macro_mult = 1.35 if macro == "BULL" else 0.65 if macro == "BEAR" else 1.0
+
+    amount = sim["cash"] * MICRO_MAX_PCT * fg_mult * macro_mult * night_factor
 
     qty = amount / price
     sim["cash"] -= amount
@@ -1831,10 +1842,10 @@ def monitor_micro_positions(send_fn):
             update_blacklist(symbol, won)
 
 def run_micro_cycle(send_fn):
-    max_micro = 1 if is_night_time() else MAX_MICRO_POSITIONS
+    # Adaptativité : on enlève presque la restriction nuit
+    max_micro = MAX_MICRO_POSITIONS
     prices = get_prices_batch()
 
-    # Mise à jour performance sur tous les symbols (déjà bon)
     for symbol, price in prices.items():
         update_performance(memory, price)
 
