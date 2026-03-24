@@ -1,4 +1,7 @@
 from agents.analyst import AnalystAgent
+from agents.risk import RiskAgent
+from agents.trader import TraderAgent
+from agents.supervisor import SupervisorAgent
 class Orchestrator:
     def __init__(self):
         self.analyst = AnalystAgent()
