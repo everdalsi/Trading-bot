@@ -10519,17 +10519,6 @@
   "memory": {
     "lessons": [
       {
-        "trade_id": -3,
-        "pnl": 11.5928,
-        "symbol": "SOLUSDT",
-        "market": "BACKTEST",
-        "lecon": "Scalp rapide gagnant",
-        "pattern": "backtest_5m",
-        "action_future": "Conserver ce setup pour micro-trading",
-        "type": "succes",
-        "date": "2026-03-24 18:31"
-      },
-      {
         "trade_id": -4,
         "pnl": -2.0239,
         "symbol": "SOLUSDT",
@@ -16017,6 +16006,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-24 19:53"
+      },
+      {
+        "trade_id": -3,
+        "pnl": 11.5928,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-24 19:53"
       }
     ],
     "patterns_to_avoid": [
@@ -16224,7 +16224,6 @@
     "patterns_that_work": [
       "memecoin",
       "memecoin",
-      "memecoin",
       "backtest_5m",
       "backtest_5m",
       "memecoin",
@@ -16420,16 +16419,17 @@
       "backtest_5m",
       "memecoin",
       "memecoin",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m"
     ],
-    "confidence_threshold": 14,
+    "confidence_threshold": 12,
     "total_wins": 415,
     "total_losses": 464,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -15,
+      "SOLUSDT": -13,
       "Computer": 15,
       "CHIBILAND": -13,
       "USDUC": 4,
