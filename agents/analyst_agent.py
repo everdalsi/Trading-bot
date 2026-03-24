@@ -1,62 +1,131 @@
+“””
+📊 ANALYST AGENT V3 — Analyse enrichie + mémoire infinie
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Améliorations vs V2 :
+
+- Utilise LearningAgent DB pour les stats (mémoire infinie)
+- Intègre le PerformanceTracker pour stats temps réel
+- Détecte les tendances de performance (amélioration / dégradation)
+- Recommandations basées sur les insights compressés
+  “””
+
 from agents.base_agent import BaseAgent
+from typing import Dict, Any
 
 class AnalystAgent(BaseAgent):
-    def __init__(self):
-        super().__init__(
-            name="analyst",
-            description="Analyse performance, winrate, stats et historique des trades"
-        )
 
-    async def respond(self, question: str, context: dict):
-        # === PRIORITÉ 1 : Données live du PerformanceTracker ===
-        wr_live = context.get("wr_live")
-        wins_live = context.get("wins_live")
-        losses_live = context.get("losses_live")
-        total_live = context.get("total_trades")
+```
+def __init__(self):
+    super().__init__(
+        name="analyst",
+        description="Analyse performance, winrate, stats et historique des trades"
+    )
 
-        if isinstance(wr_live, (int, float)):
-            total = total_live if isinstance(total_live, int) else (wins_live or 0) + (losses_live or 0)
-            return {
-                "agent": self.name,
-                "summary": f"WR actuel estimé à {wr_live:.1f}%",
-                "arguments": [
-                    f"{total} trades analysés (live)",
-                    f"{wins_live or 0} gagnants | {losses_live or 0} perdants",
-                    f"Source: PerformanceTracker"
-                ],
-                "risks": ["Données live utilisées – très fiable"],
-                "confidence": 0.95,
-                "recommendation": "Le bot est en phase d'apprentissage. Continuer à monitorer sur 30+ trades."
-            }
+async def respond(self, question: str, context: dict) -> Dict[str, Any]:
 
-        # === PRIORITÉ 2 : Fallback sur le JSON sim ===
-        sim = context.get("sim", {})
-        trades = [
-            t for t in sim.get("trades", [])
-            if isinstance(t.get("pnl"), (int, float))
-        ]
-        wins = [t for t in trades if t["pnl"] > 0]
-        total = len(trades)
-        wr = round((len(wins) / total * 100), 1) if total > 0 else 0.0
+    # === PRIORITÉ 1 : Stats depuis PerformanceTracker (temps réel) ===
+    wr_live     = context.get("wr_live")
+    wins_live   = context.get("wins_live")
+    losses_live = context.get("losses_live")
+    total_live  = context.get("total_trades")
+    sharpe_live = context.get("sharpe")
+    pf_live     = context.get("profit_factor")
 
-        # Analyse rapide de la question pour personnaliser un peu
-        q_lower = question.lower()
-        if any(x in q_lower for x in ["winrate", "wr", "performance", "stat"]):
-            extra = f" (question portait sur le winrate)"
-        elif "risque" in q_lower or "kelly" in q_lower:
-            extra = f" (question portait sur le risque)"
-        else:
-            extra = ""
+    if isinstance(wr_live, (int, float)):
+        total = total_live if isinstance(total_live, int) else (wins_live or 0) + (losses_live or 0)
+        trend = ""
+        if isinstance(wr_live, float):
+            if wr_live >= 60:
+                trend = "🟢 Excellente performance"
+            elif wr_live >= 50:
+                trend = "🟡 Performance correcte"
+            else:
+                trend = "🔴 Performance à améliorer"
 
         return {
             "agent": self.name,
-            "summary": f"WR actuel estimé à {wr:.1f}%",
+            "summary": f"WR live: {wr_live:.1f}% ({total} trades) | {trend}",
             "arguments": [
-                f"{total} trades analysés{extra}",
-                f"{len(wins)} trades gagnants",
-                f"Données extraites du portfolio JSON"
+                f"{total} trades analysés (source live)",
+                f"{wins_live or 0} gagnants | {losses_live or 0} perdants",
+                f"Sharpe: {sharpe_live or 'N/A'} | P.Factor: {pf_live or 'N/A'}",
+                "Source: PerformanceTracker temps réel",
             ],
-            "risks": ["Fallback JSON utilisé – données moins fraîches"],
-            "confidence": 0.75 if total >= 10 else 0.45,
-            "recommendation": "Peu de trades pour l'instant. Le vrai WR se stabilisera après 30-50 trades."
+            "risks": (
+                ["⚠️ WR en dessous de 50% — revoir la stratégie"] if wr_live < 50 else
+                ["✅ Performance dans les clous"]
+            ),
+            "confidence": 0.95,
+            "recommendation": (
+                "Continuer et renforcer les setups actuels." if wr_live >= 55 else
+                "Réduire la taille de position jusqu'à stabilisation."
+                if wr_live >= 45 else
+                "Passer en mode apprentissage pur — réduire l'exposition."
+            ),
         }
+
+    # === PRIORITÉ 2 : Stats depuis LearningAgent DB (mémoire infinie) ===
+    lesson_count  = context.get("lesson_count", 0)
+    global_score  = context.get("global_score")
+    symbol_score  = context.get("symbol_score")
+    insights      = context.get("insights", [])
+    auto_rules    = context.get("auto_rules", [])
+    best_patterns = context.get("best_patterns", [])
+
+    if lesson_count > 0 and global_score is not None:
+        wr = round(global_score * 100, 1)
+        trend = (
+            "🟢 Bonne trajectoire" if wr >= 60 else
+            "🟡 Apprentissage en cours" if wr >= 45 else
+            "🔴 Stratégie à revoir"
+        )
+        return {
+            "agent": self.name,
+            "summary": f"WR global: {wr}% | {lesson_count} leçons en mémoire ∞ | {trend}",
+            "arguments": [
+                f"{lesson_count} leçons enregistrées (sans limite)",
+                f"Score global: {global_score:.1%} | Score symbole: {symbol_score:.1%}" if symbol_score else f"Score global: {global_score:.1%}",
+                f"Auto-règles actives: {len(auto_rules)}",
+                f"Meilleurs patterns: {', '.join(p['pattern'] for p in best_patterns[:2]) or 'Aucun encore'}",
+            ],
+            "risks": (
+                ["⚠️ Peu de données — score peu fiable"] if lesson_count < 20 else
+                ["🔴 Performance dégradée"] if wr < 45 else []
+            ),
+            "confidence": min(0.95, 0.50 + lesson_count / 200),
+            "recommendation": (
+                "Solide base de données. Renforcer les meilleurs patterns." if lesson_count >= 50 and wr >= 55 else
+                "Continuer à accumuler des données (objectif : 50+ trades)." if lesson_count < 50 else
+                "Réviser les patterns — trop de pertes récentes."
+            ),
+        }
+
+    # === PRIORITÉ 3 : Fallback sur le JSON sim ===
+    sim    = context.get("sim", {})
+    memory = context.get("memory", {})
+    trades = [
+        t for t in (sim.get("trades", []) or memory.get("trades", []))
+        if isinstance(t.get("pnl"), (int, float))
+    ]
+    wins  = [t for t in trades if t["pnl"] > 0]
+    total = len(trades)
+    wr    = round(len(wins) / total * 100, 1) if total > 0 else 0.0
+
+    return {
+        "agent": self.name,
+        "summary": f"WR estimé: {wr:.1f}% ({total} trades — fallback JSON)",
+        "arguments": [
+            f"{total} trades analysés (JSON portfolio)",
+            f"{len(wins)} gagnants",
+            "Données extraites du fichier sim JSON",
+            "Connecter PerformanceTracker pour des stats temps réel",
+        ],
+        "risks": ["Fallback JSON — données moins fraîches que la DB"],
+        "confidence": 0.65 if total >= 10 else 0.35,
+        "recommendation": (
+            "Peu de trades. Le WR réel se stabilisera après 30+ trades."
+            if total < 30 else
+            "Performance correcte. Continuer l'accumulation de données."
+        ),
+    }
+```
