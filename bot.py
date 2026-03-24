@@ -2808,19 +2808,19 @@ def learn_from_trade(trade: dict, send_fn=None):
 
         memory["lessons"].append(lesson)
         db_save_lesson(lesson)
-        # Sauvegarde dans la mémoire infinie LearningAgent
-try:
-    orchestrator.learning.save_lesson(lesson)
-except Exception as ex:
-    print(f"[LEARN-INFINITE] {ex}")
 
+        # Sauvegarde dans la mémoire infinie LearningAgent
+        try:
+            orchestrator.learning.save_lesson(lesson)
+        except Exception as ex:
+            print(f"[LEARN-INFINITE] {ex}")
 
         key = "patterns_that_work" if lesson_type == "succes" else "patterns_to_avoid"
         memory[key].append(pattern)
 
         memory["lessons"] = memory["lessons"][-500:]     # 500 en RAM, infini en DB
-memory["patterns_that_work"] = memory["patterns_that_work"][-200:]
-memory["patterns_to_avoid"] = memory["patterns_to_avoid"][-200:]
+        memory["patterns_that_work"] = memory["patterns_that_work"][-200:]
+        memory["patterns_to_avoid"] = memory["patterns_to_avoid"][-200:]
 
         update_symbol_score(trade["symbol"], pnl > 0)
         auto_adjust()
@@ -2840,7 +2840,6 @@ memory["patterns_to_avoid"] = memory["patterns_to_avoid"][-200:]
 
     except Exception as e:
         print(f"[LEARN] {e}")
-
 def auto_adjust():
     wr  = db_win_rate(20)
     cur = memory.get("confidence_threshold",CONFIDENCE_BASE)
