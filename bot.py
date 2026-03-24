@@ -2257,6 +2257,10 @@ def auto_fill_form(url: str, form_type: str) -> dict:
         return {"success":False,"reason":str(e)[:100]}
 
 def run_epargne_scan(send_fn):
+    in_secretary_mode = TELEGRAM_CHAT_ID in AGENT_CHAT_SESSIONS
+    if in_secretary_mode:
+        return
+
     airdrops = scan_airdrops(); faucets = scan_faucets(); promos = scan_promo_codes()
     epargne["last_scan"]    = time.time()
     epargne["promos_found"] = promos
@@ -3109,37 +3113,55 @@ def watchdog(send_fn):
 def daily_summary(send_fn):
     while True:
         now = datetime.now()
-        midnight = (now+timedelta(days=1)).replace(hour=0,minute=0,second=5,microsecond=0)
-        time.sleep((midnight-now).total_seconds())
+        midnight = (now + timedelta(days=1)).replace(hour=0, minute=0, second=5, microsecond=0)
+        time.sleep((midnight - now).total_seconds())
+
+        # 🔥 On ne pollue plus le chat quand l’utilisateur est en mode secrétaire
+        in_secretary_mode = TELEGRAM_CHAT_ID in AGENT_CHAT_SESSIONS
+        if in_secretary_mode:
+            continue
+
         try:
-            equity = get_equity_safe(); pnl = equity - sim["initial"]
-            stats  = get_stats(); today = now.strftime("%Y-%m-%d")
-            t_day  = [t for t in sim["trades"] if t.get("time_in","").startswith(today)]
-            pnl_day= sum(t["pnl"] for t in t_day if t.get("pnl"))
-            sym_s  = db_symbol_stats()
-            best3  = "\n".join(
+            equity = get_equity_safe()
+            pnl = equity - sim["initial"]
+            stats = get_stats()
+            today = now.strftime("%Y-%m-%d")
+
+            t_day = [t for t in sim["trades"] if t.get("time_in", "").startswith(today)]
+            pnl_day = sum(t["pnl"] for t in t_day if t.get("pnl") is not None)
+
+            sym_s = db_symbol_stats()
+            best3 = "\n".join(
                 f"  🏅 {s['s']}: WR {s['wr']:.0f}% ({s['n']} trades)"
                 for s in sym_s[:3]
             ) or "  Aucun"
+
             lessons = "\n".join(
                 f"  {'✅' if l['type']=='succes' else '❌'} {l['lecon']}"
                 for l in memory["lessons"][-3:]
             ) or "  Aucune"
-            bl_count = len(memory.get("symbol_blacklist",{}))
+
+            bl_count = len(memory.get("symbol_blacklist", {}))
+
             send_fn(
-                f"📊 RÉSUMÉ JOURNALIER v7 — {now.strftime('%d/%m/%Y')}\n━━━━━━━━━━━━━━━━━━━\n"
+                f"📊 RÉSUMÉ JOURNALIER v7 — {now.strftime('%d/%m/%Y')}\n"
+                f"━━━━━━━━━━━━━━━━━━━\n"
                 f"💰 Capital  : ${equity:.2f} ({pnl/sim['initial']*100:+.1f}%)\n"
                 f"📅 PnL jour : ${pnl_day:+.2f} ({len(t_day)} trades)\n"
                 f"📐 Kelly    : {kelly_criterion()*100:.1f}%\n"
                 f"🚫 Blacklist: {bl_count} symbols\n"
                 f"━━━━━━━━━━━━━━━━━━━\n"
                 f"🏆 WR       : {stats['win_rate']}% ({stats['total']} trades)\n"
-                f"📚 Leçons   : {len(memory['lessons'])}/{MAX_LESSONS}\n━━━━━━━━━━━━━━━━━━━\n"
-                f"🥇 Top coins:\n{best3}\n💡 Leçons récentes:\n{lessons}"
+                f"📚 Leçons   : {len(memory['lessons'])}/{MAX_LESSONS}\n"
+                f"━━━━━━━━━━━━━━━━━━━\n"
+                f"🥇 Top coins:\n{best3}\n"
+                f"💡 Leçons récentes:\n{lessons}"
             )
-            bot_state["daily_stopped"]    = False
-            sim["daily_start_equity"]     = equity
-            sim["daily_start_date"]       = (now+timedelta(days=1)).strftime("%Y-%m-%d")
+
+            bot_state["daily_stopped"] = False
+            sim["daily_start_equity"] = equity
+            sim["daily_start_date"] = (now + timedelta(days=1)).strftime("%Y-%m-%d")
+
         except Exception as e:
             print(f"[DAILY] {e}")
 
