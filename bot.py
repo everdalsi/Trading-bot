@@ -394,7 +394,10 @@ def _ws_prefill_from_rest():
     print("[WS] Pré-remplissage terminé ✅")
 
 # ═══════════════════════════════════════════════════════════════
- AI_PROVIDERS = [
+#  AI POOL — Optimisé avec cache 
+# ═══════════════════════════════════════════════════════════════
+
+AI_PROVIDERS = [
     {"name":"groq", "calls":0, "window_start":time.time(), "last_call":0,
      "max_calls_per_hour":10, "cooldown":360, "available":True, "failures":0},
     {"name":"huggingface", "calls":0, "window_start":time.time(), "last_call":0,
@@ -2931,6 +2934,7 @@ def trading_loop(send_fn):
     sim["daily_start_equity"] = equity
     sim["daily_start_date"]   = datetime.utcnow().strftime("%Y-%m-%d")
 
+    # Message de démarrage (toujours envoyé)
     send_fn(
         f"🚀 BOT v7 DÉMARRÉ\n━━━━━━━━━━━━━━━━━━━\n"
         f"💰 Capital     : ${CAPITAL_INITIAL:,.2f} (virtuel)\n"
@@ -2958,19 +2962,29 @@ def trading_loop(send_fn):
         now = time.time()
         check_daily_reset()
 
+        # 🔥 MODE SECRÉTAIRE ACTIF → ON NE POLLUE PLUS LE CHAT
+        in_secretary_mode = TELEGRAM_CHAT_ID in AGENT_CHAT_SESSIONS
+
         if now - bot_state.get("last_micro",0) >= CYCLE_MICRO:
-            try: monitor_micro_positions(send_fn); run_micro_cycle(send_fn)
-            except Exception as e: print(f"[MICRO] {e}")
+            try:
+                monitor_micro_positions(send_fn)
+                run_micro_cycle(send_fn)
+            except Exception as e:
+                print(f"[MICRO] {e}")
             bot_state["last_micro"] = now
 
         if now - bot_state.get("last_meme",0) >= CYCLE_MEME:
-            try: run_meme_cycle(send_fn)
-            except Exception as e: print(f"[MEME] {e}")
+            try:
+                run_meme_cycle(send_fn)
+            except Exception as e:
+                print(f"[MEME] {e}")
             bot_state["last_meme"] = now
 
         if now - bot_state["last_monitor"] >= CYCLE_MONITOR:
-            try: monitor_positions(send_fn)
-            except Exception as e: print(f"[MON] {e}")
+            try:
+                monitor_positions(send_fn)
+            except Exception as e:
+                print(f"[MON] {e}")
             bot_state["last_monitor"] = now
 
         if now - bot_state["last_scalp"] >= CYCLE_SCALP:
@@ -2980,14 +2994,17 @@ def trading_loop(send_fn):
                 threshold  = memory.get("confidence_threshold", CONFIDENCE_BASE)
                 macro      = get_macro_trend()
 
+                # === ARBITRAGE ===
                 arb_opps = detect_arbitrage()
-                for opp in arb_opps:
-                    if opp["profit_est"] > 0.05:
-                        coin = opp["symbol"].replace("USDT","")
-                        send_fn(f"⚡ ARBITRAGE {coin}\n  Spread:{opp['spread_pct']:.3f}% → ~{opp['profit_est']:.3f}% net")
+                if not in_secretary_mode:
+                    for opp in arb_opps:
+                        if opp["profit_est"] > 0.05:
+                            coin = opp["symbol"].replace("USDT","")
+                            send_fn(f"⚡ ARBITRAGE {coin}\n  Spread:{opp['spread_pct']:.3f}% → ~{opp['profit_est']:.3f}% net")
 
+                # === POLYMARKET ===
                 poly_mkts = get_polymarket_markets()
-                if poly_mkts and poly_mkts[0]["inefficiency"] > 2:
+                if not in_secretary_mode and poly_mkts and poly_mkts[0]["inefficiency"] > 2:
                     best = poly_mkts[0]
                     send_fn(f"🎯 Polymarket\n  {best['question']}\n  YES:{best['yes_price']:.2f} NO:{best['no_price']:.2f}")
 
@@ -3002,7 +3019,8 @@ def trading_loop(send_fn):
                                 if macro == "BEAR" and opp["direction"] == "BUY":
                                     if opp["ind"].get("rsi",50) > 30: continue
                                 result = analyze(opp, fear_greed)
-                                signal = result["signal"]; conf = result["confidence"]
+                                signal = result["signal"]
+                                conf   = result["confidence"]
                                 risk   = result["risk"]
                                 in_pos = any(p["symbol"]==opp["symbol"] for p in sim["positions"].values())
                                 if signal == "HOLD" or in_pos: continue
@@ -3027,25 +3045,20 @@ def trading_loop(send_fn):
                                     }
                                     open_trade(fake, send_fn)
 
-                    for market_dict, market_name in [
-                        (STOCKS_SYMBOLS,"STOCK"),
-                        (FOREX_SYMBOLS,"FOREX"),
-                        (COMMODITY_SYMBOLS,"COMMODITY")
-                    ]:
+                    # Yahoo scans (stocks/forex/commodities) → on garde silencieux en mode secrétaire
+                    for market_dict, market_name in [(STOCKS_SYMBOLS,"STOCK"), (FOREX_SYMBOLS,"FOREX"), (COMMODITY_SYMBOLS,"COMMODITY")]:
                         try:
                             yahoo_opps = scan_yahoo_market(market_dict, market_name)
                             for o in yahoo_opps[:1]:
                                 in_pos = any(p["symbol"]==o["symbol"] for p in sim["positions"].values())
                                 if in_pos or len(sim["positions"]) >= MAX_POSITIONS: continue
                                 if not _can_call_ai(): continue
-                                prompt = (
-                                    f"{o['name']} ({o['symbol']}) ${o['price']:.4f}\n"
-                                    f"RSI:{o['ind'].get('rsi','?')} mom5:{o['ind'].get('mom5','?')}% "
-                                    f"score:{o['score']:+d} {fear_greed}\n"
-                                    f"JSON:{{\"signal\":\"{o['direction']}/HOLD\","
-                                    f"\"confidence\":0-100,\"reason\":\"raison\","
-                                    f"\"risk\":\"LOW/MEDIUM/HIGH\",\"market\":\"SPOT\"}}"
-                                )
+                                prompt = (f"{o['name']} ({o['symbol']}) ${o['price']:.4f}\n"
+                                          f"RSI:{o['ind'].get('rsi','?')} mom5:{o['ind'].get('mom5','?')}% "
+                                          f"score:{o['score']:+d} {fear_greed}\n"
+                                          f"JSON:{{'signal':'{o['direction']}/HOLD',"
+                                          f"'confidence':0-100,'reason':'raison',"
+                                          f"'risk':'LOW/MEDIUM/HIGH','market':'SPOT'}}")
                                 result = vote(prompt)
                                 result.update({
                                     "symbol":o["symbol"],"price":o["price"],"patterns":[],
@@ -3067,21 +3080,30 @@ def trading_loop(send_fn):
             try:
                 fear_greed = get_fear_greed()
                 thresh     = memory.get("confidence_threshold", CONFIDENCE_BASE)
-                onchain    = get_onchain_data(); options = get_options_data()
-                liq        = get_liquidations(); whales = get_whale_alerts()
-                macro      = get_macro_trend(); fg_val = get_fear_greed_value()
+                onchain    = get_onchain_data()
+                options    = get_options_data()
+                liq        = get_liquidations()
+                whales     = get_whale_alerts()
+                macro      = get_macro_trend()
+                fg_val     = get_fear_greed_value()
                 macro_e    = "🐂" if macro=="BULL" else "🐻" if macro=="BEAR" else "➡️"
-                send_fn("🔬 Analyse profonde\n" + "\n".join([
-                    format_onchain(onchain), format_options(options),
-                    interpret_liquidations(liq), format_whale_alerts(whales),
-                    f"📊 Macro: {macro_e} {macro} | F&G:{fg_val}/100",
-                    f"📡 WS: {'✅ Connecté' if _ws_connected else '⚠️ REST mode'}"
-                ]))
+
+                # ANALYSE PROFONDE → silencieux en mode secrétaire
+                if not in_secretary_mode:
+                    send_fn("🔬 Analyse profonde\n" + "\n".join([
+                        format_onchain(onchain), format_options(options),
+                        interpret_liquidations(liq), format_whale_alerts(whales),
+                        f"📊 Macro: {macro_e} {macro} | F&G:{fg_val}/100",
+                        f"📡 WS: {'✅ Connecté' if _ws_connected else '⚠️ REST mode'}"
+                    ]))
+
                 for symbol in ["BTCUSDT","ETHUSDT","SOLUSDT"]:
                     try:
-                        mtf  = get_multi_tf(symbol); conf = tf_score(mtf)
+                        mtf  = get_multi_tf(symbol)
+                        conf = tf_score(mtf)
                         if abs(conf["score"]) < 5: continue
-                        price  = get_price(symbol); ind5m = mtf.get("5m",{})
+                        price  = get_price(symbol)
+                        ind5m  = mtf.get("5m",{})
                         ob     = get_order_book(symbol)
                         in_pos = any(p["symbol"]==symbol for p in sim["positions"].values())
                         if in_pos or not _can_call_ai(): continue
@@ -3107,69 +3129,76 @@ def trading_loop(send_fn):
                             open_trade(result, send_fn)
                     except Exception as e:
                         print(f"[DEEP] {symbol}: {e}")
+
                 threading.Thread(target=get_trader_intelligence, daemon=True).start()
                 auto_adjust_sl_tp()
                 rules = generate_trading_rules()
-                if rules:
+                if rules and not in_secretary_mode:
                     send_fn("🧠 Règles auto\n" + "\n".join(f"• {r}" for r in rules.get("rules",[])[:3]))
+
                 closed_n = len([t for t in sim["trades"] if t.get("pnl")])
                 if closed_n >= 20 and closed_n%50 == 0:
                     test_strategy_variation(send_fn)
+
             except Exception as e:
                 print(f"[DEEP] {e}")
             bot_state["last_deep"] = now
 
         if now - bot_state.get("last_epargne",0) >= CYCLE_EPARGNE:
-            try: run_epargne_scan(send_fn)
-            except Exception as e: print(f"[EPARGNE] {e}")
+            try:
+                run_epargne_scan(send_fn)
+            except Exception as e:
+                print(f"[EPARGNE] {e}")
             bot_state["last_epargne"] = now
 
         if now - bot_state["last_status"] >= CYCLE_STATUS:
             try:
-                equity = get_equity_safe(); pnl = equity - sim["initial"]
-                stats  = get_stats(); kelly = kelly_criterion()
+                equity = get_equity_safe()
+                pnl = equity - sim["initial"]
+                stats  = get_stats()
+                kelly = kelly_criterion()
                 sym_s  = db_symbol_stats()
                 sym_str = " | ".join(f"{s['s']}:{s['wr']:.0f}%WR" for s in sym_s) or "Aucun"
-                micro_c = bot_state.get("micro_count",0); wr_db = db_win_rate(30)
-                fg_val  = get_fear_greed_value(); macro = get_macro_trend()
+                micro_c = bot_state.get("micro_count",0)
+                wr_db = db_win_rate(30)
+                fg_val  = get_fear_greed_value()
+                macro = get_macro_trend()
                 daily_start = sim.get("daily_start_equity", CAPITAL_INITIAL)
                 daily_pnl   = equity - daily_start
                 daily_pct   = daily_pnl/daily_start*100 if daily_start>0 else 0
                 bl_count    = len(memory.get("symbol_blacklist",{}))
                 macro_e     = "🐂" if macro=="BULL" else "🐻" if macro=="BEAR" else "➡️"
-                if fg_val < 20:        trader_tip = "💡 Saylor/Buffett : Fear extrême = opportunité"
-                elif fg_val < 35:      trader_tip = "💡 Buffett : Sois avide quand les autres ont peur"
-                elif fg_val > 75:      trader_tip = "💡 Tudor Jones : Protège le capital"
-                elif stats["win_rate"] > 60: trader_tip = "💡 Livermore : Laisse courir les gagnants"
-                else:                  trader_tip = "💡 Cathie Wood : Focus momentum"
-                pos_lines = ""
-                if sim["positions"]:
-                    prices = get_prices_batch()
-                    for pos in sim["positions"].values():
-                        p   = prices.get(pos["symbol"], pos["price_in"])
-                        chg = (p-pos["price_in"])/pos["price_in"]*100*pos.get("leverage",1)
-                        pos_lines += f"\n  {'📈' if chg>0 else '📉'} {pos['symbol'].replace('USDT',''):6s} {chg:+.2f}%"
-                stop_str = "🛑 STOP JOUR ACTIF" if bot_state.get("daily_stopped") else ""
-                ws_str   = "📡 WS✅" if _ws_connected else "📡 REST"
-                send_fn(
-                    f"📊 BILAN v7 — {datetime.now().strftime('%H:%M')}\n━━━━━━━━━━━━━━━━━━━\n"
-                    f"💰 Capital  : ${equity:.2f} ({pnl/sim['initial']*100:+.1f}%)\n"
-                    f"📅 Auj.     : ${daily_pnl:+.2f} ({daily_pct:+.1f}%)\n"
-                    f"📍 Positions: {len(sim['positions'])}/{MAX_POSITIONS}{pos_lines}\n"
-                    f"━━━━━━━━━━━━━━━━━━━\n"
-                    f"🏆 WR       : {stats['win_rate']}% ({stats['wins']}✅/{stats['losses']}❌)\n"
-                    f"📐 Kelly    : {kelly*100:.1f}% / trade\n"
-                    f"⚡ Micro    : {micro_c} trades\n"
-                    f"📊 WR DB(30): {wr_db}%\n"
-                    f"🧠 AI Pool  : {_pool_stats['last_provider']} ({_pool_stats['total_calls']} appels | cache:{_pool_stats['cache_hits']})\n"
-                    f"📊 Macro    : {macro_e} {macro} | F&G:{fg_val}/100\n"
-                    f"🚫 Blacklist: {bl_count} symbols\n"
-                    f"🥇 Top      : {sym_str}\n"
-                    f"📚 Leçons   : {len(memory['lessons'])}/{MAX_LESSONS}\n"
-                    f"{ws_str}\n"
-                    f"━━━━━━━━━━━━━━━━━━━\n"
-                    f"{stop_str}\n{trader_tip}"
-                )
+
+                # BILAN v7 → silencieux en mode secrétaire
+                if not in_secretary_mode:
+                    pos_lines = ""
+                    if sim["positions"]:
+                        prices = get_prices_batch()
+                        for pos in sim["positions"].values():
+                            p   = prices.get(pos["symbol"], pos["price_in"])
+                            chg = (p-pos["price_in"])/pos["price_in"]*100*pos.get("leverage",1)
+                            pos_lines += f"\n  {'📈' if chg>0 else '📉'} {pos['symbol'].replace('USDT',''):6s} {chg:+.2f}%"
+                    stop_str = "🛑 STOP JOUR ACTIF" if bot_state.get("daily_stopped") else ""
+                    ws_str   = "📡 WS✅" if _ws_connected else "📡 REST"
+                    send_fn(
+                        f"📊 BILAN v7 — {datetime.now().strftime('%H:%M')}\n━━━━━━━━━━━━━━━━━━━\n"
+                        f"💰 Capital  : ${equity:.2f} ({pnl/sim['initial']*100:+.1f}%)\n"
+                        f"📅 Auj.     : ${daily_pnl:+.2f} ({daily_pct:+.1f}%)\n"
+                        f"📍 Positions: {len(sim['positions'])}/{MAX_POSITIONS}{pos_lines}\n"
+                        f"━━━━━━━━━━━━━━━━━━━\n"
+                        f"🏆 WR       : {stats['win_rate']}% ({stats['wins']}✅/{stats['losses']}❌)\n"
+                        f"📐 Kelly    : {kelly*100:.1f}% / trade\n"
+                        f"⚡ Micro    : {micro_c} trades\n"
+                        f"📊 WR DB(30): {wr_db}%\n"
+                        f"🧠 AI Pool  : {_pool_stats['last_provider']} ({_pool_stats['total_calls']} appels | cache:{_pool_stats['cache_hits']})\n"
+                        f"📊 Macro    : {macro_e} {macro} | F&G:{fg_val}/100\n"
+                        f"🚫 Blacklist: {bl_count} symbols\n"
+                        f"🥇 Top      : {sym_str}\n"
+                        f"📚 Leçons   : {len(memory['lessons'])}/{MAX_LESSONS}\n"
+                        f"{ws_str}\n"
+                        f"━━━━━━━━━━━━━━━━━━━\n"
+                        f"{stop_str}"
+                    )
                 db_save_equity(equity, sim["cash"], len(sim["positions"]), pnl)
             except Exception as e:
                 print(f"[STATUS] {e}")
