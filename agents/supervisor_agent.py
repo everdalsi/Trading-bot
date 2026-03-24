@@ -21,7 +21,7 @@ class SupervisorAgent(BaseAgent):
             role="Synthèse finale, arbitrage et décision ultime"
         )
 
-        async def respond(self, question: str, context: dict) -> Dict[str, Any]:
+async def respond(self, question: str, context: dict) -> Dict[str, Any]:
         agent_outputs    = context.get("agent_outputs", [])
         trader_decision  = context.get("trader_decision", {})
         risk             = context.get("risk", {})
