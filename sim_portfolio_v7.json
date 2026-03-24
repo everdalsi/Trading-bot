@@ -9736,17 +9736,6 @@
   "memory": {
     "lessons": [
       {
-        "trade_id": -2,
-        "pnl": -1.6244,
-        "symbol": "ETHUSDT",
-        "market": "BACKTEST",
-        "lecon": "Entr\u00e9e trop agressive",
-        "pattern": "backtest_5m",
-        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
-        "type": "erreur",
-        "date": "2026-03-24 05:13"
-      },
-      {
         "trade_id": -1,
         "pnl": -0.0084,
         "symbol": "SOLUSDT",
@@ -15234,6 +15223,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-24 14:25"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -0.7862,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-24 14:25"
       }
     ],
     "patterns_to_avoid": [
@@ -15346,7 +15346,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "memecoin",
@@ -15428,6 +15427,7 @@
       "backtest_5m",
       "backtest_5m",
       "memecoin",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -15614,13 +15614,13 @@
       "memecoin",
       "memecoin"
     ],
-    "confidence_threshold": 64,
+    "confidence_threshold": 62,
     "total_wins": 290,
     "total_losses": 264,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -13,
+      "SOLUSDT": -15,
       "Computer": 15,
       "CHIBILAND": -13,
       "USDUC": 4,
