@@ -11006,17 +11006,6 @@
   "memory": {
     "lessons": [
       {
-        "trade_id": 390,
-        "pnl": 4.6173194738870063e+129,
-        "symbol": "APES",
-        "market": "MEME",
-        "lecon": "Scalp rapide gagnant",
-        "pattern": "memecoin",
-        "action_future": "Conserver ce setup pour micro-trading",
-        "type": "succes",
-        "date": "2026-03-24 20:26"
-      },
-      {
         "trade_id": -1,
         "pnl": -0.0084,
         "symbol": "SOLUSDT",
@@ -16504,6 +16493,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-24 21:53"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -0.9032,
+        "symbol": "BTCUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-24 21:54"
       }
     ],
     "patterns_to_avoid": [
