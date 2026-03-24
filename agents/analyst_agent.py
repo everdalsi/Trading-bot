@@ -7,7 +7,7 @@ Améliorations vs V2 :
 - Intègre le PerformanceTracker pour stats temps réel
 - Détecte les tendances de performance (amélioration / dégradation)
 - Recommandations basées sur les insights compressés
-  “””
+  """
 
 from agents.base_agent import BaseAgent
 from typing import Dict, Any
