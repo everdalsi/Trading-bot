@@ -67,8 +67,8 @@ class SupervisorAgent(BaseAgent):
         # ─── Signal BUY ───
         elif has_buy and not has_sell:
             effective_score = (score + global_score) / 2
-            if (effective_score >= 0.60
-                    and "HIGH RISK" not in risk_reco
+            if (effective_score >= 0.45
+                    and "CRITICAL" not in risk_reco
                     and "STOP" not in risk_reco):
                 final_decision = "BUY"
                 reason = (
