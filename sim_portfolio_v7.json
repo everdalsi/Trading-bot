@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 1.2801298360323852e+142,
+    "cash": 1.453684398555603e+142,
     "initial": 1000.0,
     "positions": {
       "MEME_7_166": {
@@ -54,7 +54,7 @@
           "memecoin"
         ],
         "leverage": 1,
-        "peak_price": 0.0002502,
+        "peak_price": 0.0006445,
         "open_time": 1774394077.7224796,
         "kelly_pct": 0.05,
         "pos_key": "MEME_CIA_407"
@@ -11031,17 +11031,17 @@
         "trade_type": "MEME",
         "meme_symbol": "CIA",
         "price_in": 0.0002502,
-        "price_out": null,
+        "price_out": 0.0006445,
         "qty": 2.692855896403688e+144,
         "amount_usd": 6.737525452802028e+140,
         "confidence": 85,
         "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
+        "exit_reason": "\ud83c\udfaf MEME TP (+157.6%)",
         "time_in": "2026-03-24 23:14:37",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-24 23:14:40",
+        "pnl": 1.0617930799519741e+141,
+        "pnl_pct": 157.59,
+        "duration_min": 1,
         "patterns": [
           "memecoin"
         ],
@@ -11059,28 +11059,6 @@
   },
   "memory": {
     "lessons": [
-      {
-        "trade_id": -5,
-        "pnl": 3.0211,
-        "symbol": "SOLUSDT",
-        "market": "BACKTEST",
-        "lecon": "Scalp rapide gagnant",
-        "pattern": "backtest_5m",
-        "action_future": "Conserver ce setup pour micro-trading",
-        "type": "succes",
-        "date": "2026-03-24 21:50"
-      },
-      {
-        "trade_id": 404,
-        "pnl": 3.5773850906194314e+139,
-        "symbol": "BioLLM",
-        "market": "MEME",
-        "lecon": "Scalp rapide gagnant",
-        "pattern": "memecoin",
-        "action_future": "Conserver ce setup pour micro-trading",
-        "type": "succes",
-        "date": "2026-03-24 21:50"
-      },
       {
         "trade_id": -1,
         "pnl": -0.9032,
@@ -16558,6 +16536,28 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-24 23:13"
+      },
+      {
+        "trade_id": 407,
+        "pnl": 1.0617930799519741e+141,
+        "symbol": "CIA",
+        "market": "MEME",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "memecoin",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-24 23:14"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -0.9032,
+        "symbol": "BTCUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-24 23:14"
       }
     ],
     "patterns_to_avoid": [
@@ -16835,7 +16835,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
@@ -16962,6 +16961,7 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "memecoin",
       "memecoin"
     ],
     "confidence_threshold": 8,
@@ -16993,7 +16993,7 @@
       "TERAFAB": -3,
       "APES": 15,
       "BioLLM": 4,
-      "CIA": 2
+      "CIA": 4
     },
     "symbol_blacklist": {},
     "consecutive_losses": {},
