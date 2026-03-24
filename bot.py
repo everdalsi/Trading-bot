@@ -19,6 +19,16 @@ from collections import defaultdict, deque
 from agents.orchestrator import Orchestrator
 
 orchestrator = Orchestrator()
+from agents.orchestrator import Orchestrator
+
+orchestrator = Orchestrator()
+
+def load_json(path, default=None):
+    try:
+        with open(path, "r") as f:
+            return json.load(f)
+    except:
+        return default if default is not None else {}
 
 try:
     import websocket
