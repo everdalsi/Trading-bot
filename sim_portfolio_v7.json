@@ -8197,6 +8197,17 @@
   "memory": {
     "lessons": [
       {
+        "trade_id": 210,
+        "pnl": -5.169164765373765e+68,
+        "symbol": "BOB",
+        "market": "MEME",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "memecoin",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-23 21:22"
+      },
+      {
         "trade_id": 211,
         "pnl": -5.06539177136073e+68,
         "symbol": "BOB",
@@ -10383,17 +10394,6 @@
         "pattern": "backtest_5m",
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
-        "date": "2026-03-24 06:01"
-      },
-      {
-        "trade_id": -2,
-        "pnl": -1.8177,
-        "symbol": "SOLUSDT",
-        "market": "BACKTEST",
-        "lecon": "Entr\u00e9e trop agressive",
-        "pattern": "backtest_5m",
-        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
-        "type": "erreur",
         "date": "2026-03-24 06:02"
       }
     ],
@@ -10405,7 +10405,7 @@
       "memecoin",
       "memecoin",
       "memecoin",
-      "backtest_5m",
+      "memecoin",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -10603,7 +10603,7 @@
     ],
     "confidence_threshold": 55,
     "total_wins": 213,
-    "total_losses": 138,
+    "total_losses": 139,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
@@ -12375,6 +12375,34 @@
             "exit": 90.31,
             "pnl": -2.0239,
             "pnl_pct": -1.0,
+            "exit_reason": "TIMEOUT"
+          }
+        ]
+      },
+      {
+        "symbol": "BTCUSDT",
+        "interval": "5m",
+        "days": 30,
+        "total_trades": 1,
+        "wins": 0,
+        "losses": 1,
+        "win_rate": 0.0,
+        "total_pnl": -0.9,
+        "total_pnl_pct": -0.09,
+        "sharpe": 0.0,
+        "max_drawdown": -0.09,
+        "profit_factor": 0.0,
+        "best_trade": -0.45,
+        "worst_trade": -0.45,
+        "final_equity": 999.1,
+        "sl_used": 0.025,
+        "tp_used": 0.04,
+        "trades": [
+          {
+            "entry": 68989.187355,
+            "exit": 68677.17,
+            "pnl": -0.9032,
+            "pnl_pct": -0.45,
             "exit_reason": "TIMEOUT"
           }
         ]
