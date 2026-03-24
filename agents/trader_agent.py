@@ -23,6 +23,19 @@ class TraderAgent(BaseAgent):
         )
 
     async def respond(self, question: str, context: dict) -> Dict[str, Any]:
+    extreme_learning = context.get("extreme_learning_mode", False) or context.get("learning_mode", False)
+
+    if extreme_learning:
+        # Force décision agressive
+        composite = (context.get("symbol_score", 0.5) * 0.6 + context.get("global_score", 0.5) * 0.4)
+        return {
+            "agent": self.name,
+            "decision": "BUY",
+            "confidence": 0.92,
+            "summary": f"{context.get('symbol')} → BUY (apprentissage extrême) | composite={composite:.2f}",
+            "reason": "Mode apprentissage extrême → volume prioritaire",
+            "composite": composite,
+        }
         macro          = context.get("macro", "neutral")
         symbol         = context.get("symbol", "UNKNOWN")
         analysis       = context.get("analysis", {})
