@@ -28,7 +28,6 @@ class SupervisorAgent(BaseAgent):
         score            = context.get("score", 0.5)
         symbol           = context.get("symbol", "UNKNOWN")
 
-        # Données mémoire infinie
         lesson_count  = context.get("lesson_count", 0)
         global_score  = context.get("global_score", score)
         insights      = context.get("insights", [])
@@ -37,7 +36,6 @@ class SupervisorAgent(BaseAgent):
         streak_type   = context.get("streak_type", "neutral")
         streak_count  = context.get("streak_count", 0)
 
-        # Signaux trader et risk
         trader_summary = str(trader_decision.get("summary", "")).upper()
         trader_decision_val = str(trader_decision.get("decision", "HOLD")).upper()
         risk_summary   = str(risk.get("summary", "")).upper()
@@ -49,27 +47,23 @@ class SupervisorAgent(BaseAgent):
         final_decision = "HOLD"
         reason         = "Pas de consensus clair"
 
-        # ─── Veto 1 : Risque critique ───
         if "CRITICAL" in risk_summary or "STOP" in risk_reco:
             final_decision = "NO TRADE"
             reason = "Veto risque critique — capital à protéger"
 
-        # ─── Veto 2 : Performance dégradée ───
         elif degraded:
             final_decision = "NO TRADE"
             reason = "Performance en dégradation détectée — pause prudente"
 
-        # ─── Veto 3 : Streak de pertes longue ───
         elif streak_type == "loss" and streak_count >= 5:
             final_decision = "NO TRADE"
             reason = f"Série de {streak_count} pertes consécutives — pause obligatoire"
 
-        # ─── Signal BUY ───
         elif has_buy and not has_sell:
             effective_score = (score + global_score) / 2
-            if (effective_score >= 0.45
-                    and "CRITICAL" not in risk_reco
-                    and "STOP" not in risk_reco):
+            if (effective_score >= 0.45 and                     # ← baissé pour plus de trades
+                    "CRITICAL" not in risk_reco and
+                    "STOP" not in risk_reco):
                 final_decision = "BUY"
                 reason = (
                     f"Confluence haussière | score={effective_score:.2f} "
@@ -77,9 +71,8 @@ class SupervisorAgent(BaseAgent):
                 )
             else:
                 final_decision = "HOLD"
-                reason = f"Signal BUY insuffisant (score={score:.2f} < 0.60) ou risque trop élevé"
+                reason = f"Signal BUY insuffisant ou risque trop élevé"
 
-        # ─── Signal SELL ───
         elif has_sell and not has_buy:
             if score <= 0.40:
                 final_decision = "SELL"
@@ -88,22 +81,18 @@ class SupervisorAgent(BaseAgent):
                 final_decision = "HOLD"
                 reason = "Signal SELL faible — pas assez de confluence"
 
-        # ─── Boost par auto-règles ───
         if final_decision == "HOLD" and auto_rules and score >= 0.58:
-            # Si des règles automatiques valident le setup, on reconsidère
             buy_rules = [r for r in auto_rules if "✅" in r]
             if len(buy_rules) >= 2:
                 final_decision = "BUY"
                 reason = f"Règles automatiques validées ({len(buy_rules)} règles actives)"
 
-        # Synthèse des agents pour le mode secrétaire
         agent_lines = []
         for out in agent_outputs[:4]:
             agent_lines.append(
                 f"• {out.get('agent', '').title()}: {out.get('summary', '')[:80]}"
             )
 
-        # Insights pertinents
         insight_str = ""
         if insights:
             insight_str = " | Insight: " + insights[0][:60]
