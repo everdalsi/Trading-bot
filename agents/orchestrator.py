@@ -7,7 +7,7 @@ Corrections vs V2 :
 [BUG FIX] Supervisor reçoit toujours trader_decision et risk dans son contexte
 [AMÉLIORATION] Contexte enrichi transmis à tous les agents
 [AMÉLIORATION] Décision finale plus robuste (score composite)
-“””
+"""
 
 import asyncio
 from typing import Dict, Any, List, Tuple
