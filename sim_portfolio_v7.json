@@ -9643,7 +9643,7 @@
       "memecoin"
     ],
     "confidence_threshold": 58,
-    "total_wins": 171,
+    "total_wins": 172,
     "total_losses": 93,
     "symbol_scores": {
       "BTCUSDT": -2,
@@ -9802,6 +9802,6 @@
         "status": "\u2705 Promos d\u00e9tect\u00e9es"
       }
     ],
-    "last_scan": 1774314965.556002
+    "last_scan": 1774318175.2670877
   }
 }
