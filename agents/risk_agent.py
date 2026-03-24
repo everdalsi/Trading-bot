@@ -15,6 +15,20 @@ class RiskAgent(BaseAgent):
         )
 
     async def respond(self, question: str, context: dict) -> Dict[str, Any]:
+    extreme_learning = context.get("extreme_learning_mode", False) or context.get("learning_mode", False)
+
+    if extreme_learning:
+        return {
+            "agent": self.name,
+            "summary": "Risk: LOW | Kelly: 100% → Apprentissage extrême",
+            "arguments": ["Mode apprentissage extrême → tous les veto désactivés"],
+            "risks": ["Aucun veto actif (apprentissage prioritaire)"],
+            "confidence": 0.98,
+            "recommendation": "Risk acceptable — trading MAX autorisé",
+            "kelly_adjusted": 1.0,
+            "risk_level": "LOW",
+        }
+
         kelly          = context.get("kelly", 0.22)
         drawdown       = context.get("drawdown", 0.0)
         daily_pnl_pct  = context.get("daily_pnl_pct", 0.0)
