@@ -458,6 +458,7 @@ Retourne UNIQUEMENT JSON valide :
         return result
 
     async def respond(self, question: str, context: dict) -> Dict[str, Any]:
+        extreme_learning = context.get("extreme_learning_mode", False) or context.get("learning_mode", False)
         symbol = context.get("symbol", "UNKNOWN")
         data = await self.get_multi_source_intelligence(symbol)
 
@@ -525,6 +526,6 @@ Retourne UNIQUEMENT JSON valide :
                 "attacks": data["sandwich_attacks"],
                 "algo": "advanced_v2"
             },
-            "urgency": data.get("urgency", 6),
+            "urgency": data.get("urgency", 6) if not extreme_learning else 9,
             "source": "ULTIME multi-sources"
         }
