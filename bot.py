@@ -4197,6 +4197,14 @@ async def cmd_agent_stop(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 # ═══════════════════════════════════════════════════════════════
 #  APPLICATION TELEGRAM
 # ═══════════════════════════════════════════════════════════════
+async def telegram_error_handler(update: object, ctx: ContextTypes.DEFAULT_TYPE):
+    print(f"[TG-ERROR] {ctx.error}")
+    try:
+        if update and getattr(update, 'effective_message', None):
+            await update.effective_message.reply_text("⚠️ Une erreur est survenue. Réessaie ou tape /help.")
+    except Exception:
+        pass
+        
 async def run_telegram():
     global _app, _main_loop
     _main_loop = asyncio.get_event_loop()
