@@ -1826,24 +1826,26 @@ def run_micro_cycle(send_fn):
 
     # Correction : on utilise la bonne fonction de mise à jour
     for symbol, price in prices.items():
-    update_performance(memory, price)  # ← PAS de "memory ="
-
+        update_performance(memory, price)  # ← PAS de "memory ="
 
     for symbol in MICRO_SYMBOLS:
-        if not bot_state["running"]: break
-        if is_blacklisted(symbol): continue
+        if not bot_state["running"]:
+            break
+        if is_blacklisted(symbol):
+            continue
         price = prices.get(symbol, 0)
-        if not price: continue
+        if not price:
+            continue
 
         micro_count = sum(1 for p in sim["positions"].values() if p.get("trade_type") == "MICRO")
-        if micro_count >= max_micro: break
-        if any(p["symbol"] == symbol and p.get("trade_type") == "MICRO" for p in sim["positions"].values()): 
+        if micro_count >= max_micro:
+            break
+        if any(p["symbol"] == symbol and p.get("trade_type") == "MICRO" for p in sim["positions"].values()):
             continue
 
         sig = micro_signal(symbol, price)
         if sig["signal"] != "HOLD" and sig["conf"] >= MICRO_CONF_MIN:
             open_micro_trade(symbol, price, sig, send_fn)
-
 # ═══════════════════════════════════════════════════════════════
 #  MEMECOINS
 # ═══════════════════════════════════════════════════════════════
