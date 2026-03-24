@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 6.51528901633521e+121,
+    "cash": 6.189524565518449e+121,
     "initial": 1000.0,
     "positions": {
       "MEME_7_166": {
@@ -30,6 +30,34 @@
         "open_time": 1774285567.7282703,
         "kelly_pct": 0.05,
         "pos_key": "MEME_7_166"
+      },
+      "MEME_TERAFAB_382": {
+        "id": 382,
+        "symbol": "TERAFAB",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "TERAFAB",
+        "price_in": 0.0003269,
+        "price_out": null,
+        "qty": 9.965263102378725e+123,
+        "amount_usd": 3.257644508167605e+120,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-24 19:03:31",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0003269,
+        "open_time": 1774379011.1581259,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_TERAFAB_382"
       }
     },
     "trades": [
@@ -10319,6 +10347,33 @@
         "peak_price": 0.002924,
         "open_time": 1774377302.2801962,
         "kelly_pct": 0.05
+      },
+      {
+        "id": 382,
+        "symbol": "TERAFAB",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "TERAFAB",
+        "price_in": 0.0003269,
+        "price_out": null,
+        "qty": 9.965263102378725e+123,
+        "amount_usd": 3.257644508167605e+120,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-24 19:03:31",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0003269,
+        "open_time": 1774379011.1581259,
+        "kelly_pct": 0.05
       }
     ],
     "equity_history": [],
@@ -16236,7 +16291,7 @@
     ],
     "confidence_threshold": 8,
     "total_wins": 371,
-    "total_losses": 388,
+    "total_losses": 389,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
@@ -27258,6 +27313,41 @@
             "exit": 68677.17,
             "pnl": -0.9032,
             "pnl_pct": -0.45,
+            "exit_reason": "TIMEOUT"
+          }
+        ]
+      },
+      {
+        "symbol": "ETHUSDT",
+        "interval": "5m",
+        "days": 30,
+        "total_trades": 2,
+        "wins": 0,
+        "losses": 2,
+        "win_rate": 0.0,
+        "total_pnl": -2.2,
+        "total_pnl_pct": -0.22,
+        "sharpe": -33.58,
+        "max_drawdown": -0.22,
+        "profit_factor": 0.0,
+        "best_trade": -0.29,
+        "worst_trade": -0.81,
+        "final_equity": 997.8,
+        "sl_used": 0.025,
+        "tp_used": 0.04,
+        "trades": [
+          {
+            "entry": 2088.713835,
+            "exit": 2082.69,
+            "pnl": -0.5759,
+            "pnl_pct": -0.29,
+            "exit_reason": "TIMEOUT"
+          },
+          {
+            "entry": 2080.13955,
+            "exit": 2063.21,
+            "pnl": -1.6244,
+            "pnl_pct": -0.81,
             "exit_reason": "TIMEOUT"
           }
         ]
