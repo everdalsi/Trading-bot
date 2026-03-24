@@ -21,7 +21,7 @@ wr = (len(wins) / total) * 100 if total > 0 else 0
             "agent": self.name,
             "summary": f"WR actuel estimé à {wr:.1f}%",
             "arguments": [
-                f"{len(valid_trades)} trades analysés",
+                f"{total} trades analysés",
                 f"{len(wins)} trades gagnants"
             ],
             "risks": [
