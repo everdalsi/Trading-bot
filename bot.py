@@ -4145,41 +4145,56 @@ async def _ask_agent_multi(chat_id: int, query: str) -> str:
 # ═══════════════════════════════════════════════════════════════
 
 def _build_multi_agent_context():
+    """Contexte ultra-riche pour les agents"""
     return {
         "sim": sim,
         "memory": memory,
         "kelly": kelly_criterion(),
         "drawdown": -0.1,
         "macro": get_macro_trend(),
+        "fg_value": get_fear_greed_value(),
         "daily_pnl_pct": 0.0,
         "open_positions": len(sim.get("positions", {})),
         "max_positions": MAX_POSITIONS,
-        "is_night": is_night_time()
+        "is_night": is_night_time(),
+        "recent_trades": [t for t in sim.get("trades", [])[-10:] if t.get("pnl") is not None],
+        "research_data": {},  # rempli par ResearchAgent
+        "current_prices": get_prices_batch()
     }
 
 
 async def _ask_secretary(chat_id: int, question: str) -> str:
     try:
         ctx = _build_multi_agent_context()
+        # On enrichit avec ResearchAgent
+        if "symbol" in question.lower() or any(s in question.upper() for s in CRYPTO_SYMBOLS):
+            symbol = next((s for s in CRYPTO_SYMBOLS if s in question.upper()), "BTCUSDT")
+            ctx["research_data"] = await orchestrator.research.get_multi_source_intelligence(symbol)
+
         responses, final = await orchestrator.ask_all(question, ctx)
 
-        # === Réponse naturelle, claire et pro comme Grok ===
-        msg = "🧠 **Agent Conscience — Ton équipe d’experts**\n\n"
-        msg += f"**Question posée :** {question}\n\n"
+        # === Réponse ultra-actionnable ===
+        msg = "🧠 **Agent Conscience — Rapport Actionnable**\n\n"
+        msg += f"**Question :** {question}\n\n"
 
         for r in responses:
-            emoji = {"analyst": "📊", "risk": "🛡️", "trader": "💼", "learning": "🧪"}.get(r.get('agent'), "🔹")
+            emoji = {"analyst": "📊", "risk": "🛡️", "trader": "💼", "learning": "🧪", "research": "🔍"}.get(r.get('agent'), "🔹")
             agent_name = r.get('agent', 'Expert').title()
             msg += f"{emoji} **{agent_name}** :\n{r.get('summary', 'Analyse en cours...')}\n\n"
 
-        # Synthèse finale très claire
+        # Synthèse CEO + recommandation claire
         final_text = final.get("arguments", [""])[0] if final.get("arguments") else final.get("summary", "Pas de synthèse disponible.")
         msg += f"👑 **Synthèse finale (CEO)** :\n{final_text}\n\n"
 
         if final.get("recommendation"):
-            msg += f"✅ **Recommandation claire** : {final['recommendation']}\n"
+            msg += f"✅ **ACTION RECOMMANDÉE** : {final['recommendation']}\n"
 
-        msg += "\n💡 *Ton équipe a discuté en temps réel et s’est mise d’accord.*"
+        # Ajout de détails pratiques
+        if "research_data" in ctx and ctx["research_data"]:
+            rd = ctx["research_data"]
+            msg += f"\n🔍 Research : {rd.get('sentiment','').upper()} | Force : {rd.get('strength',0)}/10\n"
+
+        msg += "\n💡 *Ton équipe a analysé en temps réel et te donne une action claire.*"
 
         # Mémoire de conversation
         AGENT_CHAT_MEMORY[chat_id].append({"role": "user", "content": question})
@@ -4189,7 +4204,7 @@ async def _ask_secretary(chat_id: int, question: str) -> str:
 
     except Exception as e:
         print(f"[SECRETARY-ERROR] {e}")
-        return "⚠️ Petite erreur interne dans l’équipe. Je réessaie dans 2 secondes."
+        return "⚠️ Petite erreur interne. Je réessaie dans 2 secondes."
 # ═══════════════════════════════════════════════════════════════
 #  HANDLERS MODE SECRÉTAIRE (obligatoires)
 # ═══════════════════════════════════════════════════════════════
@@ -4215,23 +4230,21 @@ async def cmd_agent_stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Mode Secrétaire déjà désactivé.")
 
 async def handle_agent_chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Gère les messages libres quand le mode secrétaire est actif"""
     if not _auth(update):
         return
     if TELEGRAM_CHAT_ID not in AGENT_CHAT_SESSIONS:
-        return  # on ignore les messages normaux
+        return
 
     question = update.message.text.strip()
     if not question:
         return
 
-    send = make_send(TELEGRAM_CHAT_ID)
     try:
         response = await _ask_secretary(TELEGRAM_CHAT_ID, question)
         await update.message.reply_text(response)
     except Exception as e:
         print(f"[SECRETARY-CHAT] {e}")
-        await update.message.reply_text("⚠️ Petite erreur interne, réessaie dans 2 secondes.")     
+        await update.message.reply_text("⚠️ Petite erreur interne, réessaie dans 2 secondes.")
         
 # ═══════════════════════════════════════════════════════════════        
 #  APPLICATION TELEGRAM
