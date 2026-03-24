@@ -30,34 +30,6 @@
         "open_time": 1774285567.7282703,
         "kelly_pct": 0.05,
         "pos_key": "MEME_7_166"
-      },
-      "MEME_CIA_408": {
-        "id": 408,
-        "symbol": "CIA",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "CIA",
-        "price_in": 0.0002502,
-        "price_out": null,
-        "qty": 2.905044761302164e+144,
-        "amount_usd": 7.268421992778015e+140,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-24 23:15:24",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0006445,
-        "open_time": 1774394124.1962605,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_CIA_408"
       }
     },
     "trades": [
