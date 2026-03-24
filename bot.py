@@ -4117,12 +4117,8 @@ def _build_multi_agent_context():
 
 
 async def _ask_secretary(chat_id: int, question: str) -> str:
-    """Le vrai secrétaire qui fait discuter tous les agents"""
     try:
         ctx = _build_multi_agent_context()
-        print(f"[SECRETARY-DEBUG] Question: {question}")
-        print(f"[SECRETARY-DEBUG] Context keys: {list(ctx.keys())}")
-
         responses, final = await orchestrator.ask_all(question, ctx)
 
         msg = "🧠 **Agent Conscience (ton secrétaire)**\n\n"
@@ -4131,6 +4127,7 @@ async def _ask_secretary(chat_id: int, question: str) -> str:
 
         final_text = final.get("arguments", [""])[0] if final.get("arguments") else final.get("summary", "Pas de synthèse disponible.")
         msg += f"\n👑 **Synthèse finale** :\n{final_text}\n"
+
         if final.get("recommendation"):
             msg += f"\n✅ **Recommandation** : {final['recommendation']}"
 
@@ -4141,10 +4138,8 @@ async def _ask_secretary(chat_id: int, question: str) -> str:
         return msg
 
     except Exception as e:
-        import traceback
-        error_trace = traceback.format_exc()
-        print(f"[SECRETARY-ERROR] {error_trace}")
-        return f"⚠️ Erreur interne dans le secrétaire :\n{str(e)}\n\nEnvoie-moi les logs Railway (la partie rouge) pour que je corrige direct."
+        print(f"[SECRETARY-ERROR] {e}")
+        return f"⚠️ Petite erreur interne :\n{str(e)}\n\nRéessaie ou tape /help"
 
 
 async def cmd_agent(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
