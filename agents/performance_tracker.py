@@ -9,7 +9,7 @@ Améliorations vs V2 :
 - Détection de la dégradation de performance (alerte)
 - Intégration avec LearningAgent DB
 - Compatible avec sim[“trades”] et memory[“trades”]
-  “””
+  """
 
 import sqlite3
 import json
