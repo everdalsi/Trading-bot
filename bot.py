@@ -883,7 +883,7 @@ def dynamic_position_size(confidence: int, market: str, symbol: str) -> float:
     night_mult  = 0.6 if is_night_time() else 1.0
 
     return round(max(0.03, min(0.35,
-        base * conf_mult * fg_mult * macro_mult * market_mult * night_mult)), 3)3)
+        base * conf_mult * fg_mult * macro_mult * market_mult * night_mult)), 3)
 
 # ═══════════════════════════════════════════════════════════════
 #  DONNÉES DE MARCHÉ
