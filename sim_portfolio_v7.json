@@ -10330,17 +10330,6 @@
   "memory": {
     "lessons": [
       {
-        "trade_id": -2,
-        "pnl": -1.8177,
-        "symbol": "SOLUSDT",
-        "market": "BACKTEST",
-        "lecon": "Entr\u00e9e trop agressive",
-        "pattern": "backtest_5m",
-        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
-        "type": "erreur",
-        "date": "2026-03-24 13:25"
-      },
-      {
         "trade_id": -3,
         "pnl": 11.5928,
         "symbol": "SOLUSDT",
@@ -15828,6 +15817,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-24 18:43"
+      },
+      {
+        "trade_id": -2,
+        "pnl": -1.6244,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-24 18:43"
       }
     ],
     "patterns_to_avoid": [
@@ -16234,7 +16234,7 @@
       "backtest_5m",
       "backtest_5m"
     ],
-    "confidence_threshold": 17,
+    "confidence_threshold": 15,
     "total_wins": 355,
     "total_losses": 357,
     "symbol_scores": {
