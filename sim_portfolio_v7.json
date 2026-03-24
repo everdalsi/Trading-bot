@@ -10330,28 +10330,6 @@
   "memory": {
     "lessons": [
       {
-        "trade_id": -1,
-        "pnl": -0.0084,
-        "symbol": "SOLUSDT",
-        "market": "BACKTEST",
-        "lecon": "Entr\u00e9e trop agressive",
-        "pattern": "backtest_5m",
-        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
-        "type": "erreur",
-        "date": "2026-03-24 13:19"
-      },
-      {
-        "trade_id": -2,
-        "pnl": -1.8177,
-        "symbol": "SOLUSDT",
-        "market": "BACKTEST",
-        "lecon": "Entr\u00e9e trop agressive",
-        "pattern": "backtest_5m",
-        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
-        "type": "erreur",
-        "date": "2026-03-24 13:19"
-      },
-      {
         "trade_id": 319,
         "pnl": -2.910389529099993e+81,
         "symbol": "Ghibli",
@@ -15828,6 +15806,28 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-24 18:41"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -0.5759,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-24 18:41"
+      },
+      {
+        "trade_id": -2,
+        "pnl": -1.6244,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-24 18:41"
       }
     ],
     "patterns_to_avoid": [
@@ -16234,7 +16234,7 @@
       "backtest_5m",
       "memecoin"
     ],
-    "confidence_threshold": 51,
+    "confidence_threshold": 47,
     "total_wins": 353,
     "total_losses": 353,
     "symbol_scores": {
