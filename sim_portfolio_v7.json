@@ -8197,17 +8197,6 @@
   "memory": {
     "lessons": [
       {
-        "trade_id": 112,
-        "pnl": 366786254.688651,
-        "symbol": "Peace ",
-        "market": "MEME",
-        "lecon": "Scalp rapide gagnant",
-        "pattern": "memecoin",
-        "action_future": "Conserver ce setup pour micro-trading",
-        "type": "succes",
-        "date": "2026-03-23 12:07"
-      },
-      {
         "trade_id": 113,
         "pnl": 317718482.122901,
         "symbol": "Peace ",
@@ -10395,10 +10384,20 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-24 04:26"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -0.0084,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-24 04:26"
       }
     ],
     "patterns_to_avoid": [
-      "backtest_5m",
       "memecoin",
       "memecoin",
       "memecoin",
@@ -10490,6 +10489,7 @@
       "memecoin",
       "memecoin",
       "memecoin",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -10607,7 +10607,7 @@
     "symbol_scores": {
       "BTCUSDT": -8,
       "ETHUSDT": -15,
-      "SOLUSDT": 0,
+      "SOLUSDT": -3,
       "Computer": 15,
       "CHIBILAND": -13,
       "USDUC": 4,
