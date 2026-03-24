@@ -8197,17 +8197,6 @@
   "memory": {
     "lessons": [
       {
-        "trade_id": 116,
-        "pnl": 46585579.177535,
-        "symbol": "Peace ",
-        "market": "MEME",
-        "lecon": "Scalp rapide gagnant",
-        "pattern": "memecoin",
-        "action_future": "Conserver ce setup pour micro-trading",
-        "type": "succes",
-        "date": "2026-03-23 12:44"
-      },
-      {
         "trade_id": 117,
         "pnl": 22610150.919596,
         "symbol": "Peace ",
@@ -10395,6 +10384,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-24 04:26"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -0.9032,
+        "symbol": "BTCUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-24 04:56"
       }
     ],
     "patterns_to_avoid": [
@@ -10402,7 +10402,6 @@
       "memecoin",
       "memecoin",
       "memecoin",
-      "memecoin",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -10487,6 +10486,7 @@
       "memecoin",
       "memecoin",
       "memecoin",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -10605,7 +10605,7 @@
     "total_wins": 200,
     "total_losses": 107,
     "symbol_scores": {
-      "BTCUSDT": -8,
+      "BTCUSDT": -11,
       "ETHUSDT": -15,
       "SOLUSDT": -7,
       "Computer": 15,
