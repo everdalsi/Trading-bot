@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 1.0737855797683455e+83,
+    "cash": 1.028554603560611e+83,
     "initial": 1000.0,
     "positions": {
       "MEME_7_166": {
@@ -30,6 +30,34 @@
         "open_time": 1774285567.7282703,
         "kelly_pct": 0.05,
         "pos_key": "MEME_7_166"
+      },
+      "MEME_VDOR_285": {
+        "id": 285,
+        "symbol": "VDOR",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "VDOR",
+        "price_in": 0.007306,
+        "price_out": null,
+        "qty": 7.348655760801708e+83,
+        "amount_usd": 5.368927898841728e+81,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-24 02:38:04",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.007306,
+        "open_time": 1774319884.2406468,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_VDOR_285"
       }
     },
     "trades": [
@@ -7700,6 +7728,33 @@
         "peak_price": 0.007306,
         "open_time": 1774319835.2694838,
         "kelly_pct": 0.05
+      },
+      {
+        "id": 285,
+        "symbol": "VDOR",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "VDOR",
+        "price_in": 0.007306,
+        "price_out": 0.001151,
+        "qty": 7.348655760801708e+83,
+        "amount_usd": 5.368927898841728e+81,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": "\ud83d\uded1 MEME SL (-84.2%)",
+        "time_in": "2026-03-24 02:38:04",
+        "time_out": "2026-03-24 02:38:04",
+        "pnl": -4.5230976207734515e+81,
+        "pnl_pct": -84.25,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.007306,
+        "open_time": 1774319884.2406468,
+        "kelly_pct": 0.05
       }
     ],
     "equity_history": [],
@@ -7710,17 +7765,6 @@
   },
   "memory": {
     "lessons": [
-      {
-        "trade_id": 84,
-        "pnl": -3782980.53678,
-        "symbol": "CHIBILAND",
-        "market": "MEME",
-        "lecon": "Entr\u00e9e trop agressive",
-        "pattern": "memecoin",
-        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
-        "type": "erreur",
-        "date": "2026-03-23 09:20"
-      },
       {
         "trade_id": 85,
         "pnl": -3055303.82581,
@@ -9909,6 +9953,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-24 02:37"
+      },
+      {
+        "trade_id": 285,
+        "pnl": -4.5230976207734515e+81,
+        "symbol": "VDOR",
+        "market": "MEME",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "memecoin",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-24 02:38"
       }
     ],
     "patterns_to_avoid": [
@@ -9927,6 +9982,7 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "memecoin",
       "memecoin",
       "memecoin",
       "memecoin",
@@ -10108,7 +10164,7 @@
     ],
     "confidence_threshold": 55,
     "total_wins": 184,
-    "total_losses": 97,
+    "total_losses": 98,
     "symbol_scores": {
       "BTCUSDT": -2,
       "ETHUSDT": -12,
