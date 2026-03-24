@@ -7,3 +7,6 @@ feedparser
 pandas
 numpy
 httpx
+ccxt
+python-dotenv
+websocket-client
