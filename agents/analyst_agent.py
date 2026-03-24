@@ -22,6 +22,7 @@ class AnalystAgent(BaseAgent):
         )
 
     async def respond(self, question: str, context: dict) -> Dict[str, Any]:
+        extreme_learning = context.get("extreme_learning_mode", False) or context.get("learning_mode", False)
 
         # === PRIORITÉ 1 : Stats depuis PerformanceTracker (temps réel) ===
         wr_live     = context.get("wr_live")
