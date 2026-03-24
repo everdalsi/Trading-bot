@@ -16,6 +16,9 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse
 from collections import defaultdict, deque
+from memory import Memory
+
+memory = Memory()
 from agents.orchestrator import Orchestrator
 
 orchestrator = Orchestrator()
