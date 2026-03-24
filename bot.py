@@ -394,10 +394,11 @@ def _ws_prefill_from_rest():
     print("[WS] Pré-remplissage terminé ✅")
 
 # ═══════════════════════════════════════════════════════════════
-#  AI POOL — Optimisé avec cache 
-AI_PROVIDERS = [
-    {"name":"groq","calls":0,"window_start":time.time(),"last_call":0,
-     "max_calls_per_hour":10,"cooldown":360,"available":True,"failures":0},
+ AI_PROVIDERS = [
+    {"name":"groq", "calls":0, "window_start":time.time(), "last_call":0,
+     "max_calls_per_hour":10, "cooldown":360, "available":True, "failures":0},
+    {"name":"huggingface", "calls":0, "window_start":time.time(), "last_call":0,
+     "max_calls_per_hour":8, "cooldown":600, "available":True, "failures":0},
 ]
 _pool_stats = {
     "total_calls":0,"calls_by_provider":{},"fallbacks":0,"last_provider":"groq",
@@ -1819,17 +1820,22 @@ def monitor_micro_positions(send_fn):
 def run_micro_cycle(send_fn):
     max_micro = 1 if is_night_time() else MAX_MICRO_POSITIONS
     prices = get_prices_batch()
+
+    # Correction : on utilise la bonne fonction de mise à jour
     for symbol, price in prices.items():
-        memory = update_trade_results(memory, price)
-  
+        memory = update_performance(memory, price)   # ← ligne corrigée
+
     for symbol in MICRO_SYMBOLS:
         if not bot_state["running"]: break
         if is_blacklisted(symbol): continue
-        price = prices.get(symbol,0)
+        price = prices.get(symbol, 0)
         if not price: continue
-        micro_count = sum(1 for p in sim["positions"].values() if p.get("trade_type")=="MICRO")
+
+        micro_count = sum(1 for p in sim["positions"].values() if p.get("trade_type") == "MICRO")
         if micro_count >= max_micro: break
-        if any(p["symbol"]==symbol and p.get("trade_type")=="MICRO" for p in sim["positions"].values()): continue
+        if any(p["symbol"] == symbol and p.get("trade_type") == "MICRO" for p in sim["positions"].values()): 
+            continue
+
         sig = micro_signal(symbol, price)
         if sig["signal"] != "HOLD" and sig["conf"] >= MICRO_CONF_MIN:
             open_micro_trade(symbol, price, sig, send_fn)
@@ -4098,11 +4104,10 @@ async def _ask_agent_multi(chat_id: int, query: str) -> str:
 
 
 # ═══════════════════════════════════════════════════════════════
-#  NOUVEAU : MODE SECRÉTAIRE (version finale + debug)
+#  MODE SECRÉTAIRE — Version ultra-propre & naturelle
 # ═══════════════════════════════════════════════════════════════
 
 def _build_multi_agent_context():
-    """Contexte complet pour tous les agents"""
     return {
         "sim": sim,
         "memory": memory,
@@ -4121,9 +4126,15 @@ async def _ask_secretary(chat_id: int, question: str) -> str:
         ctx = _build_multi_agent_context()
         responses, final = await orchestrator.ask_all(question, ctx)
 
-        msg = "🧠 **Agent Conscience (ton secrétaire)**\n\n"
+        # === Réponse ultra-propre et naturelle ===
+        msg = "🧠 **Agent Conscience — Ton secrétaire personnel**\n\n"
+
         for r in responses:
-            msg += f"🔹 **{r.get('agent', 'Inconnu')}** : {r.get('summary', 'Pas de résumé')}\n"
+            emoji = "📊" if r.get('agent') == "analyst" else \
+                    "🛡️" if r.get('agent') == "risk" else \
+                    "💼" if r.get('agent') == "trader" else \
+                    "🧪" if r.get('agent') == "learning" else "🔹"
+            msg += f"{emoji} **{r.get('agent','Agent').title()}** : {r.get('summary','')}\n"
 
         final_text = final.get("arguments", [""])[0] if final.get("arguments") else final.get("summary", "Pas de synthèse disponible.")
         msg += f"\n👑 **Synthèse finale** :\n{final_text}\n"
@@ -4139,64 +4150,9 @@ async def _ask_secretary(chat_id: int, question: str) -> str:
 
     except Exception as e:
         print(f"[SECRETARY-ERROR] {e}")
-        return f"⚠️ Petite erreur interne :\n{str(e)}\n\nRéessaie ou tape /help"
-
-
-async def cmd_agent(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    if not _auth(update): return
-    chat_id = update.effective_chat.id
-    query = " ".join(ctx.args).strip() if ctx.args else ""
-
-    AGENT_CHAT_SESSIONS.add(chat_id)
-    AGENT_CHAT_MEMORY.setdefault(chat_id, [])
-
-    if not query:
-        await update.message.reply_text(
-            "🧠 **Mode Secrétaire activé**\n\n"
-            "Tu peux maintenant me poser **n'importe quelle question** en français.\n"
-            "Je fais discuter Analyst, Risk, Trader, Learning et Supervisor en coulisses\n"
-            "et je te réponds comme un vrai assistant.\n\n"
-            "Exemples :\n"
-            "• Analyse mon portefeuille\n"
-            "• Je suis prêt pour du vrai argent ?\n"
-            "• Quel est le risque actuel ?\n"
-            "• Donne-moi une idée de trade aujourd'hui\n\n"
-            "Pour quitter : `/agent_stop`"
-        )
-        return
-
-    reply = await _ask_secretary(chat_id, query)
-    await update.message.reply_text(reply)
-
-
-async def handle_agent_chat(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    if not update.message or not update.message.text:
-        return
-    if not _auth(update):
-        return
-
-    chat_id = update.effective_chat.id
-    if chat_id not in AGENT_CHAT_SESSIONS:
-        return
-
-    text = update.message.text.strip()
-    if not text or text.startswith('/'):
-        return
-
-    reply = await _ask_secretary(chat_id, text)
-    await update.message.reply_text(reply)
-
-
-async def cmd_agent_stop(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    if not _auth(update): return
-    chat_id = update.effective_chat.id
-    if chat_id in AGENT_CHAT_SESSIONS:
-        AGENT_CHAT_SESSIONS.discard(chat_id)
-        AGENT_CHAT_MEMORY.pop(chat_id, None)
-        await update.message.reply_text("🛑 Mode Secrétaire désactivé.")
-    else:
-        await update.message.reply_text("ℹ️ Le mode Secrétaire n'était pas actif.")
-# ═══════════════════════════════════════════════════════════════
+        return "⚠️ Petite erreur interne, réessaie dans 2 secondes."
+        
+# ═══════════════════════════════════════════════════════════════        
 #  APPLICATION TELEGRAM
 # ═══════════════════════════════════════════════════════════════
 async def telegram_error_handler(update: object, ctx: ContextTypes.DEFAULT_TYPE):
