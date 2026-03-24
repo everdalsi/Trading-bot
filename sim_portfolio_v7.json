@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 6.189524565518449e+121,
+    "cash": 6.499444248002428e+121,
     "initial": 1000.0,
     "positions": {
       "MEME_7_166": {
@@ -30,34 +30,6 @@
         "open_time": 1774285567.7282703,
         "kelly_pct": 0.05,
         "pos_key": "MEME_7_166"
-      },
-      "MEME_TERAFAB_382": {
-        "id": 382,
-        "symbol": "TERAFAB",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "TERAFAB",
-        "price_in": 0.0003269,
-        "price_out": null,
-        "qty": 9.965263102378725e+123,
-        "amount_usd": 3.257644508167605e+120,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-24 19:03:31",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0003269,
-        "open_time": 1774379011.1581259,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_TERAFAB_382"
       }
     },
     "trades": [
@@ -10356,17 +10328,17 @@
         "trade_type": "MEME",
         "meme_symbol": "TERAFAB",
         "price_in": 0.0003269,
-        "price_out": null,
+        "price_out": 0.000311,
         "qty": 9.965263102378725e+123,
         "amount_usd": 3.257644508167605e+120,
         "confidence": 85,
         "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT",
         "time_in": "2026-03-24 19:03:31",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-24 19:20:09",
+        "pnl": -1.5844768332782126e+119,
+        "pnl_pct": -4.86,
+        "duration_min": 16,
         "patterns": [
           "memecoin"
         ],
@@ -10384,17 +10356,6 @@
   },
   "memory": {
     "lessons": [
-      {
-        "trade_id": -2,
-        "pnl": -1.8177,
-        "symbol": "SOLUSDT",
-        "market": "BACKTEST",
-        "lecon": "Entr\u00e9e trop agressive",
-        "pattern": "backtest_5m",
-        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
-        "type": "erreur",
-        "date": "2026-03-24 15:30"
-      },
       {
         "trade_id": -3,
         "pnl": 11.5928,
@@ -15883,6 +15844,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-24 19:20"
+      },
+      {
+        "trade_id": 382,
+        "pnl": -1.5844768332782126e+119,
+        "symbol": "TERAFAB",
+        "market": "MEME",
+        "lecon": "Setup peu performant",
+        "pattern": "memecoin",
+        "action_future": "Diminuer la priorit\u00e9 de ce setup",
+        "type": "erreur",
+        "date": "2026-03-24 19:20"
       }
     ],
     "patterns_to_avoid": [
@@ -16085,7 +16057,7 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "memecoin"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -16289,7 +16261,7 @@
       "backtest_5m",
       "backtest_5m"
     ],
-    "confidence_threshold": 8,
+    "confidence_threshold": 11,
     "total_wins": 382,
     "total_losses": 410,
     "symbol_scores": {
@@ -16314,7 +16286,8 @@
       "Aspen": -5,
       "Ghibli": -15,
       "Tsuki": 15,
-      "WOJAK": 6
+      "WOJAK": 6,
+      "TERAFAB": -3
     },
     "symbol_blacklist": {},
     "consecutive_losses": {},
