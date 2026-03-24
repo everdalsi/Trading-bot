@@ -101,8 +101,7 @@ USER_WALLET    = os.environ.get("USER_WALLET", "")
 
 AGENT_CHAT_SESSIONS = set()
 AGENT_CHAT_MEMORY = defaultdict(list)
-LIVE_MODE = False                    # ← CHANGE EN True QUAND TU VEUX PASSER EN VRAI ARGENT
-WARMUP_TRADES_NEEDED = 50            # Nombre de trades simulés avant autorisation live
+LIVE_MODE = False                    # ← CHANGE EN True QUAND TU VEUX PASSER EN VRAI ARGENT         # Nombre de trades simulés avant autorisation live
 LIVE_MAX_PCT_PER_TRADE = 0.08        # ← très conservateur en live (8 % max)
 
 
