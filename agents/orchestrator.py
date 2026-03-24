@@ -1,7 +1,7 @@
-from agents.analyst import AnalystAgent
-from agents.risk import RiskAgent
-from agents.trader import TraderAgent
-from agents.supervisor import SupervisorAgent
+from agents.analyst_agent import AnalystAgent
+from agents.risk_agent import RiskAgent
+from agents.trader_agent import TraderAgent
+from agents.supervisor_agent import SupervisorAgent
 
 
 class Orchestrator:
