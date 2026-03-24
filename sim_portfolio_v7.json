@@ -10385,28 +10385,6 @@
   "memory": {
     "lessons": [
       {
-        "trade_id": -5,
-        "pnl": 3.0211,
-        "symbol": "SOLUSDT",
-        "market": "BACKTEST",
-        "lecon": "Scalp rapide gagnant",
-        "pattern": "backtest_5m",
-        "action_future": "Conserver ce setup pour micro-trading",
-        "type": "succes",
-        "date": "2026-03-24 15:11"
-      },
-      {
-        "trade_id": 368,
-        "pnl": 8.206581227466733e+94,
-        "symbol": "Tsuki",
-        "market": "MEME",
-        "lecon": "Scalp rapide gagnant",
-        "pattern": "memecoin",
-        "action_future": "Conserver ce setup pour micro-trading",
-        "type": "succes",
-        "date": "2026-03-24 15:11"
-      },
-      {
         "trade_id": 369,
         "pnl": 7.999600710082931e+97,
         "symbol": "Tsuki",
@@ -15883,6 +15861,28 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-24 19:10"
+      },
+      {
+        "trade_id": -2,
+        "pnl": -1.8177,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-24 19:10"
+      },
+      {
+        "trade_id": -3,
+        "pnl": 11.5928,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-24 19:10"
       }
     ],
     "patterns_to_avoid": [
@@ -16091,7 +16091,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
@@ -16242,6 +16241,7 @@
       "backtest_5m",
       "backtest_5m",
       "memecoin",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -16295,7 +16295,7 @@
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -15,
+      "SOLUSDT": -13,
       "Computer": 15,
       "CHIBILAND": -13,
       "USDUC": 4,
