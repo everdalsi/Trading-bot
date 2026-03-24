@@ -433,7 +433,7 @@ class LearningAgent(BaseAgent):
     # ─────────────────────────────────────────────────────────────
     #  RESPOND — Interface agent principale
     # ─────────────────────────────────────────────────────────────
-        async def respond(self, question: str, context: dict) -> Dict[str, Any]:
+            async def respond(self, question: str, context: dict) -> Dict[str, Any]:
         # === AJOUT EXTREME LEARNING MODE (MAX TRADES) ===
         extreme_learning = context.get("extreme_learning_mode", False) or context.get("learning_mode", False)
 
@@ -556,7 +556,7 @@ class LearningAgent(BaseAgent):
                 f"Confiance ajustée : {adjusted_conf:.2f}",
                 f"Auto-règles actives : {len(auto_rules)}",
                 f"Insights compressés : {len(insights)}",
-                f"Extreme Learning Mode : {'✅ ACTIVÉ (blacklist désactivé)' if extreme_learning else 'Inactif'}",   # ← AJOUT
+                f"Extreme Learning Mode : {'✅ ACTIVÉ (blacklist désactivé)' if extreme_learning else 'Inactif'}",
             ],
             "risks": (
                 ["Score < 0.3 → blacklist automatique recommandé"] if should_blacklist else []
@@ -573,7 +573,7 @@ class LearningAgent(BaseAgent):
             "insights": insights,
             "recommendation": (
                 "⛔ Éviter ce symbole — performances insuffisantes" if should_blacklist else
-                "💪 Renforcer les setups sur ce symbole (MAX TRADES activé)" if symbol_score > 0.65 or extreme_learning else   # ← MODIFIÉ
+                "💪 Renforcer les setups sur ce symbole (MAX TRADES activé)" if symbol_score > 0.65 or extreme_learning else
                 "📊 Continuer à collecter des données (< 5 trades)"
                 if symbol_stats.get("count", 0) < 5 else
                 "🔄 Surveiller — performances moyennes"
