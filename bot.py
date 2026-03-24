@@ -2435,10 +2435,7 @@ def backtest_strategy(
     tp_pct: float = None,
     capital: float = 1000.0
 ) -> dict:
-    """
-    Backtesting complet sur données historiques Binance.
-    Retourne: trades, win_rate, PnL, Sharpe, Max Drawdown.
-    """
+    """Backtesting complet sur données historiques Binance avec frais et slippage."""
     sl_pct = sl_pct or STOP_LOSS_PCT
     tp_pct = tp_pct or TAKE_PROFIT_PCT
 
@@ -2448,113 +2445,95 @@ def backtest_strategy(
 
     closes = df["close"]
     bt_trades = []
-    equity    = capital
+    equity = capital
     equity_curve = [capital]
-    in_trade  = False
+    in_trade = False
     entry_price = 0.0
-    entry_idx   = 0
-    peak_equity = capital
+    entry_idx = 0
+    FEE = 0.001      # 0.1%
+    SLIPPAGE = 0.0005
 
     for i in range(50, len(closes)):
-        window = closes.iloc[max(0,i-80):i]
+        window = closes.iloc[max(0, i-80):i]
         if len(window) < 27:
             continue
         ind = compute_indicators(window)
         if not ind:
             continue
-
         price = float(closes.iloc[i])
 
         if in_trade:
             change = (price - entry_price) / entry_price
-            if change <= -sl_pct:
-                pnl = change * (equity * 0.20)
+            if change <= -sl_pct or change >= tp_pct or (i - entry_idx > 100):
+                pnl = change * (equity * 0.20) * (1 - FEE - SLIPPAGE)
                 equity += pnl
-                bt_trades.append({"entry":entry_price,"exit":price,"pnl":round(pnl,4),
-                                   "pnl_pct":round(change*100,2),"exit_reason":"SL","idx":i})
-                in_trade = False
-            elif change >= tp_pct:
-                pnl = change * (equity * 0.20)
-                equity += pnl
-                bt_trades.append({"entry":entry_price,"exit":price,"pnl":round(pnl,4),
-                                   "pnl_pct":round(change*100,2),"exit_reason":"TP","idx":i})
-                in_trade = False
-            elif i - entry_idx > 100:
-                pnl = change * (equity * 0.20)
-                equity += pnl
-                bt_trades.append({"entry":entry_price,"exit":price,"pnl":round(pnl,4),
-                                   "pnl_pct":round(change*100,2),"exit_reason":"TIMEOUT","idx":i})
+                bt_trades.append({"entry": entry_price, "exit": price, "pnl": round(pnl,4), "pnl_pct": round(change*100,2), "exit_reason": "SL" if change <= -sl_pct else "TP" if change >= tp_pct else "TIMEOUT"})
                 in_trade = False
             equity_curve.append(equity)
             continue
 
         # Signal d'entrée
         score = 0
-        if ind["rsi"] < 35:        score += 3
-        elif ind["rsi"] < 45:      score += 1
-        if ind["rsi"] > 70:        score -= 3
-        if ind["macd_h"] > 0:      score += 2
-        else:                       score -= 1
-        if ind["mom5"] > 1:        score += 2
-        elif ind["mom5"] < -1:     score -= 2
-        if ind["ema_cross"]=="BULL": score += 1
-        else:                        score -= 1
+        if ind.get("rsi",50) < 35: score += 3
+        elif ind.get("rsi",50) < 45: score += 1
+        if ind.get("rsi",50) > 70: score -= 3
+        if ind.get("macd_h",0) > 0: score += 2
+        else: score -= 1
+        if ind.get("mom5",0) > 1: score += 2
+        elif ind.get("mom5",0) < -1: score -= 2
+        if ind.get("ema_cross","BEAR") == "BULL": score += 1
+        else: score -= 1
 
         if score >= 4 and not in_trade:
-            in_trade    = True
-            entry_price = price
-            entry_idx   = i
+            in_trade = True
+            entry_price = price * (1 + SLIPPAGE)
+            entry_idx = i
         equity_curve.append(equity)
 
     if not bt_trades:
         return {"error": "Aucun trade généré sur cette période"}
 
-    wins       = [t for t in bt_trades if t["pnl"] > 0]
-    losses     = [t for t in bt_trades if t["pnl"] <= 0]
-    total_pnl  = sum(t["pnl"] for t in bt_trades)
-    win_rate   = round(len(wins)/len(bt_trades)*100, 1)
-    pnl_pcts   = [t["pnl_pct"]/100 for t in bt_trades]
+    wins = [t for t in bt_trades if t["pnl"] > 0]
+    losses = [t for t in bt_trades if t["pnl"] <= 0]
+    total_pnl = sum(t["pnl"] for t in bt_trades)
+    win_rate = round(len(wins)/len(bt_trades)*100, 1)
+    pnl_pcts = [t["pnl_pct"]/100 for t in bt_trades]
 
-    # Sharpe Ratio
+    # Sharpe
     if len(pnl_pcts) > 1:
-        avg_r  = np.mean(pnl_pcts)
-        std_r  = np.std(pnl_pcts)
+        avg_r = np.mean(pnl_pcts)
+        std_r = np.std(pnl_pcts)
         sharpe = round((avg_r / std_r) * np.sqrt(252) if std_r > 0 else 0, 2)
     else:
         sharpe = 0.0
 
     # Max Drawdown
-    eq_series  = pd.Series(equity_curve)
-    rolling_max= eq_series.expanding().max()
-    drawdowns  = (eq_series - rolling_max) / rolling_max
-    max_dd     = round(float(drawdowns.min()) * 100, 2)
-
-    # Profit Factor
-    gross_profit = sum(t["pnl"] for t in wins) if wins else 0
-    gross_loss   = abs(sum(t["pnl"] for t in losses)) if losses else 0.001
-    profit_factor= round(gross_profit / gross_loss, 2)
+    eq_series = pd.Series(equity_curve)
+    rolling_max = eq_series.expanding().max()
+    drawdowns = (eq_series - rolling_max) / rolling_max
+    max_dd = round(float(drawdowns.min()) * 100, 2)
 
     result = {
-        "symbol":       symbol,
-        "interval":     interval,
-        "days":         days,
+        "symbol": symbol,
+        "interval": interval,
+        "days": days,
         "total_trades": len(bt_trades),
-        "wins":         len(wins),
-        "losses":       len(losses),
-        "win_rate":     win_rate,
-        "total_pnl":    round(total_pnl, 2),
-        "total_pnl_pct":round((equity - capital) / capital * 100, 2),
-        "sharpe":       sharpe,
+        "wins": len(wins),
+        "losses": len(losses),
+        "win_rate": win_rate,
+        "total_pnl": round(total_pnl, 2),
+        "total_pnl_pct": round((equity - capital) / capital * 100, 2),
+        "sharpe": sharpe,
         "max_drawdown": max_dd,
-        "profit_factor":profit_factor,
-        "best_trade":   round(max((t["pnl_pct"] for t in bt_trades), default=0), 2),
-        "worst_trade":  round(min((t["pnl_pct"] for t in bt_trades), default=0), 2),
-        "avg_trade":    round(np.mean([t["pnl_pct"] for t in bt_trades]), 2),
+        "profit_factor": round(sum(t["pnl"] for t in wins) / abs(sum(t["pnl"] for t in losses)) if losses else 0, 2),
+        "best_trade": round(max((t["pnl_pct"] for t in bt_trades), default=0), 2),
+        "worst_trade": round(min((t["pnl_pct"] for t in bt_trades), default=0), 2),
         "final_equity": round(equity, 2),
-        "sl_used":      sl_pct,
-        "tp_used":      tp_pct,
-        "trades":       bt_trades[-10:],
+        "sl_used": sl_pct,
+        "tp_used": tp_pct,
+        "trades": bt_trades[-10:],
     }
+    return result
 
     # Sauvegarde en DB
     try:
