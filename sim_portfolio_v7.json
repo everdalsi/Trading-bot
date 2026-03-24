@@ -8190,7 +8190,7 @@
     ],
     "equity_history": [],
     "session": 1,
-    "peak_equity": 3534.84,
+    "peak_equity": 1000.0,
     "daily_start_equity": 1000.0,
     "daily_start_date": "2026-03-24"
   },
@@ -11055,6 +11055,6 @@
         "status": "\u2705 Promos d\u00e9tect\u00e9es"
       }
     ],
-    "last_scan": 1774325768.5240297
+    "last_scan": 1774328265.0746918
   }
 }
