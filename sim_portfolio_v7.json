@@ -8197,17 +8197,6 @@
   "memory": {
     "lessons": [
       {
-        "trade_id": 120,
-        "pnl": -33177292.01584,
-        "symbol": "Optimistic",
-        "market": "MEME",
-        "lecon": "Entr\u00e9e trop agressive",
-        "pattern": "memecoin",
-        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
-        "type": "erreur",
-        "date": "2026-03-23 13:39"
-      },
-      {
         "trade_id": 121,
         "pnl": -39541299.847969,
         "symbol": "Optimistic",
@@ -10395,10 +10384,20 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-24 04:57"
+      },
+      {
+        "trade_id": -2,
+        "pnl": -1.8177,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-24 04:57"
       }
     ],
     "patterns_to_avoid": [
-      "memecoin",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -10483,6 +10482,7 @@
       "memecoin",
       "memecoin",
       "memecoin",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -10607,7 +10607,7 @@
     "symbol_scores": {
       "BTCUSDT": -11,
       "ETHUSDT": -15,
-      "SOLUSDT": -10,
+      "SOLUSDT": -13,
       "Computer": 15,
       "CHIBILAND": -13,
       "USDUC": 4,
