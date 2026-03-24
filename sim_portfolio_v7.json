@@ -30,34 +30,6 @@
         "open_time": 1774285567.7282703,
         "kelly_pct": 0.05,
         "pos_key": "MEME_7_166"
-      },
-      "MEME_APES_388": {
-        "id": 388,
-        "symbol": "APES",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "APES",
-        "price_in": 0.0003863,
-        "price_out": null,
-        "qty": 6.97879124180598e+128,
-        "amount_usd": 2.6959070567096503e+125,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-24 19:51:58",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.07004,
-        "open_time": 1774381918.2939816,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_APES_388"
       }
     },
     "trades": [
@@ -10547,17 +10519,6 @@
   "memory": {
     "lessons": [
       {
-        "trade_id": -2,
-        "pnl": -1.6244,
-        "symbol": "ETHUSDT",
-        "market": "BACKTEST",
-        "lecon": "Entr\u00e9e trop agressive",
-        "pattern": "backtest_5m",
-        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
-        "type": "erreur",
-        "date": "2026-03-24 18:30"
-      },
-      {
         "trade_id": -1,
         "pnl": -0.0084,
         "symbol": "SOLUSDT",
@@ -16045,6 +16006,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-24 19:51"
+      },
+      {
+        "trade_id": -2,
+        "pnl": -1.6244,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-24 19:52"
       }
     ],
     "patterns_to_avoid": [
@@ -16095,8 +16067,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -16451,7 +16423,7 @@
       "memecoin",
       "memecoin"
     ],
-    "confidence_threshold": 36,
+    "confidence_threshold": 34,
     "total_wins": 412,
     "total_losses": 462,
     "symbol_scores": {
