@@ -8197,17 +8197,6 @@
   "memory": {
     "lessons": [
       {
-        "trade_id": 280,
-        "pnl": -5.609670299097282e+81,
-        "symbol": "VDOR",
-        "market": "MEME",
-        "lecon": "Entr\u00e9e trop agressive",
-        "pattern": "memecoin",
-        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
-        "type": "erreur",
-        "date": "2026-03-24 02:34"
-      },
-      {
         "trade_id": 281,
         "pnl": -5.373350467550495e+81,
         "symbol": "VDOR",
@@ -10395,6 +10384,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-24 08:58"
+      },
+      {
+        "trade_id": -3,
+        "pnl": 11.5928,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-24 08:58"
       }
     ],
     "patterns_to_avoid": [
@@ -10574,7 +10574,7 @@
       "memecoin",
       "memecoin",
       "memecoin",
-      "memecoin",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -10607,7 +10607,7 @@
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -15,
+      "SOLUSDT": -13,
       "Computer": 15,
       "CHIBILAND": -13,
       "USDUC": 4,
