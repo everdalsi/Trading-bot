@@ -1,16 +1,3 @@
-"""
-🧠 LEARNING AGENT V4 — Mémoire infinie + Compression IA + Scoring avancé
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Améliorations vs V3 :
-
-- Mémoire infinie via SQLite (pas de plafond MAX_LESSONS)
-- Compression IA périodique : résume 1000 leçons en 50 insights clés
-- Score par symbole enrichi (fenêtre glissante 20 derniers trades)
-- Détection de patterns récurrents (3 occurrences = règle automatique)
-- Blacklist intelligente avec score de confiance progressif
-- Ajustement de confiance par contexte (nuit, macro, volatilité)
-"""
-
 import sqlite3
 import json
 import time
@@ -31,11 +18,7 @@ class LearningAgent(BaseAgent):
         )
         self._ensure_tables()
 
-    # ─────────────────────────────────────────────────────────────
-    #  INITIALISATION DB — Tables mémoire infinie
-    # ─────────────────────────────────────────────────────────────
     def _ensure_tables(self):
-        """Crée les tables si elles n'existent pas encore."""
         try:
             con = sqlite3.connect(DB_FILE)
             con.execute("""
@@ -46,12 +29,12 @@ class LearningAgent(BaseAgent):
                     market      TEXT DEFAULT 'SPOT',
                     pnl         REAL,
                     pnl_pct     REAL,
-                    lesson_type TEXT,   -- 'succes' | 'erreur'
+                    lesson_type TEXT,
                     lecon       TEXT,
                     pattern     TEXT,
                     action      TEXT,
                     confidence  REAL DEFAULT 0.5,
-                    tags        TEXT,   -- JSON array de tags
+                    tags        TEXT,
                     created_at  TEXT,
                     session_id  INTEGER DEFAULT 1
                 )
@@ -77,7 +60,7 @@ class LearningAgent(BaseAgent):
                     losses      INTEGER DEFAULT 0,
                     win_rate    REAL DEFAULT 0.5,
                     last_seen   TEXT,
-                    is_rule     INTEGER DEFAULT 0   -- 1 = règle automatique (>= 3 occurrences)
+                    is_rule     INTEGER DEFAULT 0
                 )
             """)
             con.execute("""
@@ -93,11 +76,7 @@ class LearningAgent(BaseAgent):
         except Exception as e:
             print(f"[LEARNING-DB] Init error: {e}")
 
-    # ─────────────────────────────────────────────────────────────
-    #  ÉCRITURE — Sauvegarder une leçon (sans limite)
-    # ─────────────────────────────────────────────────────────────
     def save_lesson(self, lesson: dict) -> int:
-        """Sauvegarde une leçon en DB. Retourne l'ID inséré."""
         try:
             con = sqlite3.connect(DB_FILE)
             cur = con.execute("""
@@ -124,7 +103,6 @@ class LearningAgent(BaseAgent):
             con.commit()
             con.close()
 
-            # Mettre à jour le compteur de patterns
             self._update_pattern(
                 lesson.get("pattern", ""),
                 lesson.get("symbol", "GLOBAL"),
@@ -136,7 +114,6 @@ class LearningAgent(BaseAgent):
             return -1
 
     def _update_pattern(self, pattern: str, symbol: str, is_win: bool):
-        """Met à jour le pattern tracker et génère des règles si >= 3 occurrences."""
         if not pattern:
             return
         try:
@@ -175,11 +152,7 @@ class LearningAgent(BaseAgent):
         except Exception as e:
             print(f"[LEARNING-DB] update_pattern error: {e}")
 
-    # ─────────────────────────────────────────────────────────────
-    #  LECTURE — Requêtes intelligentes sur la mémoire
-    # ─────────────────────────────────────────────────────────────
     def get_lesson_count(self) -> int:
-        """Nombre total de leçons en mémoire."""
         try:
             con = sqlite3.connect(DB_FILE)
             count = con.execute("SELECT COUNT(*) FROM memory_lessons").fetchone()[0]
@@ -189,7 +162,6 @@ class LearningAgent(BaseAgent):
             return 0
 
     def get_symbol_stats_db(self, symbol: str, window: int = 20) -> dict:
-        """Stats d'un symbole sur les N derniers trades (fenêtre glissante)."""
         try:
             con = sqlite3.connect(DB_FILE)
             rows = con.execute("""
@@ -220,7 +192,6 @@ class LearningAgent(BaseAgent):
             return {"score": 0.5, "count": 0, "wins": 0, "losses": 0, "avg_pnl": 0.0}
 
     def get_global_stats_db(self, window: int = 100) -> dict:
-        """Stats globales sur les N dernières leçons."""
         try:
             con = sqlite3.connect(DB_FILE)
             rows = con.execute("""
@@ -247,7 +218,6 @@ class LearningAgent(BaseAgent):
             return {"score": 0.5, "total": 0, "wins": 0, "losses": 0, "winrate": 0.0}
 
     def get_best_patterns(self, symbol: str = None, limit: int = 5) -> List[dict]:
-        """Retourne les patterns les plus performants."""
         try:
             con = sqlite3.connect(DB_FILE)
             if symbol:
@@ -270,7 +240,6 @@ class LearningAgent(BaseAgent):
             return []
 
     def get_worst_patterns(self, symbol: str = None, limit: int = 5) -> List[dict]:
-        """Retourne les patterns les moins performants (à éviter)."""
         try:
             con = sqlite3.connect(DB_FILE)
             if symbol:
@@ -293,7 +262,6 @@ class LearningAgent(BaseAgent):
             return []
 
     def get_auto_rules(self) -> List[str]:
-        """Retourne les règles automatiques (patterns avec >= 3 occurrences)."""
         try:
             con = sqlite3.connect(DB_FILE)
             rows = con.execute("""
@@ -312,7 +280,6 @@ class LearningAgent(BaseAgent):
             return []
 
     def get_active_insights(self, limit: int = 5) -> List[str]:
-        """Retourne les insights compressés (synthèses IA)."""
         try:
             con = sqlite3.connect(DB_FILE)
             rows = con.execute("""
@@ -326,7 +293,6 @@ class LearningAgent(BaseAgent):
             return []
 
     def save_insight(self, insight: str, score: float, source_count: int, symbol: str = "GLOBAL"):
-        """Sauvegarde un insight compressé."""
         try:
             con = sqlite3.connect(DB_FILE)
             con.execute("""
@@ -339,11 +305,7 @@ class LearningAgent(BaseAgent):
         except Exception as e:
             print(f"[LEARNING-DB] save_insight error: {e}")
 
-    # ─────────────────────────────────────────────────────────────
-    #  COMPRESSION IA — Synthétise les vieilles leçons en insights
-    # ─────────────────────────────────────────────────────────────
     def should_compress(self) -> bool:
-        """Déclenche la compression tous les 500 nouvelles leçons."""
         count = self.get_lesson_count()
         try:
             con = sqlite3.connect(DB_FILE)
@@ -356,10 +318,6 @@ class LearningAgent(BaseAgent):
             return False
 
     def compress_lessons(self, ask_ai_fn=None) -> str:
-        """
-        Compresse les 500 dernières leçons en insights clés via l'IA.
-        Si ask_ai_fn est None, fait une compression algorithmique.
-        """
         try:
             con = sqlite3.connect(DB_FILE)
             rows = con.execute("""
@@ -372,7 +330,6 @@ class LearningAgent(BaseAgent):
             if not rows:
                 return "Aucune leçon à compresser"
 
-            # Compression algorithmique (sans IA)
             symbol_perf = {}
             pattern_count = {}
 
@@ -391,7 +348,6 @@ class LearningAgent(BaseAgent):
                     if ltype == "succes":
                         pattern_count[pattern]["wins"] += 1
 
-            # Générer les insights
             insights_generated = 0
             total_lessons = self.get_lesson_count()
 
@@ -430,16 +386,10 @@ class LearningAgent(BaseAgent):
             print(f"[LEARNING] compress error: {e}")
             return f"Erreur compression: {e}"
 
-    # ─────────────────────────────────────────────────────────────
-    #  RESPOND — Interface agent principale
-    # ─────────────────────────────────────────────────────────────
-            async def respond(self, question: str, context: dict) -> Dict[str, Any]:
-        # === AJOUT EXTREME LEARNING MODE (MAX TRADES) ===
+    async def respond(self, question: str, context: dict) -> Dict[str, Any]:
         extreme_learning = context.get("extreme_learning_mode", False) or context.get("learning_mode", False)
 
-        # === FORCE SAUVEGARDE DE LEÇONS EN MODE EXTREME ===
         if extreme_learning and context.get("symbol"):
-            # On force une leçon à chaque appel en mode max trades pour que le compteur monte en live
             fake_lesson = {
                 "symbol": context["symbol"],
                 "type": "succes" if context.get("score", 0.5) > 0.5 else "erreur",
@@ -447,13 +397,12 @@ class LearningAgent(BaseAgent):
                 "pattern": "aggressive_entry",
                 "confidence": 0.85,
             }
-            self.save_lesson(fake_lesson)   # ← Force la sauvegarde en DB
+            self.save_lesson(fake_lesson)
 
         symbol   = context.get("symbol")
         is_night = context.get("is_night", False)
         macro    = context.get("macro", "neutral")
 
-        # === Stats depuis DB (mémoire infinie) ===
         global_stats = self.get_global_stats_db(window=100)
         symbol_stats = self.get_symbol_stats_db(symbol, window=20) if symbol else global_stats
 
@@ -465,7 +414,6 @@ class LearningAgent(BaseAgent):
         winrate      = global_stats["winrate"]
         lesson_count = self.get_lesson_count()
 
-        # === Fallback sur sim trades si DB vide ===
         if total == 0:
             sim    = context.get("sim", {})
             memory = context.get("memory", {})
@@ -483,51 +431,42 @@ class LearningAgent(BaseAgent):
                         sym_wins = sum(1 for t in sym_trades if t["pnl"] > 0)
                         symbol_score = sym_wins / len(sym_trades)
 
-        # === Ajustement de confiance multi-facteurs ===
         base_conf = context.get("base_confidence", 0.65)
         delta = 0.0
 
-        # Performance symbole
         if symbol_score > 0.65:
             delta += 0.18
         elif symbol_score < 0.40:
             delta -= 0.22
 
-        # Contexte nuit
         if is_night:
             delta -= 0.08
 
-        # Macro
         if macro == "bearish":
             delta -= 0.10
         elif macro == "bullish":
             delta += 0.05
 
-        # Peu de données → prudence
         if symbol_stats.get("count", 0) < 5:
             delta -= 0.05
 
         adjusted_conf = max(0.10, min(0.95, base_conf + delta))
 
-        # === Patterns depuis DB ===
         best_patterns  = self.get_best_patterns(symbol, limit=3)
         worst_patterns = self.get_worst_patterns(symbol, limit=3)
         auto_rules     = self.get_auto_rules()
         insights       = self.get_active_insights(limit=3)
 
-        # === Compression si nécessaire ===
         if self.should_compress():
             self.compress_lessons()
 
-        # === Blacklist check (MODIFIÉ POUR EXTREME LEARNING MODE) ===
         should_blacklist = (
             symbol_score < 0.30
             and symbol_stats.get("count", 0) >= 5
         )
         if extreme_learning:
-            should_blacklist = False   # ← DÉSACTIVÉ EN MODE MAX TRADES
+            should_blacklist = False
 
-        # === Réponse selon la question ===
         q = question.lower()
         if any(k in q for k in ["winrate", "wr", "performance", "stat"]):
             summary = f"Winrate global : {winrate}% ({total} trades) | Leçons DB: {lesson_count}"
