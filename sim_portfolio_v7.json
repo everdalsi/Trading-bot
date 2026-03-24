@@ -8197,17 +8197,6 @@
   "memory": {
     "lessons": [
       {
-        "trade_id": 299,
-        "pnl": 3.470455035856253e+82,
-        "symbol": "Aspen",
-        "market": "MEME",
-        "lecon": "Scalp rapide gagnant",
-        "pattern": "memecoin",
-        "action_future": "Conserver ce setup pour micro-trading",
-        "type": "succes",
-        "date": "2026-03-24 03:43"
-      },
-      {
         "trade_id": 300,
         "pnl": -1.3237957979067223e+82,
         "symbol": "Aspen",
@@ -10389,6 +10378,17 @@
         "trade_id": -2,
         "pnl": -1.6244,
         "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-24 09:16"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -0.0084,
+        "symbol": "SOLUSDT",
         "market": "BACKTEST",
         "lecon": "Entr\u00e9e trop agressive",
         "pattern": "backtest_5m",
