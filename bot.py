@@ -4098,11 +4098,11 @@ async def _ask_agent_multi(chat_id: int, query: str) -> str:
 
 
 # ═══════════════════════════════════════════════════════════════
-#  NOUVEAU : MODE SECRÉTAIRE (ce que tu voulais)
+#  NOUVEAU : MODE SECRÉTAIRE (version finale + debug)
 # ═══════════════════════════════════════════════════════════════
 
 def _build_multi_agent_context():
-    """Contexte complet pour que tous les agents puissent travailler ensemble"""
+    """Contexte complet pour tous les agents"""
     return {
         "sim": sim,
         "memory": memory,
@@ -4117,27 +4117,34 @@ def _build_multi_agent_context():
 
 
 async def _ask_secretary(chat_id: int, question: str) -> str:
-    """Le vrai secrétaire personnel"""
-    ctx = _build_multi_agent_context()
+    """Le vrai secrétaire qui fait discuter tous les agents"""
+    try:
+        ctx = _build_multi_agent_context()
+        print(f"[SECRETARY-DEBUG] Question: {question}")
+        print(f"[SECRETARY-DEBUG] Context keys: {list(ctx.keys())}")
 
-    responses, final = await orchestrator.ask_all(question, ctx)
+        responses, final = await orchestrator.ask_all(question, ctx)
 
-    msg = "🧠 **Agent Conscience (ton secrétaire)**\n\n"
+        msg = "🧠 **Agent Conscience (ton secrétaire)**\n\n"
+        for r in responses:
+            msg += f"🔹 **{r.get('agent', 'Inconnu')}** : {r.get('summary', 'Pas de résumé')}\n"
 
-    for r in responses:
-        msg += f"🔹 **{r['agent']}** : {r['summary']}\n"
+        final_text = final.get("arguments", [""])[0] if final.get("arguments") else final.get("summary", "Pas de synthèse disponible.")
+        msg += f"\n👑 **Synthèse finale** :\n{final_text}\n"
+        if final.get("recommendation"):
+            msg += f"\n✅ **Recommandation** : {final['recommendation']}"
 
-    final_text = final.get("arguments", [""])[0] if final.get("arguments") else final.get("summary", "Pas de synthèse disponible.")
-    msg += f"\n👑 **Synthèse finale** :\n{final_text}\n"
+        # Sauvegarde mémoire
+        AGENT_CHAT_MEMORY[chat_id].append({"role": "user", "content": question})
+        AGENT_CHAT_MEMORY[chat_id].append({"role": "assistant", "content": msg})
 
-    if final.get("recommendation"):
-        msg += f"\n✅ **Recommandation** : {final['recommendation']}"
+        return msg
 
-    # Sauvegarde conversation
-    AGENT_CHAT_MEMORY[chat_id].append({"role": "user", "content": question})
-    AGENT_CHAT_MEMORY[chat_id].append({"role": "assistant", "content": msg})
-
-    return msg
+    except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"[SECRETARY-ERROR] {error_trace}")
+        return f"⚠️ Erreur interne dans le secrétaire :\n{str(e)}\n\nEnvoie-moi les logs Railway (la partie rouge) pour que je corrige direct."
 
 
 async def cmd_agent(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
