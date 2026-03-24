@@ -1,3 +1,4 @@
+from agents.analyst import AnalystAgent
 class Orchestrator:
     def __init__(self):
         self.analyst = AnalystAgent()
