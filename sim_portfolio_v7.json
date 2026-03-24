@@ -30,34 +30,6 @@
         "open_time": 1774285567.7282703,
         "kelly_pct": 0.05,
         "pos_key": "MEME_7_166"
-      },
-      "MEME_APES_398": {
-        "id": 398,
-        "symbol": "APES",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "APES",
-        "price_in": 0.0004417,
-        "price_out": null,
-        "qty": 3.3548531281135936e+138,
-        "amount_usd": 1.4818386266877744e+135,
-        "confidence": 95,
-        "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-24 20:34:37",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.06976,
-        "open_time": 1774384477.074307,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_APES_398"
       }
     },
     "trades": [
