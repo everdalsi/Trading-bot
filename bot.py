@@ -232,6 +232,19 @@ PROMO_EXCHANGES = [
 # ═══════════════════════════════════════════════════════════════
 groq_client = Groq(api_key=GROQ_KEY)
 
+# ──────────────── CLIENT BINANCE v7.2 ────────────────
+exchange = None
+if LIVE_MODE:
+    exchange = ccxt.binance({
+        'apiKey': os.environ.get("BINANCE_KEY"),
+        'secret': os.environ.get("BINANCE_SECRET"),
+        'enableRateLimit': True,
+        'options': {'defaultType': 'spot'},   # change en 'future' si tu veux du levier
+    })
+    print("🔴 LIVE MODE ACTIVÉ — Connexion Binance OK")
+else:
+    print("🟢 Mode SIMULATION (LIVE_MODE=False)")
+
 # ═══════════════════════════════════════════════════════════════
 #  ÉTAT GLOBAL
 # ═══════════════════════════════════════════════════════════════
