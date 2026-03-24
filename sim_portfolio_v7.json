@@ -8197,6 +8197,17 @@
   "memory": {
     "lessons": [
       {
+        "trade_id": 164,
+        "pnl": 1.3110536766017178e+53,
+        "symbol": "PERP",
+        "market": "MEME",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "memecoin",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-23 17:02"
+      },
+      {
         "trade_id": 165,
         "pnl": 1.9482711838290613e+54,
         "symbol": "PERP",
@@ -10384,17 +10395,6 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-24 05:52"
-      },
-      {
-        "trade_id": -4,
-        "pnl": -2.0239,
-        "symbol": "SOLUSDT",
-        "market": "BACKTEST",
-        "lecon": "Entr\u00e9e trop agressive",
-        "pattern": "backtest_5m",
-        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
-        "type": "erreur",
-        "date": "2026-03-24 05:52"
       }
     ],
     "patterns_to_avoid": [
@@ -10445,7 +10445,7 @@
       "memecoin",
       "memecoin",
       "memecoin",
-      "backtest_5m",
+      "memecoin",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -10603,11 +10603,11 @@
     ],
     "confidence_threshold": 55,
     "total_wins": 207,
-    "total_losses": 120,
+    "total_losses": 121,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -15,
+      "SOLUSDT": -13,
       "Computer": 15,
       "CHIBILAND": -13,
       "USDUC": 4,
@@ -11626,6 +11626,34 @@
             "exit": 90.31,
             "pnl": -2.0239,
             "pnl_pct": -1.0,
+            "exit_reason": "TIMEOUT"
+          }
+        ]
+      },
+      {
+        "symbol": "BTCUSDT",
+        "interval": "5m",
+        "days": 30,
+        "total_trades": 1,
+        "wins": 0,
+        "losses": 1,
+        "win_rate": 0.0,
+        "total_pnl": -0.9,
+        "total_pnl_pct": -0.09,
+        "sharpe": 0.0,
+        "max_drawdown": -0.09,
+        "profit_factor": 0.0,
+        "best_trade": -0.45,
+        "worst_trade": -0.45,
+        "final_equity": 999.1,
+        "sl_used": 0.025,
+        "tp_used": 0.04,
+        "trades": [
+          {
+            "entry": 68989.187355,
+            "exit": 68677.17,
+            "pnl": -0.9032,
+            "pnl_pct": -0.45,
             "exit_reason": "TIMEOUT"
           }
         ]
