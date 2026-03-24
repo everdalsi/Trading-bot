@@ -8197,17 +8197,6 @@
   "memory": {
     "lessons": [
       {
-        "trade_id": 246,
-        "pnl": 2.440434324245821e+78,
-        "symbol": "WRT",
-        "market": "MEME",
-        "lecon": "Scalp rapide gagnant",
-        "pattern": "memecoin",
-        "action_future": "Conserver ce setup pour micro-trading",
-        "type": "succes",
-        "date": "2026-03-24 01:09"
-      },
-      {
         "trade_id": 247,
         "pnl": 3.671983748605531e+78,
         "symbol": "WRT",
@@ -10395,6 +10384,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-24 06:51"
+      },
+      {
+        "trade_id": -4,
+        "pnl": -2.0239,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-24 06:51"
       }
     ],
     "patterns_to_avoid": [
@@ -10607,7 +10607,7 @@
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -13,
+      "SOLUSDT": -15,
       "Computer": 15,
       "CHIBILAND": -13,
       "USDUC": 4,
@@ -13176,6 +13176,6 @@
         "status": "\u2705 Promos d\u00e9tect\u00e9es"
       }
     ],
-    "last_scan": 1774333341.1080832
+    "last_scan": 1774335129.43965
   }
 }
