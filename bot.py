@@ -4128,15 +4128,75 @@ async def cmd_agent(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     reply = await _ask_agent_multi(chat_id, query)
     await update.message.reply_text(reply)
 
-async def cmd_agent_stop(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+# ═══════════════════════════════════════════════════════════════
+#  NOUVEAU : MODE SECRÉTAIRE (ce que tu voulais)
+# ═══════════════════════════════════════════════════════════════
+
+def _build_multi_agent_context():
+    """Contexte complet pour que tous les agents puissent travailler ensemble"""
+    return {
+        "sim": sim,
+        "memory": memory,
+        "kelly": kelly_criterion(),
+        "drawdown": -0.1,
+        "macro": get_macro_trend(),
+        "daily_pnl_pct": 0.0,
+        "open_positions": len(sim.get("positions", {})),
+        "max_positions": MAX_POSITIONS,
+        "is_night": is_night_time()
+    }
+
+
+async def _ask_secretary(chat_id: int, question: str) -> str:
+    """Le vrai secrétaire personnel"""
+    ctx = _build_multi_agent_context()
+
+    responses, final = await orchestrator.ask_all(question, ctx)
+
+    msg = "🧠 **Agent Conscience (ton secrétaire)**\n\n"
+
+    for r in responses:
+        msg += f"🔹 **{r['agent']}** : {r['summary']}\n"
+
+    final_text = final.get("arguments", [""])[0] if final.get("arguments") else final.get("summary", "Pas de synthèse disponible.")
+    msg += f"\n👑 **Synthèse finale** :\n{final_text}\n"
+
+    if final.get("recommendation"):
+        msg += f"\n✅ **Recommandation** : {final['recommendation']}"
+
+    # Sauvegarde conversation
+    AGENT_CHAT_MEMORY[chat_id].append({"role": "user", "content": question})
+    AGENT_CHAT_MEMORY[chat_id].append({"role": "assistant", "content": msg})
+
+    return msg
+
+
+async def cmd_agent(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
-    chat_id = update.effective_chat.id if update.effective_chat else None
-    if chat_id in AGENT_CHAT_SESSIONS:
-        AGENT_CHAT_SESSIONS.discard(chat_id)
-        AGENT_CHAT_MEMORY.pop(chat_id, None)
-        await update.message.reply_text("🛑 Mode Agent désactivé.")
-    else:
-        await update.message.reply_text("ℹ️ Le mode Agent n'était pas actif.")
+    chat_id = update.effective_chat.id
+    query = " ".join(ctx.args).strip() if ctx.args else ""
+
+    AGENT_CHAT_SESSIONS.add(chat_id)
+    AGENT_CHAT_MEMORY.setdefault(chat_id, [])
+
+    if not query:
+        await update.message.reply_text(
+            "🧠 **Mode Secrétaire activé**\n\n"
+            "Tu peux maintenant me poser **n'importe quelle question** en français.\n"
+            "Je fais discuter Analyst, Risk, Trader, Learning et Supervisor en coulisses\n"
+            "et je te réponds comme un vrai assistant.\n\n"
+            "Exemples :\n"
+            "• Analyse mon portefeuille\n"
+            "• Je suis prêt pour du vrai argent ?\n"
+            "• Quel est le risque actuel ?\n"
+            "• Donne-moi une idée de trade aujourd'hui\n\n"
+            "Pour quitter : `/agent_stop`"
+        )
+        return
+
+    reply = await _ask_secretary(chat_id, query)
+    await update.message.reply_text(reply)
+
 
 async def handle_agent_chat(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text:
@@ -4144,7 +4204,7 @@ async def handle_agent_chat(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update):
         return
 
-    chat_id = update.effective_chat.id if update.effective_chat else None
+    chat_id = update.effective_chat.id
     if chat_id not in AGENT_CHAT_SESSIONS:
         return
 
@@ -4152,18 +4212,19 @@ async def handle_agent_chat(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not text or text.startswith('/'):
         return
 
-    reply = await _ask_agent_multi(chat_id, text)
+    reply = await _ask_secretary(chat_id, text)
     await update.message.reply_text(reply)
 
-async def telegram_error_handler(update: object, ctx: ContextTypes.DEFAULT_TYPE):
-    print(f"[TG-ERROR] {ctx.error}")
-    try:
-        if update and getattr(update, 'effective_message', None):
-            await update.effective_message.reply_text("⚠️ Une erreur est survenue. Réessaie ou tape /help.")
-    except Exception:
-        pass
 
-
+async def cmd_agent_stop(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    if not _auth(update): return
+    chat_id = update.effective_chat.id
+    if chat_id in AGENT_CHAT_SESSIONS:
+        AGENT_CHAT_SESSIONS.discard(chat_id)
+        AGENT_CHAT_MEMORY.pop(chat_id, None)
+        await update.message.reply_text("🛑 Mode Secrétaire désactivé.")
+    else:
+        await update.message.reply_text("ℹ️ Le mode Secrétaire n'était pas actif.")
 # ═══════════════════════════════════════════════════════════════
 #  APPLICATION TELEGRAM
 # ═══════════════════════════════════════════════════════════════
