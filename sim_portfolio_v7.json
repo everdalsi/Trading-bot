@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 8.053091103932546e+84,
+    "cash": 8.081440566032823e+84,
     "initial": 1000.0,
     "positions": {
       "MEME_7_166": {
@@ -30,6 +30,34 @@
         "open_time": 1774285567.7282703,
         "kelly_pct": 0.05,
         "pos_key": "MEME_7_166"
+      },
+      "MEME_Aspen_301": {
+        "id": 301,
+        "symbol": "Aspen",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "Aspen",
+        "price_in": 0.0001747,
+        "price_out": null,
+        "qty": 2.3048343170957487e+87,
+        "amount_usd": 4.026545551966273e+83,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-24 04:05:41",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0001882,
+        "open_time": 1774325141.0709212,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_Aspen_301"
       }
     },
     "trades": [
@@ -8132,6 +8160,33 @@
         "peak_price": 0.0001828,
         "open_time": 1774323831.7371767,
         "kelly_pct": 0.05
+      },
+      {
+        "id": 301,
+        "symbol": "Aspen",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "Aspen",
+        "price_in": 0.0001747,
+        "price_out": 0.000187,
+        "qty": 2.3048343170957487e+87,
+        "amount_usd": 4.026545551966273e+83,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": "\u23f1 TIMEOUT",
+        "time_in": "2026-03-24 04:05:41",
+        "time_out": "2026-03-24 04:11:02",
+        "pnl": 2.834946210027771e+82,
+        "pnl_pct": 7.04,
+        "duration_min": 5,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0001747,
+        "open_time": 1774325141.0709212,
+        "kelly_pct": 0.05
       }
     ],
     "equity_history": [],
@@ -8142,17 +8197,6 @@
   },
   "memory": {
     "lessons": [
-      {
-        "trade_id": 100,
-        "pnl": 3281136225.289278,
-        "symbol": "Computer",
-        "market": "MEME",
-        "lecon": "Scalp rapide gagnant",
-        "pattern": "memecoin",
-        "action_future": "Conserver ce setup pour micro-trading",
-        "type": "succes",
-        "date": "2026-03-23 09:50"
-      },
       {
         "trade_id": 101,
         "pnl": 32165201.251641,
@@ -10341,6 +10385,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-24 03:49"
+      },
+      {
+        "trade_id": 301,
+        "pnl": 2.834946210027771e+82,
+        "symbol": "Aspen",
+        "market": "MEME",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "memecoin",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-24 04:11"
       }
     ],
     "patterns_to_avoid": [
@@ -10543,7 +10598,7 @@
     ],
     "confidence_threshold": 55,
     "total_wins": 197,
-    "total_losses": 100,
+    "total_losses": 101,
     "symbol_scores": {
       "BTCUSDT": -2,
       "ETHUSDT": -12,
@@ -10563,7 +10618,7 @@
       "Punch": -15,
       "WRT": 15,
       "VDOR": -15,
-      "Aspen": -4
+      "Aspen": -2
     },
     "symbol_blacklist": {},
     "consecutive_losses": {},
