@@ -19,9 +19,6 @@ from collections import defaultdict, deque
 from agents.orchestrator import Orchestrator
 
 orchestrator = Orchestrator()
-from agents.orchestrator import Orchestrator
-
-orchestrator = Orchestrator()
 
 def load_json(path, default=None):
     try:
