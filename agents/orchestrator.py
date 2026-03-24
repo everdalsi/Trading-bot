@@ -210,6 +210,8 @@ class Orchestrator:
           - Stats PerformanceTracker temps réel
         """
         enriched = dict(context)
+        enriched["extreme_learning_mode"] = True         
+        enriched["learning_mode"] = True
 
         try:
             # Stats depuis la mémoire infinie (DB)
