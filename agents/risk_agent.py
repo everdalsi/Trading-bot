@@ -7,7 +7,7 @@ Améliorations vs V2 :
 - Détection de la dégradation de performance (depuis PerformanceTracker)
 - Streak de pertes → réduction automatique du Kelly
 - Ajustement de position sizing selon le contexte macro
-  “””
+  """
 
 from agents.base_agent import BaseAgent
 from typing import Dict, Any
