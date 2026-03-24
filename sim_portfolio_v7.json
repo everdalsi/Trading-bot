@@ -10357,17 +10357,6 @@
   "memory": {
     "lessons": [
       {
-        "trade_id": 379,
-        "pnl": 6.76707935361565e+120,
-        "symbol": "WOJAK",
-        "market": "MEME",
-        "lecon": "Scalp rapide gagnant",
-        "pattern": "memecoin",
-        "action_future": "Conserver ce setup pour micro-trading",
-        "type": "succes",
-        "date": "2026-03-24 16:40"
-      },
-      {
         "trade_id": 380,
         "pnl": 7.67645390711832e+120,
         "symbol": "WOJAK",
@@ -15855,6 +15844,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-24 19:33"
+      },
+      {
+        "trade_id": -2,
+        "pnl": -1.8177,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-24 19:33"
       }
     ],
     "patterns_to_avoid": [
@@ -15993,8 +15993,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
