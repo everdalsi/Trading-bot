@@ -18,6 +18,8 @@ from urllib.parse import urlparse
 from collections import defaultdict, deque
 from agents.orchestrator import Orchestrator
 
+orchestrator = Orchestrator()
+
 try:
     import websocket
     WS_AVAILABLE = True
