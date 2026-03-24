@@ -4166,7 +4166,7 @@ def _build_multi_agent_context():
 Starting Container
 [WS] Thread WebSocket démarré
 Serveur HTTP port 8000
-[WS] Connecté à Binance WebSocket ✅
+print("[WS] Connecté à Binance WebSocket")
 [WS] Pré-remplissage buffers depuis Binance REST...
 Webhook: https://web-production-52b6c.up.railway.app/webhook
 Bot v7.1 prêt — /start | /resume | /agent (chat) | /agent_stop
