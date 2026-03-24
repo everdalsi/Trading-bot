@@ -30,34 +30,6 @@
         "open_time": 1774285567.7282703,
         "kelly_pct": 0.05,
         "pos_key": "MEME_7_166"
-      },
-      "MEME_Aspen_302": {
-        "id": 302,
-        "symbol": "Aspen",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "Aspen",
-        "price_in": 0.0001862,
-        "price_out": null,
-        "qty": 2.1700968222429706e+87,
-        "amount_usd": 4.0407202830164116e+83,
-        "confidence": 95,
-        "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-24 04:11:50",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0001894,
-        "open_time": 1774325510.027482,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_Aspen_302"
       }
     },
     "trades": [
