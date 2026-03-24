@@ -10303,17 +10303,6 @@
   "memory": {
     "lessons": [
       {
-        "trade_id": -4,
-        "pnl": -2.0239,
-        "symbol": "SOLUSDT",
-        "market": "BACKTEST",
-        "lecon": "Entr\u00e9e trop agressive",
-        "pattern": "backtest_5m",
-        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
-        "type": "erreur",
-        "date": "2026-03-24 11:48"
-      },
-      {
         "trade_id": 309,
         "pnl": 5.616767700213637e+82,
         "symbol": "Ghibli",
@@ -15801,6 +15790,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-24 17:58"
+      },
+      {
+        "trade_id": -2,
+        "pnl": -1.6244,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-24 17:58"
       }
     ],
     "patterns_to_avoid": [
@@ -15822,7 +15822,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "memecoin",
       "memecoin",
@@ -15836,6 +15835,7 @@
       "backtest_5m",
       "backtest_5m",
       "memecoin",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -16208,7 +16208,7 @@
       "backtest_5m"
     ],
     "confidence_threshold": 55,
-    "total_wins": 335,
+    "total_wins": 336,
     "total_losses": 318,
     "symbol_scores": {
       "BTCUSDT": -15,
