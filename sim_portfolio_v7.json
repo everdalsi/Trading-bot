@@ -8197,17 +8197,6 @@
   "memory": {
     "lessons": [
       {
-        "trade_id": 117,
-        "pnl": 22610150.919596,
-        "symbol": "Peace ",
-        "market": "MEME",
-        "lecon": "Scalp rapide gagnant",
-        "pattern": "memecoin",
-        "action_future": "Conserver ce setup pour micro-trading",
-        "type": "succes",
-        "date": "2026-03-23 12:51"
-      },
-      {
         "trade_id": 118,
         "pnl": -33399584.808062,
         "symbol": "Optimistic",
@@ -10395,13 +10384,23 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-24 04:56"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -0.5759,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-24 04:57"
       }
     ],
     "patterns_to_avoid": [
       "memecoin",
       "memecoin",
       "memecoin",
-      "memecoin",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -10486,6 +10485,7 @@
       "memecoin",
       "memecoin",
       "memecoin",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
