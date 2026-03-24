@@ -88,7 +88,7 @@ class TraderAgent(BaseAgent):
         memory = context.get("memory", {})
         recent_trades = (memory.get("trades", []) or [])[-8:]
         same_symbol = [t for t in recent_trades if t.get("symbol") == symbol]
-        if len(same_symbol) >= 3:
+        if len(same_symbol) >= 8:
             return self._hold(
                 symbol,
                 "Anti-overtrading : trop de trades récents sur ce symbole",
@@ -102,7 +102,7 @@ class TraderAgent(BaseAgent):
         composite = (symbol_score * 0.6 + global_score * 0.4)
 
         # BUY plus agressif
-        if (macro in ("bullish", "BULL") and composite >= 0.45) or composite >= 0.52:
+        if (macro in ("bullish", "BULL") and composite >= 0.38) or composite >= 0.52:
             if ("CRITICAL" not in str(risk.get("summary", "")) and
                 "STOP" not in str(risk.get("recommendation", ""))):
                 decision = "BUY"
