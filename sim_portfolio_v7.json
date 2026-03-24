@@ -10924,17 +10924,6 @@
   "memory": {
     "lessons": [
       {
-        "trade_id": -1,
-        "pnl": -0.5759,
-        "symbol": "ETHUSDT",
-        "market": "BACKTEST",
-        "lecon": "Entr\u00e9e trop agressive",
-        "pattern": "backtest_5m",
-        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
-        "type": "erreur",
-        "date": "2026-03-24 19:50"
-      },
-      {
         "trade_id": -2,
         "pnl": -1.6244,
         "symbol": "ETHUSDT",
@@ -16415,6 +16404,17 @@
       {
         "trade_id": -1,
         "pnl": -0.0084,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-24 21:18"
+      },
+      {
+        "trade_id": -2,
+        "pnl": -1.8177,
         "symbol": "SOLUSDT",
         "market": "BACKTEST",
         "lecon": "Entr\u00e9e trop agressive",
