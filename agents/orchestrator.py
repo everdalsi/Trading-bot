@@ -29,7 +29,7 @@ class Orchestrator:
         self.supervisor = SupervisorAgent()
         self.learning   = LearningAgent()
         self.performance = PerformanceTracker()
-
+        self.research = ResearchAgent()
     # ─────────────────────────────────────────────────────────────
     #  ask_all — Interroge tous les agents en parallèle
     # ─────────────────────────────────────────────────────────────
@@ -50,6 +50,7 @@ class Orchestrator:
             self.risk.respond(question, enriched_ctx),
             self.trader.respond(question, enriched_ctx),
             self.learning.respond(question, enriched_ctx),
+            self.research.respond(question, enriched_ctx),
         ]
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -76,6 +77,7 @@ class Orchestrator:
         supervisor_ctx = {
             **enriched_ctx,
             "agent_outputs": responses,
+            "twitter_kols": twitter_resp
             "trader_decision": trader_resp,
             "risk": risk_resp,
             "score": enriched_ctx.get("global_score", 0.5),
