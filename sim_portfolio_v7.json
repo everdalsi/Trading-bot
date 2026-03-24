@@ -30,34 +30,6 @@
         "open_time": 1774285567.7282703,
         "kelly_pct": 0.05,
         "pos_key": "MEME_7_166"
-      },
-      "MEME_Punch_235": {
-        "id": 235,
-        "symbol": "Punch",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "Punch",
-        "price_in": 0.01333,
-        "price_out": null,
-        "qty": 9.3483012298608e+78,
-        "amount_usd": 1.2461285539404446e+77,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-24 00:06:48",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.01333,
-        "open_time": 1774310808.9919775,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_Punch_235"
       }
     },
     "trades": [
