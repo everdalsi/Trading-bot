@@ -8197,17 +8197,6 @@
   "memory": {
     "lessons": [
       {
-        "trade_id": 236,
-        "pnl": -4.5540922827526514e+76,
-        "symbol": "Punch",
-        "market": "MEME",
-        "lecon": "Entr\u00e9e trop agressive",
-        "pattern": "memecoin",
-        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
-        "type": "erreur",
-        "date": "2026-03-24 00:07"
-      },
-      {
         "trade_id": 237,
         "pnl": -4.469296656002523e+76,
         "symbol": "Punch",
@@ -10388,6 +10377,17 @@
       {
         "trade_id": -1,
         "pnl": -0.5759,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-24 06:26"
+      },
+      {
+        "trade_id": -2,
+        "pnl": -1.6244,
         "symbol": "ETHUSDT",
         "market": "BACKTEST",
         "lecon": "Entr\u00e9e trop agressive",
