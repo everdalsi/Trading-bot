@@ -1,5 +1,5 @@
 from agents.base_agent import BaseAgent
-from agents.learning_agent import adjust_confidence, compute_strategy_score
+from agents.learning_agent import adjust_confidence, compute_symbol_score, should_blacklist
 
 
 class TraderAgent(BaseAgent):
@@ -9,8 +9,21 @@ class TraderAgent(BaseAgent):
     async def respond(self, question, context):
         macro = context.get("macro", "neutral")
         memory = context.get("memory", {})
+        symbol = context.get("symbol", "UNKNOWN")
+        price = context.get("price")
 
-        # 🔥 1. DÉCISION DE BASE (macro)
+        # 🔥 0. BLACKLIST CHECK
+        if should_blacklist(memory, symbol):
+            return {
+                "agent": self.name,
+                "symbol": symbol,
+                "decision": "SKIP",
+                "confidence": 0,
+                "summary": f"{symbol} blacklisté ❌",
+                "reason": "mauvaises performances historiques"
+            }
+
+        # 🔥 1. BASE DECISION (direction)
         if macro == "bullish":
             base_decision = "BUY"
             base_confidence = 0.7
@@ -21,57 +34,45 @@ class TraderAgent(BaseAgent):
             base_decision = "HOLD"
             base_confidence = 0.5
 
-        # 🧠 2. LEARNING (ADAPTATION)
-        confidence = adjust_confidence(base_confidence, memory)
+        # 🧠 2. LEARNING PAR SYMBOL
+        confidence = adjust_confidence(base_confidence, memory, symbol)
 
-        # 🔥 3. DÉCISION FINALE BASÉE SUR LEARNING
-        if confidence > 0.7:
-            decision = "BUY"
-        elif confidence < 0.4:
-            decision = "SELL"
+        # 🔥 3. DECISION FINALE
+        if confidence < 0.4:
+            decision = "HOLD"  # trop risqué
         else:
+            decision = base_decision
+
+        # 🚫 4. ANTI OVERTRADING (évite spam trades)
+        recent_trades = memory.get("trades", [])[-5:]
+        same_symbol_trades = [t for t in recent_trades if t.get("symbol") == symbol]
+
+        if len(same_symbol_trades) >= 2:
             decision = "HOLD"
 
-        # 🧠 4. ENREGISTRER LE TRADE
-        if memory is not None:
-            if "trades" not in memory:
-                memory["trades"] = []
+        # 🧠 5. SAVE TRADE
+        if "trades" not in memory:
+            memory["trades"] = []
 
-            trade = {
-                "decision": decision,
-                "macro": macro,
-                "confidence": confidence,
-                "entry_price": context.get("price"),
-                "result": None
-            }
+        trade = {
+            "symbol": symbol,
+            "decision": decision,
+            "macro": macro,
+            "confidence": confidence,
+            "entry_price": price,
+            "result": None
+        }
 
-            memory["trades"].append(trade)
+        memory["trades"].append(trade)
 
-        # 📊 5. ARGUMENTS DYNAMIQUES
-        arguments = []
-        risks = []
+        # 📊 6. SCORE
+        score = compute_symbol_score(memory, symbol)
 
-        if macro == "bullish":
-            arguments.append("tendance haussière détectée")
-            risks.append("retournement soudain")
-        elif macro == "bearish":
-            arguments.append("tendance baissière détectée")
-            risks.append("rebond technique")
-        else:
-            arguments.append("marché incertain")
-            risks.append("faux signaux")
-
-        # 📊 6. SCORE LEARNING
-        learning_score = compute_strategy_score(memory)
-
-        # 📦 7. RETURN FINAL
         return {
             "agent": self.name,
+            "symbol": symbol,
             "decision": decision,
-            "summary": f"Marché {macro}",
-            "arguments": arguments,
-            "risks": risks,
             "confidence": round(confidence, 2),
-            "learning_score": round(learning_score, 2),
-            "recommendation": f"{decision} basé sur performance historique"
+            "symbol_score": round(score, 2),
+            "summary": f"{symbol} | {decision} | score={round(score,2)}"
         }
