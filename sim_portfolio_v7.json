@@ -30,34 +30,6 @@
         "open_time": 1774285567.7282703,
         "kelly_pct": 0.05,
         "pos_key": "MEME_7_166"
-      },
-      "MEME_Ghibli_308": {
-        "id": 308,
-        "symbol": "Ghibli",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "Ghibli",
-        "price_in": 0.0006253,
-        "price_out": null,
-        "qty": 6.315887434436241e+86,
-        "amount_usd": 3.9493244127529816e+83,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-24 11:13:35",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0006253,
-        "open_time": 1774350815.9729028,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_Ghibli_308"
       }
     },
     "trades": [
@@ -10949,7 +10921,7 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 229,
-    "total_losses": 176,
+    "total_losses": 178,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
@@ -14654,6 +14626,34 @@
             "exit": 90.31,
             "pnl": -2.0239,
             "pnl_pct": -1.0,
+            "exit_reason": "TIMEOUT"
+          }
+        ]
+      },
+      {
+        "symbol": "BTCUSDT",
+        "interval": "5m",
+        "days": 30,
+        "total_trades": 1,
+        "wins": 0,
+        "losses": 1,
+        "win_rate": 0.0,
+        "total_pnl": -0.9,
+        "total_pnl_pct": -0.09,
+        "sharpe": 0.0,
+        "max_drawdown": -0.09,
+        "profit_factor": 0.0,
+        "best_trade": -0.45,
+        "worst_trade": -0.45,
+        "final_equity": 999.1,
+        "sl_used": 0.025,
+        "tp_used": 0.04,
+        "trades": [
+          {
+            "entry": 68989.187355,
+            "exit": 68677.17,
+            "pnl": -0.9032,
+            "pnl_pct": -0.45,
             "exit_reason": "TIMEOUT"
           }
         ]
