@@ -23,52 +23,83 @@ class Orchestrator:
         }
 
         # 💀 BLACKLIST CHECK
-        if memory.is_bad_symbol(symbol):
-            print(f"⛔ Skipping bad symbol: {symbol}")
-            return {"decision": "NO TRADE", "reason": "blacklisted"}
+        try:
+            if memory.is_bad_symbol(symbol):
+                print(f"⛔ Skipping bad symbol: {symbol}")
+                return {"decision": "NO TRADE", "reason": "blacklisted"}
+        except Exception as e:
+            print(f"⚠️ Memory blacklist check error: {e}")
 
         try:
             # 1. ANALYST 🧠
             analysis = await self.analyst.respond("analyze", context)
-            context["analysis"] = analysis
+            context["analysis"] = analysis or {}
 
             # 2. RISK 📉
             risk = await self.risk.respond("assess_risk", context)
-            context["risk"] = risk
+            context["risk"] = risk or {}
+
+            # 🔥 SYMBOL SCORE (learning par coin)
+            try:
+                symbol_score = memory.get_symbol_score(symbol)
+            except Exception:
+                symbol_score = 0.5  # fallback safe
+
+            context["symbol_score"] = symbol_score
 
             # 3. SCORE 🔥 (fusion intelligence)
-            score = self.compute_score(analysis, risk)
+            base_score = self.compute_score(context["analysis"], context["risk"])
+
+            # 🔥 boost avec historique
+            score = (base_score * 0.8) + (symbol_score * 0.2)
+            score = max(0, min(score, 1))  # clamp sécurité
+
             context["score"] = score
 
             # 4. TRADER 💰
             decision = await self.trader.respond("decide", context)
-            context["decision"] = decision
+            context["decision"] = decision or {}
 
             # 5. SUPERVISOR 🧠
             final = await self.supervisor.respond("validate", context)
 
+            # ❗ sécurité si supervisor fail
+            if not final:
+                return {"decision": "NO TRADE", "reason": "no supervisor output"}
+
             # 💰 POSITION SIZING
-            final["position_size"] = self.get_position_size(
-                balance=1000,  # 👉 à connecter à ton wallet plus tard
-                risk_per_trade=0.02,
-                confidence=score
-            )
+            try:
+                final["position_size"] = self.get_position_size(
+                    balance=1000,  # 👉 à connecter à ton wallet plus tard
+                    risk_per_trade=0.02,
+                    confidence=score
+                )
+            except Exception as e:
+                print(f"⚠️ Position sizing error: {e}")
+                final["position_size"] = 0
 
-            # 🧠 MEMORY LOG
-            if final["decision"] in ["BUY", "SELL"]:
-                memory.add_trade({
-                    "symbol": symbol,
-                    "decision": final["decision"],
-                    "confidence": score,
-                    "result": "pending"
-                })
+            # 🧠 MEMORY LOG (safe)
+            decision_value = final.get("decision")
 
-            # 🔍 DEBUG
+            if decision_value in ["BUY", "SELL"]:
+                try:
+                    memory.add_trade({
+                        "symbol": symbol,
+                        "decision": decision_value,
+                        "confidence": score,
+                        "result": "pending"
+                    })
+                except Exception as e:
+                    print(f"⚠️ Memory add_trade error: {e}")
+
+            # 🔍 DEBUG (propre)
             print(f"""
             ===== TRADE DEBUG =====
             Symbol: {symbol}
-            Score: {score:.2f}
-            Decision: {final.get("decision")}
+            Base Score: {base_score:.2f}
+            Symbol Score: {symbol_score:.2f}
+            Final Score: {score:.2f}
+            Decision: {decision_value}
             Position Size: {final.get("position_size")}
             ======================
             """)
@@ -94,13 +125,18 @@ class Orchestrator:
                 (1 - risk_score) * 0.1
             )
 
-            return max(0, min(score, 1))  # clamp 0-1
+            return max(0, min(score, 1))
 
-        except:
+        except Exception as e:
+            print(f"⚠️ Score computation error: {e}")
             return 0.5
 
     # 💰 POSITION SIZING
     def get_position_size(self, balance, risk_per_trade, confidence):
-        base_risk = balance * risk_per_trade
-        adjusted = base_risk * confidence
-        return round(adjusted, 2)
+        try:
+            base_risk = balance * risk_per_trade
+            adjusted = base_risk * confidence
+            return round(adjusted, 2)
+        except Exception as e:
+            print(f"⚠️ Position size error: {e}")
+            return 0
