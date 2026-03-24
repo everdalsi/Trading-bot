@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 1.48981879781906e+142,
+    "cash": 1.6855589742979482e+142,
     "initial": 1000.0,
     "positions": {
       "MEME_7_166": {
@@ -30,34 +30,6 @@
         "open_time": 1774285567.7282703,
         "kelly_pct": 0.05,
         "pos_key": "MEME_7_166"
-      },
-      "MEME_CIA_409": {
-        "id": 409,
-        "symbol": "CIA",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "CIA",
-        "price_in": 0.0002581,
-        "price_out": null,
-        "qty": 3.038028503474908e+144,
-        "amount_usd": 7.841151567468737e+140,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-24 23:16:10",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0002581,
-        "open_time": 1774394170.5800552,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_CIA_409"
       }
     },
     "trades": [
@@ -11085,17 +11057,17 @@
         "trade_type": "MEME",
         "meme_symbol": "CIA",
         "price_in": 0.0002581,
-        "price_out": null,
+        "price_out": 0.0006443,
         "qty": 3.038028503474908e+144,
         "amount_usd": 7.841151567468737e+140,
         "confidence": 85,
         "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
+        "exit_reason": "\ud83c\udfaf MEME TP (+149.6%)",
         "time_in": "2026-03-24 23:16:10",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-24 23:16:11",
+        "pnl": 1.1732866080420094e+141,
+        "pnl_pct": 149.63,
+        "duration_min": 1,
         "patterns": [
           "memecoin"
         ],
@@ -11113,28 +11085,6 @@
   },
   "memory": {
     "lessons": [
-      {
-        "trade_id": -2,
-        "pnl": -1.8177,
-        "symbol": "SOLUSDT",
-        "market": "BACKTEST",
-        "lecon": "Entr\u00e9e trop agressive",
-        "pattern": "backtest_5m",
-        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
-        "type": "erreur",
-        "date": "2026-03-24 21:52"
-      },
-      {
-        "trade_id": -3,
-        "pnl": 11.5928,
-        "symbol": "SOLUSDT",
-        "market": "BACKTEST",
-        "lecon": "Scalp rapide gagnant",
-        "pattern": "backtest_5m",
-        "action_future": "Conserver ce setup pour micro-trading",
-        "type": "succes",
-        "date": "2026-03-24 21:52"
-      },
       {
         "trade_id": -4,
         "pnl": -2.0239,
@@ -16612,6 +16562,28 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-24 23:16"
+      },
+      {
+        "trade_id": 409,
+        "pnl": 1.1732866080420094e+141,
+        "symbol": "CIA",
+        "market": "MEME",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "memecoin",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-24 23:16"
+      },
+      {
+        "trade_id": -2,
+        "pnl": -1.8177,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-24 23:16"
       }
     ],
     "patterns_to_avoid": [
@@ -16885,7 +16857,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
@@ -17016,6 +16987,7 @@
       "memecoin",
       "backtest_5m",
       "backtest_5m",
+      "memecoin",
       "memecoin"
     ],
     "confidence_threshold": 8,
@@ -17047,7 +17019,7 @@
       "TERAFAB": -3,
       "APES": 15,
       "BioLLM": 4,
-      "CIA": 6
+      "CIA": 8
     },
     "symbol_blacklist": {},
     "consecutive_losses": {},
