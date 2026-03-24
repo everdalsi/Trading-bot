@@ -13,6 +13,7 @@ from agents.base_agent import BaseAgent
 from typing import Dict, Any
 
 class RiskAgent(BaseAgent):
+  
 def __init__(self):
     super().__init__(
         name="risk",
