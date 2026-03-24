@@ -108,7 +108,7 @@ AGENT_CHAT_MEMORY = defaultdict(list)
 
 
 CAPITAL_INITIAL   = 1000.0
-MAX_POSITIONS     = 25        # ← augmenté pour plus de positions simultanées
+MAX_POSITIONS     = 60        # ← augmenté pour plus de positions simultanées
 MAX_PCT_PER_TRADE = 0.28
 STOP_LOSS_PCT     = 0.025
 TAKE_PROFIT_PCT   = 0.04
@@ -116,10 +116,10 @@ TRAILING_PCT      = 0.015
 LEVERAGE_SIM      = 2
 
 CONFIDENCE_BASE = 65
-CONFIDENCE_MIN  = 55
+CONFIDENCE_MIN  = 8
 CONFIDENCE_MAX  = 82
 
-MAX_DAILY_LOSS_PCT   = 0.05
+MAX_DAILY_LOSS_PCT   = 0.15
 MAX_DRAWDOWN_PCT     = 0.10
 FG_NEUTRAL_MIN       = 40
 FG_NEUTRAL_MAX       = 60
@@ -144,9 +144,9 @@ MICRO_SL_PCT        = 0.007
 MICRO_TP_PCT        = 0.011
 MICRO_TRAILING_PCT  = 0.004
 MICRO_MAX_DURATION  = 60
-MICRO_MAX_PCT       = 0.32       # ← augmenté pour plus de volume en micro
-MICRO_CONF_MIN      = 15         # ← fortement baissé → beaucoup plus de micro-trades
-MAX_MICRO_POSITIONS = 45        # ← très augmenté pour maximiser l’entraînement
+MICRO_MAX_PCT       = 0.48       # ← augmenté pour plus de volume en micro
+MICRO_CONF_MIN      = 8         # ← fortement baissé → beaucoup plus de micro-trades
+MAX_MICRO_POSITIONS = 100        # ← très augmenté pour maximiser l’entraînement
 
 MEME_SL_PCT       = 0.05
 MEME_TP_PCT       = 0.15
@@ -154,8 +154,9 @@ MEME_TRAILING_PCT = 0.07
 MEME_MAX_PCT      = 0.05
 MEME_MAX_DURATION = 300
 
+EXTREME_LEARNING_MODE = True
 LEARN_MODE_ENABLED  = True
-LEARN_MODE_CONF_MIN = 18          # ← très bas pour apprendre le plus vite possible
+LEARN_MODE_CONF_MIN = 10          # ← très bas pour apprendre le plus vite possible
 LEARN_MODE_MAX_PCT  = 0.28        # ← taille des trades d’apprentissage augmentée
 
 GROQ_FAST_MODEL = "llama-3.1-8b-instant"
