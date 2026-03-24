@@ -4089,8 +4089,8 @@ async def run_telegram():
         _app.add_handler(CommandHandler(cmd, fn))
     _app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_agent_chat))
     _app.add_error_handler(telegram_error_handler)
-    app.add_handler(CommandHandler("ask", cmd_ask))
-app.add_handler(CommandHandler("debate", cmd_debate))
+    _app.add_handler(CommandHandler("ask", cmd_ask))
+    _app.add_handler(CommandHandler("debate", cmd_debate))
     await _app.initialize()
     await _app.start()
     if WEBHOOK_URL:
