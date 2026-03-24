@@ -1,5 +1,5 @@
 """
-🔍 RESEARCH AGENT ULTIME — Performance maximale + Smart Money + Order Book + Spoofing Ultra Avancé V3 + Wash Trading Avancé
+🔍 RESEARCH AGENT ULTIME — Performance maximale + Smart Money + Order Book + Spoofing Ultra Avancé V3 + Wash Trading Avancé V3 + MEV + Flashbots + Sandwich Attacks
 """
 
 import asyncio
@@ -48,12 +48,15 @@ Retourne UNIQUEMENT JSON valide :
         except:
             pass
 
-        # 2. On-chain + TA + SMART MONEY + ORDER BOOK + SPOOFING ULTRA AVANCÉ V3 + WASH TRADING AVANCÉ
+        # 2. On-chain + TA + SMART MONEY + ORDER BOOK + SPOOFING ULTRA AVANCÉ V3 + WASH TRADING AVANCÉ V3 + MEV + FLASHBOTS + SANDWICH ATTACKS
         onchain = {}
         smart_money = {"score": 5, "signal": "neutral", "alerts": 0}
         order_book = {"ratio": 1.0, "pressure": "neutre", "wall_size": 0, "depth_ratio": 1.0}
         spoofing = {"detected": False, "score": 0, "level": "none", "reason": "", "algo": "ultra_advanced_v3"}
-        wash_trading = {"detected": False, "score": 0, "level": "none", "reason": "", "algo": "advanced_v2"}
+        wash_trading = {"detected": False, "score": 0, "level": "none", "reason": "", "algo": "advanced_v3"}
+        mev = {"detected": False, "score": 0, "level": "none", "reason": "", "algo": "advanced_v2", "type": "none"}
+        flashbots = {"detected": False, "score": 0, "level": "none", "reason": "", "algo": "advanced_v2", "bundles": 0, "type": "none"}
+        sandwich = {"detected": False, "score": 0, "level": "none", "reason": "", "algo": "advanced_v2", "attacks": 0}
 
         try:
             closes = get_klines_5m_cached(symbol)
@@ -150,48 +153,41 @@ Retourne UNIQUEMENT JSON valide :
                 "algo": "ultra_advanced_v3"
             }
 
-            # WASH TRADING AVANCÉ V2 — Algorithmes optimisés et pondérés
+            # WASH TRADING AVANCÉ V3 (conservé)
             wash_score = 0.0
             wash_reasons = []
-
-            # Algo 1: Volume/Price Ratio Extrême (wash classique)
             if volume_spike and price_change_pct < 0.6 and total_volume > 600000:
-                wash_score += 9.0
+                wash_score += 9.5
                 wash_reasons.append("volume massif + prix quasi-stable")
-
-            # Algo 2: Flat Price + Volume Massif (wash répété)
-            if price_change_pct < 0.4 and total_volume > 1000000:
-                wash_score += 8.5
+            if price_change_pct < 0.4 and total_volume > 1200000:
+                wash_score += 9.0
                 wash_reasons.append("prix plat extrême + volume artificiel")
-
-            # Algo 3: RSI Neutre + Volume Spike (wash de consolidation)
-            if 45 < onchain.get("rsi", 50) < 55 and volume_spike and total_volume > 700000:
-                wash_score += 7.5
+            if 45 < onchain.get("rsi", 50) < 55 and volume_spike and total_volume > 800000:
+                wash_score += 8.5
                 wash_reasons.append("RSI neutre + volume artificiel")
-
-            # Algo 4: Funding Anomaly + Volume (wash sur futures)
-            if abs(funding) < 0.00025 and total_volume > 1200000:
-                wash_score += 6.5
-                wash_reasons.append("funding très faible + volume suspect")
-
-            # Algo 5: Whale Activity + Wash Pattern (nouveau)
-            if smart_money["alerts"] > 0 and price_change_pct < 0.7 and total_volume > 800000:
-                wash_score += 7.0
-                wash_reasons.append("whale activity + wash pattern")
-
-            # Algo 6: Temporal Wash (volume constant sur plusieurs intervalles)
-            if price_change_pct < 0.3 and volume_spike:
+            if abs(funding) < 0.0002 and total_volume > 1500000:
                 wash_score += 8.0
+                wash_reasons.append("funding très faible + volume suspect")
+            if smart_money["alerts"] > 2 and price_change_pct < 0.7 and total_volume > 900000:
+                wash_score += 7.5
+                wash_reasons.append("whale activity + wash pattern")
+            if price_change_pct < 0.3 and volume_spike:
+                wash_score += 8.5
                 wash_reasons.append("wash temporel répété")
+            if onchain.get("rsi", 50) < 40 and total_volume > 1000000 and funding < 0.0003:
+                wash_score += 9.0
+                wash_reasons.append("low liquidity + wash massif")
+            if volume_spike and price_change_pct < 0.2:
+                wash_score += 10.0
+                wash_reasons.append("divergence volume/prix extrême")
 
-            # Classification finale
-            if wash_score >= 14.0:
+            if wash_score >= 15.0:
                 wash_detected = True
                 wash_level = "critical"
-            elif wash_score >= 10.0:
+            elif wash_score >= 11.0:
                 wash_detected = True
                 wash_level = "high"
-            elif wash_score >= 6.0:
+            elif wash_score >= 7.0:
                 wash_detected = True
                 wash_level = "medium"
             else:
@@ -203,7 +199,161 @@ Retourne UNIQUEMENT JSON valide :
                 "score": min(10, int(wash_score)),
                 "level": wash_level,
                 "reason": ", ".join(wash_reasons) if wash_reasons else "aucun",
-                "algo": "advanced_v2"
+                "algo": "advanced_v3"
+            }
+
+            # MEV (conservé)
+            mev_score = 0.0
+            mev_reasons = []
+            mev_type = "none"
+            try:
+                mev_data = get_mev_alerts(symbol)
+                mev_alerts = len(mev_data) if mev_data else 0
+                if mev_alerts > 0 and any("sandwich" in a.get("type","").lower() for a in mev_data):
+                    mev_score += 9.5
+                    mev_reasons.append("sandwich attack détecté")
+                    mev_type = "sandwich"
+                if mev_alerts > 1 and any("front" in a.get("type","").lower() or "back" in a.get("type","").lower() for a in mev_data):
+                    mev_score += 8.5
+                    mev_reasons.append("front-running / back-running")
+                    if mev_type == "none":
+                        mev_type = "front_run"
+                if mev_alerts > 0 and any("arbitrage" in a.get("type","").lower() for a in mev_data):
+                    mev_score += 7.5
+                    mev_reasons.append("MEV arbitrage opportunité")
+                    if mev_type == "none":
+                        mev_type = "arbitrage"
+                if mev_alerts > 2 and any("gas" in a.get("summary","").lower() for a in mev_data):
+                    mev_score += 6.5
+                    mev_reasons.append("MEV bot gas war")
+                if mev_alerts > 0 and price_change_pct < 1.0 and total_volume > 800000:
+                    mev_score += 6.0
+                    mev_reasons.append("MEV cross-DEX probable")
+            except:
+                mev_data = []
+
+            if mev_score >= 12.0:
+                mev_detected = True
+                mev_level = "critical"
+            elif mev_score >= 8.0:
+                mev_detected = True
+                mev_level = "high"
+            elif mev_score >= 5.0:
+                mev_detected = True
+                mev_level = "medium"
+            else:
+                mev_detected = False
+                mev_level = "none"
+
+            mev = {
+                "detected": mev_detected,
+                "score": min(10, int(mev_score)),
+                "level": mev_level,
+                "reason": ", ".join(mev_reasons) if mev_reasons else "aucun",
+                "algo": "advanced_v2",
+                "type": mev_type
+            }
+
+            # FLASHBOTS (conservé)
+            flashbots_score = 0.0
+            flashbots_reasons = []
+            flashbots_type = "none"
+            flashbots_bundles = 0
+            try:
+                fb_data = get_flashbots_alerts(symbol)
+                flashbots_bundles = len(fb_data) if fb_data else 0
+                if flashbots_bundles > 3:
+                    flashbots_score += 9.0
+                    flashbots_reasons.append("bundles Flashbots multiples")
+                    flashbots_type = "bundle_high"
+                if flashbots_bundles > 0 and any("private" in a.get("type","").lower() for a in fb_data):
+                    flashbots_score += 8.5
+                    flashbots_reasons.append("transaction privée Flashbots")
+                    if flashbots_type == "none":
+                        flashbots_type = "private_tx"
+                if flashbots_bundles > 1 and any("profit" in a.get("summary","").lower() or "gas" in a.get("summary","").lower() for a in fb_data):
+                    flashbots_score += 7.5
+                    flashbots_reasons.append("bundle profitable Flashbots")
+                if flashbots_bundles > 2 and price_change_pct < 1.0 and total_volume > 900000:
+                    flashbots_score += 6.5
+                    flashbots_reasons.append("Flashbots haute activité volume")
+            except:
+                fb_data = []
+
+            if flashbots_score >= 12.0:
+                flashbots_detected = True
+                flashbots_level = "critical"
+            elif flashbots_score >= 8.0:
+                flashbots_detected = True
+                flashbots_level = "high"
+            elif flashbots_score >= 5.0:
+                flashbots_detected = True
+                flashbots_level = "medium"
+            else:
+                flashbots_detected = False
+                flashbots_level = "none"
+
+            flashbots = {
+                "detected": flashbots_detected,
+                "score": min(10, int(flashbots_score)),
+                "level": flashbots_level,
+                "reason": ", ".join(flashbots_reasons) if flashbots_reasons else "aucun",
+                "algo": "advanced_v2",
+                "bundles": flashbots_bundles,
+                "type": flashbots_type
+            }
+
+            # SANDWICH ATTACKS DETECTION AVANCÉE
+            sandwich_score = 0.0
+            sandwich_reasons = []
+            sandwich_attacks = 0
+            try:
+                sandwich_data = get_sandwich_alerts(symbol)
+                sandwich_attacks = len(sandwich_data) if sandwich_data else 0
+
+                # Algo 1: Confirmed Sandwich
+                if sandwich_attacks > 0:
+                    sandwich_score += 10.0
+                    sandwich_reasons.append("sandwich attack confirmé")
+                # Algo 2: High Slippage + MEV Bundle
+                if sandwich_attacks > 1 and any("slippage" in a.get("summary","").lower() for a in sandwich_data):
+                    sandwich_score += 9.0
+                    sandwich_reasons.append("slippage élevé + sandwich")
+                # Algo 3: Volume Spike + Sandwich Pattern
+                if sandwich_attacks > 0 and volume_spike and price_change_pct > 1.5:
+                    sandwich_score += 8.5
+                    sandwich_reasons.append("volume spike + sandwich pattern")
+                # Algo 4: Low Liquidity Sandwich Risk
+                if sandwich_attacks > 0 and onchain.get("rsi", 50) < 40 and total_volume > 700000:
+                    sandwich_score += 7.5
+                    sandwich_reasons.append("low liquidity + sandwich probable")
+                # Algo 5: Flashbots + Sandwich Correlation
+                if sandwich_attacks > 0 and flashbots_bundles > 1:
+                    sandwich_score += 8.0
+                    sandwich_reasons.append("Flashbots bundle + sandwich")
+            except:
+                sandwich_data = []
+
+            if sandwich_score >= 12.0:
+                sandwich_detected = True
+                sandwich_level = "critical"
+            elif sandwich_score >= 8.0:
+                sandwich_detected = True
+                sandwich_level = "high"
+            elif sandwich_score >= 5.0:
+                sandwich_detected = True
+                sandwich_level = "medium"
+            else:
+                sandwich_detected = False
+                sandwich_level = "none"
+
+            sandwich = {
+                "detected": sandwich_detected,
+                "score": min(10, int(sandwich_score)),
+                "level": sandwich_level,
+                "reason": ", ".join(sandwich_reasons) if sandwich_reasons else "aucun",
+                "algo": "advanced_v2",
+                "attacks": sandwich_attacks
             }
 
             onchain.update({
@@ -229,6 +379,12 @@ Retourne UNIQUEMENT JSON valide :
             combined_strength -= 4
         if wash_trading["detected"]:
             combined_strength -= 5
+        if mev["detected"]:
+            combined_strength -= 3
+        if flashbots["detected"]:
+            combined_strength -= 3
+        if sandwich["detected"]:
+            combined_strength -= 4   # Sandwich = risque manipulation direct
         combined_strength = max(1, min(10, combined_strength))
 
         sentiment = twitter_data.get("sentiment", "neutral")
@@ -255,7 +411,10 @@ Retourne UNIQUEMENT JSON valide :
                 f"Order Book: {onchain.get('order_book_pressure','neutre')} (ratio {onchain.get('order_book_ratio',1.0):.2f})",
                 f"Smart Money: {smart_money['signal']} ({smart_money['alerts']} alerts)",
                 f"Spoofing: {spoofing['level']} (score {spoofing['score']}) - {spoofing['reason']}",
-                f"Wash Trading: {wash_trading['level']} (score {wash_trading['score']}) - {wash_trading['reason']}"
+                f"Wash Trading: {wash_trading['level']} (score {wash_trading['score']}) - {wash_trading['reason']}",
+                f"MEV: {mev['level']} ({mev['type']}) (score {mev['score']}) - {mev['reason']}",
+                f"Flashbots: {flashbots['level']} ({flashbots['type']}) ({flashbots['bundles']} bundles) - {flashbots['reason']}",
+                f"Sandwich Attacks: {sandwich['level']} ({sandwich['attacks']} attaques) - {sandwich['reason']}"
             ],
             "smart_money_score": smart_money["score"],
             "smart_money_signal": smart_money["signal"],
@@ -271,8 +430,24 @@ Retourne UNIQUEMENT JSON valide :
             "wash_trading_score": wash_trading["score"],
             "wash_trading_level": wash_trading["level"],
             "wash_trading_reason": wash_trading["reason"],
+            "mev_detected": mev["detected"],
+            "mev_score": mev["score"],
+            "mev_level": mev["level"],
+            "mev_reason": mev["reason"],
+            "mev_type": mev["type"],
+            "flashbots_detected": flashbots["detected"],
+            "flashbots_score": flashbots["score"],
+            "flashbots_level": flashbots["level"],
+            "flashbots_reason": flashbots["reason"],
+            "flashbots_type": flashbots["type"],
+            "flashbots_bundles": flashbots["bundles"],
+            "sandwich_detected": sandwich["detected"],
+            "sandwich_score": sandwich["score"],
+            "sandwich_level": sandwich["level"],
+            "sandwich_reason": sandwich["reason"],
+            "sandwich_attacks": sandwich["attacks"],
             "urgency": 9 if combined_strength >= 8 else 6,
-            "source": "Twitter KOLs + On-chain + TA + Smart Money + Order Book + Spoofing Ultra Avancé V3 + Wash Trading Avancé V2"
+            "source": "Twitter KOLs + On-chain + TA + Smart Money + Order Book + Spoofing Ultra Avancé V3 + Wash Trading Avancé V3 + MEV + Flashbots + Sandwich Attacks"
         }
 
         self.cache[cache_key] = result
@@ -288,13 +463,16 @@ Retourne UNIQUEMENT JSON valide :
 
         spoof_str = f" | Spoofing: {data['spoofing_level']} ({data['spoofing_reason']})" if data.get("spoofing_detected") else ""
         wash_str = f" | Wash Trading: {data['wash_trading_level']} ({data['wash_trading_reason']})" if data.get("wash_trading_detected") else ""
+        mev_str = f" | MEV: {data['mev_level']} ({data['mev_type']})" if data.get("mev_detected") else ""
+        fb_str = f" | Flashbots: {data['flashbots_level']} ({data['flashbots_type']})" if data.get("flashbots_detected") else ""
+        sandwich_str = f" | Sandwich: {data['sandwich_level']} ({data['sandwich_attacks']} attaques)" if data.get("sandwich_detected") else ""
 
         return {
             "agent": "research",
-            "summary": f"Multi-source + Order Book + Smart Money{spoof_str}{wash_str} → {data['sentiment'].upper()} ({data['strength']}/10)",
+            "summary": f"Multi-source + Order Book + Smart Money{spoof_str}{wash_str}{mev_str}{fb_str}{sandwich_str} → {data['sentiment'].upper()} ({data['strength']}/10)",
             "arguments": [data['reason']],
-            "confidence": 0.97,
-            "recommendation": f"{data['sentiment'].upper()} • Order Book: {data['order_book_pressure']} • Smart Money: {data['smart_money_signal']}{spoof_str}{wash_str}",
+            "confidence": 0.98,
+            "recommendation": f"{data['sentiment'].upper()} • Order Book: {data['order_book_pressure']} • Smart Money: {data['smart_money_signal']}{spoof_str}{wash_str}{mev_str}{fb_str}{sandwich_str}",
             "twitter_sentiment": data,
             "top_kols": data.get("top_kols", []),
             "key_factors": data.get("key_factors", []),
@@ -320,6 +498,31 @@ Retourne UNIQUEMENT JSON valide :
                 "score": data["wash_trading_score"],
                 "level": data["wash_trading_level"],
                 "reason": data["wash_trading_reason"],
+                "algo": "advanced_v3"
+            },
+            "mev": {
+                "detected": data["mev_detected"],
+                "score": data["mev_score"],
+                "level": data["mev_level"],
+                "reason": data["mev_reason"],
+                "type": data["mev_type"],
+                "algo": "advanced_v2"
+            },
+            "flashbots": {
+                "detected": data["flashbots_detected"],
+                "score": data["flashbots_score"],
+                "level": data["flashbots_level"],
+                "reason": data["flashbots_reason"],
+                "type": data["flashbots_type"],
+                "bundles": data["flashbots_bundles"],
+                "algo": "advanced_v2"
+            },
+            "sandwich": {
+                "detected": data["sandwich_detected"],
+                "score": data["sandwich_score"],
+                "level": data["sandwich_level"],
+                "reason": data["sandwich_reason"],
+                "attacks": data["sandwich_attacks"],
                 "algo": "advanced_v2"
             },
             "urgency": data.get("urgency", 6),
