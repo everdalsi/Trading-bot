@@ -116,4 +116,12 @@ class SupervisorAgent(BaseAgent):
                 f"Leçons en mémoire: {lesson_count}",
                 f"Règles auto actives: {len(auto_rules)}",
             ],
-            "risks":
+            "risks": (
+                [] if final_decision in ("BUY", "SELL") else
+                ["Décision bloquée — voir raison ci-dessus"]
+            ),
+            "confidence": confidence_final,
+            "recommendation": reason,
+            "full_summary": f"J’ai consulté toute l’équipe. {reason}. Score composite : {(score + global_score) / 2:.2f}.",
+            "final_decision": final_decision,
+        }
