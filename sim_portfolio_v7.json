@@ -8197,17 +8197,6 @@
   "memory": {
     "lessons": [
       {
-        "trade_id": 163,
-        "pnl": 8.822497387415508e+51,
-        "symbol": "PERP",
-        "market": "MEME",
-        "lecon": "Scalp rapide gagnant",
-        "pattern": "memecoin",
-        "action_future": "Conserver ce setup pour micro-trading",
-        "type": "succes",
-        "date": "2026-03-23 17:01"
-      },
-      {
         "trade_id": 164,
         "pnl": 1.3110536766017178e+53,
         "symbol": "PERP",
@@ -10395,6 +10384,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-24 05:52"
+      },
+      {
+        "trade_id": -3,
+        "pnl": 11.5928,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-24 05:52"
       }
     ],
     "patterns_to_avoid": [
@@ -10590,7 +10590,7 @@
       "memecoin",
       "memecoin",
       "memecoin",
-      "memecoin",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -10607,7 +10607,7 @@
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -15,
+      "SOLUSDT": -13,
       "Computer": 15,
       "CHIBILAND": -13,
       "USDUC": 4,
