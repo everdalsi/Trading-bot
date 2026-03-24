@@ -9,7 +9,7 @@ Améliorations vs V3 :
 - Détection de patterns récurrents (3 occurrences = règle automatique)
 - Blacklist intelligente avec score de confiance progressif
 - Ajustement de confiance par contexte (nuit, macro, volatilité)
-  “””
+  """
 
 import sqlite3
 import json
