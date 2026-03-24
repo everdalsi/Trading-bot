@@ -26,7 +26,7 @@ except ImportError:
 
 from groq import Groq
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters
 from telegram.request import HTTPXRequest
 
 # ═══════════════════════════════════════════════════════════════
@@ -78,6 +78,9 @@ USER_LASTNAME  = os.environ.get("USER_LASTNAME", "")
 USER_EMAIL     = os.environ.get("USER_EMAIL", "")
 USER_ADDRESS   = os.environ.get("USER_ADDRESS", "")
 USER_WALLET    = os.environ.get("USER_WALLET", "")
+
+AGENT_CHAT_SESSIONS = set()
+
 
 CAPITAL_INITIAL   = 1000.0
 MAX_POSITIONS     = 4
@@ -3908,35 +3911,92 @@ async def cmd_resume(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     send = make_send(TELEGRAM_CHAT_ID)
     send_summary(send)
 
-async def cmd_agent(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    if not _auth(update): return
-    query = ' '.join(ctx.args) if ctx.args else update.message.text.replace("/agent", "").strip()
-    if not query:
-        await update.message.reply_text("Pose ta question à l'Agent Conscience :\n/agent analyse mon winrate\n/agent modifie le Kelly\n/agent montre le code de open_trade")
-        return
+def _agent_wr_global() -> float:
+    closed = [t for t in sim.get("trades", []) if t.get("pnl") is not None]
+    if not closed:
+        return 0.0
+    wins = len([t for t in closed if (t.get("pnl") or 0) > 0])
+    return wins / max(len(closed), 1) * 100
 
-    state = f"""
+def _build_agent_state() -> str:
+    return f"""
 Capital: ${get_equity_safe():.2f}
-Positions: {len(sim['positions'])}
-WR global: {len([t for t in sim['trades'] if t.get('pnl',0)>0])/max(len([t for t in sim['trades'] if t.get('pnl') is not None]),1)*100:.1f}%
-Lessons: {len(memory['lessons'])}
+Positions: {len(sim.get('positions', {}))}
+WR global: {_agent_wr_global():.1f}%
+Lessons: {len(memory.get('lessons', []))}
 FG: {get_fear_greed_value()}/100
 Macro: {get_macro_trend()}
 Blacklist: {len(memory.get('symbol_blacklist',{}))}
-    """
+"""
 
-    prompt = f"""Tu es la Conscience du Trading Bot v7.1. Tu as accès à tout l'état et au code.
-Réponds en français, clair et précis.
-Si tu proposes une modification, donne le code exact à remplacer.
+def _ask_agent_text(query: str) -> str:
+    query = sanitize_string(query, 1500).strip()
+    state = _build_agent_state()
+    prompt = f"""Tu es la Conscience du Trading Bot v7.1.
+Réponds en français, de façon claire, utile et structurée.
+Tu peux analyser le bot, ses stats, ses paramètres et son comportement.
+Tu n'exécutes aucun trade réel et tu ne modifies rien automatiquement.
+Si on te demande une modification, propose le code exact à changer.
+Si la question est vague, aide l'utilisateur concrètement.
 
 État actuel :
 {state}
 
-Question : {query}
+Message utilisateur : {query}
 """
-
     response = ask_ai(prompt)
-    await update.message.reply_text(response.get("reason", "Je réfléchis..."))
+    return response.get("reason") or response.get("signal") or "Je réfléchis..."
+
+async def cmd_agent(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    if not _auth(update): return
+    query = ' '.join(ctx.args).strip() if ctx.args else ''
+    chat_id = update.effective_chat.id if update.effective_chat else None
+    if not query:
+        if chat_id is not None:
+            AGENT_CHAT_SESSIONS.add(chat_id)
+        await update.message.reply_text(
+            "🧠 Mode Agent activé.\n"
+            "Envoie-moi maintenant des messages normaux et je te répondrai comme un assistant du bot.\n\n"
+            "Exemples :\n"
+            "• analyse mon winrate\n"
+            "• explique pourquoi le scan est faible\n"
+            "• propose un meilleur Kelly\n"
+            "• montre le code de open_trade\n\n"
+            "Pour quitter : /agent_stop"
+        )
+        return
+    await update.message.reply_text(_ask_agent_text(query))
+
+async def cmd_agent_stop(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    if not _auth(update): return
+    chat_id = update.effective_chat.id if update.effective_chat else None
+    if chat_id in AGENT_CHAT_SESSIONS:
+        AGENT_CHAT_SESSIONS.discard(chat_id)
+        await update.message.reply_text("🛑 Mode Agent désactivé.")
+    else:
+        await update.message.reply_text("ℹ️ Le mode Agent n'était pas actif.")
+
+async def handle_agent_chat(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    if not update.message or not update.message.text:
+        return
+    if not _auth(update):
+        return
+    chat_id = update.effective_chat.id if update.effective_chat else None
+    if chat_id not in AGENT_CHAT_SESSIONS:
+        return
+    text = update.message.text.strip()
+    if not text or text.startswith('/'):
+        return
+    await update.message.reply_text(_ask_agent_text(text))
+
+async def telegram_error_handler(update: object, ctx: ContextTypes.DEFAULT_TYPE):
+    print(f"[TG-ERROR] {ctx.error}")
+    try:
+        if update and getattr(update, 'effective_message', None):
+            await update.effective_message.reply_text("⚠️ Une erreur est survenue. Réessaie ou tape /help.")
+    except Exception:
+        pass
+
 
 # ═══════════════════════════════════════════════════════════════
 #  APPLICATION TELEGRAM
@@ -3962,9 +4022,11 @@ async def run_telegram():
         ("airdrops",cmd_airdrops),("faucets",cmd_faucets),("help",cmd_help),
         ("macro",cmd_macro),("risque",cmd_risque),("blacklist",cmd_blacklist),
         ("backtest",cmd_backtest),("backtest_multi",cmd_backtest_multi),
-        ("resume", cmd_resume),("agent", cmd_agent),
+        ("resume", cmd_resume),("agent", cmd_agent),("agent_stop", cmd_agent_stop),
     ]:
         _app.add_handler(CommandHandler(cmd, fn))
+    _app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_agent_chat))
+    _app.add_error_handler(telegram_error_handler)
     await _app.initialize()
     await _app.start()
     if WEBHOOK_URL:
@@ -3977,7 +4039,7 @@ async def run_telegram():
             await asyncio.sleep(5)
             await _app.bot.set_webhook(url=full,drop_pending_updates=True,allowed_updates=["message"])
         print(f"Webhook: {full}")
-    print("Bot v7.1 prêt — /start pour lancer | /resume pour résumé | /agent pour parler à la Conscience")
+    print("Bot v7.1 prêt — /start | /resume | /agent (chat) | /agent_stop")
     try:
         while True: await asyncio.sleep(1)
     finally:
