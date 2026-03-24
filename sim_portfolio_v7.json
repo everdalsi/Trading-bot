@@ -8197,28 +8197,6 @@
   "memory": {
     "lessons": [
       {
-        "trade_id": 223,
-        "pnl": 8.733058925204064e+73,
-        "symbol": "PIXELS",
-        "market": "MEME",
-        "lecon": "Scalp rapide gagnant",
-        "pattern": "memecoin",
-        "action_future": "Conserver ce setup pour micro-trading",
-        "type": "succes",
-        "date": "2026-03-23 22:01"
-      },
-      {
-        "trade_id": 224,
-        "pnl": 7.119295325996752e+74,
-        "symbol": "PIXELS",
-        "market": "MEME",
-        "lecon": "Scalp rapide gagnant",
-        "pattern": "memecoin",
-        "action_future": "Conserver ce setup pour micro-trading",
-        "type": "succes",
-        "date": "2026-03-23 22:02"
-      },
-      {
         "trade_id": 225,
         "pnl": 5.803735709658557e+75,
         "symbol": "PIXELS",
@@ -10389,6 +10367,28 @@
         "trade_id": -2,
         "pnl": -1.6244,
         "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-24 06:20"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -0.0084,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-24 06:20"
+      },
+      {
+        "trade_id": -2,
+        "pnl": -1.8177,
+        "symbol": "SOLUSDT",
         "market": "BACKTEST",
         "lecon": "Entr\u00e9e trop agressive",
         "pattern": "backtest_5m",
