@@ -23,19 +23,21 @@ class TraderAgent(BaseAgent):
         )
 
     async def respond(self, question: str, context: dict) -> Dict[str, Any]:
-    extreme_learning = context.get("extreme_learning_mode", False) or context.get("learning_mode", False)
+        # === EXTREME LEARNING MODE (MAX TRADES) ===
+        extreme_learning = context.get("extreme_learning_mode", False) or context.get("learning_mode", False)
 
-    if extreme_learning:
-        # Force décision agressive
-        composite = (context.get("symbol_score", 0.5) * 0.6 + context.get("global_score", 0.5) * 0.4)
-        return {
-            "agent": self.name,
-            "decision": "BUY",
-            "confidence": 0.92,
-            "summary": f"{context.get('symbol')} → BUY (apprentissage extrême) | composite={composite:.2f}",
-            "reason": "Mode apprentissage extrême → volume prioritaire",
-            "composite": composite,
-        }
+        if extreme_learning:
+            # Force décision agressive
+            composite = (context.get("symbol_score", 0.5) * 0.6 + context.get("global_score", 0.5) * 0.4)
+            return {
+                "agent": self.name,
+                "decision": "BUY",
+                "confidence": 0.92,
+                "summary": f"{context.get('symbol')} → BUY (apprentissage extrême) | composite={composite:.2f}",
+                "reason": "Mode apprentissage extrême → volume prioritaire",
+                "composite": composite,
+            }
+
         macro          = context.get("macro", "neutral")
         symbol         = context.get("symbol", "UNKNOWN")
         analysis       = context.get("analysis", {})
@@ -88,7 +90,7 @@ class TraderAgent(BaseAgent):
         memory = context.get("memory", {})
         recent_trades = (memory.get("trades", []) or [])[-8:]
         same_symbol = [t for t in recent_trades if t.get("symbol") == symbol]
-        if len(same_symbol) >= 8:
+        if len(same_symbol) >= 3:
             return self._hold(
                 symbol,
                 "Anti-overtrading : trop de trades récents sur ce symbole",
@@ -102,7 +104,7 @@ class TraderAgent(BaseAgent):
         composite = (symbol_score * 0.6 + global_score * 0.4)
 
         # BUY plus agressif
-        if (macro in ("bullish", "BULL") and composite >= 0.38) or composite >= 0.52:
+        if (macro in ("bullish", "BULL") and composite >= 0.45) or composite >= 0.52:
             if ("CRITICAL" not in str(risk.get("summary", "")) and
                 "STOP" not in str(risk.get("recommendation", ""))):
                 decision = "BUY"
