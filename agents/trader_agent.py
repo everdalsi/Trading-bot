@@ -3,7 +3,7 @@
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Améliorations vs V2 :
 
-- N’instancie plus LearningAgent en interne (couplage fort supprimé)
+- N’instancie plus LearningAgent en interne
 - Utilise directement le symbol_score injecté dans le contexte
 - Intègre les auto_rules et best_patterns dans la décision
 - Anti-overtrading renforcé
@@ -82,20 +82,18 @@ class TraderAgent(BaseAgent):
                 symbol_score, global_score
             )
 
-        # ─── Décision principale ───
+        # ─── Décision principale (MAX TRADES) ───
         decision = "HOLD"
         reason   = "Pas de signal clair"
 
-        # Score composite
         composite = (symbol_score * 0.6 + global_score * 0.4)
 
-        # Conditions BUY
-        if (macro in ("bullish", "BULL")
-                and composite >= 0.45) or composite >= 0.52:
-                and "CRITICAL" not in str(risk.get("summary", ""))
-                and "STOP" not in str(risk.get("recommendation", ""))):
-            decision = "BUY"
-            reason   = f"Macro haussier + composite={composite:.2f} + risque OK"
+        # BUY plus agressif
+        if (macro in ("bullish", "BULL") and composite >= 0.45) or composite >= 0.52:
+            if ("CRITICAL" not in str(risk.get("summary", "")) and
+                "STOP" not in str(risk.get("recommendation", ""))):
+                decision = "BUY"
+                reason   = f"Macro haussier + composite={composite:.2f} + risque OK"
 
         elif composite >= 0.68:
             decision = "BUY"
@@ -149,7 +147,6 @@ class TraderAgent(BaseAgent):
 
     def _hold(self, symbol: str, reason: str,
               symbol_score: float, global_score: float) -> Dict[str, Any]:
-        """Retourne une réponse HOLD formatée."""
         return {
             "agent":        self.name,
             "symbol":       symbol,
