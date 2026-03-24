@@ -1,4 +1,4 @@
-“””
+"""
 💼 TRADER AGENT V3 — Décision enrichie par la mémoire infinie
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Améliorations vs V2 :
