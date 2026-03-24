@@ -109,8 +109,8 @@ AGENT_CHAT_MEMORY = defaultdict(list)
 
 
 CAPITAL_INITIAL   = 1000.0
-MAX_POSITIONS     = 12          # ← augmenté pour plus de positions simultanées
-MAX_PCT_PER_TRADE = 0.25
+MAX_POSITIONS     = 25        # ← augmenté pour plus de positions simultanées
+MAX_PCT_PER_TRADE = 0.28
 STOP_LOSS_PCT     = 0.025
 TAKE_PROFIT_PCT   = 0.04
 TRAILING_PCT      = 0.015
@@ -141,13 +141,13 @@ CYCLE_MICRO   = 8
 CYCLE_MEME    = 45
 CYCLE_EPARGNE = 3600
 
-MICRO_SL_PCT        = 0.008
-MICRO_TP_PCT        = 0.012
-MICRO_TRAILING_PCT  = 0.005
-MICRO_MAX_DURATION  = 90
-MICRO_MAX_PCT       = 0.25        # ← augmenté pour plus de volume en micro
-MICRO_CONF_MIN      = 35          # ← fortement baissé → beaucoup plus de micro-trades
-MAX_MICRO_POSITIONS = 15          # ← très augmenté pour maximiser l’entraînement
+MICRO_SL_PCT        = 0.007
+MICRO_TP_PCT        = 0.011
+MICRO_TRAILING_PCT  = 0.004
+MICRO_MAX_DURATION  = 75
+MICRO_MAX_PCT       = 0.28       # ← augmenté pour plus de volume en micro
+MICRO_CONF_MIN      = 22         # ← fortement baissé → beaucoup plus de micro-trades
+MAX_MICRO_POSITIONS = 28.        # ← très augmenté pour maximiser l’entraînement
 
 MEME_SL_PCT       = 0.05
 MEME_TP_PCT       = 0.15
@@ -156,8 +156,8 @@ MEME_MAX_PCT      = 0.05
 MEME_MAX_DURATION = 300
 
 LEARN_MODE_ENABLED  = True
-LEARN_MODE_CONF_MIN = 30          # ← très bas pour apprendre le plus vite possible
-LEARN_MODE_MAX_PCT  = 0.25        # ← taille des trades d’apprentissage augmentée
+LEARN_MODE_CONF_MIN = 18          # ← très bas pour apprendre le plus vite possible
+LEARN_MODE_MAX_PCT  = 0.28        # ← taille des trades d’apprentissage augmentée
 
 GROQ_FAST_MODEL = "llama-3.1-8b-instant"
 DB_FILE   = "sim_v7.db"
@@ -174,9 +174,13 @@ INTERVAL_MAP = {
 CRYPTO_SYMBOLS = [
     "BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT","XRPUSDT","DOGEUSDT","ADAUSDT",
     "AVAXUSDT","LINKUSDT","DOTUSDT","UNIUSDT","LTCUSDT","NEARUSDT","APTUSDT",
-    "ARBUSDT","OPUSDT","INJUSDT","SUIUSDT","FETUSDT","RENDERUSDT"
+    "ARBUSDT","OPUSDT","INJUSDT","SUIUSDT","FETUSDT","RENDERUSDT","TONUSDT",
+    "TRXUSDT","SHIBUSDT","PEPEUSDT","WIFUSDT","BONKUSDT","FLOKIUSDT","JUPUSDT",
+    "POPCATUSDT","MEMEUSDT","MEWUSDT","BRETTUSDT","MOGUSDT","GMEUSDT","TURBOUSDT",
+    "PENDLEUSDT","ONDOUSDT","AEROUSDT","KASUSDT","TAOUSDT","NOTUSDT","PIXELUSDT",
+    "ENAUSDT","WUSDT","STRKUSDT","SEIUSDT","PYTHUSDT","ORDIUSDT","STXUSDT","IMXUSDT"
 ]
-MICRO_SYMBOLS = CRYPTO_SYMBOLS[:12]
+MICRO_SYMBOLS = CRYPTO_SYMBOLS
 MEMECOIN_SOLANA = ["BONKUSDT","WIFUSDT","POPCATUSDT","JUPUSDT"]
 MEMECOIN_ETH    = ["SHIBUSDT","FLOKIUSDT","PEPEUSDT","DOGEUSDT"]
 STOCKS_SYMBOLS = {
@@ -4318,11 +4322,11 @@ if __name__ == "__main__":
     threading.Thread(target=self_ping, daemon=True).start()
 
     # ✅ AUTO TRAINING ICI
-    def _auto_training_loop():
-        time.sleep(60)          # ← maintenant bien indenté
+        def _auto_training_loop():
+        time.sleep(60)
         while True:
             try:
-                print("[AUTO-TRAIN] lancement")
+                print("[AUTO-TRAIN] lancement — 20 derniers trades")
                 auto_training()
                 print("[AUTO-TRAIN] terminé")
             except Exception as e:
