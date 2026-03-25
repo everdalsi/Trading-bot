@@ -68,7 +68,7 @@ def create_improvement_crew():
             goal="Améliorer constamment le bot et les agents à partir de l'objectif principal",
             backstory="Tu es un ingénieur IA autonome. Tu analyses les performances, proposes du code, le testes et déploies.",
             tools=[EditBotFileTool(), GitPushTool()],
-            llm="groq/llama-3.3-70b-versatile",   # ← modèle actuel et performant
+            llm="groq/llama-3.3-70b-versatile",
             verbose=True,
             allow_code_execution=False
         )
@@ -80,7 +80,7 @@ Analyse les stats, identifie les faiblesses, propose des améliorations concrèt
             expected_output="Code modifié + message de commit + décision de déploiement",
             agent=improver
         )
-        crew = Crew(agents=[improver], tasks=[task], verbose=True, memory=True, cache=True)
+        crew = Crew(agents=[improver], tasks=[task], verbose=True, memory=False, cache=True)
         return crew
     except Exception as e:
         print(f"[CREW] Création impossible: {e}")
@@ -111,10 +111,6 @@ def _get_safe_stats(orchestrator, memory):
     except Exception:
         pass
     return stats
-
-# === PATCH ANTI-CRASH QUOTES : nettoyage automatique des caractères invalides ===
-def _clean_smart_quotes(text: str) -> str:
-    return text.replace('“', '"').replace('”', '"').replace('‘', "'").replace('’', "'")
 
 def _get_safe_lesson_count(orchestrator):
     try:
@@ -234,7 +230,7 @@ def start_self_improvement_loop(orchestrator):
             else:
                 time.sleep(backoff_seconds)
                 backoff_seconds = min(backoff_seconds * 2, 600)
-            continue  # ← on ne lance pas le crew si l'evolution a crashé
+            continue
 
         # Cycle CrewAI optionnel dans un thread séparé (ne bloque pas)
         def _crew_bg():
