@@ -2,36 +2,7 @@
   "sim": {
     "cash": 8168340151.016104,
     "initial": 1000.0,
-    "positions": {
-      "MEME_APES_217": {
-        "id": 217,
-        "symbol": "APES",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "APES",
-        "price_in": 0.0005796,
-        "price_out": null,
-        "qty": 99103400908.20097,
-        "amount_usd": 57440331.16639328,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-25 21:30:58",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.07141,
-        "open_time": 1774474258.2491264,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_APES_217"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
