@@ -2,36 +2,7 @@
   "sim": {
     "cash": 218.71711701101933,
     "initial": 1000.0,
-    "positions": {
-      "MEME_WOJAK_199": {
-        "id": 199,
-        "symbol": "WOJAK",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "WOJAK",
-        "price_in": 0.0002857,
-        "price_out": null,
-        "qty": 40113.254129951514,
-        "amount_usd": 11.460356704927147,
-        "confidence": 95,
-        "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-25 19:17:20",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0002857,
-        "open_time": 1774466240.6362948,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_WOJAK_199"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
@@ -50549,6 +50520,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-25 19:17"
+      },
+      {
+        "trade_id": -5,
+        "pnl": 5.0924,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-25 19:17"
       }
     ],
     "patterns_to_avoid": [
@@ -50854,7 +50836,7 @@
       "memecoin"
     ],
     "patterns_that_work": [
-      "memecoin",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -51157,11 +51139,11 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 781,
-    "total_losses": 1104,
+    "total_losses": 1105,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -13,
+      "SOLUSDT": -11,
       "TARO": 15,
       "\u96ea\u5c71\u6551\u72d0": -15,
       "LOLA": -15,
