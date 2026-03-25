@@ -1,23 +1,23 @@
 {
   "sim": {
-    "cash": 281.2498866147826,
+    "cash": 281.64217262784945,
     "initial": 1000.0,
     "positions": {
-      "MEME_LOLA_166": {
-        "id": 166,
-        "symbol": "LOLA",
+      "MEME_GigaChud_169": {
+        "id": 169,
+        "symbol": "GigaChud",
         "market": "MEME",
         "side": "LONG",
         "trade_type": "MEME",
-        "meme_symbol": "LOLA",
-        "price_in": 0.0003456,
+        "meme_symbol": "GigaChud",
+        "price_in": 0.001172,
         "price_out": null,
-        "qty": 45044.50091556852,
-        "amount_usd": 15.56737951642048,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
+        "qty": 11998.71529926547,
+        "amount_usd": 14.062494330739131,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
         "exit_reason": null,
-        "time_in": "2026-03-25 13:04:21",
+        "time_in": "2026-03-25 13:09:00",
         "time_out": null,
         "pnl": null,
         "pnl_pct": null,
@@ -26,10 +26,10 @@
           "memecoin"
         ],
         "leverage": 1,
-        "peak_price": 0.0003465,
-        "open_time": 1774443861.1419106,
+        "peak_price": 0.001172,
+        "open_time": 1774444140.297424,
         "kelly_pct": 0.05,
-        "pos_key": "MEME_LOLA_166"
+        "pos_key": "MEME_GigaChud_169"
       }
     },
     "trades": [
@@ -4496,17 +4496,17 @@
         "trade_type": "MEME",
         "meme_symbol": "LOLA",
         "price_in": 0.0003456,
-        "price_out": null,
+        "price_out": 0.0003209,
         "qty": 45044.50091556852,
         "amount_usd": 15.56737951642048,
         "confidence": 85,
         "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
+        "exit_reason": "\ud83d\uded1 MEME SL (-7.1%)",
         "time_in": "2026-03-25 13:04:21",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-25 13:09:00",
+        "pnl": -1.112599,
+        "pnl_pct": -7.15,
+        "duration_min": 4,
         "patterns": [
           "memecoin"
         ],
@@ -4567,6 +4567,33 @@
         "leverage": 1,
         "peak_price": 0.001172,
         "open_time": 1774444094.0531397,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 169,
+        "symbol": "GigaChud",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "GigaChud",
+        "price_in": 0.001172,
+        "price_out": null,
+        "qty": 11998.71529926547,
+        "amount_usd": 14.062494330739131,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-25 13:09:00",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.001172,
+        "open_time": 1774444140.297424,
         "kelly_pct": 0.05
       }
     ],
@@ -28141,13 +28168,23 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-25 13:09"
+      },
+      {
+        "trade_id": 166,
+        "pnl": -1.112599,
+        "symbol": "LOLA",
+        "market": "MEME",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "memecoin",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-25 13:09"
       }
     ],
     "patterns_to_avoid": [
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "memecoin",
       "backtest_5m",
@@ -28443,7 +28480,8 @@
       "memecoin",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "memecoin"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -28756,7 +28794,7 @@
       "SOLUSDT": -11,
       "TARO": 15,
       "\u96ea\u5c71\u6551\u72d0": -15,
-      "LOLA": 0,
+      "LOLA": -3,
       "NoHat": 10,
       "GigaChud": -15
     },
