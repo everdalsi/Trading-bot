@@ -1,8 +1,37 @@
 {
   "sim": {
-    "cash": 1224.7935457694828,
+    "cash": 1355.483806798517,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MEME_NoHat_77": {
+        "id": 77,
+        "symbol": "NoHat",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "NoHat",
+        "price_in": 0.0001074,
+        "price_out": null,
+        "qty": 570201.836950411,
+        "amount_usd": 61.23967728847414,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-25 08:58:27",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0003366,
+        "open_time": 1774429107.6924546,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_NoHat_77"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -2055,6 +2084,33 @@
         "peak_price": 0.0001074,
         "open_time": 1774429063.4608178,
         "kelly_pct": 0.05
+      },
+      {
+        "id": 77,
+        "symbol": "NoHat",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "NoHat",
+        "price_in": 0.0001074,
+        "price_out": 0.0003366,
+        "qty": 570201.836950411,
+        "amount_usd": 61.23967728847414,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": "\ud83c\udfaf MEME TP (+213.4%)",
+        "time_in": "2026-03-25 08:58:27",
+        "time_out": "2026-03-25 08:58:28",
+        "pnl": 130.690261,
+        "pnl_pct": 213.41,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0001074,
+        "open_time": 1774429107.6924546,
+        "kelly_pct": 0.05
       }
     ],
     "equity_history": [
@@ -2067,17 +2123,6 @@
   },
   "memory": {
     "lessons": [
-      {
-        "trade_id": -6,
-        "pnl": 5.0923,
-        "symbol": "SOLUSDT",
-        "market": "BACKTEST",
-        "lecon": "Scalp rapide gagnant",
-        "pattern": "backtest_5m",
-        "action_future": "Conserver ce setup pour micro-trading",
-        "type": "succes",
-        "date": "2026-03-25 05:40"
-      },
       {
         "trade_id": -1,
         "pnl": -0.9032,
@@ -13066,6 +13111,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-25 08:57"
+      },
+      {
+        "trade_id": 77,
+        "pnl": 130.690261,
+        "symbol": "NoHat",
+        "market": "MEME",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "memecoin",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-25 08:58"
       }
     ],
     "patterns_to_avoid": [
@@ -13294,7 +13350,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
@@ -13470,10 +13525,11 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "memecoin",
       "memecoin"
     ],
     "confidence_threshold": 8,
-    "total_wins": 248,
+    "total_wins": 249,
     "total_losses": 475,
     "symbol_scores": {
       "BTCUSDT": -15,
@@ -13482,7 +13538,7 @@
       "TARO": 15,
       "\u96ea\u5c71\u6551\u72d0": -15,
       "LOLA": -4,
-      "NoHat": 2
+      "NoHat": 4
     },
     "symbol_blacklist": {},
     "consecutive_losses": {},
