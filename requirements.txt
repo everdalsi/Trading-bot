@@ -10,3 +10,7 @@ httpx
 ccxt
 python-dotenv
 websocket-client
+crewai>=1.11.0
+crewai-tools
+gitpython
+chromadb
