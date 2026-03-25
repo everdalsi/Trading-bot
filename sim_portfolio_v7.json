@@ -658,7 +658,7 @@
       "memecoin"
     ],
     "confidence_threshold": 63,
-    "total_wins": 7,
+    "total_wins": 6,
     "total_losses": 13,
     "symbol_scores": {
       "BTCUSDT": -15,
@@ -1065,25 +1065,32 @@
         "symbol": "BTCUSDT",
         "interval": "5m",
         "days": 30,
-        "total_trades": 1,
+        "total_trades": 2,
         "wins": 0,
-        "losses": 1,
+        "losses": 2,
         "win_rate": 0.0,
-        "total_pnl": -0.9,
-        "total_pnl_pct": -0.09,
-        "sharpe": 0.0,
-        "max_drawdown": -0.09,
+        "total_pnl": -6.5,
+        "total_pnl_pct": -0.65,
+        "sharpe": -21.95,
+        "max_drawdown": -0.65,
         "profit_factor": 0.0,
         "best_trade": -0.45,
-        "worst_trade": -0.45,
-        "final_equity": 999.1,
+        "worst_trade": -2.8,
+        "final_equity": 993.5,
         "sl_used": 0.025,
         "tp_used": 0.04,
         "trades": [
           {
+            "entry": 70424.384595,
+            "exit": 68450.03,
+            "pnl": -5.5986,
+            "pnl_pct": -2.8,
+            "exit_reason": "SL"
+          },
+          {
             "entry": 68989.187355,
             "exit": 68677.17,
-            "pnl": -0.9032,
+            "pnl": -0.8981,
             "pnl_pct": -0.45,
             "exit_reason": "TIMEOUT"
           }
