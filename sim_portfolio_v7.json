@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 6.771762413235211e+152,
+    "cash": 7.157617443499862e+152,
     "initial": 1000.0,
     "positions": {
       "MEME_7_166": {
@@ -54,7 +54,7 @@
           "memecoin"
         ],
         "leverage": 1,
-        "peak_price": 0.0005806,
+        "peak_price": 0.0005818,
         "open_time": 1774399948.9579504,
         "kelly_pct": 0.05,
         "pos_key": "MEME_LEGACY_430"
@@ -11652,17 +11652,17 @@
         "trade_type": "MEME",
         "meme_symbol": "LEGACY",
         "price_in": 0.0005374,
-        "price_out": null,
+        "price_out": 0.0005818,
         "qty": 6.632090585504486e+154,
         "amount_usd": 3.564085480650111e+151,
         "confidence": 95,
         "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT",
         "time_in": "2026-03-25 00:52:28",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-25 00:57:53",
+        "pnl": 2.9446482199639917e+150,
+        "pnl_pct": 8.26,
+        "duration_min": 5,
         "patterns": [
           "memecoin"
         ],
@@ -18279,6 +18279,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-25 00:57"
+      },
+      {
+        "trade_id": 430,
+        "pnl": 2.9446482199639917e+150,
+        "symbol": "LEGACY",
+        "market": "MEME",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "memecoin",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-25 00:57"
       }
     ],
     "patterns_to_avoid": [
@@ -18528,7 +18539,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "memecoin",
       "backtest_5m",
@@ -18683,7 +18693,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "memecoin"
     ],
     "confidence_threshold": 82,
     "total_wins": 659,
@@ -18715,7 +18726,8 @@
       "APES": 15,
       "BioLLM": 4,
       "CIA": 15,
-      "\u96ea\u5c71\u6551\u72d0": -15
+      "\u96ea\u5c71\u6551\u72d0": -15,
+      "LEGACY": 2
     },
     "symbol_blacklist": {},
     "consecutive_losses": {},
