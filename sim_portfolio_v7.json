@@ -1798,6 +1798,61 @@
   "memory": {
     "lessons": [
       {
+        "trade_id": -1,
+        "pnl": -0.5759,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-25 05:13"
+      },
+      {
+        "trade_id": -2,
+        "pnl": -1.6244,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-25 05:13"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -0.0084,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-25 05:13"
+      },
+      {
+        "trade_id": -2,
+        "pnl": -1.8177,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-25 05:13"
+      },
+      {
+        "trade_id": -3,
+        "pnl": 11.5928,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-25 05:13"
+      },
+      {
         "trade_id": 40,
         "pnl": -15.184029,
         "symbol": "NoHat",
@@ -12741,61 +12796,6 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-25 08:17"
-      },
-      {
-        "trade_id": -1,
-        "pnl": -1.8177,
-        "symbol": "SOLUSDT",
-        "market": "BACKTEST",
-        "lecon": "Entr\u00e9e trop agressive",
-        "pattern": "backtest_5m",
-        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
-        "type": "erreur",
-        "date": "2026-03-25 08:17"
-      },
-      {
-        "trade_id": -2,
-        "pnl": 11.5929,
-        "symbol": "SOLUSDT",
-        "market": "BACKTEST",
-        "lecon": "Scalp rapide gagnant",
-        "pattern": "backtest_5m",
-        "action_future": "Conserver ce setup pour micro-trading",
-        "type": "succes",
-        "date": "2026-03-25 08:17"
-      },
-      {
-        "trade_id": -3,
-        "pnl": -2.0239,
-        "symbol": "SOLUSDT",
-        "market": "BACKTEST",
-        "lecon": "Entr\u00e9e trop agressive",
-        "pattern": "backtest_5m",
-        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
-        "type": "erreur",
-        "date": "2026-03-25 08:17"
-      },
-      {
-        "trade_id": -4,
-        "pnl": 3.0211,
-        "symbol": "SOLUSDT",
-        "market": "BACKTEST",
-        "lecon": "Scalp rapide gagnant",
-        "pattern": "backtest_5m",
-        "action_future": "Conserver ce setup pour micro-trading",
-        "type": "succes",
-        "date": "2026-03-25 08:17"
-      },
-      {
-        "trade_id": -5,
-        "pnl": 5.0924,
-        "symbol": "SOLUSDT",
-        "market": "BACKTEST",
-        "lecon": "Scalp rapide gagnant",
-        "pattern": "backtest_5m",
-        "action_future": "Conserver ce setup pour micro-trading",
-        "type": "succes",
-        "date": "2026-03-25 08:18"
       }
     ],
     "patterns_to_avoid": [
@@ -12899,17 +12899,17 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "memecoin",
-      "backtest_5m",
-      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
+      "backtest_5m",
+      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
+      "memecoin",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -13006,6 +13006,9 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "backtest_5m",
+      "backtest_5m",
+      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
@@ -13186,9 +13189,6 @@
       "backtest_5m",
       "backtest_5m",
       "memecoin",
-      "backtest_5m",
-      "backtest_5m",
-      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -13203,7 +13203,7 @@
       "backtest_5m"
     ],
     "confidence_threshold": 32,
-    "total_wins": 207,
+    "total_wins": 206,
     "total_losses": 441,
     "symbol_scores": {
       "BTCUSDT": -15,
@@ -25495,6 +25495,6 @@
         "status": "\u2705 Promos d\u00e9tect\u00e9es"
       }
     ],
-    "last_scan": 1774426642.035712
+    "last_scan": 1774426684.2888305
   }
 }
