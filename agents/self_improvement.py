@@ -44,7 +44,7 @@ from evolution_agent import EvolutionAgent
 except ImportError:
 EvolutionAgent = None
 
-MAIN_OBJECTIVE = “Maximiser le nombre de trades simulés pour accumuler un maximum d’expérience et améliorer le winrate le plus rapidement possible”
+MAIN_OBJECTIVE = "Maximiser le nombre de trades simulés pour accumuler un maximum d’expérience et améliorer le winrate le plus rapidement possible"
 
 # Métriques Prometheus
 
@@ -110,9 +110,14 @@ def _get_safe_stats(orchestrator, memory):
 stats = {}
 try:
 stats = orchestrator.performance.get_global_stats(memory)
-except Exception:
-pass
-return stats
+        except Exception:
+            pass
+        return stats
+
+
+# === PATCH ANTI-CRASH QUOTES : nettoyage automatique des caractères invalides ===
+def _clean_smart_quotes(text: str) -> str:
+    return text.replace('“', '"').replace('”', '"').replace('‘', "'").replace('’', "'")
 
 def _get_safe_lesson_count(orchestrator):
 try:
