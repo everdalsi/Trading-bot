@@ -47,11 +47,31 @@ async def run_self_improvement_cycle():
     print("✅ [SELF-IMPROVEMENT] Cycle terminé :", result)
     return result
 
-# Thread qui tourne en arrière-plan
-def start_self_improvement_loop():
+## Thread qui tourne en arrière-plan — VERSION TEST ULTRA-RAPIDE
+def start_self_improvement_loop(orchestrator):
+    """
+    Mode TEST : cycle toutes les 10 minutes pour que tu voies l'auto-codage en live
+    (change en 3*3600 une fois que tu as testé)
+    """
+    evolution = EvolutionAgent(orchestrator)
+
     while True:
+        try:
+            print("🧬 [EVOLUTION] Cycle d'auto-évolution lancé (MODE TEST - 10 minutes)...")
+            ctx = {
+                "memory": {},
+                "main_objective": MAIN_OBJECTIVE,
+                "drawdown": 0.0,
+            }
+            result = asyncio.run(evolution.respond("Lance un cycle d'évolution complète", ctx))
+            print("✅ [EVOLUTION] Cycle terminé :", result.get("summary", "OK"))
+        except Exception as e:
+            print(f"[EVOLUTION ERROR] {e}")
+
+        # On garde aussi l’ancien cycle CrewAI
         try:
             asyncio.run(run_self_improvement_cycle())
         except Exception as e:
-            print(f"[SELF-IMPROVEMENT] Erreur : {e}")
-        time.sleep(4 * 3600)  # toutes les 4 heures (change en 3600 pour tester toutes les heures)
+            print(f"[SELF-IMPROVEMENT ERROR] {e}")
+
+        time.sleep(600)   # ← 600 secondes = 10 minutes (idéal pour tester)
