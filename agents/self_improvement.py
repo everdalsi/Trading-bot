@@ -196,7 +196,10 @@ def start_self_improvement_loop(orchestrator):
                 result = crew.kickoff()
                 print(f"[SELF-IMPROVEMENT] Cycle terminé - {result}")
                 
+                # Mise à jour Prometheus
                 evolution_cycles_total.inc()
+                if hasattr(performance_tracker, 'winrate_gauge'):
+                    performance_tracker.winrate_gauge.set(performance_tracker.get_winrate())
 
         except Exception as e:
             err_str = str(e).lower()
@@ -209,7 +212,7 @@ def start_self_improvement_loop(orchestrator):
             else:
                 print(f"[SELF-IMPROVEMENT ERROR] {e}")
 
-        # Délai adaptatif
+        # Délai adaptatif optimisé
         base_sleep = 40 if (time.time() - last_rate_limit < 600) else 25
         time.sleep(base_sleep + random.uniform(3, 12))
 
