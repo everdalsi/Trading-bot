@@ -1933,28 +1933,6 @@
   "memory": {
     "lessons": [
       {
-        "trade_id": 52,
-        "pnl": 0.32049,
-        "symbol": "LOLA",
-        "market": "MEME",
-        "lecon": "Scalp rapide gagnant",
-        "pattern": "memecoin",
-        "action_future": "Conserver ce setup pour micro-trading",
-        "type": "succes",
-        "date": "2026-03-25 05:37"
-      },
-      {
-        "trade_id": -1,
-        "pnl": -0.9032,
-        "symbol": "BTCUSDT",
-        "market": "BACKTEST",
-        "lecon": "Entr\u00e9e trop agressive",
-        "pattern": "backtest_5m",
-        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
-        "type": "erreur",
-        "date": "2026-03-25 05:37"
-      },
-      {
         "trade_id": -1,
         "pnl": -0.5759,
         "symbol": "ETHUSDT",
@@ -12931,6 +12909,28 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-25 08:53"
+      },
+      {
+        "trade_id": -2,
+        "pnl": 11.5929,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-25 08:53"
+      },
+      {
+        "trade_id": -3,
+        "pnl": -2.0239,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-25 08:53"
       }
     ],
     "patterns_to_avoid": [
@@ -12942,7 +12942,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
@@ -13078,6 +13077,7 @@
       "backtest_5m",
       "backtest_5m",
       "memecoin",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -13176,7 +13176,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
@@ -13335,7 +13334,8 @@
       "backtest_5m",
       "backtest_5m",
       "memecoin",
-      "memecoin"
+      "memecoin",
+      "backtest_5m"
     ],
     "confidence_threshold": 8,
     "total_wins": 241,
@@ -13343,7 +13343,7 @@
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -14,
+      "SOLUSDT": -15,
       "TARO": 15,
       "\u96ea\u5c71\u6551\u72d0": -15,
       "LOLA": -4,
