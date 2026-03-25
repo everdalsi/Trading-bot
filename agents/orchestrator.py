@@ -280,7 +280,7 @@ class Orchestrator:
 
         lesson_count = self.learning.get_lesson_count()
 
-        # AUTO-AJUSTEMENT (le cerveau)
+                # AUTO-AJUSTEMENT (le cerveau)
         if lesson_count < 1000:
             # On baisse les barrières pour accumuler plus de leçons
             global MICRO_CONF_MIN, MAX_MICRO_POSITIONS, CYCLE_MICRO
@@ -289,6 +289,12 @@ class Orchestrator:
             CYCLE_MICRO = max(5, CYCLE_MICRO - 2)            # cycle encore plus rapide
 
             print(f"[SELF-TUNE] Leçons = {lesson_count} → paramètres agressifs : conf_min={MICRO_CONF_MIN}, max_pos={MAX_MICRO_POSITIONS}, cycle={CYCLE_MICRO}s")
+
+            # === UPGRADE MAX TRADES : on force encore plus de volume ===
+            global LEARN_MODE_MAX_PCT, MICRO_MAX_PCT
+            LEARN_MODE_MAX_PCT = max(0.48, LEARN_MODE_MAX_PCT)
+            MICRO_MAX_PCT = max(0.48, MICRO_MAX_PCT)
+            print(f"[SELF-TUNE] Volume max forcé à {LEARN_MODE_MAX_PCT*100:.0f}% par trade")
 
         # AUTO-EXÉCUTION (les mains)
         # Force un micro-trade immédiat sur le meilleur symbole
