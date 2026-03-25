@@ -2,36 +2,7 @@
   "sim": {
     "cash": 1034.833147713496,
     "initial": 1000.0,
-    "positions": {
-      "MEME_LOLA_34": {
-        "id": 34,
-        "symbol": "LOLA",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "LOLA",
-        "price_in": 0.000282,
-        "price_out": null,
-        "qty": 130363.57677206521,
-        "amount_usd": 36.76252864972239,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-25 04:34:10",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.000292,
-        "open_time": 1774413250.8430922,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_LOLA_34"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
@@ -5889,10 +5860,20 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-25 04:38"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -0.9032,
+        "symbol": "BTCUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-25 04:38"
       }
     ],
     "patterns_to_avoid": [
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
@@ -6091,7 +6072,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "memecoin"
+      "memecoin",
+      "backtest_5m"
     ],
     "patterns_that_work": [
       "backtest_5m",
