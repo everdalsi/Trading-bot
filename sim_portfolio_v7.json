@@ -22,9 +22,21 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-25 01:48"
+      },
+      {
+        "trade_id": -2,
+        "pnl": -0.898,
+        "symbol": "BTCUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-25 01:48"
       }
     ],
     "patterns_to_avoid": [
+      "backtest_5m",
       "backtest_5m"
     ],
     "patterns_that_work": [],
@@ -32,7 +44,7 @@
     "total_wins": 0,
     "total_losses": 1,
     "symbol_scores": {
-      "BTCUSDT": -3
+      "BTCUSDT": -6
     },
     "symbol_blacklist": {},
     "consecutive_losses": {},
