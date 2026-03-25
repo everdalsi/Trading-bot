@@ -13,13 +13,13 @@
       image-rendering: pixelated;
     }
     .desk {
-      animation: work 4s infinite alternate ease-in-out;
+      animation: work 3.5s infinite alternate ease-in-out;
     }
     @keyframes work {
       0% { transform: translateY(0); }
-      100% { transform: translateY(-8px); }
+      100% { transform: translateY(-10px); }
     }
-    .agent { font-size: 28px; transition: all 0.3s; }
+    .agent-name { font-size: 11px; letter-spacing: 1px; }
   </style>
 </head>
 <body class="text-white">
@@ -30,45 +30,42 @@
     </h1>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <!-- Bureau isométrique -->
+      <!-- Bureau pixel-art isométrique -->
       <div class="lg:col-span-2 bg-[#1e2937] rounded-3xl p-8 shadow-2xl overflow-hidden">
         <div class="office bg-[#334155] w-full aspect-video rounded-2xl relative border-8 border-[#0f172a] flex items-center justify-center">
-          
-          <!-- Desks -->
           <div class="grid grid-cols-3 gap-8 text-center">
             <!-- Reflection -->
             <div class="desk flex flex-col items-center">
-              <div class="text-5xl mb-2">🧠</div>
-              <div class="text-xs font-bold bg-blue-600 px-3 py-1 rounded">Reflection</div>
-              <div id="ref-status" class="text-green-400 text-[10px] mt-1">Analysing cycles...</div>
+              <div class="text-5xl mb-1">🧠</div>
+              <div class="agent-name font-bold bg-blue-600 px-3 py-0.5 rounded">Reflection</div>
+              <div id="ref-status" class="text-green-400 text-xs mt-1">Analysing past cycles...</div>
             </div>
-
             <!-- Permission Officer -->
             <div class="desk flex flex-col items-center">
-              <div class="text-5xl mb-2">🔒</div>
-              <div class="text-xs font-bold bg-red-600 px-3 py-1 rounded">Permission Officer</div>
-              <div id="perm-status" class="text-yellow-400 text-[10px] mt-1">Checking risk...</div>
+              <div class="text-5xl mb-1">🔒</div>
+              <div class="agent-name font-bold bg-red-600 px-3 py-0.5 rounded">Permission</div>
+              <div id="perm-status" class="text-yellow-400 text-xs mt-1">Checking risk...</div>
             </div>
-
             <!-- Senior Improver -->
             <div class="desk flex flex-col items-center">
-              <div class="text-5xl mb-2">🛠️</div>
-              <div class="text-xs font-bold bg-purple-600 px-3 py-1 rounded">Senior Improver</div>
-              <div id="imp-status" class="text-green-400 text-[10px] mt-1">Working on patches...</div>
+              <div class="text-5xl mb-1">🛠️</div>
+              <div class="agent-name font-bold bg-purple-600 px-3 py-0.5 rounded">Improver</div>
+              <div id="imp-status" class="text-green-400 text-xs mt-1">Building patches...</div>
             </div>
-
-            <!-- Trader, Risk, Supervisor -->
+            <!-- Trader -->
             <div class="desk flex flex-col items-center">
-              <div class="text-5xl mb-2">📈</div>
-              <div class="text-xs font-bold bg-emerald-600 px-3 py-1 rounded">Trader</div>
+              <div class="text-5xl mb-1">📈</div>
+              <div class="agent-name font-bold bg-emerald-600 px-3 py-0.5 rounded">Trader</div>
             </div>
+            <!-- Risk -->
             <div class="desk flex flex-col items-center">
-              <div class="text-5xl mb-2">🛡️</div>
-              <div class="text-xs font-bold bg-orange-600 px-3 py-1 rounded">Risk</div>
+              <div class="text-5xl mb-1">🛡️</div>
+              <div class="agent-name font-bold bg-orange-600 px-3 py-0.5 rounded">Risk</div>
             </div>
+            <!-- Supervisor -->
             <div class="desk flex flex-col items-center">
-              <div class="text-5xl mb-2">👑</div>
-              <div class="text-xs font-bold bg-amber-600 px-3 py-1 rounded">Supervisor</div>
+              <div class="text-5xl mb-1">👑</div>
+              <div class="agent-name font-bold bg-amber-600 px-3 py-0.5 rounded">Supervisor</div>
             </div>
           </div>
         </div>
@@ -76,28 +73,30 @@
 
       <!-- Panneau Slack-like -->
       <div class="bg-[#1e2937] rounded-3xl p-6 flex flex-col h-[520px]">
-        <div class="text-xs uppercase tracking-widest mb-4 text-gray-400">Office Chat • Self-Improvement</div>
-        <div id="chat" class="flex-1 overflow-y-auto space-y-4 text-sm font-mono"></div>
+        <div class="text-xs uppercase tracking-widest mb-4 text-gray-400 flex justify-between">
+          <span>Office Chat • Self-Improvement</span>
+          <span class="text-green-400">LIVE</span>
+        </div>
+        <div id="chat" class="flex-1 overflow-y-auto space-y-4 text-sm font-mono pr-2"></div>
         
-        <div class="mt-6 text-xs text-gray-400">
-          Leçons : <span id="lessons" class="font-bold text-green-400">0</span> | 
-          Cycle : <span id="cycle" class="font-bold">0</span>
+        <div class="mt-6 text-xs text-gray-400 flex justify-between">
+          <span>Leçons : <span id="lessons" class="font-bold text-green-400">0</span></span>
+          <span>Cycle : <span id="cycle" class="font-bold">0</span></span>
         </div>
       </div>
     </div>
   </div>
 
   <script>
-    // Simulation live (tu peux remplacer par un fetch sur /metrics si tu veux)
-    let cycle = 12;
-    let lessons = 847;
+    let cycle = 42;
+    let lessons = 912;
 
     function addChatMessage(text, agent) {
       const chat = document.getElementById('chat');
       const msg = document.createElement('div');
       msg.className = 'flex gap-2';
       msg.innerHTML = `
-        <div class="text-xs w-20 text-right text-gray-400">${agent}</div>
+        <div class="text-xs w-24 text-right text-gray-400">${agent}</div>
         <div class="flex-1 bg-[#334155] px-4 py-2 rounded-2xl">${text}</div>
       `;
       chat.appendChild(msg);
@@ -107,21 +106,18 @@
     // Mise à jour live
     setInterval(() => {
       cycle++;
-      lessons += Math.floor(Math.random()*3);
+      lessons += Math.floor(Math.random() * 4) + 1;
       document.getElementById('cycle').textContent = cycle;
       document.getElementById('lessons').textContent = lessons;
 
-      // Exemple de messages
-      if (Math.random() > 0.7) {
-        addChatMessage("Classification risque : Medium - demande permission utilisateur", "Permission Officer");
-      }
-      if (Math.random() > 0.8) {
-        addChatMessage("Patch prêt sur trader_agent.py (niveau Low)", "Senior Improver");
-      }
-    }, 4500);
+      // Messages réalistes
+      if (Math.random() > 0.65) addChatMessage("Classification risque : Medium – demande permission utilisateur", "Permission Officer");
+      if (Math.random() > 0.75) addChatMessage("Patch prêt sur trader_agent.py (Low risk)", "Senior Improver");
+      if (Math.random() > 0.8)  addChatMessage("Analyse des 12 derniers cycles terminée", "Reflection");
+    }, 3800);
 
-    // Message de bienvenue
-    addChatMessage("Bureau initialisé – tous les agents sont en place", "System");
+    // Message de démarrage
+    addChatMessage("Bureau initialisé – tous les agents sont en place et travaillent", "System");
   </script>
 </body>
 </html>
