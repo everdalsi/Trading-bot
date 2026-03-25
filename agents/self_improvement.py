@@ -68,8 +68,8 @@ def create_improvement_crew():
             goal="Améliorer constamment le bot et les agents à partir de l'objectif principal",
             backstory="Tu es un ingénieur IA autonome. Tu analyses les performances, proposes du code, le testes et déploies.",
             tools=[EditBotFileTool(), GitPushTool()],
-            llm="groq/llama3-70b-8192",
-            verbose=True,          # ← corrigé ici
+            llm="groq/llama-3.3-70b-versatile",   # ← modèle actuel et performant
+            verbose=True,
             allow_code_execution=False
         )
         task = Task(
