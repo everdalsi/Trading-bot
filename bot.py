@@ -4215,8 +4215,7 @@ async def telegram_error_handler(update: object, ctx: ContextTypes.DEFAULT_TYPE)
     try:
         if update and getattr(update, 'effective_message', None):
             await update.effective_message.reply_text("⚠️ Une erreur est survenue. Réessaie ou tape /help.")
-    except Exception:
-        pass
+    except Exception:        pass
         
 # ═══════════════════════════════════════════════════════════════        
 #  APPLICATION TELEGRAM
@@ -4228,6 +4227,19 @@ async def telegram_error_handler(update: object, ctx: ContextTypes.DEFAULT_TYPE)
             await update.effective_message.reply_text("⚠️ Une erreur est survenue. Réessaie ou tape /help.")
     except Exception:
         pass
+
+async def cmd_maxtrades(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Force un cycle MAX TRADES immédiat"""
+    if not _auth(update):
+        return
+    await update.message.reply_text("🧬 Lancement forcé du cycle MAX TRADES...")
+    try:
+        from agents.self_improvement import start_self_improvement_loop
+        ctx = {"memory": memory, "main_objective": MAIN_OBJECTIVE}
+        result = await evolution.respond("FORCE MAX TRADES maintenant", ctx)
+        await update.message.reply_text(f"✅ {result.get('summary', 'Cycle MAX TRADES lancé')}")
+    except Exception as e:
+        await update.message.reply_text(f"❌ Erreur : {str(e)[:200]}")
 
 async def cmd_agent(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Active le mode Secrétaire (une seule voix naturelle)"""
@@ -4264,6 +4276,7 @@ async def run_telegram():
         ("macro",cmd_macro),("risque",cmd_risque),("blacklist",cmd_blacklist),
         ("backtest",cmd_backtest),("backtest_multi",cmd_backtest_multi),
         ("resume", cmd_resume),("agent", cmd_agent),("agent_stop", cmd_agent_stop),
+        ("maxtrades", cmd_maxtrades),  # ← commande ajoutée
     ]:
         _app.add_handler(CommandHandler(cmd, fn))
     _app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_agent_chat))
@@ -4282,7 +4295,7 @@ async def run_telegram():
             await asyncio.sleep(5)
             await _app.bot.set_webhook(url=full,drop_pending_updates=True,allowed_updates=["message"])
         print(f"Webhook: {full}")
-    print("Bot v7.1 prêt — /start | /resume | /agent (chat) | /agent_stop")
+    print("Bot v7.1 prêt — /start | /resume | /agent (chat) | /agent_stop | /maxtrades")
     try:
         while True: await asyncio.sleep(1)
     finally:
@@ -4344,12 +4357,11 @@ if __name__ == "__main__":
 
     threading.Thread(target=_auto_training_loop, daemon=True).start()
 
-       # === AUTO-EVOLUTION THREAD (version ultra-intégrée) ===
-       
+    # === AUTO-EVOLUTION THREAD (version ultra-intégrée) ===
     from agents.self_improvement import start_self_improvement_loop
 
     def _evolution_loop():
-        start_self_improvement_loop(orchestrator)   # ← on passe l’orchestrator ici
+        start_self_improvement_loop(orchestrator)
 
     evolution_thread = threading.Thread(target=_evolution_loop, daemon=True)
     evolution_thread.start()
