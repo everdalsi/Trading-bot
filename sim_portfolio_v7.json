@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 240.02435291629632,
+    "cash": 251.72065176867952,
     "initial": 1000.0,
     "positions": {
       "MEME_Figure03_196": {
@@ -5306,17 +5306,17 @@
         "trade_type": "MEME",
         "meme_symbol": "Figure03",
         "price_in": 0.0003534,
-        "price_out": null,
+        "price_out": 0.0003272,
         "qty": 35746.634634422946,
         "amount_usd": 12.63286067980507,
         "confidence": 85,
         "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
+        "exit_reason": "\ud83d\uded1 MEME SL (-7.4%)",
         "time_in": "2026-03-25 18:21:41",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-25 18:26:24",
+        "pnl": -0.936562,
+        "pnl_pct": -7.41,
+        "duration_min": 4,
         "patterns": [
           "memecoin"
         ],
@@ -47410,6 +47410,28 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-25 18:26"
+      },
+      {
+        "trade_id": 196,
+        "pnl": -0.936562,
+        "symbol": "Figure03",
+        "market": "MEME",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "memecoin",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-25 18:26"
+      },
+      {
+        "trade_id": -2,
+        "pnl": -0.8897,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-25 18:26"
       }
     ],
     "patterns_to_avoid": [
@@ -47475,8 +47497,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
@@ -47712,6 +47732,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "backtest_5m",
+      "memecoin",
       "backtest_5m"
     ],
     "patterns_that_work": [
