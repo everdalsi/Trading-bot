@@ -57,12 +57,12 @@ profit_factor_gauge  = Gauge('bot_profit_factor',          'Profit Factor')
 lesson_count_gauge   = Gauge('bot_lesson_count',           'Nombre de leçons en base')
 streak_gauge         = Gauge('bot_current_streak',         'Longueur de la streak actuelle')
 
-# ── Version combinée : Reflection + Permission-Based Architecture ───────────────────────────────
+# ── Architecture multi-agent avancée (Reflection + Permission-Based) ───────────────────────────────
 def create_improvement_crew():
     if not CREWAI_AVAILABLE:
         return None
     try:
-        # === Reflection Agent (mémoire longue terme + stratégie) ===
+        # 1. Reflection Agent (mémoire longue terme + stratégie)
         reflector = Agent(
             role="Reflection & Strategy Officer",
             goal="Analyser les cycles précédents, identifier ce qui a fonctionné ou échoué, et définir une stratégie d'amélioration claire et priorisée",
@@ -71,7 +71,7 @@ def create_improvement_crew():
             verbose=True
         )
 
-        # === Permission & Security Officer (garde-fou) ===
+        # 2. Permission & Security Officer (garde-fou)
         permission_officer = Agent(
             role="Permission & Security Officer",
             goal="Classer chaque modification par niveau de risque et faire respecter les règles de permission",
@@ -80,7 +80,7 @@ def create_improvement_crew():
             verbose=True
         )
 
-        # === Improver Agent (exécute en suivant les règles) ===
+        # 3. Senior Improver (exécute en respectant les règles)
         improver = Agent(
             role="Senior Self-Improvement Engineer",
             goal="Améliorer le bot en suivant les recommandations du Reflection Agent et en respectant strictement les règles de permission",
@@ -98,7 +98,7 @@ Objectif principal : {MAIN_OBJECTIVE}
 Le Reflection Agent a analysé les cycles précédents.
 Utilise ses insights pour proposer des améliorations ciblées.
 Le Permission Officer doit classer chaque modification par risque (Low / Medium / High) et exiger une permission explicite pour tout risque Medium ou High.
-Priorité absolue : améliorer les autres agents avant de te modifier toi-même.
+Priorité absolue : améliorer les autres agents (Trader, Risk, Supervisor, Learning, Analyst...) avant de te modifier toi-même.
 """,
             expected_output="Analyse du Reflection Agent + plan d'amélioration + classification des risques + code prêt à appliquer + demande de permission si nécessaire",
             agent=improver
