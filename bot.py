@@ -1579,7 +1579,7 @@ def can_open_trade(symbol: str, market: str, send_fn) -> bool:
     return True
 
 # ═══════════════════════════════════════════════════════════════
-#  OPEN_TRADE v7.2 — SIM + LIVE
+#  OPEN_TRADE v7.2 — SIMULATION + VRAI LIVE (ccxt)
 # ═══════════════════════════════════════════════════════════════
 def open_trade(analysis: dict, send_fn) -> dict | None:
     symbol = analysis["symbol"]
@@ -1587,9 +1587,9 @@ def open_trade(analysis: dict, send_fn) -> dict | None:
     signal = analysis["signal"]
     conf   = analysis["confidence"]
     reason = sanitize_string(analysis["reason"])
-    market = analysis.get("market","SPOT")
-    pats   = analysis.get("patterns",[])
-    side   = "LONG" if signal=="BUY" else "SHORT"
+    market = analysis.get("market", "SPOT")
+    pats   = analysis.get("patterns", [])
+    side   = "LONG" if signal == "BUY" else "SHORT"
 
     if signal == "SELL" and market == "SPOT":
         return None
@@ -1597,7 +1597,7 @@ def open_trade(analysis: dict, send_fn) -> dict | None:
     if not can_open_trade(symbol, market, send_fn):
         return None
 
-    # Position sizing
+    # Position sizing selon le mode
     if EXTREME_LEARNING_MODE:
         kelly_pct = LEARN_MODE_MAX_PCT
     elif LIVE_MODE:
@@ -1635,7 +1635,7 @@ def open_trade(analysis: dict, send_fn) -> dict | None:
         "kelly_pct": kelly_pct
     }
 
-    # === LIVE EXECUTION ===
+    # === EXÉCUTION LIVE (ccxt) ===
     if LIVE_MODE and exchange and bot_state.get("warmup_done", False):
         try:
             order_side = "buy" if side == "LONG" else "sell"
@@ -1647,6 +1647,7 @@ def open_trade(analysis: dict, send_fn) -> dict | None:
             send_fn(f"❌ ERREUR LIVE ORDER #{trade['id']}: {e}")
             return None
 
+    # Enregistrement
     pos_key = f"{market}_{symbol}_{side}_{trade['id']}"
     sim["trades"].append(trade)
     sim["positions"][pos_key] = {**trade, "pos_key": pos_key}
@@ -1660,8 +1661,8 @@ def open_trade(analysis: dict, send_fn) -> dict | None:
     tp = price * (1 + TAKE_PROFIT_PCT) if side == "LONG" else price * (1 - TAKE_PROFIT_PCT)
 
     learning = "🎓 MAX TRADES" if EXTREME_LEARNING_MODE else ""
-    macro = bot_state.get("macro_trend", "NEUTRAL")
-    macro_e = "🐂" if macro == "BULL" else "🐻" if macro == "BEAR" else "➡️"
+    macro    = bot_state.get("macro_trend", "NEUTRAL")
+    macro_e  = "🐂" if macro == "BULL" else "🐻" if macro == "BEAR" else "➡️"
 
     if conf >= 90 or EXTREME_LEARNING_MODE:
         send_fn(
@@ -1678,58 +1679,83 @@ def open_trade(analysis: dict, send_fn) -> dict | None:
 
     return trade
 
+
+# ═══════════════════════════════════════════════════════════════
+#  CLOSE_TRADE v7.2 — SIM + LIVE
+# ═══════════════════════════════════════════════════════════════
 def close_trade(pos_key: str, price: float, reason: str, send_fn) -> dict | None:
     pos = sim["positions"].pop(pos_key, None)
+    if not pos:
+        return None
+
+    # === FERMETURE LIVE (ccxt) ===
     if LIVE_MODE and exchange and "live_order_id" in pos:
         try:
-            # Close position (market)
             side = "sell" if pos["side"] == "LONG" else "buy"
             exchange.create_market_order(pos["symbol"], side, pos["qty"])
             send_fn(f"✅ POSITION LIVE FERMÉE #{pos['id']}")
         except Exception as e:
-            send_fn(f"⚠️ Erreur fermeture live: {e}")
-    if not pos: return None
-    side  = pos["side"]; entry = pos["price_in"]
-    amt   = pos["amount_usd"]; lev = pos.get("leverage",1)
+            send_fn(f"⚠️ Erreur fermeture live #{pos['id']}: {e}")
+
+    # Calcul PnL (simulation ou live)
+    side   = pos["side"]
+    entry  = pos["price_in"]
+    amt    = pos["amount_usd"]
+    lev    = pos.get("leverage", 1)
+
     if side == "LONG":
-        pnl     = (price-entry)/entry*amt*lev
-        pnl_pct = (price-entry)/entry*100*lev
+        pnl     = (price - entry) / entry * amt * lev
+        pnl_pct = (price - entry) / entry * 100 * lev
     else:
-        pnl     = (entry-price)/entry*amt*lev
-        pnl_pct = (entry-price)/entry*100*lev
+        pnl     = (entry - price) / entry * amt * lev
+        pnl_pct = (entry - price) / entry * 100 * lev
+
     sim["cash"] += amt + pnl
+
+    # Mise à jour du trade
     duration = 0
     try:
-        t_in = datetime.strptime(pos["time_in"],"%Y-%m-%d %H:%M:%S")
-        duration = int((datetime.now()-t_in).total_seconds()/60)
-    except Exception:
+        t_in = datetime.strptime(pos["time_in"], "%Y-%m-%d %H:%M:%S")
+        duration = int((datetime.now() - t_in).total_seconds() / 60)
+    except:
         pass
-    trade = next((t for t in reversed(sim["trades"]) if t["id"]==pos["id"]), None)
+
+    trade = next((t for t in reversed(sim["trades"]) if t["id"] == pos["id"]), None)
     if trade:
         trade.update({
-            "price_out":price,
-            "time_out":datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "pnl":round(pnl,4),"pnl_pct":round(pnl_pct,2),
-            "exit_reason":reason,"duration_min":duration
+            "price_out": price,
+            "time_out": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "pnl": round(pnl, 4),
+            "pnl_pct": round(pnl_pct, 2),
+            "exit_reason": reason,
+            "duration_min": duration
         })
-        db_save_trade(trade); learn_from_trade(trade,send_fn=send_fn)
+        db_save_trade(trade)
+        learn_from_trade(trade, send_fn=send_fn)
+
     won = pnl > 0
-    if won: memory["total_wins"]   = memory.get("total_wins",0)+1
-    else:   memory["total_losses"] = memory.get("total_losses",0)+1
+    if won:
+        memory["total_wins"] = memory.get("total_wins", 0) + 1
+    else:
+        memory["total_losses"] = memory.get("total_losses", 0) + 1
+
     update_symbol_score(pos["symbol"], won)
     update_blacklist(pos["symbol"], won)
     save_data()
+
     equity_now = get_equity_safe()
     pnl_total  = equity_now - sim["initial"]
-    coin = pos["symbol"].replace("USDT","")
-    chg  = (price-entry)/entry*100
+    coin = pos["symbol"].replace("USDT", "")
+    chg  = (price - entry) / entry * 100
+
     if abs(pnl) > CAPITAL_INITIAL * 0.01:
         send_fn(
-            f"{'✅' if pnl>0 else '❌'} {coin} fermé — #{pos['id']}\n"
-            f"  ${entry:.4f}→${price:.4f} ({chg:+.2f}%)\n"
-            f"  {'🤑' if pnl>0 else '💸'} ${pnl:+.4f} | {reason}\n"
+            f"{'✅' if pnl > 0 else '❌'} {coin} fermé — #{pos['id']}\n"
+            f"  ${entry:.4f} → ${price:.4f} ({chg:+.2f}%)\n"
+            f"  {'🤑' if pnl > 0 else '💸'} ${pnl:+.4f} | {reason}\n"
             f"  Capital: ${equity_now:.2f} (total: ${pnl_total:+.2f})"
         )
+
     return trade
 
 def monitor_positions(send_fn):
