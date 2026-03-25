@@ -2,36 +2,7 @@
   "sim": {
     "cash": 270.609196975644,
     "initial": 1000.0,
-    "positions": {
-      "MEME_LOLA_176": {
-        "id": 176,
-        "symbol": "LOLA",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "LOLA",
-        "price_in": 0.0004467,
-        "price_out": null,
-        "qty": 30400.062570284437,
-        "amount_usd": 13.579707950146059,
-        "confidence": 95,
-        "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-25 13:26:55",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0004467,
-        "open_time": 1774445215.8913825,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_LOLA_176"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
@@ -29468,6 +29439,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-25 13:26"
+      },
+      {
+        "trade_id": -2,
+        "pnl": 11.5929,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-25 13:26"
       }
     ],
     "patterns_to_avoid": [
@@ -29903,7 +29885,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
@@ -30070,6 +30051,7 @@
       "backtest_5m",
       "backtest_5m",
       "memecoin",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m"
@@ -30080,7 +30062,7 @@
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -14,
+      "SOLUSDT": -12,
       "TARO": 15,
       "\u96ea\u5c71\u6551\u72d0": -15,
       "LOLA": -5,
