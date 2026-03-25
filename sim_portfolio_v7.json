@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 288.4235613707182,
+    "cash": 281.2498866147826,
     "initial": 1000.0,
     "positions": {
       "MEME_LOLA_166": {
@@ -30,6 +30,34 @@
         "open_time": 1774443861.1419106,
         "kelly_pct": 0.05,
         "pos_key": "MEME_LOLA_166"
+      },
+      "MEME_GigaChud_168": {
+        "id": 168,
+        "symbol": "GigaChud",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "GigaChud",
+        "price_in": 0.001172,
+        "price_out": null,
+        "qty": 12304.759444143267,
+        "amount_usd": 14.421178068535909,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-25 13:08:14",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.001172,
+        "open_time": 1774444094.0531397,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_GigaChud_168"
       }
     },
     "trades": [
@@ -4540,6 +4568,33 @@
         "leverage": 1,
         "peak_price": 0.001172,
         "open_time": 1774444051.3483467,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 168,
+        "symbol": "GigaChud",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "GigaChud",
+        "price_in": 0.001172,
+        "price_out": 0.000589,
+        "qty": 12304.759444143267,
+        "amount_usd": 14.421178068535909,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": "\ud83d\uded1 MEME SL (-49.7%)",
+        "time_in": "2026-03-25 13:08:14",
+        "time_out": "2026-03-25 13:08:14",
+        "pnl": -7.173675,
+        "pnl_pct": -49.74,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.001172,
+        "open_time": 1774444094.0531397,
         "kelly_pct": 0.05
       }
     ],
@@ -28037,6 +28092,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-25 13:07"
+      },
+      {
+        "trade_id": 168,
+        "pnl": -7.173675,
+        "symbol": "GigaChud",
+        "market": "MEME",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "memecoin",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-25 13:08"
       }
     ],
     "patterns_to_avoid": [
@@ -28047,7 +28113,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "memecoin",
       "backtest_5m",
@@ -28339,7 +28404,8 @@
       "memecoin",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "memecoin"
     ],
     "patterns_that_work": [
       "backtest_5m",
