@@ -26,7 +26,7 @@
           "memecoin"
         ],
         "leverage": 1,
-        "peak_price": 0.0007673,
+        "peak_price": 0.0008033,
         "open_time": 1774457282.6868303,
         "kelly_pct": 0.05,
         "pos_key": "MEME_Figure03_187"
@@ -41681,7 +41681,7 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 656,
-    "total_losses": 971,
+    "total_losses": 972,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
@@ -57701,6 +57701,34 @@
             "exit": 68502.42,
             "pnl": -2.4543,
             "pnl_pct": -1.23,
+            "exit_reason": "TIMEOUT"
+          }
+        ]
+      },
+      {
+        "symbol": "ETHUSDT",
+        "interval": "5m",
+        "days": 30,
+        "total_trades": 1,
+        "wins": 0,
+        "losses": 1,
+        "win_rate": 0.0,
+        "total_pnl": -1.63,
+        "total_pnl_pct": -0.16,
+        "sharpe": 0.0,
+        "max_drawdown": -0.16,
+        "profit_factor": 0.0,
+        "best_trade": -0.81,
+        "worst_trade": -0.81,
+        "final_equity": 998.37,
+        "sl_used": 0.025,
+        "tp_used": 0.04,
+        "trades": [
+          {
+            "entry": 2080.13955,
+            "exit": 2063.21,
+            "pnl": -1.6253,
+            "pnl_pct": -0.81,
             "exit_reason": "TIMEOUT"
           }
         ]
