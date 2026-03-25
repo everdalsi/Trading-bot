@@ -4545,24 +4545,50 @@ def api_live_stats():
             "risque": "MEDIUM",
             "dernier_trade": "LONG MEME 5m (+0.8%)"
         })
-    def api_quick_command():
+    @dashboard_app.route("/api/quick_command", methods=["POST"])
+def api_quick_command():
+    """Gestion des boutons rapides du dashboard Claude Office"""
+    try:
         data = request.get_json()
         cmd = data.get("command")
-        send = make_send(TELEGRAM_CHAT_ID)
-        
+
+        if not cmd:
+            return jsonify({"status": "error", "message": "Aucune commande reçue"}), 400
+
+        send = make_send(TELEGRAM_CHAT_ID)  # ta fonction existante pour envoyer sur Telegram
+
         if cmd == "force_max_trades":
-            orchestrator.max_trades_mode = True
-            send("🚀 FORCE MAX TRADES activé depuis le dashboard")
+            # Force le mode MAX TRADES (déjà activé par EXTREME LEARNING, mais on le renforce)
+            global EXTREME_LEARNING_MODE, LEARN_MODE_MAX_PCT, MICRO_MAX_PCT
+            EXTREME_LEARNING_MODE = True
+            LEARN_MODE_MAX_PCT = 0.48
+            MICRO_MAX_PCT = 0.48
+            send("🚀 FORCE MAX TRADES activé depuis le dashboard Claude Office")
+            return jsonify({"status": "ok", "message": "MAX TRADES forcé"})
+
         elif cmd == "reset_equity":
-            memory["cash"] = 1000.0
-            send("🔄 Equity reset à $1000 depuis le dashboard")
+            # Reset propre du capital (utilise ta fonction safe si elle existe)
+            memory["cash"] = CAPITAL_INITIAL
+            if "sim" in memory:
+                memory["sim"]["cash"] = CAPITAL_INITIAL
+                memory["sim"]["equity_history"] = [CAPITAL_INITIAL]
+            send("🔄 Equity reset à $1 000 depuis le dashboard")
+            return jsonify({"status": "ok", "message": "Equity reset"})
+
         elif cmd == "conservative_mode":
+            # Mode conservateur : limite la taille des positions
             global MAX_PCT_PER_TRADE
             MAX_PCT_PER_TRADE = 0.08
-            send("🛡️ Mode conservateur activé (max 8% par trade)")
-        
-        return jsonify({"status": "ok", "command": cmd})
+            send("🛡️ Mode Conservateur activé (max 8% par trade)")
+            return jsonify({"status": "ok", "message": "Mode conservateur activé"})
 
+        else:
+            send(f"❓ Commande inconnue reçue depuis le dashboard : {cmd}")
+            return jsonify({"status": "error", "message": f"Commande inconnue : {cmd}"}), 400
+
+    except Exception as e:
+        print(f"[DASHBOARD] quick_command error: {e}")
+        return jsonify({"status": "error", "message": "Erreur interne"}), 500
     @dashboard_app.route("/api/agent_command", methods=["POST"])
     def api_agent_command():
         data = request.get_json()
