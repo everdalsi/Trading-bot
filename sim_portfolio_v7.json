@@ -2,36 +2,7 @@
   "sim": {
     "cash": 168.3442078541495,
     "initial": 1000.0,
-    "positions": {
-      "MEME_LOL_207": {
-        "id": 207,
-        "symbol": "LOL",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "LOL",
-        "price_in": 0.002898,
-        "price_out": null,
-        "qty": 2875.073998841212,
-        "amount_usd": 8.331964448641832,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-25 20:55:01",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.003491,
-        "open_time": 1774472101.4556606,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_LOL_207"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
@@ -55990,6 +55961,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-25 20:55"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -0.8911,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-25 20:55"
       }
     ],
     "patterns_to_avoid": [
@@ -56155,6 +56137,7 @@
       "memecoin",
       "backtest_5m",
       "memecoin",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
