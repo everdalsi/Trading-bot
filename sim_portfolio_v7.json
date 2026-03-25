@@ -2,36 +2,7 @@
   "sim": {
     "cash": 950.0340141106573,
     "initial": 1000.0,
-    "positions": {
-      "MEME_\u96ea\u5c71\u6551\u72d0_28": {
-        "id": 28,
-        "symbol": "\u96ea\u5c71\u6551\u72d0",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "\u96ea\u5c71\u6551\u72d0",
-        "price_in": 0.005386,
-        "price_out": null,
-        "qty": 9283.32714444857,
-        "amount_usd": 50.0,
-        "confidence": 95,
-        "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-25 04:27:13",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.005386,
-        "open_time": 1774412833.9992085,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_\u96ea\u5c71\u6551\u72d0_28"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
