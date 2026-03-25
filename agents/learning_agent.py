@@ -431,7 +431,7 @@ class LearningAgent(BaseAgent):
                         sym_wins = sum(1 for t in sym_trades if t["pnl"] > 0)
                         symbol_score = sym_wins / len(sym_trades)
 
-        base_conf = context.get("base_confidence", 0.65)
+                base_conf = context.get("base_confidence", 0.65)
         delta = 0.0
 
         if symbol_score > 0.65:
@@ -450,7 +450,7 @@ class LearningAgent(BaseAgent):
         if symbol_stats.get("count", 0) < 5:
             delta -= 0.05
 
-                adjusted_conf = max(0.10, min(0.95, base_conf + delta))
+        adjusted_conf = max(0.10, min(0.95, base_conf + delta))
 
         best_patterns  = self.get_best_patterns(symbol, limit=3)
         worst_patterns = self.get_worst_patterns(symbol, limit=3)
@@ -464,12 +464,12 @@ class LearningAgent(BaseAgent):
             symbol_score < 0.30
             and symbol_stats.get("count", 0) >= 5
         )
-        # === UPGRADE : blacklist auto après 2 SL -99% (même en EXTREME LEARNING) ===
+        # === UPGRADE : blacklist auto après 2 SL -99% ===
         severe_sl = context.get("severe_sl_count", 0)
         if severe_sl >= 2 or (symbol_score < 0.15 and symbol_stats.get("count", 0) >= 3):
             should_blacklist = True
 
-        if extreme_learning and severe_sl < 3:   # on autorise encore un peu mais pas le spam infini
+        if extreme_learning and severe_sl < 3:
             should_blacklist = False
 
         q = question.lower()
