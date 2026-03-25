@@ -30,34 +30,6 @@
         "open_time": 1774443493.5514119,
         "kelly_pct": 0.05,
         "pos_key": "MEME_LOLA_163"
-      },
-      "MEME_GigaChud_164": {
-        "id": 164,
-        "symbol": "GigaChud",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "GigaChud",
-        "price_in": 0.001247,
-        "price_out": null,
-        "qty": 12434.420554665829,
-        "amount_usd": 15.50572243166829,
-        "confidence": 95,
-        "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-25 12:58:57",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.001247,
-        "open_time": 1774443537.0578897,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_GigaChud_164"
       }
     },
     "trades": [
