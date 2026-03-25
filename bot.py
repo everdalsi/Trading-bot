@@ -4005,8 +4005,24 @@ async def cmd_help(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         f"📡 WS: {'✅ Connecté' if _ws_connected else '⚠️ REST'}"
     )
 
-# Ajout du résumé silencieux
 last_summary = 0
+
+# === PATCH get_equity_safe ultra-safe (évite les capital fantôme) ===
+def get_equity_safe():
+    try:
+        cash = float(sim.get("cash", CAPITAL_INITIAL))
+        positions_value = sum(
+            float(p.get("value", p.get("amount_usd", 0))) 
+            for p in sim.get("positions", {}).values()
+        )
+        equity = cash + positions_value
+        # Log clair pour debug
+        print(f"[EQUITY-SAFE] Cash=${cash:,.2f} | Positions=${positions_value:,.2f} | Total=${equity:,.2f}")
+        return equity
+    except Exception as e:
+        print(f"[EQUITY-SAFE] Erreur → fallback à {CAPITAL_INITIAL}")
+        return CAPITAL_INITIAL
+
 def send_summary(send_fn):
     global last_summary
     if time.time() - last_summary < 1200:  # toutes les 20 minutes
