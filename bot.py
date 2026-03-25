@@ -4344,6 +4344,12 @@ if __name__ == "__main__":
 
     threading.Thread(target=_auto_training_loop, daemon=True).start()
 
+    # === AUTO-IMPROVEMENT THREAD (nouvelle couche d'auto-codage / auto-amélioration) ===
+    from agents.self_improvement import start_self_improvement_loop
+    improvement_thread = threading.Thread(target=start_self_improvement_loop, daemon=True)
+    improvement_thread.start()
+    print("🎯 Auto-improvement activé — objectif principal chargé")
+
     print("Serveur HTTP port 8000")
 
     asyncio.run(run_telegram())
