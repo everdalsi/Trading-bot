@@ -3471,13 +3471,34 @@ code{{color:#58a6ff}}
 #  SERVEUR HTTP + WEBHOOK
 # ═══════════════════════════════════════════════════════════════
 class BotHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
+        def do_GET(self):
         if self.path == "/health":
             self.send_response(200)
             self.send_header("Content-type","text/plain")
             self.end_headers()
             self.wfile.write(b"OK")
+        elif self.path == "/office" or self.path == "/office/":
+            # ← NOUVEAU : Sert le vrai bureau pixel-art Claude Office
+            try:
+                with open("/workspace/templates/office.html", "rb") as f:
+                    html = f.read()
+                self.send_response(200)
+                self.send_header("Content-type", "text/html; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(html)
+                print("[DASHBOARD] /office servi avec succès")
+            except FileNotFoundError:
+                self.send_response(404)
+                self.send_header("Content-type", "text/html")
+                self.end_headers()
+                self.wfile.write(b"<h1>❌ templates/office.html non trouvé</h1>")
+            except Exception as e:
+                self.send_response(500)
+                self.send_header("Content-type", "text/html")
+                self.end_headers()
+                self.wfile.write(f"<h1>Erreur dashboard</h1><p>{str(e)}</p>".encode())
         else:
+            # Garde tout le comportement original (dashboard principal + /health)
             self.send_response(200)
             self.send_header("Content-type","text/html; charset=utf-8")
             self.end_headers()
