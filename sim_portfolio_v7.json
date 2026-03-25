@@ -1,37 +1,8 @@
 {
   "sim": {
-    "cash": 583.3465431244756,
+    "cash": 610.4515526042275,
     "initial": 1000.0,
-    "positions": {
-      "MEME_GigaChud_116": {
-        "id": 116,
-        "symbol": "GigaChud",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "GigaChud",
-        "price_in": 0.0006674,
-        "price_out": null,
-        "qty": 46003.071079008536,
-        "amount_usd": 30.702449638130293,
-        "confidence": 95,
-        "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-25 11:36:18",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0006674,
-        "open_time": 1774438578.2841933,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_GigaChud_116"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
@@ -3146,17 +3117,17 @@
         "trade_type": "MEME",
         "meme_symbol": "GigaChud",
         "price_in": 0.0006674,
-        "price_out": null,
+        "price_out": 0.0005892,
         "qty": 46003.071079008536,
         "amount_usd": 30.702449638130293,
         "confidence": 95,
         "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
+        "exit_reason": "\ud83d\uded1 MEME SL (-11.7%)",
         "time_in": "2026-03-25 11:36:18",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-25 11:36:18",
+        "pnl": -3.59744,
+        "pnl_pct": -11.72,
+        "duration_min": 1,
         "patterns": [
           "memecoin"
         ],
@@ -20753,6 +20724,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-25 11:36"
+      },
+      {
+        "trade_id": 116,
+        "pnl": -3.59744,
+        "symbol": "GigaChud",
+        "market": "MEME",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "memecoin",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-25 11:36"
       }
     ],
     "patterns_to_avoid": [
@@ -20855,7 +20837,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
@@ -21055,7 +21036,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "memecoin"
     ],
     "patterns_that_work": [
       "backtest_5m",
