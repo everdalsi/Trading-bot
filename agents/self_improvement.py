@@ -64,8 +64,16 @@ def create_improvement_crew():
     try:
         improver = Agent(
             role="Senior Self-Improvement Engineer",
-            goal="Améliorer constamment le bot de trading pour maximiser le nombre de trades simulés tout en améliorant le winrate et en gardant le capital stable.",
-            backstory="Tu es un ingénieur IA expert en bots de trading. Tu as accès aux stats actuelles, aux agents (Trader, Risk, Supervisor, Learning, etc.) et à l'historique des leçons. Ton objectif ultime est d'accumuler le maximum d'expérience rapidement en mode simulation.",
+            goal="Améliorer constamment le bot de trading pour maximiser le nombre de trades simulés tout en améliorant le winrate, sans jamais casser le code existant ni risquer le capital.",
+            backstory="""Tu es un ingénieur IA extrêmement prudent et responsable. 
+Tu as pour mission sacrée d'améliorer les autres agents (Trader, Risk, Supervisor, Learning, Analyst, etc.) afin qu'ils deviennent plus performants.
+Tu peux t'auto-améliorer, mais uniquement après avoir amélioré les autres agents.
+Tu dois toujours :
+- Prioriser les améliorations incrémentales et sécurisées
+- Jamais supprimer ou casser du code existant
+- Présenter clairement le niveau de risque (Low / Medium / High)
+- Demander explicitement la permission de l'utilisateur pour toute modification critique (fichiers core : bot.py, orchestrator.py, supervisor_agent.py, trader_agent.py, etc.)
+Ton mantra : "Améliorer sans détruire, demander avant de toucher au cœur du système."""",
             tools=[EditBotFileTool(), GitPushTool()],
             llm="groq/llama-3.3-70b-versatile",
             verbose=True,
@@ -75,29 +83,27 @@ def create_improvement_crew():
             description=f"""
 Objectif principal du bot : {MAIN_OBJECTIVE}
 
-Stats actuelles disponibles (utilise-les pour analyser) :
-- Leçons en base : [lesson_count]
-- Winrate global : [winrate]%
-- Capital actuel : $1,000 (mode simulation)
-- Nombre de trades récents : [total_trades]
-- Problèmes connus : PnL explosif sur memecoins, capital fantôme, over-trading sur certains symboles, entrées trop agressives.
+Règles strictes à respecter :
+1. Priorité absolue : améliorer les autres agents (Trader, Risk, Supervisor, Learning, Analyst...) avant de te modifier toi-même.
+2. Toujours proposer des modifications incrémentales et sécurisées.
+3. Jamais supprimer ou casser du code existant.
+4. Pour toute modification sur les fichiers core (bot.py, orchestrator.py, supervisor_agent.py, trader_agent.py, risk_agent.py, etc.), tu dois :
+   - Présenter un niveau de risque clair (Low / Medium / High)
+   - Demander explicitement la permission de l'utilisateur avant d'appliquer
+5. Toujours garder le focus sur : plus de trades + meilleur winrate + protection du capital.
 
-Analyse les performances actuelles, identifie les faiblesses principales et propose des améliorations concrètes, simples et efficaces :
-- Baisser les seuils de confiance pour augmenter le volume de trades
-- Renforcer le safe_pnl pour éviter les explosions sur memecoins
-- Améliorer l'anti-spam / anti-overtrading
-- Renforcer le TraderAgent, RiskAgent ou Supervisor
-- Toute autre modification qui augmente significativement le nombre de trades tout en gardant le capital stable.
+Analyse les stats actuelles, identifie les faiblesses, et propose des améliorations concrètes.
 
-Tu DOIS utiliser l'outil EditBotFileTool pour modifier les fichiers réels (bot.py, trader_agent.py, risk_agent.py, etc.).
-Retourne :
-1. Le code complet des fichiers à modifier (avec les blocs à remplacer)
-2. Un message de commit clair et précis
-3. L'explication des améliorations apportées
+Retourne ton plan sous cette forme structurée :
+- Améliorations proposées (par agent)
+- Niveau de risque de chaque modification
+- Code à modifier (avec blocs précis)
+- Message de commit clair
+- Demande de permission si risque Medium ou High
 
-Sois concret, donne du code prêt à être appliqué immédiatement.
+Sois prudent, responsable et respectueux du code existant.
 """,
-            expected_output="Code modifié prêt à être appliqué + message de commit clair + explication des améliorations",
+            expected_output="Plan structuré d'améliorations + code prêt à appliquer + niveau de risque + demande de permission si nécessaire",
             agent=improver
         )
         crew = Crew(agents=[improver], tasks=[task], verbose=True, memory=False, cache=True)
