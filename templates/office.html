@@ -154,7 +154,6 @@
             chat.scrollTop = chat.scrollHeight;
         }
 
-        // Mise à jour live des stats
         async function loadLiveData() {
             try {
                 const res = await fetch('/api/live_stats');
