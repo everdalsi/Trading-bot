@@ -52360,7 +52360,7 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 801,
-    "total_losses": 1125,
+    "total_losses": 1126,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
@@ -79874,6 +79874,34 @@
             "entry": 2182.97094,
             "exit": 2173.23,
             "pnl": -0.8897,
+            "pnl_pct": -0.45,
+            "exit_reason": "TIMEOUT"
+          }
+        ]
+      },
+      {
+        "symbol": "ETHUSDT",
+        "interval": "5m",
+        "days": 30,
+        "total_trades": 1,
+        "wins": 0,
+        "losses": 1,
+        "win_rate": 0.0,
+        "total_pnl": -0.89,
+        "total_pnl_pct": -0.09,
+        "sharpe": 0.0,
+        "max_drawdown": -0.09,
+        "profit_factor": 0.0,
+        "best_trade": -0.45,
+        "worst_trade": -0.45,
+        "final_equity": 999.11,
+        "sl_used": 0.025,
+        "tp_used": 0.04,
+        "trades": [
+          {
+            "entry": 2182.97094,
+            "exit": 2173.23,
+            "pnl": -0.8911,
             "pnl_pct": -0.45,
             "exit_reason": "TIMEOUT"
           }
