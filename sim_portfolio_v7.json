@@ -1852,17 +1852,6 @@
   "memory": {
     "lessons": [
       {
-        "trade_id": 53,
-        "pnl": -4.08734,
-        "symbol": "NoHat",
-        "market": "MEME",
-        "lecon": "Entr\u00e9e trop agressive",
-        "pattern": "memecoin",
-        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
-        "type": "erreur",
-        "date": "2026-03-25 05:33"
-      },
-      {
         "trade_id": 54,
         "pnl": -4.069721,
         "symbol": "NoHat",
@@ -12850,6 +12839,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-25 08:48"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -1.6253,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-25 08:49"
       }
     ],
     "patterns_to_avoid": [
@@ -12875,7 +12875,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
@@ -13011,6 +13010,7 @@
       "backtest_5m",
       "backtest_5m",
       "memecoin",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
