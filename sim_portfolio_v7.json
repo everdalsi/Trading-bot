@@ -2,36 +2,7 @@
   "sim": {
     "cash": 518.5489814338905,
     "initial": 1000.0,
-    "positions": {
-      "MEME_LOLA_137": {
-        "id": 137,
-        "symbol": "LOLA",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "LOLA",
-        "price_in": 0.0003052,
-        "price_out": null,
-        "qty": 84891.13048161393,
-        "amount_usd": 25.90877302298857,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-25 12:18:32",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0003111,
-        "open_time": 1774441112.2019527,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_LOLA_137"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
