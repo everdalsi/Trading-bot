@@ -1,8 +1,37 @@
 {
   "sim": {
-    "cash": 208.6630556705511,
+    "cash": 199.0711627731353,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MEME_WOJAK_201": {
+        "id": 201,
+        "symbol": "WOJAK",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "WOJAK",
+        "price_in": 0.0003,
+        "price_out": null,
+        "qty": 34777.175945091854,
+        "amount_usd": 10.433152783527555,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-25 19:51:41",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0003,
+        "open_time": 1774468301.072954,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_WOJAK_201"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -5402,6 +5431,33 @@
         "leverage": 1,
         "peak_price": 0.0003,
         "open_time": 1774468256.9151409,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 201,
+        "symbol": "WOJAK",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "WOJAK",
+        "price_in": 0.0003,
+        "price_out": 2.419e-05,
+        "qty": 34777.175945091854,
+        "amount_usd": 10.433152783527555,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": "\ud83d\uded1 MEME SL (-91.9%)",
+        "time_in": "2026-03-25 19:51:41",
+        "time_out": "2026-03-25 19:51:41",
+        "pnl": -9.591893,
+        "pnl_pct": -91.94,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0003,
+        "open_time": 1774468301.072954,
         "kelly_pct": 0.05
       }
     ],
@@ -52340,6 +52396,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-25 19:51"
+      },
+      {
+        "trade_id": 201,
+        "pnl": -9.591893,
+        "symbol": "WOJAK",
+        "market": "MEME",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "memecoin",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-25 19:51"
       }
     ],
     "patterns_to_avoid": [
@@ -52423,7 +52490,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
@@ -52642,7 +52708,8 @@
       "backtest_5m",
       "memecoin",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "memecoin"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -52959,7 +53026,7 @@
       "NoHat": 10,
       "GigaChud": -13,
       "Figure03": -15,
-      "WOJAK": -12
+      "WOJAK": -15
     },
     "symbol_blacklist": {},
     "consecutive_losses": {},
