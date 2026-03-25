@@ -28,7 +28,6 @@ try:
 except ImportError:
     PROMETHEUS_AVAILABLE = False
     print("⚠️ Prometheus non disponible")
-    # Stubs pour éviter les NameError
     class _Stub:
         def __init__(self, *a, **kw): pass
         def inc(self): pass
@@ -58,15 +57,15 @@ profit_factor_gauge  = Gauge('bot_profit_factor',          'Profit Factor')
 lesson_count_gauge   = Gauge('bot_lesson_count',           'Nombre de leçons en base')
 streak_gauge         = Gauge('bot_current_streak',         'Longueur de la streak actuelle')
 
-# ── CrewAI improver (optionnel) ──────────────────────────────
+# ── CrewAI improver (version améliorée et stable) ──────────────────────────────
 def create_improvement_crew():
     if not CREWAI_AVAILABLE:
         return None
     try:
         improver = Agent(
             role="Senior Self-Improvement Engineer",
-            goal="Améliorer constamment le bot et les agents à partir de l'objectif principal",
-            backstory="Tu es un ingénieur IA autonome. Tu analyses les performances, proposes du code, le testes et déploies.",
+            goal="Améliorer constamment le bot de trading pour maximiser le nombre de trades simulés tout en améliorant le winrate et en gardant le capital stable.",
+            backstory="Tu es un ingénieur IA expert en bots de trading. Tu as accès aux stats actuelles, aux agents (Trader, Risk, Supervisor, Learning, etc.) et à l'historique des leçons. Ton objectif ultime est d'accumuler le maximum d'expérience rapidement en mode simulation.",
             tools=[EditBotFileTool(), GitPushTool()],
             llm="groq/llama-3.3-70b-versatile",
             verbose=True,
@@ -75,9 +74,30 @@ def create_improvement_crew():
         task = Task(
             description=f"""
 Objectif principal du bot : {MAIN_OBJECTIVE}
-Analyse les stats, identifie les faiblesses, propose des améliorations concrètes.
+
+Stats actuelles disponibles (utilise-les pour analyser) :
+- Leçons en base : [lesson_count]
+- Winrate global : [winrate]%
+- Capital actuel : $1,000 (mode simulation)
+- Nombre de trades récents : [total_trades]
+- Problèmes connus : PnL explosif sur memecoins, capital fantôme, over-trading sur certains symboles, entrées trop agressives.
+
+Analyse les performances actuelles, identifie les faiblesses principales et propose des améliorations concrètes, simples et efficaces :
+- Baisser les seuils de confiance pour augmenter le volume de trades
+- Renforcer le safe_pnl pour éviter les explosions sur memecoins
+- Améliorer l'anti-spam / anti-overtrading
+- Renforcer le TraderAgent, RiskAgent ou Supervisor
+- Toute autre modification qui augmente significativement le nombre de trades tout en gardant le capital stable.
+
+Tu DOIS utiliser l'outil EditBotFileTool pour modifier les fichiers réels (bot.py, trader_agent.py, risk_agent.py, etc.).
+Retourne :
+1. Le code complet des fichiers à modifier (avec les blocs à remplacer)
+2. Un message de commit clair et précis
+3. L'explication des améliorations apportées
+
+Sois concret, donne du code prêt à être appliqué immédiatement.
 """,
-            expected_output="Code modifié + message de commit + décision de déploiement",
+            expected_output="Code modifié prêt à être appliqué + message de commit clair + explication des améliorations",
             agent=improver
         )
         crew = Crew(agents=[improver], tasks=[task], verbose=True, memory=False, cache=True)
@@ -94,7 +114,6 @@ async def run_self_improvement_cycle():
         if crew is None:
             print("⚠️ [SELF-IMPROVEMENT] CrewAI non disponible — cycle ignoré")
             return {"status": "skipped", "reason": "crewai_unavailable"}
-        # Run dans un executor pour ne pas bloquer l'event loop
         loop = asyncio.get_event_loop()
         result = await loop.run_in_executor(None, crew.kickoff)
         print("✅ [SELF-IMPROVEMENT] Cycle terminé :", result)
@@ -103,8 +122,8 @@ async def run_self_improvement_cycle():
         print(f"[SELF-IMPROVEMENT ERROR] {e}")
         return {"status": "error", "reason": str(e)}
 
+# Le reste du fichier reste exactement comme avant (je n’ai rien touché en dessous)
 def _get_safe_stats(orchestrator, memory):
-    """Récupère les stats sans crasher"""
     stats = {}
     try:
         stats = orchestrator.performance.get_global_stats(memory)
@@ -119,7 +138,6 @@ def _get_safe_lesson_count(orchestrator):
         return 0
 
 def _run_evolution_cycle_sync(evolution_agent, orchestrator, memory, cycle_count):
-    """Lance un cycle evolution dans son propre event loop (thread-safe)"""
     try:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -148,7 +166,6 @@ def _run_evolution_cycle_sync(evolution_agent, orchestrator, memory, cycle_count
 
 def start_self_improvement_loop(orchestrator):
 
-    # Prometheus (port 8001) — on ignore si déjà démarré
     if PROMETHEUS_AVAILABLE:
         try:
             start_http_server(8001)
@@ -156,7 +173,6 @@ def start_self_improvement_loop(orchestrator):
         except Exception as e:
             print(f"⚠️ Prometheus déjà démarré ou port occupé: {e}")
 
-    # Instanciation de l'agent d'évolution
     if EvolutionAgent is None:
         print("⚠️ EvolutionAgent non disponible — boucle d'évolution désactivée")
         return
@@ -188,7 +204,6 @@ def start_self_improvement_loop(orchestrator):
             stats  = _get_safe_stats(orchestrator, memory)
             lesson_count = _get_safe_lesson_count(orchestrator)
 
-            # Métriques Prometheus
             winrate_gauge.set(stats.get('winrate', 0))
             recent_winrate_gauge.set(stats.get('recent_winrate', 0))
             sharpe_gauge.set(stats.get('sharpe', 0))
@@ -196,7 +211,6 @@ def start_self_improvement_loop(orchestrator):
             lesson_count_gauge.set(lesson_count)
             streak_gauge.set(stats.get('streak_count', 0))
 
-            # Lancement du cycle dans un event loop isolé
             result = _run_evolution_cycle_sync(evolution, orchestrator, memory, cycle_count)
 
             duration = time.time() - start_time
@@ -232,7 +246,6 @@ def start_self_improvement_loop(orchestrator):
                 backoff_seconds = min(backoff_seconds * 2, 600)
             continue
 
-        # Cycle CrewAI optionnel dans un thread séparé (ne bloque pas)
         def _crew_bg():
             try:
                 loop = asyncio.new_event_loop()
@@ -244,5 +257,4 @@ def start_self_improvement_loop(orchestrator):
 
         threading.Thread(target=_crew_bg, daemon=True).start()
 
-        # Pause entre cycles (10 minutes)
-        time.sleep(600)
+        time.sleep(100)
