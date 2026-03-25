@@ -3952,7 +3952,7 @@ async def cmd_stats(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     equity     = get_equity_safe(); pnl = equity - sim["initial"]; kelly = kelly_criterion()
     all_closed = [t for t in sim["trades"] if t.get("pnl") is not None]
     micro_t  = [t for t in all_closed if t.get("market")=="MICRO"]
-_t   = [t for t in all_closed if t.get("market")=="MEME"]
+    meme_t   = [t for t in all_closed if t.get("market")=="MEME"]
     normal_t = [t for t in all_closed if t.get("market") not in ("MICRO","MEME")]
     def wr(trades): return round(sum(1 for t in trades if t["pnl"]>0)/max(len(trades),1)*100,1)
     sym_lines = "\n".join(
