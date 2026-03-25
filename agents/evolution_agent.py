@@ -1,7 +1,6 @@
 try:
     from agents.base_agent import BaseAgent
 except ImportError:
-    # Fallback si BaseAgent non disponible
     class BaseAgent:
         def __init__(self, name="", role=""):
             self.name = name
@@ -9,23 +8,18 @@ except ImportError:
 
 from typing import Dict, Any
 
-# Import absolu au lieu de relatif pour éviter les crashes
-
 try:
     from tools import EditBotFileTool, GitPushTool
 except ImportError:
     try:
         from agents.tools import EditBotFileTool, GitPushTool
     except ImportError:
-        # Fallback si tools non disponible
         class EditBotFileTool:
             def _run(self, new_code="", filename="bot.py"):
                 return f"⚠️ EditBotFileTool non disponible"
-
         class GitPushTool:
             def _run(self, commit_message=""):
                 return f"⚠️ GitPushTool non disponible"
-
 
 class EvolutionAgent(BaseAgent):
 
@@ -52,7 +46,6 @@ class EvolutionAgent(BaseAgent):
 
         print(f"[EVOLUTION] Cycle | Leçons={lesson_count} | Extreme={extreme_learning}")
 
-        # Ne push que si on a vraiment git disponible (évite les crashes)
         try:
             edit_result = self.edit_tool._run(
                 new_code=f"# EvolutionAgent cycle | Leçons={lesson_count}\n",
