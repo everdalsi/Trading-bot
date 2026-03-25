@@ -65,7 +65,7 @@ class TraderAgent(BaseAgent):
                 symbol_score, global_score
             )
 
-        # ─── Veto 3 : Score symbole trop faible ───
+                # ─── Veto 3 : Score symbole trop faible ───
         if symbol_score < 0.25 and lesson_count >= 10:
             return self._hold(
                 symbol,
@@ -86,7 +86,7 @@ class TraderAgent(BaseAgent):
                     symbol_score, global_score
                 )
 
-                # ─── Veto 5 : Anti-overtrading ───
+        # ─── Veto 5 : Anti-overtrading ───
         memory = context.get("memory", {})
         recent_trades = (memory.get("trades", []) or [])[-12:]
         same_symbol = [t for t in recent_trades if t.get("symbol") == symbol]
