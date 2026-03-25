@@ -57,10 +57,9 @@ class PerformanceTracker:
                 leverage = trade.get("leverage", 1)
 
                 trade["pnl_pct"] = round(pnl_pct * 100 * leverage, 2)
-                trade["pnl"]     = round(pnl_pct * amount * leverage, 4)
-                trade["result"]  = "win" if pnl_pct > 0 else "loss" if pnl_pct < 0 else "neutral"
-
-            return memory  # retourne la même référence (pas de réassignation)
+                # === PATCH SAFETY : empêche les +148713% fantômes ===
+                trade["pnl"]     = safe_pnl(pnl_pct, amount, leverage)
+                trade["result"]  = "win" if pnl_pct > 0 else "loss" if pnl_pct < 0 else "neutral"    return memory  # retourne la même référence (pas de réassignation)
 
         except Exception as e:
             print(f"[PERF-TRACKER] update_trade_results error: {e}")
