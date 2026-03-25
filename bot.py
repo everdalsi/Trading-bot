@@ -4480,134 +4480,133 @@ def safe_pnl(pnl_pct: float, amount_usd: float, leverage: float = 1) -> float:
         pnl = amount_usd * 100 * (1 if pnl > 0 else -1)
     return round(pnl, 4)
 
-# ═══════════════════════════════════════════════════════════════
-#  DASHBOARD PIXEL-ART OFFICE (Claude Office style) — version optimisée
-# ═══════════════════════════════════════════════════════════════
-try:
-    from flask import Flask, send_from_directory, jsonify, request
-    dashboard_app = Flask(__name__)   # ← application Flask séparée (ne touche pas à _app)
-    FLASK_AVAILABLE = True
-except ImportError:
-    FLASK_AVAILABLE = False
-    dashboard_app = None
-    print("⚠️ Flask non disponible — dashboard /office désactivé (ajoute 'flask' dans requirements.txt)")
-
-if FLASK_AVAILABLE:
-    @dashboard_app.route("/office")
-    @dashboard_app.route("/office/")
-    def office_dashboard():
-        try:
-            return send_from_directory('/workspace/templates', 'office.html')
-        except:
-            return "<h1>❌ templates/office.html non trouvé</h1>", 404
-
-    @dashboard_app.route("/api/live_stats")
-  @dashboard_app.route("/api/live_stats")
-def api_live_stats():
-    """Renvoie les vraies données live pour le panneau droit du dashboard (Claude Office)"""
+#    # ═══════════════════════════════════════════════════════════════
+    #  DASHBOARD PIXEL-ART OFFICE (Claude Office style) — version optimisée
+    # ═══════════════════════════════════════════════════════════════
     try:
-        # Stats réelles depuis PerformanceTracker
-        stats = orchestrator.performance.get_global_stats(memory) if hasattr(orchestrator, 'performance') else {}
+        from flask import Flask, send_from_directory, jsonify, request
+        dashboard_app = Flask(__name__)   # ← application Flask séparée (ne touche pas à _app)
+        FLASK_AVAILABLE = True
+    except ImportError:
+        FLASK_AVAILABLE = False
+        dashboard_app = None
+        print("⚠️ Flask non disponible — dashboard /office désactivé (ajoute 'flask' dans requirements.txt)")
 
-        # Nombre de leçons (source de vérité = LearningAgent DB)
-        lessons = (
-            orchestrator.learning.get_lesson_count()
-            if hasattr(orchestrator, 'learning')
-            else len(memory.get("lessons", []))
-        )
+    if FLASK_AVAILABLE:
+        @dashboard_app.route("/office")
+        @dashboard_app.route("/office/")
+        def office_dashboard():
+            try:
+                return send_from_directory('/workspace/templates', 'office.html')
+            except:
+                return "<h1>❌ templates/office.html non trouvé</h1>", 404
 
-        # Dernier trade pour l'affichage
-        trades = memory.get("trades", [])
-        last_trade = trades[-1] if trades else {}
-        dernier_trade_str = (
-            f"{last_trade.get('symbol', 'MEME')} "
-            f"{last_trade.get('decision', 'LONG')} "
-            f"(+{last_trade.get('pnl_pct', 0.8)}%)"
-        )
+        @dashboard_app.route("/api/live_stats")
+        def api_live_stats():
+            """Renvoie les vraies données live pour le panneau droit du dashboard (Claude Office)"""
+            try:
+                # Stats réelles depuis PerformanceTracker
+                stats = orchestrator.performance.get_global_stats(memory) if hasattr(orchestrator, 'performance') else {}
 
-        return jsonify({
-            "lessons": lessons,
-            "trades_simules": stats.get("total_trades", 80),
-            "winrate": round(stats.get("winrate", 21.4), 1),
-            "capital": round(get_equity_safe(), 2),          # ← utilise ta fonction safe existante
-            "risque": "LOW" if stats.get("winrate", 0) > 20 else "MEDIUM",
-            "dernier_trade": dernier_trade_str
-        })
+                # Nombre de leçons (source de vérité = LearningAgent DB)
+                lessons = (
+                    orchestrator.learning.get_lesson_count()
+                    if hasattr(orchestrator, 'learning')
+                    else len(memory.get("lessons", []))
+                )
 
-    except Exception as e:
-        print(f"[DASHBOARD] live_stats error: {e}")
-        # Fallback propre et lisible
-        return jsonify({
-            "lessons": len(memory.get("lessons", [])),
-            "trades_simules": 80,
-            "winrate": 21.4,
-            "capital": round(memory.get("cash", 1000.0), 2),
-            "risque": "MEDIUM",
-            "dernier_trade": "LONG MEME 5m (+0.8%)"
-        })
-    @dashboard_app.route("/api/quick_command", methods=["POST"])
-def api_quick_command():
-    """Gestion des boutons rapides du dashboard Claude Office"""
-    try:
-        data = request.get_json()
-        cmd = data.get("command")
+                # Dernier trade pour l'affichage
+                trades = memory.get("trades", [])
+                last_trade = trades[-1] if trades else {}
+                dernier_trade_str = (
+                    f"{last_trade.get('symbol', 'MEME')} "
+                    f"{last_trade.get('decision', 'LONG')} "
+                    f"(+{last_trade.get('pnl_pct', 0.8)}%)"
+                )
 
-        if not cmd:
-            return jsonify({"status": "error", "message": "Aucune commande reçue"}), 400
+                return jsonify({
+                    "lessons": lessons,
+                    "trades_simules": stats.get("total_trades", 80),
+                    "winrate": round(stats.get("winrate", 21.4), 1),
+                    "capital": round(get_equity_safe(), 2),
+                    "risque": "LOW" if stats.get("winrate", 0) > 20 else "MEDIUM",
+                    "dernier_trade": dernier_trade_str
+                })
 
-        send = make_send(TELEGRAM_CHAT_ID)  # ta fonction existante pour envoyer sur Telegram
+            except Exception as e:
+                print(f"[DASHBOARD] live_stats error: {e}")
+                # Fallback propre et lisible
+                return jsonify({
+                    "lessons": len(memory.get("lessons", [])),
+                    "trades_simules": 80,
+                    "winrate": 21.4,
+                    "capital": round(memory.get("cash", 1000.0), 2),
+                    "risque": "MEDIUM",
+                    "dernier_trade": "LONG MEME 5m (+0.8%)"
+                })
 
-        if cmd == "force_max_trades":
-            # Force le mode MAX TRADES (déjà activé par EXTREME LEARNING, mais on le renforce)
-            global EXTREME_LEARNING_MODE, LEARN_MODE_MAX_PCT, MICRO_MAX_PCT
-            EXTREME_LEARNING_MODE = True
-            LEARN_MODE_MAX_PCT = 0.48
-            MICRO_MAX_PCT = 0.48
-            send("🚀 FORCE MAX TRADES activé depuis le dashboard Claude Office")
-            return jsonify({"status": "ok", "message": "MAX TRADES forcé"})
+        @dashboard_app.route("/api/quick_command", methods=["POST"])
+        def api_quick_command():
+            """Gestion des boutons rapides du dashboard Claude Office"""
+            try:
+                data = request.get_json()
+                cmd = data.get("command")
 
-        elif cmd == "reset_equity":
-            # Reset propre du capital (utilise ta fonction safe si elle existe)
-            memory["cash"] = CAPITAL_INITIAL
-            if "sim" in memory:
-                memory["sim"]["cash"] = CAPITAL_INITIAL
-                memory["sim"]["equity_history"] = [CAPITAL_INITIAL]
-            send("🔄 Equity reset à $1 000 depuis le dashboard")
-            return jsonify({"status": "ok", "message": "Equity reset"})
+                if not cmd:
+                    return jsonify({"status": "error", "message": "Aucune commande reçue"}), 400
 
-        elif cmd == "conservative_mode":
-            # Mode conservateur : limite la taille des positions
-            global MAX_PCT_PER_TRADE
-            MAX_PCT_PER_TRADE = 0.08
-            send("🛡️ Mode Conservateur activé (max 8% par trade)")
-            return jsonify({"status": "ok", "message": "Mode conservateur activé"})
+                send = make_send(TELEGRAM_CHAT_ID)
 
-        else:
-            send(f"❓ Commande inconnue reçue depuis le dashboard : {cmd}")
-            return jsonify({"status": "error", "message": f"Commande inconnue : {cmd}"}), 400
+                if cmd == "force_max_trades":
+                    global EXTREME_LEARNING_MODE, LEARN_MODE_MAX_PCT, MICRO_MAX_PCT
+                    EXTREME_LEARNING_MODE = True
+                    LEARN_MODE_MAX_PCT = 0.48
+                    MICRO_MAX_PCT = 0.48
+                    send("🚀 FORCE MAX TRADES activé depuis le dashboard Claude Office")
+                    return jsonify({"status": "ok", "message": "MAX TRADES forcé"})
 
-    except Exception as e:
-        print(f"[DASHBOARD] quick_command error: {e}")
-        return jsonify({"status": "error", "message": "Erreur interne"}), 500
-    @dashboard_app.route("/api/agent_command", methods=["POST"])
-    def api_agent_command():
-        data = request.get_json()
-        agent = data.get("agent")
-        action = data.get("action")
-        message = data.get("message")
-        
-        # On utilise le secrétaire intelligent déjà existant
-        response = _ask_secretary(TELEGRAM_CHAT_ID, 
-                                  message or f"Commande pour {agent}: {action}")
-        
-        print(f"📡 [DASHBOARD] Agent {agent} → {action or message}")
-        return jsonify({"response": response})
+                elif cmd == "reset_equity":
+                    memory["cash"] = CAPITAL_INITIAL
+                    if "sim" in memory:
+                        memory["sim"]["cash"] = CAPITAL_INITIAL
+                        memory["sim"]["equity_history"] = [CAPITAL_INITIAL]
+                    send("🔄 Equity reset à $1 000 depuis le dashboard")
+                    return jsonify({"status": "ok", "message": "Equity reset"})
 
-    @dashboard_app.route("/api/chat", methods=["POST"])
-    def api_chat():
-        data = request.get_json()
-        response = _ask_secretary(TELEGRAM_CHAT_ID, data.get("message", ""))
-        return jsonify({"response": response})
+                elif cmd == "conservative_mode":
+                    global MAX_PCT_PER_TRADE
+                    MAX_PCT_PER_TRADE = 0.08
+                    send("🛡️ Mode Conservateur activé (max 8% par trade)")
+                    return jsonify({"status": "ok", "message": "Mode conservateur activé"})
+
+                else:
+                    send(f"❓ Commande inconnue reçue depuis le dashboard : {cmd}")
+                    return jsonify({"status": "error", "message": f"Commande inconnue : {cmd}"}), 400
+
+            except Exception as e:
+                print(f"[DASHBOARD] quick_command error: {e}")
+                return jsonify({"status": "error", "message": "Erreur interne"}), 500
+
+        @dashboard_app.route("/api/agent_command", methods=["POST"])
+        def api_agent_command():
+            data = request.get_json()
+            agent = data.get("agent")
+            action = data.get("action")
+            message = data.get("message")
+            
+            # On utilise le secrétaire intelligent déjà existant
+            response = _ask_secretary(TELEGRAM_CHAT_ID, 
+                                      message or f"Commande pour {agent}: {action}")
+            
+            print(f"📡 [DASHBOARD] Agent {agent} → {action or message}")
+            return jsonify({"response": response})
+
+        @dashboard_app.route("/api/chat", methods=["POST"])
+        def api_chat():
+            data = request.get_json()
+            response = _ask_secretary(TELEGRAM_CHAT_ID, data.get("message", ""))
+            return jsonify({"response": response})
+
 if __name__ == "__main__":
     print("🚀 Trading Bot v7.1 — WebSocket + Backtest + Agent Conscience + EXTREME LEARNING MODE")
 
