@@ -4282,10 +4282,10 @@ async def run_telegram():
             ))
             .updater(None).build())
 
-            # ═══════════════════════════════════════════════════════════════        
+    # ═══════════════════════════════════════════════════════════════
     #  APPLICATION TELEGRAM — Command handlers
     # ═══════════════════════════════════════════════════════════════
-        for cmd, fn in [
+    for cmd, fn in [
         ("start",          cmd_start),
         ("stop",           cmd_stop),
         ("status",         cmd_status),
