@@ -21,6 +21,15 @@ memory = Memory()
 orchestrator = Orchestrator()
 performance_tracker = PerformanceTracker()
 
+def get_total_lessons():
+    """Retourne le vrai nombre total de leçons (DB = source de vérité)"""
+    try:
+        if hasattr(orchestrator, 'learning') and hasattr(orchestrator.learning, 'get_lesson_count'):
+            return orchestrator.learning.get_lesson_count()
+    except:
+        pass
+    return len(memory.get("lessons", []))
+
 
 def load_json(path, default=None):
     try:
@@ -2916,14 +2925,18 @@ def learn_from_trade(trade: dict, send_fn=None):
         key = "patterns_that_work" if lesson_type == "succes" else "patterns_to_avoid"
         memory[key].append(pattern)
 
-        memory["lessons"] = memory["lessons"][-1000:]     # 500 en RAM, infini en DB 
-        
+        # === DÉBLOQUÉ : cap RAM beaucoup plus haut (15 000 en mode EXTREME) ===
+        MAX_RAM_LESSONS = 20000 if EXTREME_LEARNING_MODE else 5000
+        if len(memory["lessons"]) > MAX_RAM_LESSONS:
+            memory["lessons"] = memory["lessons"][-MAX_RAM_LESSONS:]
+
+        # Mise à jour du compteur DB
         if hasattr(orchestrator, 'learning'):
             lesson_count_db = orchestrator.learning.get_lesson_count()
             print(f"[LEARN] Leçons DB : {lesson_count_db}")
-    
-        memory["patterns_that_work"] = memory["patterns_that_work"][-200:]
-        memory["patterns_to_avoid"] = memory["patterns_to_avoid"][-200:]
+
+        memory["patterns_that_work"] = memory["patterns_that_work"][-300:]
+        memory["patterns_to_avoid"] = memory["patterns_to_avoid"][-300:]
 
         update_symbol_score(trade["symbol"], pnl > 0)
         auto_adjust()
@@ -2936,7 +2949,7 @@ def learn_from_trade(trade: dict, send_fn=None):
             e = "✅" if lesson["type"] == "succes" else "❌"
             coin = trade["symbol"].replace("USDT", "")
             send_fn(
-                f"📚 Leçon #{len(memory['lessons'])} — {coin}\n"
+                f"📚 Leçon #{lesson_count_db} — {coin}\n"
                 f"{e} {lesson['lecon']}\n→ {lesson['action_future']}\n"
                 f"📊 WR:{stats['win_rate']}% ({stats['wins']}✅/{stats['losses']}❌)"
             )
