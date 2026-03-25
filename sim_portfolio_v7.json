@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 4619309.010338879,
+    "cash": 372266210.4212237,
     "initial": 1000.0,
     "positions": {
       "MEME_TARO_8": {
@@ -26,7 +26,7 @@
           "memecoin"
         ],
         "leverage": 1,
-        "peak_price": 0.000481,
+        "peak_price": 0.7274,
         "open_time": 1774409129.4483993,
         "kelly_pct": 0.05,
         "pos_key": "MEME_TARO_8"
@@ -230,17 +230,17 @@
         "trade_type": "MEME",
         "meme_symbol": "TARO",
         "price_in": 0.000481,
-        "price_out": null,
+        "price_out": 0.7274,
         "qty": 505426039.882987,
         "amount_usd": 243109.92518371675,
         "confidence": 85,
         "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
+        "exit_reason": "\ud83c\udfaf MEME TP (+151126.6%)",
         "time_in": "2026-03-25 03:25:29",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-25 03:25:32",
+        "pnl": 367403791.485701,
+        "pnl_pct": 151126.61,
+        "duration_min": 1,
         "patterns": [
           "memecoin"
         ],
@@ -2237,6 +2237,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-25 03:25"
+      },
+      {
+        "trade_id": 8,
+        "pnl": 367403791.485701,
+        "symbol": "TARO",
+        "market": "MEME",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "memecoin",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-25 03:25"
       }
     ],
     "patterns_to_avoid": [
@@ -2421,16 +2432,17 @@
       "backtest_5m",
       "memecoin",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "memecoin"
     ],
     "confidence_threshold": 82,
     "total_wins": 22,
-    "total_losses": 46,
+    "total_losses": 47,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
       "SOLUSDT": -13,
-      "TARO": 4,
+      "TARO": 6,
       "\u96ea\u5c71\u6551\u72d0": -15
     },
     "symbol_blacklist": {},
