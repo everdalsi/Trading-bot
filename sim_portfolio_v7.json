@@ -1,8 +1,37 @@
 {
   "sim": {
-    "cash": 271.5941590029212,
+    "cash": 270.609196975644,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MEME_LOLA_176": {
+        "id": 176,
+        "symbol": "LOLA",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "LOLA",
+        "price_in": 0.0004467,
+        "price_out": null,
+        "qty": 30400.062570284437,
+        "amount_usd": 13.579707950146059,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-25 13:26:55",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0004467,
+        "open_time": 1774445215.8913825,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_LOLA_176"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -4727,6 +4756,33 @@
         "leverage": 1,
         "peak_price": 0.0004467,
         "open_time": 1774445168.2016923,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 176,
+        "symbol": "LOLA",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "LOLA",
+        "price_in": 0.0004467,
+        "price_out": 0.0004143,
+        "qty": 30400.062570284437,
+        "amount_usd": 13.579707950146059,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": "\ud83d\uded1 MEME SL (-7.3%)",
+        "time_in": "2026-03-25 13:26:55",
+        "time_out": "2026-03-25 13:26:56",
+        "pnl": -0.984962,
+        "pnl_pct": -7.25,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0004467,
+        "open_time": 1774445215.8913825,
         "kelly_pct": 0.05
       }
     ],
@@ -29390,6 +29446,28 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-25 13:26"
+      },
+      {
+        "trade_id": 176,
+        "pnl": -0.984962,
+        "symbol": "LOLA",
+        "market": "MEME",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "memecoin",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-25 13:26"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -1.8177,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-25 13:26"
       }
     ],
     "patterns_to_avoid": [
@@ -29397,8 +29475,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
@@ -29690,6 +29766,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "backtest_5m",
+      "memecoin",
       "backtest_5m",
       "memecoin",
       "backtest_5m"
@@ -30002,10 +30080,10 @@
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -11,
+      "SOLUSDT": -14,
       "TARO": 15,
       "\u96ea\u5c71\u6551\u72d0": -15,
-      "LOLA": -2,
+      "LOLA": -5,
       "NoHat": 10,
       "GigaChud": -15
     },
