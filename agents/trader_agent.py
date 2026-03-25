@@ -86,14 +86,17 @@ class TraderAgent(BaseAgent):
                     symbol_score, global_score
                 )
 
-        # ─── Veto 5 : Anti-overtrading ───
+                # ─── Veto 5 : Anti-overtrading ───
         memory = context.get("memory", {})
-        recent_trades = (memory.get("trades", []) or [])[-8:]
+        recent_trades = (memory.get("trades", []) or [])[-12:]
         same_symbol = [t for t in recent_trades if t.get("symbol") == symbol]
-        if len(same_symbol) >= 3:
+
+        # === UPGRADE MAX TRADES : bloque le spam après 2 SL sévères (-90% ou pire) ===
+        severe_losses = sum(1 for t in same_symbol if t.get("pnl_pct", 0) <= -90)
+        if len(same_symbol) >= 3 or severe_losses >= 2:
             return self._hold(
                 symbol,
-                "Anti-overtrading : trop de trades récents sur ce symbole",
+                f"Anti-spam : {len(same_symbol)} trades récents dont {severe_losses} SL sévères sur {symbol}",
                 symbol_score, global_score
             )
 
