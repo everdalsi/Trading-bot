@@ -1,8 +1,37 @@
 {
   "sim": {
-    "cash": 251.72065176867952,
+    "cash": 239.13461918024555,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MEME_WOJAK_197": {
+        "id": 197,
+        "symbol": "WOJAK",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "WOJAK",
+        "price_in": 0.0002857,
+        "price_out": null,
+        "qty": 44053.31672535519,
+        "amount_usd": 12.586032588433977,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-25 19:15:56",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0002857,
+        "open_time": 1774466156.2152236,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_WOJAK_197"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -5294,6 +5323,33 @@
         "leverage": 1,
         "peak_price": 0.0003534,
         "open_time": 1774462901.0054593,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 197,
+        "symbol": "WOJAK",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "WOJAK",
+        "price_in": 0.0002857,
+        "price_out": null,
+        "qty": 44053.31672535519,
+        "amount_usd": 12.586032588433977,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-25 19:15:56",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0002857,
+        "open_time": 1774466156.2152236,
         "kelly_pct": 0.05
       }
     ],
@@ -50893,7 +50949,7 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 779,
-    "total_losses": 1100,
+    "total_losses": 1101,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
@@ -78406,6 +78462,34 @@
             "entry": 2182.97094,
             "exit": 2173.23,
             "pnl": -0.8897,
+            "pnl_pct": -0.45,
+            "exit_reason": "TIMEOUT"
+          }
+        ]
+      },
+      {
+        "symbol": "ETHUSDT",
+        "interval": "5m",
+        "days": 30,
+        "total_trades": 1,
+        "wins": 0,
+        "losses": 1,
+        "win_rate": 0.0,
+        "total_pnl": -0.89,
+        "total_pnl_pct": -0.09,
+        "sharpe": 0.0,
+        "max_drawdown": -0.09,
+        "profit_factor": 0.0,
+        "best_trade": -0.45,
+        "worst_trade": -0.45,
+        "final_equity": 999.11,
+        "sl_used": 0.025,
+        "tp_used": 0.04,
+        "trades": [
+          {
+            "entry": 2182.97094,
+            "exit": 2173.23,
+            "pnl": -0.8911,
             "pnl_pct": -0.45,
             "exit_reason": "TIMEOUT"
           }
