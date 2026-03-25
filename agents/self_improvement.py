@@ -1,14 +1,12 @@
 from crewai import Crew, Task, Agent
-from crewai_tools import CodeInterpreterTool
 from .tools import EditBotFileTool, GitPushTool
-from .config import get_llm, MAIN_OBJECTIVE
+from .config import MAIN_OBJECTIVE
 from .evolution_agent import EvolutionAgent
 import asyncio
 import time
 import traceback
 from prometheus_client import start_http_server, Counter, Gauge, Histogram
 
-# ==================== PROMETHEUS METRICS ====================
 evolution_cycles_total = Counter('evolution_cycles_total', 'Nombre total de cycles d\'évolution')
 evolution_success_total = Counter('evolution_success_total', 'Cycles d\'évolution réussis')
 evolution_errors_total = Counter('evolution_errors_total', 'Cycles d\'évolution en erreur')
@@ -61,7 +59,6 @@ async def run_self_improvement_cycle():
     return result
 
 def start_self_improvement_loop(orchestrator):
-    # Démarrage du serveur Prometheus sur le port 8001 (séparé du serveur principal 8000)
     start_http_server(8001)
     print("📡 Prometheus metrics exposées sur http://ton-app.railway.app:8001/metrics")
 
@@ -79,14 +76,12 @@ def start_self_improvement_loop(orchestrator):
 
         try:
             print(f"\n{'='*70}")
-            print(f"🧬 [EVOLUTION] Cycle #{cycle_count} | Succès: {success_count}/{cycle_count} | Erreurs: {error_count}")
+            print(f"🧬 [EVOLUTION MAX TRADES] Cycle #{cycle_count} | Succès: {success_count}/{cycle_count} | Erreurs: {error_count}")
 
-            # Récupération des métriques réelles
             memory = getattr(orchestrator, 'memory', {}) if hasattr(orchestrator, 'memory') else {}
             stats = orchestrator.performance.get_global_stats(memory) if hasattr(orchestrator, 'performance') else {}
             lesson_count = orchestrator.learning.get_lesson_count() if hasattr(orchestrator, 'learning') else 0
 
-            # Mise à jour Prometheus
             winrate_gauge.set(stats.get('winrate', 0))
             recent_winrate_gauge.set(stats.get('recent_winrate', 0))
             sharpe_gauge.set(stats.get('sharpe', 0))
@@ -100,7 +95,7 @@ def start_self_improvement_loop(orchestrator):
                 "drawdown": stats.get("degraded", False),
             }
 
-            result = asyncio.run(evolution.respond("Lance un cycle d'évolution complète", ctx))
+            result = asyncio.run(evolution.respond("Lance un cycle d'évolution MAX TRADES", ctx))
             duration = time.time() - start_time
 
             evolution_cycles_total.inc()
