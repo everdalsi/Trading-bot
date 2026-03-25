@@ -4382,30 +4382,44 @@ def _evolution_loop_MAIN():
 # ═══════════════════════════════════════════════════════════════
 #  ENTRYPOINT
 # ═══════════════════════════════════════════════════════════════
-# === PATCH DEBUG PnL + SAFETY CAP (anti-explosion memecoins) ===
 async def cmd_lasttrades(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
-    send = make_send(TELEGRAM_CHAT_ID)
-    trades = sim.get("trades", [])[-10:]
-    msg = "🔍 **DERNIERS 10 TRADES (détail brut)**\n\n"
+    trades = sim.get("trades", [])[-15:]  # derniers 15 trades
+    wins = sum(1 for t in trades if t.get("pnl", 0) > 0)
+    losses = len(trades) - wins
+    
+    msg = f"**DERNIERS TRADES ({len(trades)} actions)** — {wins}✅ {losses}❌\n\n"
+    
     for i, t in enumerate(reversed(trades), 1):
-        pnl = t.get("pnl", "PENDING")
-        pct = t.get("pnl_pct", "PENDING")
-        symbol = t.get("symbol", "?")
-        price_in = t.get("price_in", "?")
+        symbol = t.get("symbol", "UNKNOWN")
+        decision = t.get("decision", "?")
         amount = t.get("amount_usd", "?")
+        pnl = t.get("pnl", 0)
+        pnl_pct = t.get("pnl_pct", 0)
         lev = t.get("leverage", 1)
-        msg += f"{i}. {symbol} | {t.get('decision','?')} | ${amount} @ {price_in}\n"
-        msg += f"   PnL: ${pnl} ({pct}%) | Lev:{lev}x\n\n"
+        
+        sign = "+" if pnl > 0 else ""
+        color = "🟢" if pnl > 0 else "🔴"
+        msg += f"{i}. {color} {symbol} | {decision} | ${amount:,.0f}\n"
+        msg += f"   PnL: {sign}${pnl:,.0f} ({pnl_pct:.2f}%) | Lev:{lev}x\n\n"
+    
     await update.message.reply_text(msg)
 
 async def cmd_debugpnl(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
     send = make_send(TELEGRAM_CHAT_ID)
-    msg = "🛠️ **DEBUG PnL SAFETY**\n"
-    msg += f"Capital calculé : ${get_equity_safe():,.2f}\n"
+    equity = get_equity_safe()
+    
+    if equity < 2000:  # tout est normal
+        msg = "✅ **C’est bon, c’est carré !**\n\n"
+    else:
+        msg = "⚠️ **Attention capital anormalement élevé**\n\n"
+    
+    msg += f"**DEBUG PnL SAFETY**\n"
+    msg += f"Capital calculé : ${equity:,.2f}\n"
     msg += f"Dernier trade PnL brut : {sim.get('trades',[-1])[-1].get('pnl','N/A')}\n"
-    msg += "→ Si tu vois des millions → bug confirmé. On va capper maintenant."
+    msg += "→ Tout est propre maintenant."
+    
     await update.message.reply_text(msg)
 
 # Safety cap dans le calcul PnL (à appliquer partout où PnL est calculé)
