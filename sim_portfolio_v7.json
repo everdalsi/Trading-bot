@@ -2,36 +2,7 @@
   "sim": {
     "cash": 274.7971810210996,
     "initial": 1000.0,
-    "positions": {
-      "MEME_GigaChud_171": {
-        "id": 171,
-        "symbol": "GigaChud",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "GigaChud",
-        "price_in": 0.00115,
-        "price_out": null,
-        "qty": 12246.40942203751,
-        "amount_usd": 14.083370835343135,
-        "confidence": 95,
-        "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-25 13:19:57",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.00115,
-        "open_time": 1774444797.0641973,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_GigaChud_171"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
@@ -28860,6 +28831,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-25 13:19"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -1.6253,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-25 13:20"
       }
     ],
     "patterns_to_avoid": [
@@ -28868,7 +28850,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
@@ -29162,7 +29143,8 @@
       "backtest_5m",
       "backtest_5m",
       "memecoin",
-      "memecoin"
+      "memecoin",
+      "backtest_5m"
     ],
     "patterns_that_work": [
       "backtest_5m",
