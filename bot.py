@@ -157,6 +157,7 @@ MEME_MAX_DURATION = 300
 # ═══════════════════════════════════════════════════════════════
 #  DIRECTIVE ULTIME — APPRENTISSAGE EXTRÊME (MAX TRADES)
 # ═══════════════════════════════════════════════════════════════
+MAIN_OBJECTIVE = "Maximiser le nombre de trades simulés pour accumuler un maximum d'expérience et améliorer le winrate le plus rapidement possible"
 EXTREME_LEARNING_MODE = True          # ← ACTIVÉ À TOUT PRIX
 LEARN_MODE_ENABLED    = True
 LEARN_MODE_CONF_MIN   = 10
@@ -1529,23 +1530,6 @@ def get_stats() -> dict:
         "avg_dur":round(sum(durs)/len(durs),1) if durs else 0
     }
 
-# ═══════════════════════════════════════════════════════════════
-#  CAN_OPEN_TRADE — BYPASS TOUT EN MODE EXTREME
-# ═══════════════════════════════════════════════════════════════
-def can_open_trade(symbol: str, market: str, send_fn) -> bool:
-    if EXTREME_LEARNING_MODE:
-        return True   # ← PLUS AUCUNE RESTRICTION
-
-    if not check_risk_limits(send_fn): return False
-    if not validate_symbol(symbol): return False
-    if is_blacklisted(symbol): return False
-    if is_correlated(symbol): return False
-    if market not in ("MEME","MICRO") and is_fg_neutral(): return False
-    return True
-
-# ═══════════════════════════════════════════════════════════════
-#  OPEN_TRADE — FORCE MAX VOLUME EN MODE EXTREME
-# ═══════════════════════════════════════════════════════════════
 # ═══════════════════════════════════════════════════════════════
 #  CAN_OPEN_TRADE + WARM-UP CHECK v7.2
 # ═══════════════════════════════════════════════════════════════
@@ -4228,15 +4212,20 @@ async def telegram_error_handler(update: object, ctx: ContextTypes.DEFAULT_TYPE)
     except Exception:
         pass
 
-async def cmd_maxtrades(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def cmd_maxtrades_FIXED(update, context):
     """Force un cycle MAX TRADES immédiat"""
-    if not _auth(update):
+    from telegram import Update
+    from telegram.ext import ContextTypes
+    # auth check inline pour éviter import circulaire
+    if str(update.effective_chat.id) != str(TELEGRAM_CHAT_ID):
         return
     await update.message.reply_text("🧬 Lancement forcé du cycle MAX TRADES...")
     try:
-        from agents.self_improvement import start_self_improvement_loop
+        from agents.evolution_agent import EvolutionAgent as _EvoAgent
+        _evo = _EvoAgent(orchestrator)
         ctx = {"memory": memory, "main_objective": MAIN_OBJECTIVE}
-        result = await evolution.respond("FORCE MAX TRADES maintenant", ctx)
+        import asyncio as _asyncio
+        result = await _evo.respond("FORCE MAX TRADES maintenant", ctx)
         await update.message.reply_text(f"✅ {result.get('summary', 'Cycle MAX TRADES lancé')}")
     except Exception as e:
         await update.message.reply_text(f"❌ Erreur : {str(e)[:200]}")
@@ -4327,6 +4316,9 @@ def auto_start():
     })
     kelly = kelly_criterion()
     send(f"🔄 Bot v7.1 redémarré\nKelly:{kelly*100:.1f}% | /stop pour arrêter\n📡 WS: {'✅' if _ws_connected else '⚠️ REST'}")
+    if not TELEGRAM_CHAT_ID:
+        print("[AUTO-START] TELEGRAM_CHAT_ID non défini — auto-start annulé")
+        return
     threading.Thread(target=trading_loop,  args=(send,), daemon=True).start()
     threading.Thread(target=watchdog,      args=(send,), daemon=True).start()
     threading.Thread(target=daily_summary, args=(send,), daemon=True).start()
@@ -4339,7 +4331,10 @@ if __name__ == "__main__":
     load_data()
 
     start_websocket()
-
+    
+    evolution_thread = threading.Thread(target=_evolution_loop_MAIN, daemon=True)
+    evolution_thread.start()
+    print("🧬 EvolutionAgent activé — auto-amélioration profonde intégrée à l'Orchestrator")
     threading.Thread(target=run_server, daemon=True).start()
     threading.Thread(target=self_ping, daemon=True).start()
 
@@ -4360,9 +4355,9 @@ if __name__ == "__main__":
     # === AUTO-EVOLUTION THREAD (version ultra-intégrée) ===
     from agents.self_improvement import start_self_improvement_loop
 
-    def _evolution_loop():
+    def _evolution_loop_FIXED():
+    try:
+        from agents.self_improvement import start_self_improvement_loop
         start_self_improvement_loop(orchestrator)
-
-    evolution_thread = threading.Thread(target=_evolution_loop, daemon=True)
-    evolution_thread.start()
-    print("🧬 EvolutionAgent activé — auto-amélioration profonde intégrée à l’Orchestrator")
+    except Exception as e:
+        print(f"[EVOLUTION-LOOP ERROR] {e}")
