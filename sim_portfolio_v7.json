@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 1000.0,
+    "cash": 21307838.24461687,
     "initial": 1000.0,
     "positions": {
       "MEME_LOLA_24": {
@@ -662,17 +662,17 @@
         "trade_type": "MEME",
         "meme_symbol": "LOLA",
         "price_in": 0.0002635,
-        "price_out": null,
+        "price_out": 0.0002624,
         "qty": 81199840871.25331,
         "amount_usd": 21396158.06957525,
         "confidence": 85,
         "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT",
         "time_in": "2026-03-25 03:41:57",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-25 04:22:45",
+        "pnl": -89319.824958,
+        "pnl_pct": -0.42,
+        "duration_min": 40,
         "patterns": [
           "memecoin"
         ],
@@ -4343,6 +4343,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-25 03:45"
+      },
+      {
+        "trade_id": 24,
+        "pnl": -89319.824958,
+        "symbol": "LOLA",
+        "market": "MEME",
+        "lecon": "Setup peu performant",
+        "pattern": "memecoin",
+        "action_future": "Diminuer la priorit\u00e9 de ce setup",
+        "type": "erreur",
+        "date": "2026-03-25 04:22"
       }
     ],
     "patterns_to_avoid": [
@@ -4411,7 +4422,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
@@ -4545,7 +4555,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "memecoin"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -4634,7 +4645,7 @@
       "backtest_5m",
       "backtest_5m"
     ],
-    "confidence_threshold": 8,
+    "confidence_threshold": 11,
     "total_wins": 45,
     "total_losses": 90,
     "symbol_scores": {
@@ -4642,7 +4653,8 @@
       "ETHUSDT": -15,
       "SOLUSDT": -13,
       "TARO": 15,
-      "\u96ea\u5c71\u6551\u72d0": -15
+      "\u96ea\u5c71\u6551\u72d0": -15,
+      "LOLA": -3
     },
     "symbol_blacklist": {},
     "consecutive_losses": {},
