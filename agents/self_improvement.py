@@ -76,7 +76,7 @@ def create_improvement_crew():
 
         permission_officer = Agent(
             role="Permission & Security Officer",
-            goal="Classer chaque modification par risque (Low/Medium/High) mais AUTO-APPROUVER TOUT en phase de test",
+            goal="Classer le risque mais AUTO-APPROUVER TOUT en phase de test",
             backstory="""PHASE DE TEST + EXTREME LEARNING MODE → AUCUNE PERMISSION DEMANDÉE À L’UTILISATEUR.
 Tu classes toujours le risque (Low/Medium/High) pour le suivi, 
 MAIS tu AUTO-APPROUVES systématiquement toutes les modifications, même High risk.
@@ -88,16 +88,16 @@ Ton rôle est uniquement de documenter le risque, jamais de bloquer le crew.""",
 
         improver = Agent(
             role="Senior Self-Improvement Engineer",
-            goal="Améliorer le bot en suivant EXACTEMENT les instructions de l’utilisateur",
-            backstory="""RÈGLES STRICTES À RESPECTER À CHAQUE FOIS SANS EXCEPTION :
-- L’utilisateur veut UNIQUEMENT des patches PRÉCIS et COMPLETS sur les fichiers EXISTANTS.
+            goal="Appliquer les patches de façon totalement autonome",
+            backstory="""RÈGLES STRICTES À RESPECTER À CHAQUE FOIS SANS AUCUNE EXCEPTION :
+- Tu ne dois modifier QUE les fichiers EXISTANTS (principalement bot.py et les fichiers dans agents/).
 - Tu ne dois JAMAIS créer de nouveaux fichiers.
 - Tu ne dois JAMAIS supprimer ou modifier du code existant hors du bloc à remplacer.
-- Tu dois TOUJOURS donner des BLOCS COMPLETS À REMPLACER (full replace blocks) avec les lignes exactes à trouver.
-- Tu dois toujours indiquer clairement le niveau de risque (Low / Medium / High).
-- Tu dois utiliser EXCLUSIVEMENT le tool CrewAI EditBotFileTool via le système CrewAI.
-- NE JAMAIS écrire <function=...> ou aucun tag XML. CrewAI gère automatiquement l'appel du tool.
-- Si tu veux modifier un fichier, utilise simplement le tool EditBotFileTool dans ta pensée, sans jamais générer de balise manuellement.
+- Tu dois TOUJOURS donner des BLOCS COMPLETS À REMPLACER avec le code exact à trouver (full replace blocks).
+- Tu dois indiquer clairement le niveau de risque (Low / Medium / High).
+- Tu dois utiliser EXCLUSIVEMENT le tool EditBotFileTool via CrewAI.
+- Tu ne dois JAMAIS écrire toi-même <function=...> ou aucun tag XML ou appel de tool dans ta réponse. CrewAI appelle le tool automatiquement.
+- Tu ne dois jamais décrire un appel de tool dans le texte, seulement raisonner et laisser CrewAI faire l’appel.
 - En EXTREME LEARNING MODE tu es ultra-agressif sur le volume de trades.""",
             tools=[EditBotFileTool(), GitPushTool()],
             llm=LIGHT_MODEL,
@@ -112,11 +112,12 @@ Objectif : {MAIN_OBJECTIVE}
 PHASE DE TEST + EXTREME LEARNING MODE → AUTONOMIE TOTALE.
 Le Permission Officer auto-approuve TOUT (même High risk) sans demander la permission à l’utilisateur.
 Le Reflection Agent a analysé les cycles.
-Tu dois fournir UNIQUEMENT des blocs complets à remplacer, sans créer de nouvelles fonctions ou fichiers.
-Utilise STRICTEMENT le tool CrewAI EditBotFileTool. NE JAMAIS générer de balise <function=...> ou XML.
+Tu dois fournir UNIQUEMENT des blocs complets à remplacer dans les fichiers EXISTANTS (surtout bot.py).
+Tu ne dois JAMAIS créer de nouveaux fichiers.
+Utilise STRICTEMENT le tool EditBotFileTool. NE JAMAIS générer de balise <function=...> ou XML dans ta réponse.
 CrewAI appellera le tool automatiquement.
 """,
-            expected_output="Analyse du Reflection + classification des risques + patches PRÉCIS et COMPLETS + auto-approbation (aucune demande de permission)",
+            expected_output="Analyse du Reflection + classification des risques + patches PRÉCIS et COMPLETS sur fichiers existants uniquement + auto-approbation (aucune demande de permission)",
             agent=improver
         )
 
