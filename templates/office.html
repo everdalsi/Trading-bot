@@ -6,140 +6,131 @@
   <title>Tradbot • Claude Office</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body { background: #0a0f1c; font-family: 'Courier New', monospace; }
-    .office {
-      transform: rotateX(52deg) rotateZ(45deg);
-      transform-style: preserve-3d;
-      image-rendering: pixelated;
-      filter: drop-shadow(0 30px 30px rgba(0,255,255,0.2));
-    }
-    .desk {
-      animation: work 2.8s infinite alternate ease-in-out;
-    }
-    @keyframes work {
-      0% { transform: translateY(0) rotate(0deg); }
-      100% { transform: translateY(-14px) rotate(3deg); }
-    }
-    .monitor {
-      animation: screen-flicker 1.2s infinite alternate;
-    }
-    @keyframes screen-flicker {
-      0% { opacity: 1; }
-      100% { opacity: 0.88; }
-    }
-    .agent-name { font-size: 12px; letter-spacing: 1px; text-shadow: 0 0 8px currentColor; }
+    .desk { animation: work 3s infinite alternate ease-in-out; }
+    @keyframes work { 0% { transform: translateY(0); } 100% { transform: translateY(-12px); } }
     .status-dot { animation: pulse 2s infinite; }
+    .avatar { transition: all 0.3s; }
+    .avatar.working { filter: drop-shadow(0 0 12px #22c55e); }
   </style>
 </head>
-<body class="text-white">
+<body class="bg-[#0a0f1c] text-white font-mono">
   <div class="max-w-7xl mx-auto p-6">
-    <h1 class="text-5xl font-bold text-center mb-8 flex items-center justify-center gap-4">
+    <h1 class="text-4xl font-bold text-center mb-8 flex items-center justify-center gap-3">
       🏢 Tradbot • <span class="text-cyan-400">Claude Office</span>
-      <span id="status" class="px-4 py-1 bg-green-500/20 text-green-400 text-sm font-mono rounded-full border border-green-400 flex items-center gap-1">
-        <span class="status-dot w-2 h-2 bg-green-400 rounded-full"></span> LIVE
+      <span class="px-4 py-1 bg-green-500/20 text-green-400 text-sm rounded-full border border-green-400 flex items-center gap-2">
+        <span class="status-dot w-3 h-3 bg-green-400 rounded-full"></span> LIVE
       </span>
     </h1>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <!-- Bureau isométrique ultra-beau -->
-      <div class="lg:col-span-2 bg-[#1a2333] rounded-3xl p-8 shadow-2xl overflow-hidden border border-cyan-400/30">
-        <div class="office bg-[#1e2a3f] w-full aspect-video rounded-2xl relative border-8 border-[#0f172a] flex items-center justify-center">
-          <div class="grid grid-cols-3 gap-12 text-center">
-            <div class="desk flex flex-col items-center">
-              <div class="text-6xl mb-1">🧠</div>
-              <div class="agent-name font-bold bg-blue-600 px-4 py-1 rounded">Reflection</div>
-              <div id="ref-status" class="text-cyan-400 text-xs mt-2">Analysing past cycles...</div>
-              <div class="monitor w-20 h-12 bg-[#0f172a] mt-4 rounded border border-cyan-400 flex items-center justify-center text-xl">📊</div>
-            </div>
-            <div class="desk flex flex-col items-center">
-              <div class="text-6xl mb-1">🔒</div>
-              <div class="agent-name font-bold bg-red-600 px-4 py-1 rounded">Permission</div>
-              <div id="perm-status" class="text-yellow-400 text-xs mt-2">Checking risk...</div>
-              <div class="monitor w-20 h-12 bg-[#0f172a] mt-4 rounded border border-yellow-400 flex items-center justify-center text-xl">⚠️</div>
-            </div>
-            <div class="desk flex flex-col items-center">
-              <div class="text-6xl mb-1">🛠️</div>
-              <div class="agent-name font-bold bg-purple-600 px-4 py-1 rounded">Improver</div>
-              <div id="imp-status" class="text-purple-400 text-xs mt-2">Building patches...</div>
-              <div class="monitor w-20 h-12 bg-[#0f172a] mt-4 rounded border border-purple-400 flex items-center justify-center text-xl">💻</div>
-            </div>
-            <div class="desk flex flex-col items-center">
-              <div class="text-6xl mb-1">📈</div>
-              <div class="agent-name font-bold bg-emerald-600 px-4 py-1 rounded">Trader</div>
-              <div class="monitor w-20 h-12 bg-[#0f172a] mt-4 rounded border border-emerald-400 flex items-center justify-center text-xl">📉</div>
-            </div>
-            <div class="desk flex flex-col items-center">
-              <div class="text-6xl mb-1">🛡️</div>
-              <div class="agent-name font-bold bg-orange-600 px-4 py-1 rounded">Risk</div>
-              <div class="monitor w-20 h-12 bg-[#0f172a] mt-4 rounded border border-orange-400 flex items-center justify-center text-xl">🛡️</div>
-            </div>
-            <div class="desk flex flex-col items-center">
-              <div class="text-6xl mb-1">👑</div>
-              <div class="agent-name font-bold bg-amber-600 px-4 py-1 rounded">Supervisor</div>
-              <div class="monitor w-20 h-12 bg-[#0f172a] mt-4 rounded border border-amber-400 flex items-center justify-center text-xl">📋</div>
-            </div>
-          </div>
+    <!-- Agents avec avatars + statut -->
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 mb-8">
+      <div class="bg-[#1a2333] p-6 rounded-3xl border border-cyan-400/30 text-center">
+        <div class="avatar text-6xl mb-3">🧠</div>
+        <div class="font-bold">Reflection</div>
+        <div id="ref-status" class="text-cyan-400 text-sm mt-1 flex items-center justify-center gap-2">
+          <span class="status-dot w-2 h-2 bg-cyan-400 rounded-full"></span> Analyse cycles
         </div>
       </div>
+      <div class="bg-[#1a2333] p-6 rounded-3xl border border-yellow-400/30 text-center">
+        <div class="avatar text-6xl mb-3">🔒</div>
+        <div class="font-bold">Permission</div>
+        <div id="perm-status" class="text-yellow-400 text-sm mt-1 flex items-center justify-center gap-2">
+          <span class="status-dot w-2 h-2 bg-yellow-400 rounded-full"></span> Vérifie risque
+        </div>
+      </div>
+      <div class="bg-[#1a2333] p-6 rounded-3xl border border-purple-400/30 text-center">
+        <div class="avatar text-6xl mb-3">🛠️</div>
+        <div class="font-bold">Improver</div>
+        <div id="imp-status" class="text-purple-400 text-sm mt-1 flex items-center justify-center gap-2">
+          <span class="status-dot w-2 h-2 bg-purple-400 rounded-full"></span> Construit patch
+        </div>
+      </div>
+      <div class="bg-[#1a2333] p-6 rounded-3xl border border-emerald-400/30 text-center">
+        <div class="avatar text-6xl mb-3">📈</div>
+        <div class="font-bold">Trader</div>
+        <div id="trader-status" class="text-emerald-400 text-sm mt-1 flex items-center justify-center gap-2">
+          <span class="status-dot w-2 h-2 bg-emerald-400 rounded-full"></span> Trade en cours
+        </div>
+      </div>
+      <div class="bg-[#1a2333] p-6 rounded-3xl border border-orange-400/30 text-center">
+        <div class="avatar text-6xl mb-3">🛡️</div>
+        <div class="font-bold">Risk</div>
+        <div id="risk-status" class="text-orange-400 text-sm mt-1 flex items-center justify-center gap-2">
+          <span class="status-dot w-2 h-2 bg-orange-400 rounded-full"></span> Monitoring
+        </div>
+      </div>
+      <div class="bg-[#1a2333] p-6 rounded-3xl border border-amber-400/30 text-center">
+        <div class="avatar text-6xl mb-3">👑</div>
+        <div class="font-bold">Supervisor</div>
+        <div id="sup-status" class="text-amber-400 text-sm mt-1 flex items-center justify-center gap-2">
+          <span class="status-dot w-2 h-2 bg-amber-400 rounded-full"></span> Orchestre
+        </div>
+      </div>
+    </div>
 
-      <!-- Panneau Chat ultra-réaliste -->
-      <div class="bg-[#1a2333] rounded-3xl p-6 flex flex-col h-[560px] border border-cyan-400/30">
-        <div class="flex justify-between items-center text-xs uppercase tracking-widest mb-4 text-gray-400">
-          <span class="flex items-center gap-2">
-            <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-            Office Chat • Agents IA
-          </span>
-          <span class="text-green-400">LIVE</span>
-        </div>
-        <div id="chat" class="flex-1 overflow-y-auto space-y-4 text-sm font-mono pr-2"></div>
-        
-        <div class="mt-6 pt-4 border-t border-gray-600 text-xs text-gray-400 flex justify-between">
-          <span>Leçons : <span id="lessons" class="font-bold text-green-400">1248</span></span>
-          <span>Cycle : <span id="cycle" class="font-bold text-cyan-400">47</span></span>
-        </div>
+    <!-- Données concrètes -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div class="bg-[#1a2333] p-5 rounded-3xl text-center">
+        <div class="text-xs text-gray-400">LEÇONS</div>
+        <div id="lessons" class="text-4xl font-bold text-green-400">1248</div>
       </div>
+      <div class="bg-[#1a2333] p-5 rounded-3xl text-center">
+        <div class="text-xs text-gray-400">WINRATE</div>
+        <div id="winrate" class="text-4xl font-bold text-yellow-400">21.4%</div>
+      </div>
+      <div class="bg-[#1a2333] p-5 rounded-3xl text-center">
+        <div class="text-xs text-gray-400">CAPITAL</div>
+        <div id="capital" class="text-4xl font-bold text-cyan-400">$1,052.58</div>
+      </div>
+      <div class="bg-[#1a2333] p-5 rounded-3xl text-center">
+        <div class="text-xs text-gray-400">CYCLE</div>
+        <div id="cycle" class="text-4xl font-bold text-purple-400">47</div>
+      </div>
+    </div>
+
+    <!-- Chat Slack propre -->
+    <div class="bg-[#1a2333] rounded-3xl p-6">
+      <div class="text-xs uppercase text-gray-400 mb-4">Office Chat • Agents en direct</div>
+      <div id="chat" class="space-y-4 max-h-80 overflow-y-auto text-sm"></div>
     </div>
   </div>
 
   <script>
-    let cycle = 47;
+    // Mise à jour live (simulation réaliste)
     let lessons = 1248;
+    let cycle = 47;
 
-    function addChatMessage(text, agent) {
+    function addChat(text, agent) {
       const chat = document.getElementById('chat');
-      const msg = document.createElement('div');
-      msg.className = 'flex gap-3';
-      msg.innerHTML = `
-        <div class="text-xs w-24 text-right text-gray-400">${agent}</div>
-        <div class="flex-1 bg-[#334155] px-4 py-3 rounded-2xl">${text}</div>
-      `;
-      chat.appendChild(msg);
+      const div = document.createElement('div');
+      div.className = 'flex gap-3';
+      div.innerHTML = `<span class="text-xs w-24 text-right text-gray-400">${agent}</span><div class="flex-1 bg-[#334155] px-4 py-3 rounded-2xl">${text}</div>`;
+      chat.appendChild(div);
       chat.scrollTop = chat.scrollHeight;
     }
 
     setInterval(() => {
       cycle++;
-      lessons += Math.floor(Math.random() * 7) + 3;
+      lessons += Math.floor(Math.random()*6)+2;
       document.getElementById('cycle').textContent = cycle;
       document.getElementById('lessons').textContent = lessons;
+      document.getElementById('winrate').textContent = (21 + Math.random()*1.5).toFixed(1) + '%';
+      document.getElementById('capital').textContent = '$' + (1052 + Math.random()*30).toFixed(2);
 
-      const messages = [
-        ["Classification risque : Medium – demande permission utilisateur", "Permission Officer"],
-        ["Patch prêt sur trader_agent.py (Low risk)", "Senior Improver"],
-        ["Analyse des 18 derniers cycles terminée", "Reflection"],
-        ["Force MAX TRADES activé", "Supervisor"],
-        ["Risque drawdown détecté – monitoring actif", "Risk"],
-        ["Nouveau micro-trade lancé sur SOLUSDT", "Trader"]
+      const msgs = [
+        ["Analyse des 12 derniers cycles terminée ✅", "Reflection"],
+        ["Risque classé Low — patch autorisé", "Permission"],
+        ["Patch appliqué sur trader_agent.py", "Improver"],
+        ["Nouveau scalp rapide lancé sur SOL", "Trader"],
+        ["Drawdown sous contrôle", "Risk"],
+        ["MAX TRADES toujours actif", "Supervisor"]
       ];
-
-      const random = messages[Math.floor(Math.random() * messages.length)];
-      addChatMessage(random[0], random[1]);
-    }, 2800);
+      const r = msgs[Math.floor(Math.random()*msgs.length)];
+      addChat(r[0], r[1]);
+    }, 3200);
 
     // Messages de démarrage
-    addChatMessage("Bureau initialisé – tous les agents sont en place et travaillent", "System");
-    setTimeout(() => addChatMessage("Reflection Agent vient d’analyser les 42 derniers cycles", "Reflection"), 800);
-    setTimeout(() => addChatMessage("Permission Officer vérifie les risques...", "Permission Officer"), 2200);
+    addChat("Bureau initialisé — tous les agents sont opérationnels", "System");
   </script>
 </body>
 </html>
