@@ -4249,96 +4249,137 @@ async def run_telegram():
     _app = (ApplicationBuilder()
             .token(TELEGRAM_TOKEN)
             .request(HTTPXRequest(
-                connection_pool_size=8,pool_timeout=30.0,
-                connect_timeout=30.0,read_timeout=30.0,write_timeout=30.0
+                connection_pool_size=8, pool_timeout=30.0,
+                connect_timeout=30.0, read_timeout=30.0, write_timeout=30.0
             ))
             .updater(None).build())
+
     for cmd, fn in [
-        ("start",cmd_start),("stop",cmd_stop),("status",cmd_status),
-        ("scan",cmd_scan),("portfolio",cmd_portfolio),("positions",cmd_positions),
-        ("lecons",cmd_lecons),("fermer",cmd_fermer),("reset",cmd_reset),
-        ("kelly",cmd_kelly),("arbitrage",cmd_arbitrage),("polymarket",cmd_polymarket),
-        ("marches",cmd_marches),("memes",cmd_memes),("signaux",cmd_signaux),
-        ("regles",cmd_regles),("stats",cmd_stats),("apprendre",cmd_apprendre),
-        ("pool",cmd_pool),("epargne",cmd_epargne),
-        ("airdrops",cmd_airdrops),("faucets",cmd_faucets),("help",cmd_help),
-        ("macro",cmd_macro),("risque",cmd_risque),("blacklist",cmd_blacklist),
-        ("backtest",cmd_backtest),("backtest_multi",cmd_backtest_multi),
-        ("resume", cmd_resume),("agent", cmd_agent),("agent_stop", cmd_agent_stop),
-        ("maxtrades", cmd_maxtrades),  # ← commande ajoutée
+        ("start",          cmd_start),
+        ("stop",           cmd_stop),
+        ("status",         cmd_status),
+        ("scan",           cmd_scan),
+        ("portfolio",      cmd_portfolio),
+        ("positions",      cmd_positions),
+        ("lecons",         cmd_lecons),
+        ("fermer",         cmd_fermer),
+        ("reset",          cmd_reset),
+        ("kelly",          cmd_kelly),
+        ("arbitrage",      cmd_arbitrage),
+        ("polymarket",     cmd_polymarket),
+        ("marches",        cmd_marches),
+        ("memes",          cmd_memes),
+        ("signaux",        cmd_signaux),
+        ("regles",         cmd_regles),
+        ("stats",          cmd_stats),
+        ("apprendre",      cmd_apprendre),
+        ("pool",           cmd_pool),
+        ("epargne",        cmd_epargne),
+        ("airdrops",       cmd_airdrops),
+        ("faucets",        cmd_faucets),
+        ("help",           cmd_help),
+        ("macro",          cmd_macro),
+        ("risque",         cmd_risque),
+        ("blacklist",      cmd_blacklist),
+        ("backtest",       cmd_backtest),
+        ("backtest_multi", cmd_backtest_multi),
+        ("resume",         cmd_resume),
+        ("agent",          cmd_agent),
+        ("agent_stop",     cmd_agent_stop),
+        ("maxtrades",      cmd_maxtrades_FIXED),   # ← nom correct
+        ("ask",            cmd_ask),
+        ("debate",         cmd_debate),
     ]:
         _app.add_handler(CommandHandler(cmd, fn))
+
     _app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_agent_chat))
     _app.add_error_handler(telegram_error_handler)
-    _app.add_handler(CommandHandler("ask", cmd_ask))
-    _app.add_handler(CommandHandler("debate", cmd_debate))
+
     await _app.initialize()
     await _app.start()
+
     if WEBHOOK_URL:
-        full = WEBHOOK_URL.rstrip("/")+WEBHOOK_PATH
+        full = WEBHOOK_URL.rstrip("/") + WEBHOOK_PATH
         await asyncio.sleep(2)
         try:
-            await _app.bot.set_webhook(url=full,drop_pending_updates=True,allowed_updates=["message"])
+            await _app.bot.set_webhook(url=full, drop_pending_updates=True, allowed_updates=["message"])
         except Exception as e:
             print(f"[WEBHOOK] {e}")
             await asyncio.sleep(5)
-            await _app.bot.set_webhook(url=full,drop_pending_updates=True,allowed_updates=["message"])
+            await _app.bot.set_webhook(url=full, drop_pending_updates=True, allowed_updates=["message"])
         print(f"Webhook: {full}")
-    print("Bot v7.1 prêt — /start | /resume | /agent (chat) | /agent_stop | /maxtrades")
+
+    print("Bot v7.1 prêt — /start | /resume | /agent | /agent_stop | /maxtrades")
     try:
-        while True: await asyncio.sleep(1)
+        while True:
+            await asyncio.sleep(1)
     finally:
-        if WEBHOOK_URL: await _app.bot.delete_webhook()
+        if WEBHOOK_URL:
+            await _app.bot.delete_webhook()
         await _app.stop()
         await _app.shutdown()
 
+
 # ═══════════════════════════════════════════════════════════════
-#  AUTO-START + ENTRYPOINT
+#  AUTO-START
 # ═══════════════════════════════════════════════════════════════
 def auto_start():
     time.sleep(5)
+    if not TELEGRAM_CHAT_ID:
+        print("[AUTO-START] TELEGRAM_CHAT_ID non défini — annulé")
+        return
     send = make_send(TELEGRAM_CHAT_ID)
-    if bot_state["running"]: 
+    if bot_state["running"]:
         return
     bot_state.update({
-        "running": True,
-        "trades_today": 0,
-        "cycle_count": 0,
-        "last_heartbeat": None,
-        "last_monitor": 0,
-        "last_micro": 0,
-        "last_scalp": 0,
-        "last_deep": 0,
-        "last_status": 0,
-        "last_meme": 0,
-        "last_epargne": 0,
-        "daily_stopped": False
+        "running": True, "trades_today": 0, "cycle_count": 0,
+        "last_heartbeat": None, "last_monitor": 0, "last_micro": 0,
+        "last_scalp": 0, "last_deep": 0, "last_status": 0,
+        "last_meme": 0, "last_epargne": 0, "daily_stopped": False
     })
     kelly = kelly_criterion()
     send(f"🔄 Bot v7.1 redémarré\nKelly:{kelly*100:.1f}% | /stop pour arrêter\n📡 WS: {'✅' if _ws_connected else '⚠️ REST'}")
-    if not TELEGRAM_CHAT_ID:
-        print("[AUTO-START] TELEGRAM_CHAT_ID non défini — auto-start annulé")
-        return
     threading.Thread(target=trading_loop,  args=(send,), daemon=True).start()
     threading.Thread(target=watchdog,      args=(send,), daemon=True).start()
     threading.Thread(target=daily_summary, args=(send,), daemon=True).start()
 
 
+# ═══════════════════════════════════════════════════════════════
+#  EVOLUTION LOOP — définie ici, PAS dans une string
+# ═══════════════════════════════════════════════════════════════
+def _evolution_loop_MAIN():
+    """Lance la boucle evolution dans son propre thread avec gestion d'erreur"""
+    try:
+        from agents.self_improvement import start_self_improvement_loop
+        start_self_improvement_loop(orchestrator)
+    except ImportError as e:
+        print(f"[EVOLUTION] Import error (non bloquant): {e}")
+    except Exception as e:
+        print(f"[EVOLUTION] Erreur fatale: {e}")
+
+
+# ═══════════════════════════════════════════════════════════════
+#  ENTRYPOINT
+# ═══════════════════════════════════════════════════════════════
 if __name__ == "__main__":
-    print("🚀 Trading Bot v7.1 — WebSocket + Backtest + Sécurité + Agent Conscience + EXTREME LEARNING MODE")
+    print("🚀 Trading Bot v7.1 — WebSocket + Backtest + Agent Conscience + EXTREME LEARNING MODE")
 
     init_db()
     load_data()
-
     start_websocket()
-    
+
+    # Evolution agent — thread daemon séparé
     evolution_thread = threading.Thread(target=_evolution_loop_MAIN, daemon=True)
     evolution_thread.start()
-    print("🧬 EvolutionAgent activé — auto-amélioration profonde intégrée à l'Orchestrator")
+    print("🧬 EvolutionAgent activé")
+
+    # Serveur HTTP dashboard
     threading.Thread(target=run_server, daemon=True).start()
+
+    # Self-ping Railway
     threading.Thread(target=self_ping, daemon=True).start()
 
-    # ✅ AUTO TRAINING (déjà présent)
+    # Auto-training backtest loop
     def _auto_training_loop():
         time.sleep(30)
         while True:
@@ -4352,12 +4393,8 @@ if __name__ == "__main__":
 
     threading.Thread(target=_auto_training_loop, daemon=True).start()
 
-    # === AUTO-EVOLUTION THREAD (version ultra-intégrée) ===
-    from agents.self_improvement import start_self_improvement_loop
+    # Auto-start trading
+    threading.Thread(target=auto_start, daemon=True).start()
 
-    def _evolution_loop_FIXED():
-    try:
-        from agents.self_improvement import start_self_improvement_loop
-        start_self_improvement_loop(orchestrator)
-    except Exception as e:
-        print(f"[EVOLUTION-LOOP ERROR] {e}")
+    # Telegram (boucle principale — bloquant)
+    asyncio.run(run_telegram())
