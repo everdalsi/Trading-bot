@@ -117,7 +117,6 @@
       chat.scrollTop = chat.scrollHeight;
     }
 
-    // Mise à jour live + messages plus réalistes
     setInterval(() => {
       cycle++;
       lessons += Math.floor(Math.random() * 6) + 2;
@@ -137,7 +136,6 @@
       addChatMessage(random[0], random[1]);
     }, 3200);
 
-    // Message de bienvenue
     addChatMessage("Bureau initialisé – tous les agents sont en place et travaillent", "System");
     setTimeout(() => addChatMessage("Reflection Agent vient d’analyser les 42 derniers cycles", "Reflection"), 1200);
   </script>
