@@ -1,37 +1,8 @@
 {
   "sim": {
-    "cash": 935.7004313493737,
+    "cash": 980.8071309655479,
     "initial": 1000.0,
-    "positions": {
-      "MEME_NoHat_51": {
-        "id": 51,
-        "symbol": "NoHat",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "NoHat",
-        "price_in": 0.0002569,
-        "price_out": null,
-        "qty": 191698.6809017176,
-        "amount_usd": 49.247391123651255,
-        "confidence": 95,
-        "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-25 05:32:08",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0002569,
-        "open_time": 1774416728.3386073,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_NoHat_51"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
@@ -1391,17 +1362,17 @@
         "trade_type": "MEME",
         "meme_symbol": "NoHat",
         "price_in": 0.0002569,
-        "price_out": null,
+        "price_out": 0.0002353,
         "qty": 191698.6809017176,
         "amount_usd": 49.247391123651255,
         "confidence": 95,
         "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
+        "exit_reason": "\ud83d\uded1 MEME SL (-8.4%)",
         "time_in": "2026-03-25 05:32:08",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-25 05:32:08",
+        "pnl": -4.140692,
+        "pnl_pct": -8.41,
+        "duration_min": 1,
         "patterns": [
           "memecoin"
         ],
@@ -10748,6 +10719,28 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-25 05:32"
+      },
+      {
+        "trade_id": 51,
+        "pnl": -4.140692,
+        "symbol": "NoHat",
+        "market": "MEME",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "memecoin",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-25 05:32"
+      },
+      {
+        "trade_id": -6,
+        "pnl": 5.0923,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-25 05:32"
       }
     ],
     "patterns_to_avoid": [
@@ -10772,7 +10765,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
@@ -10950,7 +10942,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "memecoin"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -10968,7 +10961,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
@@ -10997,6 +10989,7 @@
       "backtest_5m",
       "memecoin",
       "memecoin",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -11160,7 +11153,7 @@
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -13,
+      "SOLUSDT": -11,
       "TARO": 15,
       "\u96ea\u5c71\u6551\u72d0": -15,
       "LOLA": -6,
