@@ -5,12 +5,16 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
+# ← AJOUTÉ : Silence les warnings GitPython (obligatoire pour GitPushTool)
+ENV GIT_PYTHON_REFRESH=quiet
+
 WORKDIR /workspace
 
 # ── Installe les dépendances système une seule fois ──────────
 # Cette couche est mise en cache tant que rien ne change ici
+# AJOUTÉ : git (obligatoire pour GitPushTool et EvolutionAgent)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc g++ curl \
+    gcc g++ curl git \
     && rm -rf /var/lib/apt/lists/*
 
 # ── Copie UNIQUEMENT requirements.txt d'abord ────────────────
