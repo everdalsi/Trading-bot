@@ -4443,14 +4443,32 @@ def safe_pnl(pnl_pct: float, amount_usd: float, leverage: float = 1) -> float:
     return round(pnl, 4)
 
 # ═══════════════════════════════════════════════════════════════
-#  DASHBOARD PIXEL-ART OFFICE (Claude Office style)
+#  DASHBOARD PIXEL-ART OFFICE (Claude Office style) — version robuste
 # ═══════════════════════════════════════════════════════════════
-from flask import send_from_directory
+try:
+    from flask import send_from_directory
+    FLASK_AVAILABLE = True
+except ImportError:
+    FLASK_AVAILABLE = False
+    print("⚠️ Flask non disponible — dashboard /office désactivé (ajoute 'flask' dans requirements.txt)")
 
-@app.route("/office")
-def office_dashboard():
-    """Interface visuelle pixel-art des agents IA"""
-    return send_from_directory('templates', 'office.html')
+if FLASK_AVAILABLE:
+    @app.route("/office")
+    def office_dashboard():
+        """Interface visuelle pixel-art des agents IA"""
+        try:
+            return send_from_directory('templates', 'office.html')
+        except Exception as e:
+            return f"Erreur dashboard: {str(e)}"
+else:
+    @app.route("/office")
+    def office_dashboard():
+        """Fallback si Flask n'est pas installé"""
+        return """
+        <h1>🚫 Dashboard temporairement indisponible</h1>
+        <p>Flask n’est pas encore installé dans le container.</p>
+        <p>Ajoute simplement la ligne <strong>flask</strong> dans ton fichier <code>requirements.txt</code> et redéploie.</p>
+        """
     
 if __name__ == "__main__":
     print("🚀 Trading Bot v7.1 — WebSocket + Backtest + Agent Conscience + EXTREME LEARNING MODE")
