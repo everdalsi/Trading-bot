@@ -3229,8 +3229,9 @@ def daily_summary(send_fn):
             t_day = [t for t in sim["trades"] if t.get("time_in", "").startswith(today)]
             pnl_day = sum(t.get("pnl", 0) for t in t_day if t.get("pnl") is not None)
 
-        if isinstance(pnl_day, (int, float)) and abs(pnl_day) > 100000:
-            pnl_day = 0.0  # sécurité contre les valeurs folles
+            # Sécurité contre les valeurs folles
+            if isinstance(pnl_day, (int, float)) and abs(pnl_day) > 100000:
+                pnl_day = 0.0
 
             sym_s = db_symbol_stats()
             best3 = "\n".join(
@@ -3270,8 +3271,10 @@ def daily_summary(send_fn):
 def self_ping():
     time.sleep(60)
     while True:
-        try: requests.get(f"{WEBHOOK_URL.rstrip('/')}/health", timeout=10)
-        except Exception: pass
+        try: 
+            requests.get(f"{WEBHOOK_URL.rstrip('/')}/health", timeout=10)
+        except Exception: 
+            pass
         time.sleep(270)
 
 # ═══════════════════════════════════════════════════════════════
