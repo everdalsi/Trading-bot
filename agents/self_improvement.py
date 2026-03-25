@@ -1,19 +1,19 @@
 from crewai import Crew, Task, Agent
 from crewai_tools import CodeInterpreterTool
 from .tools import EditBotFileTool, GitPushTool
-from .config import get_llm, MAIN_OBJECTIVE  # ← tu vas créer ce config.py juste après
+from .config import get_llm, MAIN_OBJECTIVE
+from .evolution_agent import EvolutionAgent
 import asyncio
 import time
 
-# Agent spécialisé auto-codage
 improver = Agent(
     role="Senior Self-Improvement Engineer",
     goal="Améliorer constamment le bot et les agents à partir de l'objectif principal",
     backstory="Tu es un ingénieur IA autonome. Tu analyses les performances, proposes du code, le testes et déploies.",
-    tools=[EditBotFileTool(), GitPushTool()],   # ← CodeInterpreterTool retiré (ne marche pas sans Docker)
+    tools=[EditBotFileTool(), GitPushTool()],
     llm="groq/llama3-70b-8192",
     verbose=True,
-    allow_code_execution=False                 # ← MODIFICATION UNIQUE : désactivé pour Railway
+    allow_code_execution=False
 )
 
 def create_improvement_crew():
@@ -40,19 +40,13 @@ def create_improvement_crew():
     return crew
 
 async def run_self_improvement_cycle():
-    """Cycle d'auto-amélioration (à lancer toutes les X heures)"""
     print("🚀 [SELF-IMPROVEMENT] Lancement du cycle d'auto-amélioration...")
     crew = create_improvement_crew()
     result = crew.kickoff()
     print("✅ [SELF-IMPROVEMENT] Cycle terminé :", result)
     return result
 
-## Thread qui tourne en arrière-plan — VERSION TEST ULTRA-RAPIDE
 def start_self_improvement_loop(orchestrator):
-    """
-    Mode TEST : cycle toutes les 10 minutes pour que tu voies l'auto-codage en live
-    (change en 3*3600 une fois que tu as testé)
-    """
     evolution = EvolutionAgent(orchestrator)
 
     while True:
@@ -68,10 +62,9 @@ def start_self_improvement_loop(orchestrator):
         except Exception as e:
             print(f"[EVOLUTION ERROR] {e}")
 
-        # On garde aussi l’ancien cycle CrewAI
         try:
             asyncio.run(run_self_improvement_cycle())
         except Exception as e:
             print(f"[SELF-IMPROVEMENT ERROR] {e}")
 
-        time.sleep(600)   # ← 600 secondes = 10 minutes (idéal pour tester)
+        time.sleep(600)
