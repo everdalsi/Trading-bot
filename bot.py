@@ -4285,7 +4285,7 @@ async def run_telegram():
             # ═══════════════════════════════════════════════════════════════        
     #  APPLICATION TELEGRAM — Command handlers
     # ═══════════════════════════════════════════════════════════════
-    for cmd, fn in [
+        for cmd, fn in [
         ("start",          cmd_start),
         ("stop",           cmd_stop),
         ("status",         cmd_status),
@@ -4322,9 +4322,11 @@ async def run_telegram():
         ("debate",         cmd_debate),
         ("lasttrades",     cmd_lasttrades),
         ("debugpnl",       cmd_debugpnl),
-        application.add_handler(CommandHandler("office", cmd_office)),
     ]:
         _app.add_handler(CommandHandler(cmd, fn))
+
+    # ← Commande /office ajoutée correctement (utilise _app comme tout le reste de ton code)
+    _app.add_handler(CommandHandler("office", cmd_office))
 
     _app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_agent_chat))
     _app.add_error_handler(telegram_error_handler)
