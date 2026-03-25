@@ -3471,7 +3471,7 @@ code{{color:#58a6ff}}
 #  SERVEUR HTTP + WEBHOOK
 # ═══════════════════════════════════════════════════════════════
 class BotHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
+        def do_GET(self):
         if self.path == "/health":
             self.send_response(200)
             self.send_header("Content-type", "text/plain")
@@ -3491,12 +3491,12 @@ class BotHandler(BaseHTTPRequestHandler):
                 self.send_response(404)
                 self.send_header("Content-type", "text/html")
                 self.end_headers()
-                self.wfile.write(b"<h1>❌ templates/office.html non trouvé</h1>")
+                self.wfile.write("<h1>❌ templates/office.html non trouvé</h1>".encode("utf-8"))
             except Exception as e:
                 self.send_response(500)
                 self.send_header("Content-type", "text/html")
                 self.end_headers()
-                self.wfile.write(f"<h1>Erreur dashboard</h1><p>{str(e)}</p>".encode())
+                self.wfile.write(f"<h1>Erreur dashboard</h1><p>{str(e)}</p>".encode("utf-8"))
         else:
             # Garde tout le comportement original du dashboard principal
             self.send_response(200)
