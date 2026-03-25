@@ -4489,11 +4489,48 @@ except ImportError:
 if FLASK_AVAILABLE:
     @dashboard_app.route("/office")
     def office_dashboard():
-        """Interface visuelle pixel-art ultra-beau des agents IA"""
         try:
-            return send_from_directory('templates', 'office.html')
-        except Exception as e:
-            return f"<h1>Erreur dashboard</h1><p>{str(e)}</p>"
+            return send_from_directory('/workspace/templates', 'office.html')
+        except:
+            return "<h1>Erreur office.html</h1>"
+
+    @dashboard_app.route("/api/live_stats")
+    def api_live_stats():
+        return {
+            "lessons": len(memory.get("lessons", [])),
+            "winrate": db_win_rate(30),
+            "capital": round(get_equity_safe(), 2),
+            "cycle": bot_state.get("cycle_count", 0)
+        }
+
+    @dashboard_app.route("/api/quick_command", methods=["POST"])
+    def api_quick_command():
+        data = request.get_json()
+        cmd = data.get("command")
+        send = make_send(TELEGRAM_CHAT_ID)
+        if cmd == "force_max_trades":
+            send("🧬 FORCE MAX TRADES activé depuis le dashboard")
+        elif cmd == "reset_equity":
+            sim["cash"] = CAPITAL_INITIAL
+            send("🔄 Equity reset à $1000 depuis le dashboard")
+        elif cmd == "conservative_mode":
+            global MAX_PCT_PER_TRADE
+            MAX_PCT_PER_TRADE = 0.08
+            send("🛡️ Mode conservateur activé (max 8% par trade)")
+        return {"status": "ok"}
+
+    @dashboard_app.route("/api/agent_command", methods=["POST"])
+    def api_agent_command():
+        data = request.get_json()
+        # On utilise le même système intelligent que le mode secrétaire
+        response = _ask_secretary(TELEGRAM_CHAT_ID, data.get("message") or f"Commande pour {data.get('agent')}: {data.get('action')}")
+        return {"response": response}
+
+    @dashboard_app.route("/api/chat", methods=["POST"])
+    def api_chat():
+        data = request.get_json()
+        response = _ask_secretary(TELEGRAM_CHAT_ID, data.get("message", ""))
+        return {"response": response}
     
 if __name__ == "__main__":
     print("🚀 Trading Bot v7.1 — WebSocket + Backtest + Agent Conscience + EXTREME LEARNING MODE")
