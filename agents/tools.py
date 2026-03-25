@@ -22,7 +22,6 @@ class EditBotFileTool(BaseTool):
         except Exception as e:
             return f"❌ Erreur édition {filename}: {e}"
 
-
 class GitPushTool(BaseTool):
     name: str = "GitPushTool"
     description: str = "Commit + push sur GitHub → déclenche redéploiement Railway automatique"
