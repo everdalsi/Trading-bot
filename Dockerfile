@@ -19,6 +19,9 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 COPY . .
 
+# ← AJOUTÉ : Copie explicite du dossier templates pour le dashboard Claude Office
+COPY templates /workspace/templates
+
 EXPOSE 8000
 
 CMD ["python", "bot.py"]
