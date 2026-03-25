@@ -2,36 +2,7 @@
   "sim": {
     "cash": 959.5798611111111,
     "initial": 1000.0,
-    "positions": {
-      "MEME_GigaChud_90": {
-        "id": 90,
-        "symbol": "GigaChud",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "GigaChud",
-        "price_in": 0.000432,
-        "price_out": null,
-        "qty": 115740.74074074074,
-        "amount_usd": 50.0,
-        "confidence": 95,
-        "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-25 10:49:00",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.000432,
-        "open_time": 1774435740.5106266,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_GigaChud_90"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
