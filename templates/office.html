@@ -6,80 +6,94 @@
   <title>Tradbot • Claude Office</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body { background: #0f172a; font-family: 'Courier New', monospace; }
+    body { background: #0a0f1c; font-family: 'Courier New', monospace; }
     .office {
-      transform: rotateX(55deg) rotateZ(45deg);
+      transform: rotateX(52deg) rotateZ(45deg);
       transform-style: preserve-3d;
       image-rendering: pixelated;
+      filter: drop-shadow(0 25px 25px rgba(0,0,0,0.6));
     }
     .desk {
-      animation: work 3.5s infinite alternate ease-in-out;
+      animation: work 2.8s infinite alternate ease-in-out;
     }
     @keyframes work {
-      0% { transform: translateY(0); }
-      100% { transform: translateY(-10px); }
+      0%   { transform: translateY(0) rotate(0deg); }
+      100% { transform: translateY(-12px) rotate(2deg); }
     }
-    .agent-name { font-size: 11px; letter-spacing: 1px; }
+    .monitor {
+      animation: screen-flicker 1.5s infinite alternate;
+    }
+    @keyframes screen-flicker {
+      0%   { opacity: 1; }
+      100% { opacity: 0.85; }
+    }
+    .agent-name { font-size: 11px; letter-spacing: 1px; text-shadow: 0 0 6px currentColor; }
   </style>
 </head>
 <body class="text-white">
   <div class="max-w-7xl mx-auto p-6">
-    <h1 class="text-4xl font-bold text-center mb-8 flex items-center justify-center gap-3">
-      🏢 Tradbot • Claude Office
-      <span id="status" class="text-green-400 text-sm font-mono">● LIVE</span>
+    <h1 class="text-5xl font-bold text-center mb-8 flex items-center justify-center gap-4">
+      🏢 Tradbot • <span class="text-cyan-400">Claude Office</span>
+      <span id="status" class="px-4 py-1 bg-green-500/20 text-green-400 text-sm font-mono rounded-full border border-green-400">● LIVE</span>
     </h1>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <!-- Bureau pixel-art isométrique -->
-      <div class="lg:col-span-2 bg-[#1e2937] rounded-3xl p-8 shadow-2xl overflow-hidden">
-        <div class="office bg-[#334155] w-full aspect-video rounded-2xl relative border-8 border-[#0f172a] flex items-center justify-center">
-          <div class="grid grid-cols-3 gap-8 text-center">
+      <!-- Bureau isométrique ultra-détaillé -->
+      <div class="lg:col-span-2 bg-[#1a2333] rounded-3xl p-8 shadow-2xl overflow-hidden border border-cyan-500/20">
+        <div class="office bg-[#1e2a3f] w-full aspect-video rounded-2xl relative border-8 border-[#0f172a] flex items-center justify-center">
+          <div class="grid grid-cols-3 gap-10 text-center">
             <!-- Reflection -->
             <div class="desk flex flex-col items-center">
-              <div class="text-5xl mb-1">🧠</div>
-              <div class="agent-name font-bold bg-blue-600 px-3 py-0.5 rounded">Reflection</div>
-              <div id="ref-status" class="text-green-400 text-xs mt-1">Analysing past cycles...</div>
+              <div class="text-6xl mb-1">🧠</div>
+              <div class="agent-name font-bold bg-blue-600 px-4 py-1 rounded">Reflection</div>
+              <div id="ref-status" class="text-cyan-400 text-xs mt-2 font-medium">Analysing cycles...</div>
+              <div class="monitor w-16 h-10 bg-[#0f172a] mt-3 rounded border border-cyan-300 flex items-center justify-center text-[10px]">📊</div>
             </div>
             <!-- Permission Officer -->
             <div class="desk flex flex-col items-center">
-              <div class="text-5xl mb-1">🔒</div>
-              <div class="agent-name font-bold bg-red-600 px-3 py-0.5 rounded">Permission</div>
-              <div id="perm-status" class="text-yellow-400 text-xs mt-1">Checking risk...</div>
+              <div class="text-6xl mb-1">🔒</div>
+              <div class="agent-name font-bold bg-red-600 px-4 py-1 rounded">Permission</div>
+              <div id="perm-status" class="text-yellow-400 text-xs mt-2 font-medium">Risk check...</div>
+              <div class="monitor w-16 h-10 bg-[#0f172a] mt-3 rounded border border-yellow-300 flex items-center justify-center text-[10px]">⚠️</div>
             </div>
             <!-- Senior Improver -->
             <div class="desk flex flex-col items-center">
-              <div class="text-5xl mb-1">🛠️</div>
-              <div class="agent-name font-bold bg-purple-600 px-3 py-0.5 rounded">Improver</div>
-              <div id="imp-status" class="text-green-400 text-xs mt-1">Building patches...</div>
+              <div class="text-6xl mb-1">🛠️</div>
+              <div class="agent-name font-bold bg-purple-600 px-4 py-1 rounded">Improver</div>
+              <div id="imp-status" class="text-purple-400 text-xs mt-2 font-medium">Building patches...</div>
+              <div class="monitor w-16 h-10 bg-[#0f172a] mt-3 rounded border border-purple-300 flex items-center justify-center text-[10px]">💻</div>
             </div>
             <!-- Trader -->
             <div class="desk flex flex-col items-center">
-              <div class="text-5xl mb-1">📈</div>
-              <div class="agent-name font-bold bg-emerald-600 px-3 py-0.5 rounded">Trader</div>
+              <div class="text-6xl mb-1">📈</div>
+              <div class="agent-name font-bold bg-emerald-600 px-4 py-1 rounded">Trader</div>
+              <div class="monitor w-16 h-10 bg-[#0f172a] mt-3 rounded border border-emerald-300 flex items-center justify-center text-[10px]">📉</div>
             </div>
             <!-- Risk -->
             <div class="desk flex flex-col items-center">
-              <div class="text-5xl mb-1">🛡️</div>
-              <div class="agent-name font-bold bg-orange-600 px-3 py-0.5 rounded">Risk</div>
+              <div class="text-6xl mb-1">🛡️</div>
+              <div class="agent-name font-bold bg-orange-600 px-4 py-1 rounded">Risk</div>
+              <div class="monitor w-16 h-10 bg-[#0f172a] mt-3 rounded border border-orange-300 flex items-center justify-center text-[10px]">📉</div>
             </div>
             <!-- Supervisor -->
             <div class="desk flex flex-col items-center">
-              <div class="text-5xl mb-1">👑</div>
-              <div class="agent-name font-bold bg-amber-600 px-3 py-0.5 rounded">Supervisor</div>
+              <div class="text-6xl mb-1">👑</div>
+              <div class="agent-name font-bold bg-amber-600 px-4 py-1 rounded">Supervisor</div>
+              <div class="monitor w-16 h-10 bg-[#0f172a] mt-3 rounded border border-amber-300 flex items-center justify-center text-[10px]">📋</div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Panneau Slack-like -->
-      <div class="bg-[#1e2937] rounded-3xl p-6 flex flex-col h-[520px]">
-        <div class="text-xs uppercase tracking-widest mb-4 text-gray-400 flex justify-between">
-          <span>Office Chat • Self-Improvement</span>
-          <span class="text-green-400">LIVE</span>
+      <!-- Panneau Chat Slack-like ultra-réaliste -->
+      <div class="bg-[#1a2333] rounded-3xl p-6 flex flex-col h-[560px] border border-cyan-500/20">
+        <div class="flex items-center justify-between text-xs uppercase tracking-widest mb-4 text-gray-400">
+          <span class="flex items-center gap-2"><span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>Office Chat</span>
+          <span class="text-green-400">LIVE • Self-Improvement</span>
         </div>
         <div id="chat" class="flex-1 overflow-y-auto space-y-4 text-sm font-mono pr-2"></div>
         
-        <div class="mt-6 text-xs text-gray-400 flex justify-between">
+        <div class="mt-6 pt-4 border-t border-gray-600 text-xs text-gray-400 flex justify-between">
           <span>Leçons : <span id="lessons" class="font-bold text-green-400">0</span></span>
           <span>Cycle : <span id="cycle" class="font-bold">0</span></span>
         </div>
@@ -88,36 +102,44 @@
   </div>
 
   <script>
-    let cycle = 42;
-    let lessons = 912;
+    let cycle = 47;
+    let lessons = 1248;
 
     function addChatMessage(text, agent) {
       const chat = document.getElementById('chat');
       const msg = document.createElement('div');
-      msg.className = 'flex gap-2';
+      msg.className = 'flex gap-3';
       msg.innerHTML = `
         <div class="text-xs w-24 text-right text-gray-400">${agent}</div>
-        <div class="flex-1 bg-[#334155] px-4 py-2 rounded-2xl">${text}</div>
+        <div class="flex-1 bg-[#334155] px-4 py-3 rounded-2xl">${text}</div>
       `;
       chat.appendChild(msg);
       chat.scrollTop = chat.scrollHeight;
     }
 
-    // Mise à jour live
+    // Mise à jour live + messages plus réalistes
     setInterval(() => {
       cycle++;
-      lessons += Math.floor(Math.random() * 4) + 1;
+      lessons += Math.floor(Math.random() * 6) + 2;
       document.getElementById('cycle').textContent = cycle;
       document.getElementById('lessons').textContent = lessons;
 
-      // Messages réalistes
-      if (Math.random() > 0.65) addChatMessage("Classification risque : Medium – demande permission utilisateur", "Permission Officer");
-      if (Math.random() > 0.75) addChatMessage("Patch prêt sur trader_agent.py (Low risk)", "Senior Improver");
-      if (Math.random() > 0.8)  addChatMessage("Analyse des 12 derniers cycles terminée", "Reflection");
-    }, 3800);
+      const messages = [
+        ["Classification risque : Medium – demande permission utilisateur", "Permission Officer"],
+        ["Patch prêt sur trader_agent.py (Low risk)", "Senior Improver"],
+        ["Analyse des 18 derniers cycles terminée", "Reflection"],
+        ["Force MAX TRADES activé", "Supervisor"],
+        ["Risque drawdown détecté – monitoring actif", "Risk"],
+        ["Nouveau micro-trade lancé", "Trader"]
+      ];
 
-    // Message de démarrage
+      const random = messages[Math.floor(Math.random() * messages.length)];
+      addChatMessage(random[0], random[1]);
+    }, 3200);
+
+    // Message de bienvenue
     addChatMessage("Bureau initialisé – tous les agents sont en place et travaillent", "System");
+    setTimeout(() => addChatMessage("Reflection Agent vient d’analyser les 42 derniers cycles", "Reflection"), 1200);
   </script>
 </body>
 </html>
