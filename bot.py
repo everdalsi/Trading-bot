@@ -153,8 +153,8 @@ MICRO_TP_PCT        = 0.011
 MICRO_TRAILING_PCT  = 0.004
 MICRO_MAX_DURATION  = 60
 MICRO_MAX_PCT       = 0.48       # ← augmenté pour plus de volume en micro
-MICRO_CONF_MIN      = 8         # ← fortement baissé → beaucoup plus de micro-trades
-MAX_MICRO_POSITIONS = 100        # ← très augmenté pour maximiser l’entraînement
+MICRO_CONF_MIN      = 12         # ← fortement baissé → beaucoup plus de micro-trades
+MAX_MICRO_POSITIONS = 120        # ← très augmenté pour maximiser l’entraînement
 WARMUP_TRADES_NEEDED = 50
 
 MEME_SL_PCT       = 0.05
