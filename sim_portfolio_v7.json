@@ -2,36 +2,7 @@
   "sim": {
     "cash": 1364.765486142628,
     "initial": 1000.0,
-    "positions": {
-      "MEME_NoHat_71": {
-        "id": 71,
-        "symbol": "NoHat",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "NoHat",
-        "price_in": 0.0001057,
-        "price_out": null,
-        "qty": 582014.3657054153,
-        "amount_usd": 61.51891845506239,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-25 08:53:30",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0003366,
-        "open_time": 1774428810.3309019,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_NoHat_71"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
@@ -1961,17 +1932,6 @@
   },
   "memory": {
     "lessons": [
-      {
-        "trade_id": -5,
-        "pnl": 3.0211,
-        "symbol": "SOLUSDT",
-        "market": "BACKTEST",
-        "lecon": "Scalp rapide gagnant",
-        "pattern": "backtest_5m",
-        "action_future": "Conserver ce setup pour micro-trading",
-        "type": "succes",
-        "date": "2026-03-25 05:36"
-      },
       {
         "trade_id": -6,
         "pnl": 5.0923,
@@ -12960,6 +12920,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-25 08:53"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -1.6253,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-25 08:53"
       }
     ],
     "patterns_to_avoid": [
@@ -12973,7 +12944,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
@@ -13109,6 +13079,7 @@
       "backtest_5m",
       "backtest_5m",
       "memecoin",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -13368,7 +13339,7 @@
     ],
     "confidence_threshold": 8,
     "total_wins": 239,
-    "total_losses": 471,
+    "total_losses": 472,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
@@ -25269,6 +25240,34 @@
             "entry": 2080.13955,
             "exit": 2063.21,
             "pnl": -1.6244,
+            "pnl_pct": -0.81,
+            "exit_reason": "TIMEOUT"
+          }
+        ]
+      },
+      {
+        "symbol": "ETHUSDT",
+        "interval": "5m",
+        "days": 30,
+        "total_trades": 1,
+        "wins": 0,
+        "losses": 1,
+        "win_rate": 0.0,
+        "total_pnl": -1.63,
+        "total_pnl_pct": -0.16,
+        "sharpe": 0.0,
+        "max_drawdown": -0.16,
+        "profit_factor": 0.0,
+        "best_trade": -0.81,
+        "worst_trade": -0.81,
+        "final_equity": 998.37,
+        "sl_used": 0.025,
+        "tp_used": 0.04,
+        "trades": [
+          {
+            "entry": 2080.13955,
+            "exit": 2063.21,
+            "pnl": -1.6253,
             "pnl_pct": -0.81,
             "exit_reason": "TIMEOUT"
           }
