@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 1000.0,
+    "cash": 1048.8621586475942,
     "initial": 1000.0,
     "positions": {
       "MEME_NoHat_35": {
@@ -959,17 +959,17 @@
         "trade_type": "MEME",
         "meme_symbol": "NoHat",
         "price_in": 0.0001538,
-        "price_out": null,
+        "price_out": 0.0001503,
         "qty": 325097.5292587776,
         "amount_usd": 50.0,
         "confidence": 95,
         "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT",
         "time_in": "2026-03-25 04:54:45",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-25 05:00:01",
+        "pnl": -1.137841,
+        "pnl_pct": -2.28,
+        "duration_min": 5,
         "patterns": [
           "memecoin"
         ],
@@ -7511,11 +7511,32 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-25 04:59"
+      },
+      {
+        "trade_id": -6,
+        "pnl": 5.0923,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-25 04:59"
+      },
+      {
+        "trade_id": 35,
+        "pnl": -1.137841,
+        "symbol": "NoHat",
+        "market": "MEME",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "memecoin",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-25 05:00"
       }
     ],
     "patterns_to_avoid": [
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
@@ -7713,7 +7734,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "memecoin"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -7863,6 +7885,7 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "backtest_5m",
       "backtest_5m"
     ],
     "confidence_threshold": 82,
@@ -7871,10 +7894,11 @@
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -13,
+      "SOLUSDT": -11,
       "TARO": 15,
       "\u96ea\u5c71\u6551\u72d0": -15,
-      "LOLA": -6
+      "LOLA": -6,
+      "NoHat": -3
     },
     "symbol_blacklist": {},
     "consecutive_losses": {},
