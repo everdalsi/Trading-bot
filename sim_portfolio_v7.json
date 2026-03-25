@@ -1,8 +1,37 @@
 {
   "sim": {
-    "cash": 20243270.397398993,
+    "cash": 19231893.61725464,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MEME_\u96ea\u5c71\u6551\u72d0_26": {
+        "id": 26,
+        "symbol": "\u96ea\u5c71\u6551\u72d0",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "\u96ea\u5c71\u6551\u72d0",
+        "price_in": 0.004737,
+        "price_out": null,
+        "qty": 213671842.91111457,
+        "amount_usd": 1012163.5198699497,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-25 04:25:49",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.004737,
+        "open_time": 1774412749.3830137,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_\u96ea\u5c71\u6551\u72d0_26"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -677,6 +706,33 @@
         "leverage": 1,
         "peak_price": 0.004737,
         "open_time": 1774412706.277237,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 26,
+        "symbol": "\u96ea\u5c71\u6551\u72d0",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "\u96ea\u5c71\u6551\u72d0",
+        "price_in": 0.004737,
+        "price_out": 3.682e-06,
+        "qty": 213671842.91111457,
+        "amount_usd": 1012163.5198699497,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": "\ud83d\uded1 MEME SL (-99.9%)",
+        "time_in": "2026-03-25 04:25:49",
+        "time_out": "2026-03-25 04:25:49",
+        "pnl": -1011376.780144,
+        "pnl_pct": -99.92,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.004737,
+        "open_time": 1774412749.3830137,
         "kelly_pct": 0.05
       }
     ],
@@ -4616,6 +4672,28 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-25 04:25"
+      },
+      {
+        "trade_id": -5,
+        "pnl": 3.0211,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-25 04:25"
+      },
+      {
+        "trade_id": 26,
+        "pnl": -1011376.780144,
+        "symbol": "\u96ea\u5c71\u6551\u72d0",
+        "market": "MEME",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "memecoin",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-25 04:25"
       }
     ],
     "patterns_to_avoid": [
@@ -4664,7 +4742,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
@@ -4818,7 +4895,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "memecoin"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -4910,6 +4988,7 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "backtest_5m",
       "backtest_5m"
     ],
     "confidence_threshold": 82,
@@ -4918,7 +4997,7 @@
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -15,
+      "SOLUSDT": -13,
       "TARO": 15,
       "\u96ea\u5c71\u6551\u72d0": -15,
       "LOLA": -3
