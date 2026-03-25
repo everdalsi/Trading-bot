@@ -4,14 +4,14 @@ import os
 def get_git_repo():
 try:
 from git import Repo
-return Repo(”/workspace”)
+return Repo("/workspace")
 except Exception:
-print(“⚠️ Git non disponible pour l’instant (cache Railway)”)
+print("⚠️ Git non disponible pour l’instant (cache Railway)")
 return None
 
 class EditBotFileTool(BaseTool):
-name: str = “EditBotFile”
-description: str = “Modifie bot.py ou tout autre fichier du projet avec du nouveau code”
+name: str = "EditBotFile"
+description: str = "Modifie bot.py ou tout autre fichier du projet avec du nouveau code"
 
 
 def _run(self, new_code: str, filename: str = "bot.py"):
@@ -25,9 +25,8 @@ def _run(self, new_code: str, filename: str = "bot.py"):
 
 
 class GitPushTool(BaseTool):
-name: str = “GitPushTool”
-description: str = “Commit + push sur GitHub → déclenche redéploiement Railway automatique”
-
+name: str = "GitPushTool"
+description: str = "Commit + push sur GitHub → déclenche redéploiement Railway automatique"
 
 def _run(self, commit_message: str):
     repo = get_git_repo()
