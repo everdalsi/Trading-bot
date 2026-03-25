@@ -4304,7 +4304,43 @@ async def run_telegram():
         ("agent_stop",     cmd_agent_stop),
         ("maxtrades",      cmd_maxtrades_FIXED),   # ← nom correct
         ("ask",            cmd_ask),
+        ("debate",            for cmd, fn in [
+        ("start",          cmd_start),
+        ("stop",           cmd_stop),
+        ("status",         cmd_status),
+        ("scan",           cmd_scan),
+        ("portfolio",      cmd_portfolio),
+        ("positions",      cmd_positions),
+        ("lecons",         cmd_lecons),
+        ("fermer",         cmd_fermer),
+        ("reset",          cmd_reset),
+        ("kelly",          cmd_kelly),
+        ("arbitrage",      cmd_arbitrage),
+        ("polymarket",     cmd_polymarket),
+        ("marches",        cmd_marches),
+        ("memes",          cmd_memes),
+        ("signaux",        cmd_signaux),
+        ("regles",         cmd_regles),
+        ("stats",          cmd_stats),
+        ("apprendre",      cmd_apprendre),
+        ("pool",           cmd_pool),
+        ("epargne",        cmd_epargne),
+        ("airdrops",       cmd_airdrops),
+        ("faucets",        cmd_faucets),
+        ("help",           cmd_help),
+        ("macro",          cmd_macro),
+        ("risque",         cmd_risque),
+        ("blacklist",      cmd_blacklist),
+        ("backtest",       cmd_backtest),
+        ("backtest_multi", cmd_backtest_multi),
+        ("resume",         cmd_resume),
+        ("agent",          cmd_agent),
+        ("agent_stop",     cmd_agent_stop),
+        ("maxtrades",      cmd_maxtrades_FIXED),
+        ("ask",            cmd_ask),
         ("debate",         cmd_debate),
+        ("lasttrades",     cmd_lasttrades),      # ← NOUVEAU
+        ("debugpnl",       cmd_debugpnl),        # ← NOUVEAU
     ]:
         _app.add_handler(CommandHandler(cmd, fn))
 
@@ -4377,6 +4413,40 @@ def _evolution_loop_MAIN():
 # ═══════════════════════════════════════════════════════════════
 #  ENTRYPOINT
 # ═══════════════════════════════════════════════════════════════
+# === PATCH DEBUG PnL + SAFETY CAP (anti-explosion memecoins) ===
+async def cmd_lasttrades(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    if not _auth(update): return
+    send = make_send(TELEGRAM_CHAT_ID)
+    trades = sim.get("trades", [])[-10:]
+    msg = "🔍 **DERNIERS 10 TRADES (détail brut)**\n\n"
+    for i, t in enumerate(reversed(trades), 1):
+        pnl = t.get("pnl", "PENDING")
+        pct = t.get("pnl_pct", "PENDING")
+        symbol = t.get("symbol", "?")
+        price_in = t.get("price_in", "?")
+        amount = t.get("amount_usd", "?")
+        lev = t.get("leverage", 1)
+        msg += f"{i}. {symbol} | {t.get('decision','?')} | ${amount} @ {price_in}\n"
+        msg += f"   PnL: ${pnl} ({pct}%) | Lev:{lev}x\n\n"
+    await update.message.reply_text(msg)
+
+async def cmd_debugpnl(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    if not _auth(update): return
+    send = make_send(TELEGRAM_CHAT_ID)
+    msg = "🛠️ **DEBUG PnL SAFETY**\n"
+    msg += f"Capital calculé : ${get_equity_safe():,.2f}\n"
+    msg += f"Dernier trade PnL brut : {sim.get('trades',[-1])[-1].get('pnl','N/A')}\n"
+    msg += "→ Si tu vois des millions → bug confirmé. On va capper maintenant."
+    await update.message.reply_text(msg)
+
+# Safety cap dans le calcul PnL (à appliquer partout où PnL est calculé)
+def safe_pnl(pnl_pct: float, amount_usd: float, leverage: float = 1) -> float:
+    """Empêche les gains absurdes sur memecoins à très petit prix"""
+    pnl = pnl_pct * amount_usd * leverage
+    if abs(pnl) > amount_usd * 100:   # > 100x en une seule trade = suspicion
+        print(f"[SAFETY-PnL] CAP appliqué ! {pnl:,.2f} → limité à 100x")
+        pnl = amount_usd * 100 * (1 if pnl > 0 else -1)
+    return round(pnl, 4)
 if __name__ == "__main__":
     print("🚀 Trading Bot v7.1 — WebSocket + Backtest + Agent Conscience + EXTREME LEARNING MODE")
 
