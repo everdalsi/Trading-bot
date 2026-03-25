@@ -52480,7 +52480,7 @@
       "backtest_5m"
     ],
     "confidence_threshold": 82,
-    "total_wins": 803,
+    "total_wins": 804,
     "total_losses": 1128,
     "symbol_scores": {
       "BTCUSDT": -15,
@@ -81542,6 +81542,55 @@
       }
     ],
     "good_setups": [
+      {
+        "symbol": "SOLUSDT",
+        "interval": "5m",
+        "days": 30,
+        "total_trades": 4,
+        "wins": 3,
+        "losses": 1,
+        "win_rate": 75.0,
+        "total_pnl": 17.71,
+        "total_pnl_pct": 1.77,
+        "sharpe": 14.34,
+        "max_drawdown": -0.2,
+        "profit_factor": 9.74,
+        "best_trade": 5.82,
+        "worst_trade": -1.0,
+        "final_equity": 1017.71,
+        "sl_used": 0.025,
+        "tp_used": 0.04,
+        "trades": [
+          {
+            "entry": 85.75285499999998,
+            "exit": 90.74,
+            "pnl": 11.614,
+            "pnl_pct": 5.82,
+            "exit_reason": "TP"
+          },
+          {
+            "entry": 91.22559,
+            "exit": 90.31,
+            "pnl": -2.0276,
+            "pnl_pct": -1.0,
+            "exit_reason": "TIMEOUT"
+          },
+          {
+            "entry": 90.25510499999999,
+            "exit": 91.61,
+            "pnl": 3.0266,
+            "pnl_pct": 1.5,
+            "exit_reason": "TIMEOUT"
+          },
+          {
+            "entry": 89.78486999999998,
+            "exit": 92.05,
+            "pnl": 5.1017,
+            "pnl_pct": 2.52,
+            "exit_reason": "TIMEOUT"
+          }
+        ]
+      },
       {
         "symbol": "SOLUSDT",
         "interval": "5m",
