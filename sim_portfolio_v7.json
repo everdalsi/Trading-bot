@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 950.0,
+    "cash": 1000.0,
     "initial": 1000.0,
     "positions": {
       "MEME_NoHat_66": {
@@ -1820,8 +1820,8 @@
       1000.0
     ],
     "session": 1,
-    "peak_equity": 1000.0,
-    "daily_start_equity": 1000.0,
+    "peak_equity": 1050.0,
+    "daily_start_equity": 1050.0,
     "daily_start_date": "2026-03-25"
   },
   "memory": {
@@ -25244,6 +25244,6 @@
         "status": "\u2705 Promos d\u00e9tect\u00e9es"
       }
     ],
-    "last_scan": 1774425732.2349384
+    "last_scan": 1774426076.4532108
   }
 }
