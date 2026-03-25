@@ -2,36 +2,7 @@
   "sim": {
     "cash": 989.772147133867,
     "initial": 1000.0,
-    "positions": {
-      "MEME_NoHat_61": {
-        "id": 61,
-        "symbol": "NoHat",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "NoHat",
-        "price_in": 0.0003347,
-        "price_out": null,
-        "qty": 148367.15791006986,
-        "amount_usd": 49.65848775250038,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-25 07:18:28",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0003347,
-        "open_time": 1774423108.248645,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_NoHat_61"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
