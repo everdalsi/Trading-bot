@@ -4384,19 +4384,13 @@ def _evolution_loop_MAIN():
 async def cmd_lasttrades(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
     try:
-        trades = sim.get("trades", [])[-15:]   # derniers 15 trades
+        trades = sim.get("trades", [])[-15:]
         if not trades:
             await update.message.reply_text("Aucun trade pour l’instant.")
             return
 
-        wins = 0
-        losses = 0
-        for t in trades:
-            pnl = t.get("pnl")
-            if isinstance(pnl, (int, float)) and pnl > 0:
-                wins += 1
-            elif isinstance(pnl, (int, float)):
-                losses += 1
+        wins = sum(1 for t in trades if isinstance(t.get("pnl"), (int, float)) and t.get("pnl") > 0)
+        losses = len(trades) - wins
 
         msg = f"**DERNIERS TRADES ({len(trades)} actions)** — {wins}✅ {losses}❌\n\n"
 
@@ -4405,24 +4399,21 @@ async def cmd_lasttrades(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             decision = str(t.get("decision", "?"))
             pnl = t.get("pnl", 0)
             pnl_pct = t.get("pnl_pct", 0)
-            lev = t.get("leverage", 1)
 
-            # Sécurité maximale
             if not isinstance(pnl, (int, float)):
                 pnl = 0
             if not isinstance(pnl_pct, (int, float)):
                 pnl_pct = 0
 
-            sign = "+" if pnl > 0 else ""
             color = "🟢" if pnl > 0 else "🔴"
-
+            sign = "+" if pnl > 0 else ""
             msg += f"{i}. {color} {symbol} | {decision}\n"
-            msg += f"   PnL: {sign}${pnl:,.0f} ({pnl_pct:.2f}%) | Lev:{lev}x\n\n"
+            msg += f"   PnL: {sign}${pnl:,.0f} ({pnl_pct:.1f}%)\n"
 
         await update.message.reply_text(msg)
 
     except Exception as e:
-        await update.message.reply_text(f"Erreur dans /lasttrades : {str(e)[:80]}")
+        await update.message.reply_text("Erreur /lasttrades. Tape /help")
         print(f"[LASTTRADES ERROR] {e}")
 
 async def cmd_debugpnl(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
