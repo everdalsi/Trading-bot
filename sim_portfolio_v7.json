@@ -1881,17 +1881,6 @@
   "memory": {
     "lessons": [
       {
-        "trade_id": -2,
-        "pnl": -1.6244,
-        "symbol": "ETHUSDT",
-        "market": "BACKTEST",
-        "lecon": "Entr\u00e9e trop agressive",
-        "pattern": "backtest_5m",
-        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
-        "type": "erreur",
-        "date": "2026-03-25 05:18"
-      },
-      {
         "trade_id": -1,
         "pnl": -0.0084,
         "symbol": "SOLUSDT",
@@ -12879,6 +12868,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-25 08:26"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -1.6253,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-25 08:27"
       }
     ],
     "patterns_to_avoid": [
@@ -12962,7 +12962,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
@@ -12972,6 +12971,7 @@
       "backtest_5m",
       "backtest_5m",
       "memecoin",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -13285,7 +13285,7 @@
       "backtest_5m",
       "backtest_5m"
     ],
-    "confidence_threshold": 26,
+    "confidence_threshold": 24,
     "total_wins": 214,
     "total_losses": 449,
     "symbol_scores": {
