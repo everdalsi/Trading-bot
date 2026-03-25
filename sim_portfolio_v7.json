@@ -16778,7 +16778,7 @@
     ],
     "confidence_threshold": 53,
     "total_wins": 331,
-    "total_losses": 555,
+    "total_losses": 556,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
@@ -32234,6 +32234,6 @@
         "status": "\u2705 Promos d\u00e9tect\u00e9es"
       }
     ],
-    "last_scan": 1774434615.4995835
+    "last_scan": 1774435184.219281
   }
 }
