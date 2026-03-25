@@ -11,7 +11,7 @@ improver = Agent(
     goal="Améliorer constamment le bot et les agents à partir de l'objectif principal",
     backstory="Tu es un ingénieur IA autonome. Tu analyses les performances, proposes du code, le testes et déploies.",
     tools=[CodeInterpreterTool(), EditBotFileTool(), GitPushTool()],
-    llm=get_llm(temperature=0.4),
+    llm="groq/llama3-70b-8192",        # ← MODIFICATION UNIQUE : string au lieu de get_llm()
     verbose=True,
     allow_code_execution=True
 )
