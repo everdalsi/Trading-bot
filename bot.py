@@ -26,7 +26,7 @@ def get_total_lessons():
     try:
         if hasattr(orchestrator, 'learning') and hasattr(orchestrator.learning, 'get_lesson_count'):
             return orchestrator.learning.get_lesson_count()
-    except:
+    except Exception:
         pass
     return len(memory.get("lessons", []))
 
@@ -2916,7 +2916,6 @@ def learn_from_trade(trade: dict, send_fn=None):
         memory["lessons"].append(lesson)
         db_save_lesson(lesson)
 
-        # Sauvegarde dans la mémoire infinie LearningAgent
         try:
             orchestrator.learning.save_lesson(lesson)
         except Exception as ex:
@@ -2925,12 +2924,11 @@ def learn_from_trade(trade: dict, send_fn=None):
         key = "patterns_that_work" if lesson_type == "succes" else "patterns_to_avoid"
         memory[key].append(pattern)
 
-        # === DÉBLOQUÉ : cap RAM beaucoup plus haut (15 000 en mode EXTREME) ===
+        # === DÉBLOQUÉ : cap RAM beaucoup plus haut ===
         MAX_RAM_LESSONS = 20000 if EXTREME_LEARNING_MODE else 5000
         if len(memory["lessons"]) > MAX_RAM_LESSONS:
             memory["lessons"] = memory["lessons"][-MAX_RAM_LESSONS:]
 
-        # Mise à jour du compteur DB
         if hasattr(orchestrator, 'learning'):
             lesson_count_db = orchestrator.learning.get_lesson_count()
             print(f"[LEARN] Leçons DB : {lesson_count_db}")
@@ -2956,6 +2954,7 @@ def learn_from_trade(trade: dict, send_fn=None):
 
     except Exception as e:
         print(f"[LEARN] {e}")
+        
 def auto_adjust():
     wr  = db_win_rate(20)
     cur = memory.get("confidence_threshold",CONFIDENCE_BASE)
@@ -3252,7 +3251,7 @@ def daily_summary(send_fn):
                 f"🚫 Blacklist: {bl_count} symbols\n"
                 f"━━━━━━━━━━━━━━━━━━━\n"
                 f"🏆 WR       : {stats['win_rate']}% ({stats['total']} trades)\n"
-                f"📚 Leçons   : {len(memory['lessons'])}/{MAX_LESSONS}\n"
+                f"📚 Leçons   : {get_total_lessons()}/{MAX_LESSONS}\n"
                 f"━━━━━━━━━━━━━━━━━━━\n"
                 f"🥇 Top coins:\n{best3}\n"
                 f"💡 Leçons récentes:\n{lessons}"
@@ -3264,7 +3263,7 @@ def daily_summary(send_fn):
 
         except Exception as e:
             print(f"[DAILY] {e}")
-
+            
 def self_ping():
     time.sleep(60)
     while True:
@@ -3307,13 +3306,6 @@ def generate_dashboard() -> str:
     if ai_hf:
         ai_pool_html += f"<br>HF:{ai_hf['calls']}/{ai_hf['max_calls_per_hour']}/h"
 
-    macro    = bot_state.get("macro_trend","NEUTRAL")
-    fg_val   = bot_state.get("fg_value",50)
-    daily_start = sim.get("daily_start_equity", CAPITAL_INITIAL)
-    daily_pnl   = equity - daily_start
-    daily_pct2  = daily_pnl/daily_start*100 if daily_start > 0 else 0
-    bl_list     = memory.get("symbol_blacklist",{})
-    ws_str      = "✅ WebSocket" if _ws_connected else "⚠️ REST"
     macro    = bot_state.get("macro_trend","NEUTRAL")
     fg_val   = bot_state.get("fg_value",50)
     daily_start = sim.get("daily_start_equity", CAPITAL_INITIAL)
@@ -3479,7 +3471,6 @@ code{{color:#58a6ff}}
 {lessons_html or '<tr><td colspan="5" style="text-align:center;color:#8b949e">Aucune leçon</td></tr>'}
 </tbody></table>
 </body></html>"""
-
 # ═══════════════════════════════════════════════════════════════
 #  SERVEUR HTTP + WEBHOOK
 # ═══════════════════════════════════════════════════════════════
@@ -3680,6 +3671,7 @@ async def cmd_status(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         f"🏆 WR       : {stats['win_rate']}% ({stats['total']} trades)\n"
         f"📍 Positions: {len(sim['positions'])}{pos_lines}\n"
         f"📊 Macro    : {macro_e} {macro} | F&G:{fg_val}/100\n"
+        f"📚 Leçons   : {get_total_lessons()}/{MAX_LESSONS}\n"
         f"{ws_str}{stop_str}"
     )
 
@@ -3868,13 +3860,14 @@ async def cmd_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 async def cmd_lecons(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
-    if not memory["lessons"]:
+    total = get_total_lessons()
+    if total == 0:
         await update.message.reply_text("Aucune leçon encore.")
         return
-    msg = f"📚 Leçons ({len(memory['lessons'])}/{MAX_LESSONS}):\n\n"
-    for l in memory["lessons"][-5:]:
-        e = "✅" if l["type"]=="succes" else "❌"
-        msg += f"{e} ${l.get('pnl',0):+.4f}\n{l['lecon']}\n→ {l['action_future']}\n\n"
+    msg = f"📚 Leçons totales : {total}/{MAX_LESSONS}\n\n"
+    for l in memory["lessons"][-8:]:
+        e = "✅" if l.get("type") == "succes" else "❌"
+        msg += f"{e} {l.get('lecon','')[:80]}\n→ {l.get('action_future','')[:80]}\n\n"
     await update.message.reply_text(msg)
 
 async def cmd_scan(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -3959,7 +3952,7 @@ async def cmd_stats(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     equity     = get_equity_safe(); pnl = equity - sim["initial"]; kelly = kelly_criterion()
     all_closed = [t for t in sim["trades"] if t.get("pnl") is not None]
     micro_t  = [t for t in all_closed if t.get("market")=="MICRO"]
-    meme_t   = [t for t in all_closed if t.get("market")=="MEME"]
+_t   = [t for t in all_closed if t.get("market")=="MEME"]
     normal_t = [t for t in all_closed if t.get("market") not in ("MICRO","MEME")]
     def wr(trades): return round(sum(1 for t in trades if t["pnl"]>0)/max(len(trades),1)*100,1)
     sym_lines = "\n".join(
@@ -3972,7 +3965,7 @@ async def cmd_stats(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         f"🐸 Meme:{len(meme_t)} WR:{wr(meme_t)}%\n"
         f"🔍 Classiq:{len(normal_t)} WR:{wr(normal_t)}%\n"
         f"Blacklist:{len(memory.get('symbol_blacklist',{}))} symbols\n"
-        f"📚 Leçons:{len(memory['lessons'])}/{MAX_LESSONS}\n"
+        f"📚 Leçons:{get_total_lessons()}/{MAX_LESSONS}\n"
         f"🧠 Cache AI:{_pool_stats['cache_hits']} hits"
     )
 
