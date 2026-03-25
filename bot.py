@@ -4270,7 +4270,10 @@ async def run_telegram():
             ))
             .updater(None).build())
 
-        for cmd, fn in [
+            # ═══════════════════════════════════════════════════════════════        
+    #  APPLICATION TELEGRAM — Command handlers
+    # ═══════════════════════════════════════════════════════════════
+    for cmd, fn in [
         ("start",          cmd_start),
         ("stop",           cmd_stop),
         ("status",         cmd_status),
@@ -4305,8 +4308,8 @@ async def run_telegram():
         ("maxtrades",      cmd_maxtrades_FIXED),
         ("ask",            cmd_ask),
         ("debate",         cmd_debate),
-        ("lasttrades",     cmd_lasttrades),      # ← ajouté
-        ("debugpnl",       cmd_debugpnl),        # ← ajouté
+        ("lasttrades",     cmd_lasttrades),
+        ("debugpnl",       cmd_debugpnl),
     ]:
         _app.add_handler(CommandHandler(cmd, fn))
 
