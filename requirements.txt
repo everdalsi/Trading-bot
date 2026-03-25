@@ -16,4 +16,4 @@ gitpython
 chromadb
 langchain-groq
 litellm
-
+prometheus-client
