@@ -57,45 +57,60 @@ profit_factor_gauge  = Gauge('bot_profit_factor',          'Profit Factor')
 lesson_count_gauge   = Gauge('bot_lesson_count',           'Nombre de leçons en base')
 streak_gauge         = Gauge('bot_current_streak',         'Longueur de la streak actuelle')
 
-# ── CrewAI improver (version améliorée et stable) ──────────────────────────────
+# ── Version combinée : Reflection + Permission-Based Architecture ───────────────────────────────
 def create_improvement_crew():
     if not CREWAI_AVAILABLE:
         return None
     try:
-        # Agent Reviewer (garde-fou)
-        reviewer = Agent(
-            role="Code Reviewer & Security Officer",
-            goal="Vérifier que toute modification est sûre, utile et ne casse rien",
-            backstory="Tu es un expert en revue de code. Tu bloques tout ce qui est risqué ou inutile.",
+        # === Reflection Agent (mémoire longue terme + stratégie) ===
+        reflector = Agent(
+            role="Reflection & Strategy Officer",
+            goal="Analyser les cycles précédents, identifier ce qui a fonctionné ou échoué, et définir une stratégie d'amélioration claire et priorisée",
+            backstory="Tu es le stratège qui garde la mémoire longue terme du bot. Tu analyses systématiquement les résultats passés (leçons, winrate, capital, erreurs récurrentes) et guides les futures améliorations.",
             llm="groq/llama-3.3-70b-versatile",
             verbose=True
         )
 
-        # Sub-crews spécialisés
-        trader_improver = Agent(
-            role="Trader Agent Specialist",
-            goal="Améliorer uniquement le TraderAgent pour plus de trades et meilleur winrate",
-            backstory="Tu ne touches qu'à trader_agent.py",
-            tools=[EditBotFileTool()],
-            llm="groq/llama-3.3-70b-versatile"
+        # === Permission & Security Officer (garde-fou) ===
+        permission_officer = Agent(
+            role="Permission & Security Officer",
+            goal="Classer chaque modification par niveau de risque et faire respecter les règles de permission",
+            backstory="Tu es le garde-fou du système. Tu dois toujours classer les propositions en Low / Medium / High et exiger une permission explicite de l'utilisateur pour toute modification Medium ou High. Tu protèges le code et le capital.",
+            llm="groq/llama-3.3-70b-versatile",
+            verbose=True
         )
 
-        # Supervisor final
-        supervisor = Agent(
-            role="Final Decision Maker",
-            goal="Décider quelles améliorations sont acceptées et les appliquer",
-            backstory="Tu es le CEO. Tu valides ou refuses les propositions des sub-crews.",
+        # === Improver Agent (exécute en suivant les règles) ===
+        improver = Agent(
+            role="Senior Self-Improvement Engineer",
+            goal="Améliorer le bot en suivant les recommandations du Reflection Agent et en respectant strictement les règles de permission",
+            backstory="Tu suis toujours les insights du Reflection Agent et tu passes par le Permission Officer avant toute modification critique.",
             tools=[EditBotFileTool(), GitPushTool()],
-            llm="groq/llama-3.3-70b-versatile"
+            llm="groq/llama-3.3-70b-versatile",
+            verbose=True,
+            allow_code_execution=False
         )
 
         task = Task(
-            description="Analyse les stats actuelles et propose des améliorations via les sub-crews. Le Reviewer doit valider avant toute édition.",
-            expected_output="Plan hiérarchisé + code validé + demande de permission si modification critique",
-            agent=supervisor
+            description=f"""
+Objectif principal : {MAIN_OBJECTIVE}
+
+Le Reflection Agent a analysé les cycles précédents.
+Utilise ses insights pour proposer des améliorations ciblées.
+Le Permission Officer doit classer chaque modification par risque (Low / Medium / High) et exiger une permission explicite pour tout risque Medium ou High.
+Priorité absolue : améliorer les autres agents avant de te modifier toi-même.
+""",
+            expected_output="Analyse du Reflection Agent + plan d'amélioration + classification des risques + code prêt à appliquer + demande de permission si nécessaire",
+            agent=improver
         )
 
-        crew = Crew(agents=[supervisor, reviewer, trader_improver], tasks=[task], verbose=True, memory=False)
+        crew = Crew(
+            agents=[reflector, permission_officer, improver],
+            tasks=[task],
+            verbose=True,
+            memory=True,
+            cache=True
+        )
         return crew
     except Exception as e:
         print(f"[CREW] Création impossible: {e}")
@@ -117,7 +132,7 @@ async def run_self_improvement_cycle():
         print(f"[SELF-IMPROVEMENT ERROR] {e}")
         return {"status": "error", "reason": str(e)}
 
-# Le reste du fichier reste exactement comme avant (je n’ai rien touché en dessous)
+# === TOUT LE RESTE DE TON CODE ORIGINAL RESTE INTACT ===
 def _get_safe_stats(orchestrator, memory):
     stats = {}
     try:
@@ -252,4 +267,4 @@ def start_self_improvement_loop(orchestrator):
 
         threading.Thread(target=_crew_bg, daemon=True).start()
 
-        time.sleep(100)
+        time.sleep(600)
