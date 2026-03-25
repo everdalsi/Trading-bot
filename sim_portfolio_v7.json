@@ -1,8 +1,37 @@
 {
   "sim": {
-    "cash": 258.6573159774144,
+    "cash": 245.72445017854366,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MEME_Figure03_188": {
+        "id": 188,
+        "symbol": "Figure03",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "Figure03",
+        "price_in": 0.0005319,
+        "price_out": null,
+        "qty": 24314.468506995152,
+        "amount_usd": 12.93286579887072,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-25 17:16:08",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0005319,
+        "open_time": 1774458968.4856598,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_Figure03_188"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -5051,6 +5080,33 @@
         "leverage": 1,
         "peak_price": 0.0007064,
         "open_time": 1774457282.6868303,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 188,
+        "symbol": "Figure03",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "Figure03",
+        "price_in": 0.0005319,
+        "price_out": null,
+        "qty": 24314.468506995152,
+        "amount_usd": 12.93286579887072,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-25 17:16:08",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0005319,
+        "open_time": 1774458968.4856598,
         "kelly_pct": 0.05
       }
     ],
@@ -42595,6 +42651,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-25 17:16"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -1.8177,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-25 17:16"
       }
     ],
     "patterns_to_avoid": [
@@ -42608,7 +42675,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
@@ -42713,6 +42779,7 @@
       "backtest_5m",
       "backtest_5m",
       "memecoin",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -43207,7 +43274,7 @@
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -11,
+      "SOLUSDT": -14,
       "TARO": 15,
       "\u96ea\u5c71\u6551\u72d0": -15,
       "LOLA": -15,
