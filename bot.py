@@ -4149,22 +4149,20 @@ async def _ask_agent_multi(chat_id: int, query: str) -> str:
 # ═══════════════════════════════════════════════════════════════
 #  HANDLERS MODE SECRÉTAIRE (obligatoires)
 # ═══════════════════════════════════════════════════════════════
-
 async def _ask_secretary(chat_id: int, question: str) -> str:
-    """Agent Conscience — UNE SEULE VOIX naturelle (comme Grok)"""
+    """Agent Conscience — Version intelligente : réfléchit, répond naturellement et délègue si besoin"""
     try:
         ctx = _build_multi_agent_context()
         responses, final = await orchestrator.ask_all(question, ctx)
 
-        # === Réponse 100% naturelle, une seule personne ===
+        # Réponse naturelle comme une vraie personne
         msg = "🧠 **Hey boss**, c’est ton Agent Conscience qui te parle !\n\n"
         msg += f"**Ta question :** {question}\n\n"
 
-        # On prend UNIQUEMENT la synthèse finale du CEO
+        # Synthèse finale + raisonnement
         synthesis = final.get("full_summary") or final.get("summary", "J’ai consulté toute l’équipe.")
         recommendation = final.get("recommendation", "")
 
-        # On nettoie les éventuels bullets qui pourraient rester
         synthesis = synthesis.replace("• ", "").replace("- ", "").strip()
 
         msg += f"{synthesis}\n\n"
@@ -4172,7 +4170,11 @@ async def _ask_secretary(chat_id: int, question: str) -> str:
         if recommendation:
             msg += f"**Ma décision claire :** {recommendation}\n\n"
 
-        msg += "Je suis chaud. Dis-moi si tu veux que je force un trade précis, qu’on analyse un symbole en détail, ou qu’on ajuste la stratégie — je gère tout pour toi."
+        # Si la question nécessite une action, je le dis clairement
+        if any(word in question.lower() for word in ["trade", "acheter", "vendre", "entry", "position", "lance", "force"]):
+            msg += "Je vais déléguer ça aux agents Trader + Risk + Supervisor pour qu’ils prennent une décision précise.\n"
+
+        msg += "Dis-moi si tu veux que je force un trade précis, que j’analyse un symbole en détail, ou que j’ajuste la stratégie — je gère tout pour toi."
 
         # Sauvegarde conversation
         AGENT_CHAT_MEMORY[chat_id].append({"role": "user", "content": question})
@@ -4385,22 +4387,25 @@ def _evolution_loop_MAIN():
 async def cmd_lasttrades(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
     trades = sim.get("trades", [])[-15:]  # derniers 15 trades
+    if not trades:
+        await update.message.reply_text("Aucun trade pour l’instant.")
+        return
+
     wins = sum(1 for t in trades if t.get("pnl", 0) > 0)
     losses = len(trades) - wins
-    
+
     msg = f"**DERNIERS TRADES ({len(trades)} actions)** — {wins}✅ {losses}❌\n\n"
     
     for i, t in enumerate(reversed(trades), 1):
         symbol = t.get("symbol", "UNKNOWN")
         decision = t.get("decision", "?")
-        amount = t.get("amount_usd", "?")
         pnl = t.get("pnl", 0)
         pnl_pct = t.get("pnl_pct", 0)
         lev = t.get("leverage", 1)
         
         sign = "+" if pnl > 0 else ""
         color = "🟢" if pnl > 0 else "🔴"
-        msg += f"{i}. {color} {symbol} | {decision} | ${amount:,.0f}\n"
+        msg += f"{i}. {color} {symbol} | {decision}\n"
         msg += f"   PnL: {sign}${pnl:,.0f} ({pnl_pct:.2f}%) | Lev:{lev}x\n\n"
     
     await update.message.reply_text(msg)
