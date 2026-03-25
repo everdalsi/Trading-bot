@@ -2932,7 +2932,12 @@ def learn_from_trade(trade: dict, send_fn=None):
         key = "patterns_that_work" if lesson_type == "succes" else "patterns_to_avoid"
         memory[key].append(pattern)
 
-        memory["lessons"] = memory["lessons"][-500:]     # 500 en RAM, infini en DB
+        memory["lessons"] = memory["lessons"][-1000:]     # 500 en RAM, infini en DB 
+        
+        if hasattr(orchestrator, 'learning'):
+            lesson_count_db = orchestrator.learning.get_lesson_count()
+            print(f"[LEARN] Leçons DB : {lesson_count_db}")
+    
         memory["patterns_that_work"] = memory["patterns_that_work"][-200:]
         memory["patterns_to_avoid"] = memory["patterns_to_avoid"][-200:]
 
@@ -3222,7 +3227,10 @@ def daily_summary(send_fn):
             today = now.strftime("%Y-%m-%d")
 
             t_day = [t for t in sim["trades"] if t.get("time_in", "").startswith(today)]
-            pnl_day = sum(t["pnl"] for t in t_day if t.get("pnl") is not None)
+            pnl_day = sum(t.get("pnl", 0) for t in t_day if t.get("pnl") is not None)
+
+        if isinstance(pnl_day, (int, float)) and abs(pnl_day) > 100000:
+            pnl_day = 0.0  # sécurité contre les valeurs folles
 
             sym_s = db_symbol_stats()
             best3 = "\n".join(
