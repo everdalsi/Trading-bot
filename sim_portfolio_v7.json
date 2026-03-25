@@ -2,36 +2,7 @@
   "sim": {
     "cash": 240.2002689118319,
     "initial": 1000.0,
-    "positions": {
-      "MEME_WOJAK_197": {
-        "id": 197,
-        "symbol": "WOJAK",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "WOJAK",
-        "price_in": 0.0002857,
-        "price_out": null,
-        "qty": 44053.31672535519,
-        "amount_usd": 12.586032588433977,
-        "confidence": 95,
-        "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-25 19:15:56",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0002857,
-        "open_time": 1774466156.2152236,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_WOJAK_197"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
@@ -50970,8 +50941,8 @@
       "backtest_5m"
     ],
     "confidence_threshold": 82,
-    "total_wins": 779,
-    "total_losses": 1101,
+    "total_wins": 780,
+    "total_losses": 1102,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
