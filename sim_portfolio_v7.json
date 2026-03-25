@@ -51136,6 +51136,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-25 19:28"
+      },
+      {
+        "trade_id": -5,
+        "pnl": 5.0924,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-25 19:28"
       }
     ],
     "patterns_to_avoid": [
@@ -51744,11 +51755,11 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 791,
-    "total_losses": 1115,
+    "total_losses": 1116,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -1,
+      "SOLUSDT": 1,
       "TARO": 15,
       "\u96ea\u5c71\u6551\u72d0": -15,
       "LOLA": -15,
@@ -79258,6 +79269,34 @@
             "entry": 2182.97094,
             "exit": 2173.23,
             "pnl": -0.8897,
+            "pnl_pct": -0.45,
+            "exit_reason": "TIMEOUT"
+          }
+        ]
+      },
+      {
+        "symbol": "ETHUSDT",
+        "interval": "5m",
+        "days": 30,
+        "total_trades": 1,
+        "wins": 0,
+        "losses": 1,
+        "win_rate": 0.0,
+        "total_pnl": -0.89,
+        "total_pnl_pct": -0.09,
+        "sharpe": 0.0,
+        "max_drawdown": -0.09,
+        "profit_factor": 0.0,
+        "best_trade": -0.45,
+        "worst_trade": -0.45,
+        "final_equity": 999.11,
+        "sl_used": 0.025,
+        "tp_used": 0.04,
+        "trades": [
+          {
+            "entry": 2182.97094,
+            "exit": 2173.23,
+            "pnl": -0.8911,
             "pnl_pct": -0.45,
             "exit_reason": "TIMEOUT"
           }
