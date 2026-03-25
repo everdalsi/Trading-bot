@@ -22,7 +22,7 @@ DB_FILE = "sim_v7.db"
 
 class PerformanceTracker:
 
-    # ─────────────────────────────────────────────────────────────
+        # ─────────────────────────────────────────────────────────────
     #  MISE À JOUR DES TRADES EN COURS
     # ─────────────────────────────────────────────────────────────
     def update_trade_results(self, memory: dict, current_price: float) -> dict:
@@ -57,9 +57,13 @@ class PerformanceTracker:
                 leverage = trade.get("leverage", 1)
 
                 trade["pnl_pct"] = round(pnl_pct * 100 * leverage, 2)
-                # === PATCH SAFETY : empêche les +148713% fantômes ===
+
+                # === PATCH SAFETY : empêche les +148713% fantômes sur memecoins ===
                 trade["pnl"]     = safe_pnl(pnl_pct, amount, leverage)
-                trade["result"]  = "win" if pnl_pct > 0 else "loss" if pnl_pct < 0 else "neutral"    return memory  # retourne la même référence (pas de réassignation)
+
+                trade["result"]  = "win" if pnl_pct > 0 else "loss" if pnl_pct < 0 else "neutral"
+
+            return memory  # retourne la même référence (pas de réassignation)
 
         except Exception as e:
             print(f"[PERF-TRACKER] update_trade_results error: {e}")
