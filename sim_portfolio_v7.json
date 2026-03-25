@@ -16952,6 +16952,28 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-25 00:45"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -0.0084,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-25 00:45"
+      },
+      {
+        "trade_id": -2,
+        "pnl": -1.8177,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-25 00:45"
       }
     ],
     "patterns_to_avoid": [
@@ -17152,9 +17174,9 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "memecoin",
       "backtest_5m",
-      "backtest_5m",
-      "memecoin"
+      "backtest_5m"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -17358,13 +17380,13 @@
       "backtest_5m",
       "backtest_5m"
     ],
-    "confidence_threshold": 11,
+    "confidence_threshold": 17,
     "total_wins": 648,
-    "total_losses": 866,
+    "total_losses": 867,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -13,
+      "SOLUSDT": -15,
       "Computer": 15,
       "CHIBILAND": -13,
       "USDUC": 4,
