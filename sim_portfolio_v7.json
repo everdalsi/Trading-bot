@@ -30,34 +30,6 @@
         "open_time": 1774285567.7282703,
         "kelly_pct": 0.05,
         "pos_key": "MEME_7_166"
-      },
-      "MEME_\u96ea\u5c71\u6551\u72d0_426": {
-        "id": 426,
-        "symbol": "\u96ea\u5c71\u6551\u72d0",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "\u96ea\u5c71\u6551\u72d0",
-        "price_in": 0.001651,
-        "price_out": null,
-        "qty": 2.6494714154296467e+154,
-        "amount_usd": 4.3742773068743464e+151,
-        "confidence": 95,
-        "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-25 00:49:20",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.001651,
-        "open_time": 1774399760.9521556,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_\u96ea\u5c71\u6551\u72d0_426"
       }
     },
     "trades": [
