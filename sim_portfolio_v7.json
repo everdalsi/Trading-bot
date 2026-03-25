@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 1050.4522705827194,
+    "cash": 1000.0,
     "initial": 1000.0,
     "positions": {},
     "trades": [
@@ -1575,8 +1575,8 @@
       1000.0
     ],
     "session": 1,
-    "peak_equity": 1052.5758316033882,
-    "daily_start_equity": 1052.5758316033882,
+    "peak_equity": 1000.0,
+    "daily_start_equity": 1000.0,
     "daily_start_date": "2026-03-25"
   },
   "memory": {
@@ -22234,6 +22234,6 @@
         "status": "\u2705 Promos d\u00e9tect\u00e9es"
       }
     ],
-    "last_scan": 1774421194.2199845
+    "last_scan": 1774421558.7853086
   }
 }
