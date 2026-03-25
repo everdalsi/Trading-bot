@@ -49649,7 +49649,7 @@
       "backtest_5m"
     ],
     "confidence_threshold": 82,
-    "total_wins": 760,
+    "total_wins": 761,
     "total_losses": 1082,
     "symbol_scores": {
       "BTCUSDT": -15,
