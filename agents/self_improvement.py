@@ -2,6 +2,8 @@ import asyncio
 import time
 import traceback
 import threading
+import datetime      # ← ajouté
+import random        # ← ajouté
 
 try:
     from crewai import Crew, Task, Agent
@@ -174,86 +176,39 @@ def _run_evolution_cycle_sync(evolution_agent, orchestrator, memory, cycle_count
 
 
 def start_self_improvement_loop(orchestrator):
-
-    if PROMETHEUS_AVAILABLE:
-        try:
-            start_http_server(8001)
-            print("📡 Prometheus metrics exposées sur :8001/metrics")
-        except Exception as e:
-            print(f"⚠️ Prometheus déjà démarré ou port occupé: {e}")
-
-    if EvolutionAgent is None:
-        print("⚠️ EvolutionAgent non disponible — boucle d'évolution désactivée")
-        return
-
-    try:
-        evolution = EvolutionAgent(orchestrator)
-    except Exception as e:
-        print(f"❌ Impossible d'instancier EvolutionAgent: {e}")
-        return
-
-    cycle_count       = 0
-    success_count     = 0
-    error_count       = 0
-    consecutive_errors = 0
-    max_consecutive_errors = 8
-    backoff_seconds   = 30
-
-    print("🧬 [EVOLUTION] Boucle démarrée")
+    """Boucle d'auto-amélioration avec optimisation rate limit Groq"""
+    print("[SELF-IMPROVEMENT] Boucle démarrée avec optimisation rate limit")
+    cycle = 0
+    last_rate_limit = 0
 
     while True:
-        cycle_count += 1
-        start_time = time.time()
+        cycle += 1
+        print(f"[SELF-IMPROVEMENT] Cycle #{cycle} - {datetime.datetime.now().strftime('%H:%M:%S')}")
 
         try:
-            print(f"\n{'='*60}")
-            print(f"🧬 [EVOLUTION] Cycle #{cycle_count} | Succès:{success_count} | Erreurs:{error_count}")
-
-            memory = getattr(orchestrator, 'memory', {}) or {}
-            stats  = _get_safe_stats(orchestrator, memory)
-            lesson_count = _get_safe_lesson_count(orchestrator)
-
-            winrate_gauge.set(stats.get('winrate', 0))
-            recent_winrate_gauge.set(stats.get('recent_winrate', 0))
-            sharpe_gauge.set(stats.get('sharpe', 0))
-            profit_factor_gauge.set(stats.get('profit_factor', 0))
-            lesson_count_gauge.set(lesson_count)
-            streak_gauge.set(stats.get('streak_count', 0))
-
-            result = _run_evolution_cycle_sync(evolution, orchestrator, memory, cycle_count)
-
-            duration = time.time() - start_time
-            evolution_cycles_total.inc()
-            evolution_success_total.inc()
-            evolution_cycle_duration.observe(duration)
-
-            print(f"✅ Cycle #{cycle_count} terminé en {duration:.1f}s")
-            print(f"   Résultat : {result.get('summary', 'OK')}")
-            success_count     += 1
-            consecutive_errors = 0
-            backoff_seconds    = 30
+            crew = create_improvement_crew()
+            if crew:
+                result = crew.kickoff()
+                print(f"[SELF-IMPROVEMENT] Cycle terminé - {result}")
+                
+                # Mise à jour Prometheus
+                evolution_cycles_total.inc()
+                if hasattr(performance_tracker, 'winrate_gauge'):
+                    performance_tracker.winrate_gauge.set(performance_tracker.get_winrate())
 
         except Exception as e:
-            error_count       += 1
-            consecutive_errors += 1
-            duration = time.time() - start_time
-
-            evolution_cycles_total.inc()
-            evolution_errors_total.inc()
-            evolution_cycle_duration.observe(duration)
-
-            print(f"❌ Cycle #{cycle_count} échoué en {duration:.1f}s — {str(e)[:150]}")
-            traceback.print_exc()
-
-            if consecutive_errors >= max_consecutive_errors:
-                print("⚠️ Trop d'erreurs consécutives → pause 30 minutes")
-                time.sleep(1800)
-                consecutive_errors = 0
-                backoff_seconds    = 30
+            if "rate_limit_exceeded" in str(e).lower() or "RateLimitError" in str(type(e).__name__):
+                wait_seconds = min(45, 8 * (2 ** (cycle % 5)))  # backoff exponentiel
+                print(f"[RATE LIMIT] Groq limite atteinte → pause {wait_seconds}s")
+                time.sleep(wait_seconds)
+                last_rate_limit = time.time()
+                continue
             else:
-                time.sleep(backoff_seconds)
-                backoff_seconds = min(backoff_seconds * 2, 600)
-            continue
+                print(f"[SELF-IMPROVEMENT ERROR] {e}")
+
+        # Délai adaptatif optimisé rate limit
+        base_sleep = 35 if (time.time() - last_rate_limit < 300) else 22
+        time.sleep(base_sleep + random.uniform(0, 8))  # jitter
 
         def _crew_bg():
             try:
