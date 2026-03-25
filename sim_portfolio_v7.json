@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 7.157617443499862e+152,
+    "cash": 6.927821762384773e+153,
     "initial": 1000.0,
     "positions": {
       "MEME_7_166": {
@@ -30,6 +30,34 @@
         "open_time": 1774285567.7282703,
         "kelly_pct": 0.05,
         "pos_key": "MEME_7_166"
+      },
+      "MEME_CIA_431": {
+        "id": 431,
+        "symbol": "CIA",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "CIA",
+        "price_in": 0.0002494,
+        "price_out": null,
+        "qty": 1.434967410485137e+155,
+        "amount_usd": 3.5788087217499315e+151,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-25 00:58:40",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.04354,
+        "open_time": 1774400320.3999422,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_CIA_431"
       }
     },
     "trades": [
@@ -11642,6 +11670,33 @@
         "peak_price": 0.0005374,
         "open_time": 1774399948.9579504,
         "kelly_pct": 0.05
+      },
+      {
+        "id": 431,
+        "symbol": "CIA",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "CIA",
+        "price_in": 0.0002494,
+        "price_out": 0.04354,
+        "qty": 1.434967410485137e+155,
+        "amount_usd": 3.5788087217499315e+151,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": "\ud83c\udfaf MEME TP (+17357.9%)",
+        "time_in": "2026-03-25 00:58:40",
+        "time_out": "2026-03-25 00:58:40",
+        "pnl": 6.212060018034788e+153,
+        "pnl_pct": 17357.9,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0002494,
+        "open_time": 1774400320.3999422,
+        "kelly_pct": 0.05
       }
     ],
     "equity_history": [],
@@ -18317,6 +18372,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-25 00:57"
+      },
+      {
+        "trade_id": 431,
+        "pnl": 6.212060018034788e+153,
+        "symbol": "CIA",
+        "market": "MEME",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "memecoin",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-25 00:58"
       }
     ],
     "patterns_to_avoid": [
@@ -18563,7 +18629,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "memecoin",
       "backtest_5m",
@@ -18721,7 +18786,8 @@
       "backtest_5m",
       "memecoin",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "memecoin"
     ],
     "confidence_threshold": 82,
     "total_wins": 660,
