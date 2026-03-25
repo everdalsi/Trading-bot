@@ -30,34 +30,6 @@
         "open_time": 1774416738.2989807,
         "kelly_pct": 0.05,
         "pos_key": "MEME_LOLA_52"
-      },
-      "MEME_NoHat_53": {
-        "id": 53,
-        "symbol": "NoHat",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "NoHat",
-        "price_in": 0.0002575,
-        "price_out": null,
-        "qty": 184114.43114336883,
-        "amount_usd": 47.40946601941748,
-        "confidence": 95,
-        "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-25 05:33:00",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0002575,
-        "open_time": 1774416780.5242827,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_NoHat_53"
       }
     },
     "trades": [
