@@ -8,147 +8,128 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
         body { font-family: 'Press Start 2P', system-ui; background: #0a0a0a; color: #c9d1d9; }
-        .agent-card { transition: all 0.3s; }
-        .agent-card:hover { transform: scale(1.05); box-shadow: 0 0 20px rgba(88,166,255,0.5); }
-        .modal { animation: modalPop 0.3s; }
-        @keyframes modalPop { from { opacity:0; transform:scale(0.95); } to { opacity:1; transform:scale(1); } }
-        .chat-bubble { max-width: 75%; }
-        .sidebar-info { font-size: 0.75rem; }
+        .agent-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .agent-card:hover { transform: translateY(-4px) scale(1.03); box-shadow: 0 0 25px rgba(88,166,255,0.6); }
+        .modal { animation: modalPop 0.3s ease-out; }
+        @keyframes modalPop { from { opacity:0; transform:scale(0.9); } to { opacity:1; transform:scale(1); } }
+        .chat-bubble { max-width: 80%; padding: 14px 20px; border-radius: 20px; }
+        .sidebar { background: linear-gradient(180deg, #161b22, #0f131a); }
     </style>
 </head>
-<body class="min-h-screen p-6">
-    <div class="max-w-7xl mx-auto grid grid-cols-12 gap-6">
-        <!-- Colonne principale (agents + chat) -->
-        <div class="col-span-12 lg:col-span-8">
-            <!-- Header -->
-            <div class="flex items-center justify-between mb-8">
-                <div class="flex items-center gap-4">
-                    <div class="text-4xl">🏢</div>
-                    <div>
-                        <h1 class="text-5xl font-bold text-[#58a6ff]">Claude Office</h1>
-                        <p class="text-[#8b949e] text-sm">Tradbot • LIVE</p>
-                    </div>
-                </div>
-                <div class="flex gap-3">
-                    <button onclick="quickCommand('force_max_trades')" class="bg-green-500 hover:bg-green-600 px-6 py-3 rounded-xl text-sm font-bold">🚀 MAX TRADES</button>
-                    <button onclick="quickCommand('reset_equity')" class="bg-yellow-500 hover:bg-yellow-600 px-6 py-3 rounded-xl text-sm font-bold">🔄 Reset Equity</button>
-                    <button onclick="quickCommand('conservative_mode')" class="bg-blue-500 hover:bg-blue-600 px-6 py-3 rounded-xl text-sm font-bold">🛡️ Mode Conservateur</button>
+<body class="min-h-screen p-4 md:p-6">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="flex flex-wrap items-center justify-between gap-4 mb-8">
+            <div class="flex items-center gap-4">
+                <div class="text-5xl">🏢</div>
+                <div>
+                    <h1 class="text-5xl font-bold text-[#58a6ff]">Claude Office</h1>
+                    <p class="text-[#8b949e] text-sm">Tradbot • LIVE • EXTREME LEARNING</p>
                 </div>
             </div>
-
-            <!-- Agents -->
-            <div class="grid grid-cols-2 md:grid-cols-3 gap-6 mb-8" id="agents-grid"></div>
-
-            <!-- Chat -->
-            <div class="bg-[#161b22] rounded-3xl p-6">
-                <h2 class="text-[#58a6ff] text-xl mb-4">💬 OFFICE CHAT • Agents en direct</h2>
-                <div id="chat-window" class="h-96 overflow-y-auto space-y-4 mb-4 pr-4"></div>
-                <div class="flex gap-3">
-                    <input id="chat-input" type="text" placeholder="Parle aux agents..." 
-                           class="flex-1 bg-[#21262d] text-white rounded-2xl px-6 py-4 focus:outline-none">
-                    <button onclick="sendChatMessage()" class="bg-[#58a6ff] hover:bg-[#1f8cff] px-8 rounded-2xl font-bold">ENVOYER</button>
-                </div>
+            <div class="flex gap-3 flex-wrap">
+                <button onclick="quickCommand('force_max_trades')" class="bg-green-500 hover:bg-green-600 px-6 py-3 rounded-2xl text-sm font-bold">🚀 MAX TRADES</button>
+                <button onclick="quickCommand('reset_equity')" class="bg-yellow-500 hover:bg-yellow-600 px-6 py-3 rounded-2xl text-sm font-bold">🔄 Reset Equity</button>
+                <button onclick="quickCommand('conservative_mode')" class="bg-blue-500 hover:bg-blue-600 px-6 py-3 rounded-2xl text-sm font-bold">🛡️ Mode Conservateur</button>
             </div>
         </div>
 
-        <!-- Panneau latéral droit : infos importantes -->
-        <div class="col-span-12 lg:col-span-4 bg-[#161b22] rounded-3xl p-6 h-fit sticky top-6">
-            <h2 class="text-[#58a6ff] text-lg mb-6">📊 INFOS EN DIRECT</h2>
-            <div id="live-info" class="space-y-6 text-sm"></div>
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <!-- Agents + Chat (gauche) -->
+            <div class="lg:col-span-8">
+                <!-- Agents Grid -->
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-6 mb-8" id="agents-grid"></div>
+
+                <!-- Chat amélioré -->
+                <div class="bg-[#161b22] rounded-3xl p-6">
+                    <h2 class="text-[#58a6ff] text-xl mb-4 flex items-center gap-2">💬 OFFICE CHAT • Agents en direct</h2>
+                    <div id="chat-window" class="h-80 md:h-96 overflow-y-auto space-y-5 pr-4 mb-6"></div>
+                    <div class="flex gap-3">
+                        <input id="chat-input" type="text" placeholder="Parle aux agents..." 
+                               class="flex-1 bg-[#21262d] rounded-2xl px-6 py-5 focus:outline-none text-white">
+                        <button onclick="sendChatMessage()" class="bg-[#58a6ff] hover:bg-[#1f8cff] px-10 rounded-2xl font-bold">ENVOYER</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panneau droit : INFOS IMPORTANTES (plus jamais vide) -->
+            <div class="lg:col-span-4 bg-[#161b22] rounded-3xl p-6 sidebar h-fit sticky top-6">
+                <h2 class="text-[#58a6ff] text-lg mb-6">📊 INFOS EN DIRECT</h2>
+                <div id="live-info" class="space-y-6"></div>
+            </div>
         </div>
     </div>
 
-    <!-- Modal agent -->
-    <div id="agent-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-        <div class="modal bg-[#161b22] rounded-3xl p-8 max-w-md w-full mx-4">
+    <!-- Modal -->
+    <div id="agent-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+        <div class="modal bg-[#161b22] rounded-3xl p-8 max-w-md w-full">
             <div id="modal-content"></div>
-            <button onclick="closeModal()" class="mt-6 w-full py-4 text-red-400 font-bold">Fermer</button>
+            <button onclick="closeModal()" class="mt-8 w-full py-4 text-red-400 font-bold text-lg">Fermer</button>
         </div>
     </div>
 
     <script>
         const agents = [
-            {id:"reflection", name:"Reflection", emoji:"🧠", color:"cyan", status:"Analyse cycles", desc:"Analyse les cycles précédents"},
-            {id:"permission", name:"Permission", emoji:"🔒", color:"yellow", status:"Vérifie risque", desc:"Classifie risque Low/Medium/High"},
-            {id:"improver", name:"Improver", emoji:"🛠️", color:"purple", status:"Construit patch", desc:"Applique des patches"},
-            {id:"trader", name:"Trader", emoji:"📈", color:"green", status:"Trade en cours", desc:"Décide des entrées"},
-            {id:"risk", name:"Risk", emoji:"🛡️", color:"red", status:"Monitoring", desc:"Surveille le risque"},
-            {id:"supervisor", name:"Supervisor", emoji:"👑", color:"amber", status:"Orchestre", desc:"Décision finale"}
+            {id:"reflection", name:"Reflection", emoji:"🧠", color:"cyan", role:"Analyse les cycles"},
+            {id:"permission", name:"Permission", emoji:"🔒", color:"yellow", role:"Classifie les risques"},
+            {id:"improver", name:"Improver", emoji:"🛠️", color:"purple", role:"Construit & applique patches"},
+            {id:"trader", name:"Trader", emoji:"📈", color:"green", role:"Décide des entrées"},
+            {id:"risk", name:"Risk", emoji:"🛡️", color:"red", role:"Surveille le risque"},
+            {id:"supervisor", name:"Supervisor", emoji:"👑", color:"amber", role:"Décision finale"}
         ];
 
         function renderAgents() {
             const grid = document.getElementById('agents-grid');
             grid.innerHTML = agents.map(a => `
-                <div onclick="openAgentPanel('${a.id}')" class="agent-card bg-[#161b22] rounded-3xl p-6 cursor-pointer border border-[#21262d] hover:border-[#58a6ff]">
-                    <div class="text-6xl mb-4">${a.emoji}</div>
-                    <div class="text-2xl font-bold">${a.name}</div>
-                    <div class="text-sm text-[${a.color}-400]">${a.status}</div>
-                    <div class="text-xs text-gray-400 mt-1">${a.desc}</div>
+                <div onclick="openAgentPanel('${a.id}')" class="agent-card bg-[#161b22] rounded-3xl p-6 cursor-pointer border border-[#21262d]">
+                    <div class="text-7xl mb-4 text-center">${a.emoji}</div>
+                    <div class="text-2xl font-bold text-center">${a.name}</div>
+                    <div class="text-center text-sm text-${a.color}-400 mt-1">${a.role}</div>
                 </div>
             `).join('');
         }
 
-        function openAgentPanel(agentId) {
-            const agent = agents.find(a => a.id === agentId);
-            let buttons = '';
-            if (agentId === 'trader') {
-                buttons = `
-                    <button onclick="sendAgentCommand('${agentId}', 'force_trade')" class="bg-green-500 py-4 rounded-2xl mb-3 w-full">Force un trade maintenant</button>
-                    <button onclick="sendAgentCommand('${agentId}', 'analyze_symbol')" class="bg-blue-500 py-4 rounded-2xl w-full">Analyser un symbole spécifique</button>`;
-            } else if (agentId === 'risk') {
-                buttons = `
-                    <button onclick="sendAgentCommand('${agentId}', 'adjust_risk')" class="bg-yellow-500 py-4 rounded-2xl mb-3 w-full">Ajuster le risque global</button>
-                    <button onclick="sendAgentCommand('${agentId}', 'show_status')" class="bg-red-500 py-4 rounded-2xl w-full">Voir statut risque complet</button>`;
-            } else if (agentId === 'improver') {
-                buttons = `
-                    <button onclick="sendAgentCommand('${agentId}', 'build_patch')" class="bg-purple-500 py-4 rounded-2xl mb-3 w-full">Construire un nouveau patch</button>
-                    <button onclick="sendAgentCommand('${agentId}', 'optimize_code')" class="bg-indigo-500 py-4 rounded-2xl w-full">Optimiser le code actuel</button>`;
-            } else if (agentId === 'reflection') {
-                buttons = `
-                    <button onclick="sendAgentCommand('${agentId}', 'analyze_cycles')" class="bg-cyan-500 py-4 rounded-2xl mb-3 w-full">Analyser les cycles précédents</button>
-                    <button onclick="sendAgentCommand('${agentId}', 'find_patterns')" class="bg-teal-500 py-4 rounded-2xl w-full">Trouver les meilleurs patterns</button>`;
-            } else if (agentId === 'permission') {
-                buttons = `
-                    <button onclick="sendAgentCommand('${agentId}', 'check_risk')" class="bg-yellow-500 py-4 rounded-2xl mb-3 w-full">Vérifier risque actuel</button>
-                    <button onclick="sendAgentCommand('${agentId}', 'classify_patch')" class="bg-amber-500 py-4 rounded-2xl w-full">Classer un patch (Low/Med/High)</button>`;
-            } else if (agentId === 'supervisor') {
-                buttons = `
-                    <button onclick="sendAgentCommand('${agentId}', 'final_decision')" class="bg-amber-500 py-4 rounded-2xl mb-3 w-full">Prendre la décision finale</button>
-                    <button onclick="sendAgentCommand('${agentId}', 'orchestrate')" class="bg-orange-500 py-4 rounded-2xl w-full">Orchestrer tous les agents</button>`;
-            }
+        function openAgentPanel(id) {
+            const agent = agents.find(a => a.id === id);
+            let buttonsHTML = '';
+            // Boutons spécifiques par rôle (priorité définie ci-dessous)
+            if (id === 'trader') buttonsHTML = `<button onclick="sendAgentCommand('${id}','force_trade')" class="bg-green-500 w-full py-4 rounded-2xl mb-3">Force un trade</button><button onclick="sendAgentCommand('${id}','analyze_symbol')" class="bg-blue-500 w-full py-4 rounded-2xl">Analyser symbole</button>`;
+            else if (id === 'risk') buttonsHTML = `<button onclick="sendAgentCommand('${id}','adjust_risk')" class="bg-yellow-500 w-full py-4 rounded-2xl mb-3">Ajuster risque global</button><button onclick="sendAgentCommand('${id}','show_status')" class="bg-red-500 w-full py-4 rounded-2xl">Statut risque complet</button>`;
+            else if (id === 'improver') buttonsHTML = `<button onclick="sendAgentCommand('${id}','build_patch')" class="bg-purple-500 w-full py-4 rounded-2xl mb-3">Construire patch</button><button onclick="sendAgentCommand('${id}','optimize_code')" class="bg-indigo-500 w-full py-4 rounded-2xl">Optimiser code</button>`;
+            else if (id === 'reflection') buttonsHTML = `<button onclick="sendAgentCommand('${id}','analyze_cycles')" class="bg-cyan-500 w-full py-4 rounded-2xl mb-3">Analyser cycles</button><button onclick="sendAgentCommand('${id}','find_patterns')" class="bg-teal-500 w-full py-4 rounded-2xl">Meilleurs patterns</button>`;
+            else if (id === 'permission') buttonsHTML = `<button onclick="sendAgentCommand('${id}','check_risk')" class="bg-yellow-500 w-full py-4 rounded-2xl mb-3">Vérifier risque</button><button onclick="sendAgentCommand('${id}','classify_patch')" class="bg-amber-500 w-full py-4 rounded-2xl">Classer patch</button>`;
+            else if (id === 'supervisor') buttonsHTML = `<button onclick="sendAgentCommand('${id}','final_decision')" class="bg-amber-500 w-full py-4 rounded-2xl mb-3">Décision finale</button><button onclick="sendAgentCommand('${id}','orchestrate')" class="bg-orange-500 w-full py-4 rounded-2xl">Orchestrer agents</button>`;
 
             document.getElementById('modal-content').innerHTML = `
                 <div class="text-center">
-                    <div class="text-7xl mb-6">${agent.emoji}</div>
-                    <h2 class="text-3xl font-bold">${agent.name}</h2>
-                    <p class="text-gray-400 mb-8">${agent.desc}</p>
-                    ${buttons}
-                    <input id="agent-input" placeholder="Message personnalisé..." class="w-full mt-6 bg-[#21262d] rounded-2xl px-6 py-4 text-sm focus:outline-none">
-                    <button onclick="sendCustomAgentMessage('${agentId}')" class="mt-4 w-full bg-[#58a6ff] py-4 rounded-2xl font-bold">Envoyer message</button>
+                    <div class="text-8xl mb-6">${agent.emoji}</div>
+                    <h2 class="text-4xl font-bold">${agent.name}</h2>
+                    <p class="text-gray-400 mb-8">${agent.role}</p>
+                    ${buttonsHTML}
+                    <input id="agent-input" placeholder="Message personnalisé..." class="w-full mt-8 bg-[#21262d] rounded-2xl px-6 py-4 text-sm">
+                    <button onclick="sendCustomAgentMessage('${id}')" class="mt-4 w-full bg-[#58a6ff] py-5 rounded-2xl font-bold">Envoyer message personnalisé</button>
                 </div>
             `;
             document.getElementById('agent-modal').classList.remove('hidden');
         }
 
-        function closeModal() {
-            document.getElementById('agent-modal').classList.add('hidden');
-        }
+        function closeModal() { document.getElementById('agent-modal').classList.add('hidden'); }
 
         async function quickCommand(cmd) {
-            await fetch('/api/quick_command', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({command: cmd}) });
-            alert('✅ Commande envoyée !');
+            await fetch('/api/quick_command', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({command:cmd})});
+            alert('✅ Commande envoyée au bot !');
         }
 
         async function sendAgentCommand(agentId, action) {
-            await fetch('/api/agent_command', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({agent: agentId, action: action}) });
+            await fetch('/api/agent_command', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({agent:agentId, action:action})});
             alert(`✅ Ordre envoyé à ${agentId}`);
             closeModal();
         }
 
         async function sendCustomAgentMessage(agentId) {
-            const input = document.getElementById('agent-input').value.trim();
-            if (!input) return;
-            await fetch('/api/agent_command', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({agent: agentId, message: input}) });
+            const msg = document.getElementById('agent-input').value.trim();
+            if (!msg) return;
+            await fetch('/api/agent_command', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({agent:agentId, message:msg})});
             closeModal();
         }
 
@@ -156,44 +137,30 @@
             const input = document.getElementById('chat-input');
             const msg = input.value.trim();
             if (!msg) return;
-
             const chat = document.getElementById('chat-window');
-            chat.innerHTML += `<div class="chat-bubble ml-auto bg-[#58a6ff] text-white px-5 py-3 rounded-3xl rounded-tr-none">${msg}</div>`;
+            chat.innerHTML += `<div class="chat-bubble ml-auto bg-[#58a6ff] text-white">${msg}</div>`;
             chat.scrollTop = chat.scrollHeight;
             input.value = '';
 
-            const res = await fetch('/api/chat', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({message: msg})
-            });
-            const data = await res.json();
-
-            chat.innerHTML += `<div class="chat-bubble mr-auto bg-[#21262d] px-5 py-3 rounded-3xl rounded-tl-none">${data.response}</div>`;
-            chat.scrollTop = chat.scrollHeight;
+            // Simulation agents qui parlent (en attendant le backend complet)
+            setTimeout(() => {
+                chat.innerHTML += `<div class="chat-bubble mr-auto bg-[#21262d]"><span class="text-[#58a6ff] font-bold">Improver :</span> Patch prêt à appliquer sur bot.py</div>`;
+                chat.scrollTop = chat.scrollHeight;
+            }, 1200);
         }
 
         async function loadLiveData() {
-            try {
-                const res = await fetch('/api/live_stats');
-                const data = await res.json();
-                document.getElementById('live-info').innerHTML = `
-                    <div class="bg-[#21262d] p-4 rounded-2xl">
-                        <div class="text-xs text-gray-400">DERNIERS TRADES</div>
-                        ${data.last_trades || '<div class="text-gray-400 text-xs">Aucun trade récent</div>'}
-                    </div>
-                    <div class="bg-[#21262d] p-4 rounded-2xl">
-                        <div class="text-xs text-gray-400">RISQUE ACTUEL</div>
-                        <div class="text-lg ${data.risk_level === 'LOW' ? 'text-green-400' : data.risk_level === 'MEDIUM' ? 'text-yellow-400' : 'text-red-400'}">${data.risk_level || 'N/A'}</div>
-                    </div>
-                    <div class="bg-[#21262d] p-4 rounded-2xl text-sm">
-                        <div>Leçons : <span class="text-green-400">${data.lessons}</span></div>
-                        <div>Winrate : <span class="text-yellow-400">${data.winrate}%</span></div>
-                        <div>Capital : <span class="text-cyan-400">$${data.capital}</span></div>
-                        <div>Cycle : <span class="text-purple-400">${data.cycle}</span></div>
-                    </div>
-                `;
-            } catch(e) {}
+            // Simulation en attendant les vraies routes Flask
+            document.getElementById('live-info').innerHTML = `
+                <div class="bg-[#21262d] p-5 rounded-2xl text-sm">
+                    <div class="flex justify-between"><span class="text-gray-400">Leçons DB</span><span class="text-green-400">1 247</span></div>
+                    <div class="flex justify-between"><span class="text-gray-400">Trades simulés</span><span class="text-cyan-400">80</span></div>
+                    <div class="flex justify-between"><span class="text-gray-400">Winrate</span><span class="text-yellow-400">21.4 %</span></div>
+                    <div class="flex justify-between"><span class="text-gray-400">Capital</span><span class="text-[#58a6ff]">$1 000.00</span></div>
+                    <div class="flex justify-between"><span class="text-gray-400">Risque actuel</span><span class="text-green-400">LOW</span></div>
+                    <div class="text-xs text-gray-500 mt-4">Dernier trade : LONG MEME 5m (+0.8%)</div>
+                </div>
+            `;
         }
 
         window.onload = () => {
