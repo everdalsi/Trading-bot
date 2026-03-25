@@ -4270,41 +4270,7 @@ async def run_telegram():
             ))
             .updater(None).build())
 
-    for cmd, fn in [
-        ("start",          cmd_start),
-        ("stop",           cmd_stop),
-        ("status",         cmd_status),
-        ("scan",           cmd_scan),
-        ("portfolio",      cmd_portfolio),
-        ("positions",      cmd_positions),
-        ("lecons",         cmd_lecons),
-        ("fermer",         cmd_fermer),
-        ("reset",          cmd_reset),
-        ("kelly",          cmd_kelly),
-        ("arbitrage",      cmd_arbitrage),
-        ("polymarket",     cmd_polymarket),
-        ("marches",        cmd_marches),
-        ("memes",          cmd_memes),
-        ("signaux",        cmd_signaux),
-        ("regles",         cmd_regles),
-        ("stats",          cmd_stats),
-        ("apprendre",      cmd_apprendre),
-        ("pool",           cmd_pool),
-        ("epargne",        cmd_epargne),
-        ("airdrops",       cmd_airdrops),
-        ("faucets",        cmd_faucets),
-        ("help",           cmd_help),
-        ("macro",          cmd_macro),
-        ("risque",         cmd_risque),
-        ("blacklist",      cmd_blacklist),
-        ("backtest",       cmd_backtest),
-        ("backtest_multi", cmd_backtest_multi),
-        ("resume",         cmd_resume),
-        ("agent",          cmd_agent),
-        ("agent_stop",     cmd_agent_stop),
-        ("maxtrades",      cmd_maxtrades_FIXED),   # ← nom correct
-        ("ask",            cmd_ask),
-        ("debate",            for cmd, fn in [
+        for cmd, fn in [
         ("start",          cmd_start),
         ("stop",           cmd_stop),
         ("status",         cmd_status),
@@ -4339,8 +4305,8 @@ async def run_telegram():
         ("maxtrades",      cmd_maxtrades_FIXED),
         ("ask",            cmd_ask),
         ("debate",         cmd_debate),
-        ("lasttrades",     cmd_lasttrades),      # ← NOUVEAU
-        ("debugpnl",       cmd_debugpnl),        # ← NOUVEAU
+        ("lasttrades",     cmd_lasttrades),      # ← ajouté
+        ("debugpnl",       cmd_debugpnl),        # ← ajouté
     ]:
         _app.add_handler(CommandHandler(cmd, fn))
 
