@@ -1,8 +1,37 @@
 {
   "sim": {
-    "cash": 272.17300780575954,
+    "cash": 258.5643574154716,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MEME_GigaChud_179": {
+        "id": 179,
+        "symbol": "GigaChud",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "GigaChud",
+        "price_in": 0.0007979,
+        "price_out": null,
+        "qty": 17055.58389558588,
+        "amount_usd": 13.608650390287977,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-25 13:56:41",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0008282,
+        "open_time": 1774447001.0338216,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_GigaChud_179"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -4808,6 +4837,33 @@
         "leverage": 1,
         "peak_price": 0.0005315,
         "open_time": 1774445589.1840472,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 179,
+        "symbol": "GigaChud",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "GigaChud",
+        "price_in": 0.0007979,
+        "price_out": null,
+        "qty": 17055.58389558588,
+        "amount_usd": 13.608650390287977,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-25 13:56:41",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0007979,
+        "open_time": 1774447001.0338216,
         "kelly_pct": 0.05
       }
     ],
@@ -31817,7 +31873,7 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 509,
-    "total_losses": 822,
+    "total_losses": 823,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
@@ -47836,6 +47892,34 @@
             "exit": 68502.42,
             "pnl": -2.4543,
             "pnl_pct": -1.23,
+            "exit_reason": "TIMEOUT"
+          }
+        ]
+      },
+      {
+        "symbol": "ETHUSDT",
+        "interval": "5m",
+        "days": 30,
+        "total_trades": 1,
+        "wins": 0,
+        "losses": 1,
+        "win_rate": 0.0,
+        "total_pnl": -1.63,
+        "total_pnl_pct": -0.16,
+        "sharpe": 0.0,
+        "max_drawdown": -0.16,
+        "profit_factor": 0.0,
+        "best_trade": -0.81,
+        "worst_trade": -0.81,
+        "final_equity": 998.37,
+        "sl_used": 0.025,
+        "tp_used": 0.04,
+        "trades": [
+          {
+            "entry": 2080.13955,
+            "exit": 2063.21,
+            "pnl": -1.6253,
+            "pnl_pct": -0.81,
             "exit_reason": "TIMEOUT"
           }
         ]
