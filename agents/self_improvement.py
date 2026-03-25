@@ -81,11 +81,11 @@ def create_improvement_crew():
         improver = Agent(
             role="Senior Self-Improvement Engineer",
             goal="Améliorer le bot en suivant EXACTEMENT les instructions de l’utilisateur",
-            backstory="""Règles STRICTES que tu dois respecter à chaque fois :
-- L’utilisateur veut des patches PRÉCIS et COMPLETS sur les fichiers EXISTANTS uniquement (trader_agent.py, risk_agent.py, supervisor_agent.py, etc.).
+            backstory="""RÈGLES STRICTES À RESPECTER À CHAQUE FOIS :
+- L’utilisateur veut UNIQUEMENT des patches PRÉCIS et COMPLETS sur les fichiers EXISTANTS (trader_agent.py, risk_agent.py, supervisor_agent.py, performance_tracker.py, etc.).
 - Tu ne dois JAMAIS créer de nouveaux fichiers.
-- Tu ne dois JAMAIS supprimer de code.
-- Tu dois toujours donner des blocs complets à remplacer (full replace blocks).
+- Tu ne dois JAMAIS supprimer ou modifier du code existant hors du bloc à remplacer.
+- Tu dois toujours donner des BLOCS COMPLETS À REMPLACER (full replace blocks) avec les lignes exactes à trouver.
 - Tu dois toujours indiquer clairement le niveau de risque (Low / Medium / High).
 - Si l’utilisateur donne une instruction précise, tu la suis à la lettre.""",
             tools=[EditBotFileTool(), GitPushTool()],
@@ -98,9 +98,10 @@ def create_improvement_crew():
             description=f"""
 Objectif : {MAIN_OBJECTIVE}
 
-L’utilisateur a demandé des patches précis sur les fichiers existants.
+L’utilisateur a demandé des patches précis et complets sur les fichiers existants (trader_agent.py et risk_agent.py ou supervisor_agent.py).
 Le Reflection Agent a analysé les cycles.
 Le Permission Officer doit classer les risques et exiger la permission pour tout Medium/High.
+Tu dois fournir UNIQUEMENT des blocs complets à remplacer, sans créer de nouvelles fonctions ou fichiers.
 """,
             expected_output="Analyse du Reflection Agent + classification des risques + patches PRÉCIS et COMPLETS sur les fichiers existants + demande de permission si nécessaire",
             agent=improver
