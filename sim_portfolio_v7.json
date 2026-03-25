@@ -352,6 +352,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-25 01:52"
+      },
+      {
+        "trade_id": -3,
+        "pnl": 11.5928,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-25 01:52"
       }
     ],
     "patterns_to_avoid": [
@@ -387,6 +398,7 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "backtest_5m",
       "backtest_5m"
     ],
     "confidence_threshold": 65,
@@ -395,7 +407,7 @@
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -15
+      "SOLUSDT": -13
     },
     "symbol_blacklist": {},
     "consecutive_losses": {},
@@ -672,7 +684,18 @@
     "total_earned": 0.0,
     "airdrops_claimed": [],
     "faucets_used": [],
-    "promos_found": [],
-    "last_scan": 0
+    "promos_found": [
+      {
+        "exchange": "KuCoin",
+        "url": "https://www.kucoin.com/news/bonus",
+        "keywords": [
+          "bonus",
+          "promo",
+          "voucher"
+        ],
+        "status": "\u2705 Promos d\u00e9tect\u00e9es"
+      }
+    ],
+    "last_scan": 1774403527.2313533
   }
 }
