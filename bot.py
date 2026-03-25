@@ -4381,34 +4381,49 @@ def _evolution_loop_MAIN():
         print(f"[EVOLUTION] Erreur fatale: {e}")
 
 
-# ═══════════════════════════════════════════════════════════════
-#  ENTRYPOINT
-# ═══════════════════════════════════════════════════════════════
 async def cmd_lasttrades(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
-    trades = sim.get("trades", [])[-15:]  # derniers 15 trades
-    if not trades:
-        await update.message.reply_text("Aucun trade pour l’instant.")
-        return
+    try:
+        trades = sim.get("trades", [])[-15:]   # derniers 15 trades
+        if not trades:
+            await update.message.reply_text("Aucun trade pour l’instant.")
+            return
 
-    wins = sum(1 for t in trades if t.get("pnl", 0) > 0)
-    losses = len(trades) - wins
+        wins = 0
+        losses = 0
+        for t in trades:
+            pnl = t.get("pnl")
+            if isinstance(pnl, (int, float)) and pnl > 0:
+                wins += 1
+            elif isinstance(pnl, (int, float)):
+                losses += 1
 
-    msg = f"**DERNIERS TRADES ({len(trades)} actions)** — {wins}✅ {losses}❌\n\n"
-    
-    for i, t in enumerate(reversed(trades), 1):
-        symbol = t.get("symbol", "UNKNOWN")
-        decision = t.get("decision", "?")
-        pnl = t.get("pnl", 0)
-        pnl_pct = t.get("pnl_pct", 0)
-        lev = t.get("leverage", 1)
-        
-        sign = "+" if pnl > 0 else ""
-        color = "🟢" if pnl > 0 else "🔴"
-        msg += f"{i}. {color} {symbol} | {decision}\n"
-        msg += f"   PnL: {sign}${pnl:,.0f} ({pnl_pct:.2f}%) | Lev:{lev}x\n\n"
-    
-    await update.message.reply_text(msg)
+        msg = f"**DERNIERS TRADES ({len(trades)} actions)** — {wins}✅ {losses}❌\n\n"
+
+        for i, t in enumerate(reversed(trades), 1):
+            symbol = str(t.get("symbol", "UNKNOWN"))
+            decision = str(t.get("decision", "?"))
+            pnl = t.get("pnl", 0)
+            pnl_pct = t.get("pnl_pct", 0)
+            lev = t.get("leverage", 1)
+
+            # Sécurité maximale
+            if not isinstance(pnl, (int, float)):
+                pnl = 0
+            if not isinstance(pnl_pct, (int, float)):
+                pnl_pct = 0
+
+            sign = "+" if pnl > 0 else ""
+            color = "🟢" if pnl > 0 else "🔴"
+
+            msg += f"{i}. {color} {symbol} | {decision}\n"
+            msg += f"   PnL: {sign}${pnl:,.0f} ({pnl_pct:.2f}%) | Lev:{lev}x\n\n"
+
+        await update.message.reply_text(msg)
+
+    except Exception as e:
+        await update.message.reply_text(f"Erreur dans /lasttrades : {str(e)[:80]}")
+        print(f"[LASTTRADES ERROR] {e}")
 
 async def cmd_debugpnl(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
