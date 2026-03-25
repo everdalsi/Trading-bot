@@ -59,7 +59,6 @@ lesson_count_gauge   = Gauge('bot_lesson_count',           'Nombre de leçons en
 streak_gauge         = Gauge('bot_current_streak',         'Longueur de la streak actuelle')
 
 # ── CrewAI improver (optionnel) ──────────────────────────────
-
 def create_improvement_crew():
     if not CREWAI_AVAILABLE:
         return None
@@ -70,7 +69,7 @@ def create_improvement_crew():
             backstory="Tu es un ingénieur IA autonome. Tu analyses les performances, proposes du code, le testes et déploies.",
             tools=[EditBotFileTool(), GitPushTool()],
             llm="groq/llama3-70b-8192",
-            verbose=True,
+            verbose=True,          # ← corrigé ici
             allow_code_execution=False
         )
         task = Task(
@@ -81,7 +80,7 @@ Analyse les stats, identifie les faiblesses, propose des améliorations concrèt
             expected_output="Code modifié + message de commit + décision de déploiement",
             agent=improver
         )
-        crew = Crew(agents=[improver], tasks=[task], verbose=2, memory=True, cache=True)
+        crew = Crew(agents=[improver], tasks=[task], verbose=True, memory=True, cache=True)
         return crew
     except Exception as e:
         print(f"[CREW] Création impossible: {e}")
