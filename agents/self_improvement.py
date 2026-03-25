@@ -62,29 +62,32 @@ def create_improvement_crew():
     if not CREWAI_AVAILABLE:
         return None
     try:
-        # 1. Reflection Agent (mémoire longue terme + stratégie)
         reflector = Agent(
             role="Reflection & Strategy Officer",
-            goal="Analyser les cycles précédents, identifier ce qui a fonctionné ou échoué, et définir une stratégie d'amélioration claire et priorisée",
-            backstory="Tu es le stratège qui garde la mémoire longue terme du bot. Tu analyses systématiquement les résultats passés (leçons, winrate, capital, erreurs récurrentes) et guides les futures améliorations.",
+            goal="Analyser les cycles précédents et définir une stratégie claire",
+            backstory="Tu analyses les résultats passés et guides l’amélioration.",
             llm="groq/llama-3.3-70b-versatile",
             verbose=True
         )
 
-        # 2. Permission & Security Officer (garde-fou)
         permission_officer = Agent(
             role="Permission & Security Officer",
-            goal="Classer chaque modification par niveau de risque et faire respecter les règles de permission",
-            backstory="Tu es le garde-fou du système. Tu dois toujours classer les propositions en Low / Medium / High et exiger une permission explicite de l'utilisateur pour toute modification Medium ou High. Tu protèges le code et le capital.",
+            goal="Classer chaque modification par risque et faire respecter les règles de l’utilisateur",
+            backstory="Tu DOIS toujours classer Low/Medium/High et exiger la permission explicite de l’utilisateur pour tout Medium ou High.",
             llm="groq/llama-3.3-70b-versatile",
             verbose=True
         )
 
-        # 3. Senior Improver (exécute en respectant les règles)
         improver = Agent(
             role="Senior Self-Improvement Engineer",
-            goal="Améliorer le bot en suivant les recommandations du Reflection Agent et en respectant strictement les règles de permission",
-            backstory="Tu suis toujours les insights du Reflection Agent et tu passes par le Permission Officer avant toute modification critique.",
+            goal="Améliorer le bot en suivant EXACTEMENT les instructions de l’utilisateur",
+            backstory="""Règles STRICTES que tu dois respecter à chaque fois :
+- L’utilisateur veut des patches PRÉCIS et COMPLETS sur les fichiers EXISTANTS uniquement (trader_agent.py, risk_agent.py, supervisor_agent.py, etc.).
+- Tu ne dois JAMAIS créer de nouveaux fichiers.
+- Tu ne dois JAMAIS supprimer de code.
+- Tu dois toujours donner des blocs complets à remplacer (full replace blocks).
+- Tu dois toujours indiquer clairement le niveau de risque (Low / Medium / High).
+- Si l’utilisateur donne une instruction précise, tu la suis à la lettre.""",
             tools=[EditBotFileTool(), GitPushTool()],
             llm="groq/llama-3.3-70b-versatile",
             verbose=True,
@@ -93,24 +96,17 @@ def create_improvement_crew():
 
         task = Task(
             description=f"""
-Objectif principal : {MAIN_OBJECTIVE}
+Objectif : {MAIN_OBJECTIVE}
 
-Le Reflection Agent a analysé les cycles précédents.
-Utilise ses insights pour proposer des améliorations ciblées.
-Le Permission Officer doit classer chaque modification par risque (Low / Medium / High) et exiger une permission explicite pour tout risque Medium ou High.
-Priorité absolue : améliorer les autres agents (Trader, Risk, Supervisor, Learning, Analyst...) avant de te modifier toi-même.
+L’utilisateur a demandé des patches précis sur les fichiers existants.
+Le Reflection Agent a analysé les cycles.
+Le Permission Officer doit classer les risques et exiger la permission pour tout Medium/High.
 """,
-            expected_output="Analyse du Reflection Agent + plan d'amélioration + classification des risques + code prêt à appliquer + demande de permission si nécessaire",
+            expected_output="Analyse du Reflection Agent + classification des risques + patches PRÉCIS et COMPLETS sur les fichiers existants + demande de permission si nécessaire",
             agent=improver
         )
 
-        crew = Crew(
-            agents=[reflector, permission_officer, improver],
-            tasks=[task],
-            verbose=True,
-            memory=True,
-            cache=True
-        )
+        crew = Crew(agents=[reflector, permission_officer, improver], tasks=[task], verbose=True, memory=True, cache=True)
         return crew
     except Exception as e:
         print(f"[CREW] Création impossible: {e}")
