@@ -5,6 +5,7 @@ from .config import get_llm, MAIN_OBJECTIVE
 from .evolution_agent import EvolutionAgent
 import asyncio
 import time
+import traceback
 
 improver = Agent(
     role="Senior Self-Improvement Engineer",
@@ -48,23 +49,54 @@ async def run_self_improvement_cycle():
 
 def start_self_improvement_loop(orchestrator):
     evolution = EvolutionAgent(orchestrator)
+    cycle_count = 0
+    success_count = 0
+    error_count = 0
+    consecutive_errors = 0
+    max_consecutive_errors = 8
+    backoff_seconds = 30
 
     while True:
+        cycle_count += 1
+        start_time = time.time()
         try:
-            print("🧬 [EVOLUTION] Cycle d'auto-évolution lancé (MODE TEST - 10 minutes)...")
+            print(f"🧬 [EVOLUTION] Cycle #{cycle_count} lancé (10 min) | Succès: {success_count} | Erreurs: {error_count}")
+
             ctx = {
-                "memory": {},
+                "memory": getattr(orchestrator, 'memory', {}) if hasattr(orchestrator, 'memory') else {},
                 "main_objective": MAIN_OBJECTIVE,
                 "drawdown": 0.0,
             }
+
             result = asyncio.run(evolution.respond("Lance un cycle d'évolution complète", ctx))
-            print("✅ [EVOLUTION] Cycle terminé :", result.get("summary", "OK"))
+            duration = time.time() - start_time
+
+            print(f"✅ [EVOLUTION] Cycle #{cycle_count} terminé en {duration:.1f}s")
+            success_count += 1
+            consecutive_errors = 0
+            backoff_seconds = 30
+
         except Exception as e:
-            print(f"[EVOLUTION ERROR] {e}")
+            error_count += 1
+            consecutive_errors += 1
+            duration = time.time() - start_time
+            print(f"❌ [EVOLUTION] Cycle #{cycle_count} échoué en {duration:.1f}s ({consecutive_errors}/{max_consecutive_errors})")
+            print(f"   Erreur: {str(e)[:180]}")
+            if traceback.format_exc():
+                print(f"   Trace: {traceback.format_exc().splitlines()[-3]}")
+
+            if consecutive_errors >= max_consecutive_errors:
+                print("⚠️ Trop d'erreurs consécutives → pause de 30 minutes")
+                time.sleep(1800)
+                consecutive_errors = 0
+                backoff_seconds = 30
+            else:
+                time.sleep(backoff_seconds)
+                backoff_seconds = min(backoff_seconds * 2, 600)
 
         try:
             asyncio.run(run_self_improvement_cycle())
         except Exception as e:
-            print(f"[SELF-IMPROVEMENT ERROR] {e}")
+            print(f"[SELF-IMPROVEMENT ERROR] {str(e)[:150]}")
 
         time.sleep(600)
