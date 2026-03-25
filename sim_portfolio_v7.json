@@ -24305,10 +24305,20 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-25 12:24"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -1.6253,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-25 12:24"
       }
     ],
     "patterns_to_avoid": [
-      "memecoin",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -24578,6 +24588,7 @@
       "backtest_5m",
       "backtest_5m",
       "memecoin",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -24912,7 +24923,7 @@
       "memecoin"
     ],
     "confidence_threshold": 82,
-    "total_wins": 424,
+    "total_wins": 425,
     "total_losses": 705,
     "symbol_scores": {
       "BTCUSDT": -15,
