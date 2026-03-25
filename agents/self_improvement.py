@@ -182,8 +182,10 @@ def start_self_improvement_loop(orchestrator):
                 print(f"[SELF-IMPROVEMENT] Cycle terminé - {result}")
                 
                 evolution_cycles_total.inc()
-                if hasattr(performance_tracker, 'winrate_gauge'):
-                    performance_tracker.winrate_gauge.set(performance_tracker.get_winrate() if hasattr(performance_tracker, 'get_winrate') else 20.0)
+                # CORRECTION : utilisation de orchestrator.performance (performance_tracker n'existe pas ici)
+                if hasattr(orchestrator, 'performance') and hasattr(orchestrator.performance, 'winrate_gauge'):
+                    wr = orchestrator.performance.get_global_stats({}).get("winrate", 20.0)
+                    orchestrator.performance.winrate_gauge.set(wr)
 
         except Exception as e:
             err_str = str(e).lower()
