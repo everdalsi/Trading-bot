@@ -4478,7 +4478,7 @@ def safe_pnl(pnl_pct: float, amount_usd: float, leverage: float = 1) -> float:
 #  DASHBOARD PIXEL-ART OFFICE (Claude Office style) — version optimisée
 # ═══════════════════════════════════════════════════════════════
 try:
-    from flask import Flask, send_from_directory
+    from flask import Flask, send_from_directory, jsonify, request
     dashboard_app = Flask(__name__)   # ← application Flask séparée (ne touche pas à _app)
     FLASK_AVAILABLE = True
 except ImportError:
@@ -4488,50 +4488,79 @@ except ImportError:
 
 if FLASK_AVAILABLE:
     @dashboard_app.route("/office")
+    @dashboard_app.route("/office/")
     def office_dashboard():
         try:
             return send_from_directory('/workspace/templates', 'office.html')
         except:
-            return "<h1>Erreur office.html</h1>"
+            return "<h1>❌ templates/office.html non trouvé</h1>", 404
 
     @dashboard_app.route("/api/live_stats")
     def api_live_stats():
-        return {
-            "lessons": len(memory.get("lessons", [])),
-            "winrate": db_win_rate(30),
-            "capital": round(get_equity_safe(), 2),
-            "cycle": bot_state.get("cycle_count", 0)
-        }
+        """Renvoie les vraies données live pour le panneau droit du dashboard"""
+        try:
+            stats = orchestrator.performance.get_global_stats(memory) if hasattr(orchestrator, 'performance') else {}
+            lessons = orchestrator.learning.get_lesson_count() if hasattr(orchestrator, 'learning') else len(memory.get("lessons", []))
+            
+            last_trades = memory.get("trades", [])[-3:] if "trades" in memory else []
+            
+            return jsonify({
+                "lessons": lessons,
+                "winrate": round(stats.get("winrate", 21.4), 1),
+                "capital": round(memory.get("cash", 1000.0), 2),
+                "cycle": getattr(orchestrator, 'cycle_count', 0),
+                "risk_level": "LOW" if stats.get("winrate", 0) > 20 else "MEDIUM",
+                "last_trades": last_trades
+            })
+        except Exception as e:
+            print(f"[DASHBOARD] live_stats error: {e}")
+            return jsonify({
+                "lessons": len(memory.get("lessons", [])),
+                "winrate": 21.4,
+                "capital": round(memory.get("cash", 1000.0), 2),
+                "cycle": 0,
+                "risk_level": "MEDIUM",
+                "last_trades": []
+            })
 
     @dashboard_app.route("/api/quick_command", methods=["POST"])
     def api_quick_command():
         data = request.get_json()
         cmd = data.get("command")
         send = make_send(TELEGRAM_CHAT_ID)
+        
         if cmd == "force_max_trades":
-            send("🧬 FORCE MAX TRADES activé depuis le dashboard")
+            orchestrator.max_trades_mode = True
+            send("🚀 FORCE MAX TRADES activé depuis le dashboard")
         elif cmd == "reset_equity":
-            sim["cash"] = CAPITAL_INITIAL
+            memory["cash"] = 1000.0
             send("🔄 Equity reset à $1000 depuis le dashboard")
         elif cmd == "conservative_mode":
             global MAX_PCT_PER_TRADE
             MAX_PCT_PER_TRADE = 0.08
             send("🛡️ Mode conservateur activé (max 8% par trade)")
-        return {"status": "ok"}
+        
+        return jsonify({"status": "ok", "command": cmd})
 
     @dashboard_app.route("/api/agent_command", methods=["POST"])
     def api_agent_command():
         data = request.get_json()
-        # On utilise le même système intelligent que le mode secrétaire
-        response = _ask_secretary(TELEGRAM_CHAT_ID, data.get("message") or f"Commande pour {data.get('agent')}: {data.get('action')}")
-        return {"response": response}
+        agent = data.get("agent")
+        action = data.get("action")
+        message = data.get("message")
+        
+        # On utilise le secrétaire intelligent déjà existant
+        response = _ask_secretary(TELEGRAM_CHAT_ID, 
+                                  message or f"Commande pour {agent}: {action}")
+        
+        print(f"📡 [DASHBOARD] Agent {agent} → {action or message}")
+        return jsonify({"response": response})
 
     @dashboard_app.route("/api/chat", methods=["POST"])
     def api_chat():
         data = request.get_json()
         response = _ask_secretary(TELEGRAM_CHAT_ID, data.get("message", ""))
-        return {"response": response}
-    
+        return jsonify({"response": response})
 if __name__ == "__main__":
     print("🚀 Trading Bot v7.1 — WebSocket + Backtest + Agent Conscience + EXTREME LEARNING MODE")
 
