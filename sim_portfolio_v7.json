@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 996.772670025189,
+    "cash": 1000.0,
     "initial": 1000.0,
     "positions": {},
     "trades": [
@@ -31782,6 +31782,6 @@
         "status": "\u2705 Promos d\u00e9tect\u00e9es"
       }
     ],
-    "last_scan": 1774432929.547586
+    "last_scan": 1774434615.4995835
   }
 }
