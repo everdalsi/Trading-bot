@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 950.0340141106573,
+    "cash": 902.5646279672085,
     "initial": 1000.0,
     "positions": {},
     "trades": [
@@ -758,6 +758,33 @@
         "leverage": 1,
         "peak_price": 0.005386,
         "open_time": 1774412833.9992085,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 29,
+        "symbol": "\u96ea\u5c71\u6551\u72d0",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "\u96ea\u5c71\u6551\u72d0",
+        "price_in": 0.005386,
+        "price_out": 3.664e-06,
+        "qty": 8819.476551342901,
+        "amount_usd": 47.50170070553287,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": "\ud83d\uded1 MEME SL (-99.9%)",
+        "time_in": "2026-03-25 04:27:54",
+        "time_out": "2026-03-25 04:27:55",
+        "pnl": -47.469386,
+        "pnl_pct": -99.93,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.005386,
+        "open_time": 1774412874.9612443,
         "kelly_pct": 0.05
       }
     ],
@@ -4917,6 +4944,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-25 04:27"
+      },
+      {
+        "trade_id": 29,
+        "pnl": -47.469386,
+        "symbol": "\u96ea\u5c71\u6551\u72d0",
+        "market": "MEME",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "memecoin",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-25 04:27"
       }
     ],
     "patterns_to_avoid": [
@@ -4950,7 +4988,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
@@ -5119,7 +5156,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "memecoin"
     ],
     "patterns_that_work": [
       "backtest_5m",
