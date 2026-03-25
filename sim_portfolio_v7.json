@@ -26,7 +26,7 @@
           "memecoin"
         ],
         "leverage": 1,
-        "peak_price": 0.0004078,
+        "peak_price": 0.0004185,
         "open_time": 1774460978.1560829,
         "kelly_pct": 0.05,
         "pos_key": "MEME_Figure03_195"
@@ -45680,7 +45680,7 @@
       "backtest_5m"
     ],
     "confidence_threshold": 82,
-    "total_wins": 707,
+    "total_wins": 708,
     "total_losses": 1027,
     "symbol_scores": {
       "BTCUSDT": -15,
