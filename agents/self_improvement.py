@@ -6,7 +6,9 @@ def start_self_improvement_loop(orchestrator):
 
     while True:
         cycle += 1
-        print(f"[SELF-IMPROVEMENT] Cycle #{cycle} - {datetime.datetime.now().strftime('%H:%M:%S')}")
+        # Utilisation explicite de datetime (importé en haut du fichier)
+        now_str = datetime.datetime.now().strftime('%H:%M:%S')
+        print(f"[SELF-IMPROVEMENT] Cycle #{cycle} - {now_str}")
 
         try:
             crew = create_improvement_crew()
