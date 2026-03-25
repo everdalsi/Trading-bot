@@ -22,8 +22,8 @@ DB_FILE = "sim_v7.db"
 
 class PerformanceTracker:
 
-        # ─────────────────────────────────────────────────────────────
-    #  MISE À JOUR DES TRADES EN COURS
+          # ─────────────────────────────────────────────────────────────
+    #  MISE À JUP DES TRADES EN COURS
     # ─────────────────────────────────────────────────────────────
     def update_trade_results(self, memory: dict, current_price: float) -> dict:
         """
