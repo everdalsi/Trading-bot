@@ -91,9 +91,9 @@ def create_improvement_crew():
 - Tu ne dois JAMAIS supprimer ou modifier du code existant hors du bloc à remplacer.
 - Tu dois TOUJOURS donner des BLOCS COMPLETS À REMPLACER (full replace blocks) avec les lignes exactes à trouver.
 - Tu dois toujours indiquer clairement le niveau de risque (Low / Medium / High).
-- Tu dois utiliser EXCLUSIVEMENT le format tool CrewAI correct pour edit_bot_file. 
-- NE JAMAIS utiliser <function=...> ou tout autre format XML. Utilise uniquement le tool via CrewAI.
-- Si tu dois appeler un tool, fais-le proprement via le système CrewAI, sans ajouter de texte explicatif avant/après l’appel.""",
+- Tu dois utiliser EXCLUSIVEMENT le tool CrewAI EditBotFileTool via le système CrewAI.
+- NE JAMAIS écrire <function=...> ou aucun tag XML. CrewAI gère automatiquement l'appel du tool.
+- Si tu veux modifier un fichier, utilise simplement le tool EditBotFileTool dans ta pensée, sans jamais générer de balise manuellement.""",
             tools=[EditBotFileTool(), GitPushTool()],
             llm=LIGHT_MODEL,
             verbose=True,
@@ -108,7 +108,8 @@ L’utilisateur a demandé des patches précis et complets sur les fichiers exis
 Le Reflection Agent a analysé les cycles.
 Le Permission Officer doit classer les risques et exiger la permission pour tout Medium/High.
 Tu dois fournir UNIQUEMENT des blocs complets à remplacer, sans créer de nouvelles fonctions ou fichiers.
-Utilise STRICTEMENT le format de tool CrewAI pour edit_bot_file.
+Utilise STRICTEMENT le tool CrewAI EditBotFileTool. NE JAMAIS générer de balise <function=...> ou XML.
+CrewAI appellera le tool automatiquement.
 """,
             expected_output="Analyse du Reflection + classification des risques + patches PRÉCIS et COMPLETS + demande de permission si Medium/High",
             agent=improver
@@ -120,7 +121,6 @@ Utilise STRICTEMENT le format de tool CrewAI pour edit_bot_file.
             verbose=True,
             memory=False,
             cache=True,
-            # Désactivation du tracing pour éviter le prompt interactif qui bloque la boucle
             task_callback=None,
             step_callback=None
         )
