@@ -4366,6 +4366,17 @@ if __name__ == "__main__":
 
     init_db()
     load_data()
+
+    # === PATCH EXTREME LEARNING : reset equity à chaque démarrage ===
+    # Empêche le capital fantôme (+8106 %) après redémarrage
+    if EXTREME_LEARNING_MODE:
+        sim["cash"] = CAPITAL_INITIAL
+        sim["initial"] = CAPITAL_INITIAL
+        sim["equity_history"] = [CAPITAL_INITIAL]
+        sim["peak_equity"] = CAPITAL_INITIAL
+        sim["daily_start_equity"] = CAPITAL_INITIAL
+        print(f"🔄 EXTREME LEARNING MODE → equity reset à ${CAPITAL_INITIAL:,.2f} (protection contre capital fantôme)")
+
     start_websocket()
 
     # Evolution agent — thread daemon séparé
