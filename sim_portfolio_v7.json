@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 259.35486518895436,
+    "cash": 272.17300780575954,
     "initial": 1000.0,
     "positions": {
       "MEME_LOLA_178": {
@@ -4820,17 +4820,17 @@
         "trade_type": "MEME",
         "meme_symbol": "LOLA",
         "price_in": 0.0005315,
-        "price_out": null,
+        "price_out": 0.0004991,
         "qty": 25682.51375837544,
         "amount_usd": 13.650256062576545,
         "confidence": 95,
         "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
+        "exit_reason": "\ud83d\uded1 MEME SL (-6.1%)",
         "time_in": "2026-03-25 13:33:09",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-25 13:35:29",
+        "pnl": -0.832113,
+        "pnl_pct": -6.1,
+        "duration_min": 2,
         "patterns": [
           "memecoin"
         ],
@@ -30039,10 +30039,20 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-25 13:35"
+      },
+      {
+        "trade_id": 178,
+        "pnl": -0.832113,
+        "symbol": "LOLA",
+        "market": "MEME",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "memecoin",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-25 13:35"
       }
     ],
     "patterns_to_avoid": [
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
@@ -30341,7 +30351,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "memecoin"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -30654,7 +30665,7 @@
       "SOLUSDT": -11,
       "TARO": 15,
       "\u96ea\u5c71\u6551\u72d0": -15,
-      "LOLA": -3,
+      "LOLA": -6,
       "NoHat": 10,
       "GigaChud": -15
     },
