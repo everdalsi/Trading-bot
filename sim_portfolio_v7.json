@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 17595473083288.094,
+    "cash": 129454736390531.45,
     "initial": 1000.0,
     "positions": {
       "MEME_APES_222": {
@@ -26,7 +26,7 @@
           "memecoin"
         ],
         "leverage": 1,
-        "peak_price": 0.0005912,
+        "peak_price": 0.07141,
         "open_time": 1774477311.9816816,
         "kelly_pct": 0.05,
         "pos_key": "MEME_APES_222"
@@ -6008,17 +6008,17 @@
         "trade_type": "MEME",
         "meme_symbol": "APES",
         "price_in": 0.0005912,
-        "price_out": null,
+        "price_out": 0.07141,
         "qty": 1566436959910983.8,
         "amount_usd": 926077530699.3735,
         "confidence": 85,
         "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
+        "exit_reason": "\ud83c\udfaf MEME TP (+11978.8%)",
         "time_in": "2026-03-25 22:21:51",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-25 22:21:53",
+        "pnl": 110933185776543.98,
+        "pnl_pct": 11978.82,
+        "duration_min": 1,
         "patterns": [
           "memecoin"
         ],
@@ -60652,6 +60652,28 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-25 22:21"
+      },
+      {
+        "trade_id": 222,
+        "pnl": 110933185776543.98,
+        "symbol": "APES",
+        "market": "MEME",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "memecoin",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-25 22:21"
+      },
+      {
+        "trade_id": -3,
+        "pnl": 3.0266,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-25 22:21"
       }
     ],
     "patterns_to_avoid": [
@@ -61016,8 +61038,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "memecoin",
       "backtest_5m",
@@ -61254,6 +61274,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "backtest_5m",
+      "memecoin",
       "backtest_5m",
       "memecoin",
       "backtest_5m"
@@ -61264,7 +61286,7 @@
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": 12,
+      "SOLUSDT": 14,
       "TARO": 15,
       "\u96ea\u5c71\u6551\u72d0": -15,
       "LOLA": -15,
