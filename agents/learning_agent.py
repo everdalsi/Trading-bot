@@ -460,11 +460,16 @@ class LearningAgent(BaseAgent):
         if self.should_compress():
             self.compress_lessons()
 
-        should_blacklist = (
+                should_blacklist = (
             symbol_score < 0.30
             and symbol_stats.get("count", 0) >= 5
         )
-        if extreme_learning:
+        # === UPGRADE : blacklist auto après 2 SL -99% (même en EXTREME LEARNING) ===
+        severe_sl = context.get("severe_sl_count", 0)  # injecté plus bas par orchestrator
+        if severe_sl >= 2 or (symbol_score < 0.15 and symbol_stats.get("count", 0) >= 3):
+            should_blacklist = True
+
+        if extreme_learning and severe_sl < 3:   # on autorise encore un peu mais pas le spam infini
             should_blacklist = False
 
         q = question.lower()
