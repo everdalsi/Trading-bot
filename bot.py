@@ -4325,7 +4325,7 @@ async def run_telegram():
     ]:
         _app.add_handler(CommandHandler(cmd, fn))
 
-    # ← Commande /office ajoutée correctement (utilise _app comme tout le reste de ton code)
+    # ← Commande /office ajoutée correctement
     _app.add_handler(CommandHandler("office", cmd_office))
 
     _app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_agent_chat))
