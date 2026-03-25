@@ -62,11 +62,14 @@ def create_improvement_crew():
     if not CREWAI_AVAILABLE:
         return None
     try:
+        # Modèle ultra-rapide et très haut TPM (optimisé rate limit)
+        LIGHT_MODEL = "groq/llama-3.1-8b-instant"
+
         reflector = Agent(
             role="Reflection & Strategy Officer",
             goal="Analyser les cycles précédents et définir une stratégie claire",
             backstory="Tu analyses les résultats passés et guides l’amélioration.",
-            llm="groq/llama-3.3-70b-versatile",
+            llm=LIGHT_MODEL,
             verbose=True
         )
 
@@ -74,7 +77,7 @@ def create_improvement_crew():
             role="Permission & Security Officer",
             goal="Classer chaque modification par risque et faire respecter les règles de l’utilisateur",
             backstory="Tu DOIS toujours classer Low/Medium/High et exiger la permission explicite de l’utilisateur pour tout Medium ou High.",
-            llm="groq/llama-3.3-70b-versatile",
+            llm=LIGHT_MODEL,
             verbose=True
         )
 
@@ -82,14 +85,13 @@ def create_improvement_crew():
             role="Senior Self-Improvement Engineer",
             goal="Améliorer le bot en suivant EXACTEMENT les instructions de l’utilisateur",
             backstory="""RÈGLES STRICTES À RESPECTER À CHAQUE FOIS :
-- L’utilisateur veut UNIQUEMENT des patches PRÉCIS et COMPLETS sur les fichiers EXISTANTS (trader_agent.py, risk_agent.py, supervisor_agent.py, performance_tracker.py, etc.).
+- L’utilisateur veut UNIQUEMENT des patches PRÉCIS et COMPLETS sur les fichiers EXISTANTS.
 - Tu ne dois JAMAIS créer de nouveaux fichiers.
 - Tu ne dois JAMAIS supprimer ou modifier du code existant hors du bloc à remplacer.
-- Tu dois toujours donner des BLOCS COMPLETS À REMPLACER (full replace blocks) avec les lignes exactes à trouver.
-- Tu dois toujours indiquer clairement le niveau de risque (Low / Medium / High).
-- Si l’utilisateur donne une instruction précise, tu la suis à la lettre.""",
+- Tu dois toujours donner des BLOCS COMPLETS À REMPLACER (full replace blocks).
+- Tu dois toujours indiquer clairement le niveau de risque (Low / Medium / High).""",
             tools=[EditBotFileTool(), GitPushTool()],
-            llm="groq/llama-3.3-70b-versatile",
+            llm=LIGHT_MODEL,
             verbose=True,
             allow_code_execution=False
         )
@@ -98,12 +100,12 @@ def create_improvement_crew():
             description=f"""
 Objectif : {MAIN_OBJECTIVE}
 
-L’utilisateur a demandé des patches précis et complets sur les fichiers existants (trader_agent.py et risk_agent.py ou supervisor_agent.py).
+L’utilisateur a demandé des patches précis et complets sur les fichiers existants.
 Le Reflection Agent a analysé les cycles.
 Le Permission Officer doit classer les risques et exiger la permission pour tout Medium/High.
-Tu dois fournir UNIQUEMENT des blocs complets à remplacer, sans créer de nouvelles fonctions ou fichiers.
+Tu dois fournir UNIQUEMENT des blocs complets à remplacer.
 """,
-            expected_output="Analyse du Reflection Agent + classification des risques + patches PRÉCIS et COMPLETS sur les fichiers existants + demande de permission si nécessaire",
+            expected_output="Analyse + classification risque + patches complets + demande de permission si Medium/High",
             agent=improver
         )
 
