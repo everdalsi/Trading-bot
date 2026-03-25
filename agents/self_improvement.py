@@ -59,12 +59,10 @@ profit_factor_gauge  = Gauge('bot_profit_factor',          'Profit Factor')
 lesson_count_gauge   = Gauge('bot_lesson_count',           'Nombre de leçons en base')
 streak_gauge         = Gauge('bot_current_streak',         'Longueur de la streak actuelle')
 
-# ── Architecture multi-agent avancée (Reflection + Permission-Based) ───────────────────────────────
-def create_improvement_crew():
+# ── Architecture multi-agent avancée (Reflection + Permission-Based) ───────────────────────────────def create_improvement_crew():
     if not CREWAI_AVAILABLE:
         return None
     try:
-        # Modèle ultra-rapide et très haut TPM (optimisé rate limit)
         LIGHT_MODEL = "groq/llama-3.1-8b-instant"
 
         reflector = Agent(
@@ -77,8 +75,8 @@ def create_improvement_crew():
 
         permission_officer = Agent(
             role="Permission & Security Officer",
-            goal="Classer chaque modification par risque et faire respecter les règles de l’utilisateur",
-            backstory="Tu DOIS toujours classer Low/Medium/High et exiger la permission explicite de l’utilisateur pour tout Medium ou High.",
+            goal="Classer chaque modification par risque (Low/Medium/High) et exiger la permission explicite de l’utilisateur pour tout Medium ou High.",
+            backstory="Tu DOIS toujours classer le risque et demander la permission pour Medium/High. Tu ne passes jamais outre les règles de l’utilisateur.",
             llm=LIGHT_MODEL,
             verbose=True
         )
@@ -86,12 +84,13 @@ def create_improvement_crew():
         improver = Agent(
             role="Senior Self-Improvement Engineer",
             goal="Améliorer le bot en suivant EXACTEMENT les instructions de l’utilisateur",
-            backstory="""RÈGLES STRICTES À RESPECTER À CHAQUE FOIS :
+            backstory="""RÈGLES STRICTES À RESPECTER À CHAQUE FOIS SANS EXCEPTION :
 - L’utilisateur veut UNIQUEMENT des patches PRÉCIS et COMPLETS sur les fichiers EXISTANTS.
 - Tu ne dois JAMAIS créer de nouveaux fichiers.
 - Tu ne dois JAMAIS supprimer ou modifier du code existant hors du bloc à remplacer.
-- Tu dois toujours donner des BLOCS COMPLETS À REMPLACER (full replace blocks).
-- Tu dois toujours indiquer clairement le niveau de risque (Low / Medium / High).""",
+- Tu dois TOUJOURS donner des BLOCS COMPLETS À REMPLACER (full replace blocks) avec les lignes exactes à trouver.
+- Tu dois toujours indiquer clairement le niveau de risque (Low / Medium / High).
+- Tu dois utiliser le format tool correct pour edit_bot_file.""",
             tools=[EditBotFileTool(), GitPushTool()],
             llm=LIGHT_MODEL,
             verbose=True,
@@ -105,13 +104,19 @@ Objectif : {MAIN_OBJECTIVE}
 L’utilisateur a demandé des patches précis et complets sur les fichiers existants.
 Le Reflection Agent a analysé les cycles.
 Le Permission Officer doit classer les risques et exiger la permission pour tout Medium/High.
-Tu dois fournir UNIQUEMENT des blocs complets à remplacer.
+Tu dois fournir UNIQUEMENT des blocs complets à remplacer, sans créer de nouvelles fonctions ou fichiers.
 """,
-            expected_output="Analyse + classification risque + patches complets + demande de permission si Medium/High",
+            expected_output="Analyse du Reflection + classification des risques + patches PRÉCIS et COMPLETS + demande de permission si Medium/High",
             agent=improver
         )
 
-        crew = Crew(agents=[reflector, permission_officer, improver], tasks=[task], verbose=True, memory=True, cache=True)
+        crew = Crew(
+            agents=[reflector, permission_officer, improver],
+            tasks=[task],
+            verbose=True,
+            memory=False,        # ← CORRECTION PRINCIPALE : évite l'erreur OpenAI
+            cache=True
+        )
         return crew
     except Exception as e:
         print(f"[CREW] Création impossible: {e}")
@@ -191,14 +196,12 @@ def start_self_improvement_loop(orchestrator):
                 result = crew.kickoff()
                 print(f"[SELF-IMPROVEMENT] Cycle terminé - {result}")
                 
-                # Mise à jour Prometheus
                 evolution_cycles_total.inc()
-                if hasattr(performance_tracker, 'winrate_gauge'):
-                    performance_tracker.winrate_gauge.set(performance_tracker.get_winrate())
 
         except Exception as e:
-            if "rate_limit_exceeded" in str(e).lower() or "RateLimitError" in str(type(e).__name__):
-                wait_seconds = min(45, 8 * (2 ** (cycle % 5)))  # backoff exponentiel
+            err_str = str(e).lower()
+            if "rate_limit" in err_str or "ratelimit" in err_str or "429" in err_str:
+                wait_seconds = min(60, 15 * (2 ** (cycle % 4)))
                 print(f"[RATE LIMIT] Groq limite atteinte → pause {wait_seconds}s")
                 time.sleep(wait_seconds)
                 last_rate_limit = time.time()
@@ -206,9 +209,9 @@ def start_self_improvement_loop(orchestrator):
             else:
                 print(f"[SELF-IMPROVEMENT ERROR] {e}")
 
-        # Délai adaptatif optimisé rate limit
-        base_sleep = 35 if (time.time() - last_rate_limit < 300) else 22
-        time.sleep(base_sleep + random.uniform(0, 8))  # jitter
+        # Délai adaptatif
+        base_sleep = 40 if (time.time() - last_rate_limit < 600) else 25
+        time.sleep(base_sleep + random.uniform(3, 12))
 
         def _crew_bg():
             try:
