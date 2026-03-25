@@ -2,36 +2,7 @@
   "sim": {
     "cash": 857.4833220602726,
     "initial": 1000.0,
-    "positions": {
-      "MEME_\u96ea\u5c71\u6551\u72d0_13": {
-        "id": 13,
-        "symbol": "\u96ea\u5c71\u6551\u72d0",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "\u96ea\u5c71\u6551\u72d0",
-        "price_in": 0.004126,
-        "price_out": null,
-        "qty": 10937.660742067335,
-        "amount_usd": 45.12878822176983,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-25 03:30:41",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.004126,
-        "open_time": 1774409441.248078,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_\u96ea\u5c71\u6551\u72d0_13"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
@@ -2814,6 +2785,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-25 03:30"
+      },
+      {
+        "trade_id": -2,
+        "pnl": -1.6244,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-25 03:30"
       }
     ],
     "patterns_to_avoid": [
@@ -2982,6 +2964,7 @@
       "memecoin",
       "backtest_5m",
       "memecoin",
+      "backtest_5m",
       "backtest_5m"
     ],
     "patterns_that_work": [
