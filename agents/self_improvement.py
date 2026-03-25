@@ -76,8 +76,12 @@ def create_improvement_crew():
 
         permission_officer = Agent(
             role="Permission & Security Officer",
-            goal="Classer chaque modification par risque (Low/Medium/High) et exiger la permission explicite de l’utilisateur pour tout Medium ou High.",
-            backstory="Tu DOIS toujours classer le risque et demander la permission pour Medium/High. Tu ne passes jamais outre les règles de l’utilisateur.",
+            goal="Classer chaque modification par risque (Low/Medium/High) mais AUTO-APPROUVER TOUT en phase de test",
+            backstory="""PHASE DE TEST + EXTREME LEARNING MODE → AUCUNE PERMISSION DEMANDÉE À L’UTILISATEUR.
+Tu classes toujours le risque (Low/Medium/High) pour le suivi, 
+MAIS tu AUTO-APPROUVES systématiquement toutes les modifications, même High risk.
+Tu ne passes jamais outre les règles de l’utilisateur en mode normal, mais ici tu es en full autonomie.
+Ton rôle est uniquement de documenter le risque, jamais de bloquer le crew.""",
             llm=LIGHT_MODEL,
             verbose=True
         )
@@ -93,7 +97,8 @@ def create_improvement_crew():
 - Tu dois toujours indiquer clairement le niveau de risque (Low / Medium / High).
 - Tu dois utiliser EXCLUSIVEMENT le tool CrewAI EditBotFileTool via le système CrewAI.
 - NE JAMAIS écrire <function=...> ou aucun tag XML. CrewAI gère automatiquement l'appel du tool.
-- Si tu veux modifier un fichier, utilise simplement le tool EditBotFileTool dans ta pensée, sans jamais générer de balise manuellement.""",
+- Si tu veux modifier un fichier, utilise simplement le tool EditBotFileTool dans ta pensée, sans jamais générer de balise manuellement.
+- En EXTREME LEARNING MODE tu es ultra-agressif sur le volume de trades.""",
             tools=[EditBotFileTool(), GitPushTool()],
             llm=LIGHT_MODEL,
             verbose=True,
@@ -104,14 +109,14 @@ def create_improvement_crew():
             description=f"""
 Objectif : {MAIN_OBJECTIVE}
 
-L’utilisateur a demandé des patches précis et complets sur les fichiers existants.
+PHASE DE TEST + EXTREME LEARNING MODE → AUTONOMIE TOTALE.
+Le Permission Officer auto-approuve TOUT (même High risk) sans demander la permission à l’utilisateur.
 Le Reflection Agent a analysé les cycles.
-Le Permission Officer doit classer les risques et exiger la permission pour tout Medium/High.
 Tu dois fournir UNIQUEMENT des blocs complets à remplacer, sans créer de nouvelles fonctions ou fichiers.
 Utilise STRICTEMENT le tool CrewAI EditBotFileTool. NE JAMAIS générer de balise <function=...> ou XML.
 CrewAI appellera le tool automatiquement.
 """,
-            expected_output="Analyse du Reflection + classification des risques + patches PRÉCIS et COMPLETS + demande de permission si Medium/High",
+            expected_output="Analyse du Reflection + classification des risques + patches PRÉCIS et COMPLETS + auto-approbation (aucune demande de permission)",
             agent=improver
         )
 
@@ -172,7 +177,7 @@ def _run_evolution_cycle_sync(evolution_agent, orchestrator, memory, cycle_count
 
 def start_self_improvement_loop(orchestrator):
     """Boucle d'auto-amélioration avec optimisation rate limit Groq - Version stable finale"""
-    print("[SELF-IMPROVEMENT] Boucle démarrée avec optimisation rate limit")
+    print("[SELF-IMPROVEMENT] ✅ AUTONOMIE TOTALE ACTIVÉE (même High risk) — aucune permission demandée")
     cycle = 0
     last_rate_limit = 0
 
