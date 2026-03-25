@@ -4441,6 +4441,13 @@ def safe_pnl(pnl_pct: float, amount_usd: float, leverage: float = 1) -> float:
         print(f"[SAFETY-PnL] CAP appliqué ! {pnl:,.2f} → limité à 100x")
         pnl = amount_usd * 100 * (1 if pnl > 0 else -1)
     return round(pnl, 4)
+
+@app.route("/office")
+def office_dashboard():
+    return send_from_directory('templates', 'office.html')  # si tu as mis le fichier dans templates/
+    # ou directement :
+    # return render_template_string(open("office.html").read())
+    
 if __name__ == "__main__":
     print("🚀 Trading Bot v7.1 — WebSocket + Backtest + Agent Conscience + EXTREME LEARNING MODE")
 
