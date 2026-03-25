@@ -1,6 +1,15 @@
 from crewai.tools import BaseTool
-from git import Repo
 import os
+
+# Import GIT en "lazy" (seulement quand on en a vraiment besoin)
+# Ça évite le crash au démarrage du bot tant que Railway n'a pas fini le build propre
+def get_git_repo():
+    try:
+        from git import Repo
+        return Repo("/workspace")
+    except:
+        print("⚠️ Git non disponible pour l'instant (cache Railway)")
+        return None
 
 class EditBotFileTool(BaseTool):
     name: str = "EditBotFile"
@@ -20,8 +29,11 @@ class GitPushTool(BaseTool):
     description: str = "Commit + push sur GitHub → déclenche redéploiement Railway automatique"
 
     def _run(self, commit_message: str):
+        repo = get_git_repo()
+        if not repo:
+            return "⚠️ Git non disponible → push ignoré (cache Railway en cours)"
+
         try:
-            repo = Repo("/workspace")
             repo.git.add(A=True)
             repo.index.commit(commit_message)
             origin = repo.remote(name="origin")
