@@ -3557,6 +3557,16 @@ async def cmd_ask(update, context):
     except Exception as e:
         await update.message.reply_text(f"Erreur: {e}")
 
+async def cmd_office(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Commande /office → lien vers le Claude Office visuel"""
+    await update.message.reply_text(
+        "🏢 **Claude Office** — Tes agents IA en direct\n\n"
+        "👇 Clique ici pour voir tes 6 agents bosser en temps réel :\n"
+        "🔗 https://web-production-52b6c.up.railway.app/office\n\n"
+        "Tu verras les avatars, leur statut (🟢 Travaille / ⚪ Repose), les leçons en live, winrate, capital, et le chat des agents.",
+        parse_mode='HTML'
+    )      
+
 async def cmd_debate(update, context):
     try:
         question = " ".join(context.args)
@@ -4312,6 +4322,7 @@ async def run_telegram():
         ("debate",         cmd_debate),
         ("lasttrades",     cmd_lasttrades),
         ("debugpnl",       cmd_debugpnl),
+        application.add_handler(CommandHandler("office", cmd_office)),
     ]:
         _app.add_handler(CommandHandler(cmd, fn))
 
