@@ -62,51 +62,40 @@ def create_improvement_crew():
     if not CREWAI_AVAILABLE:
         return None
     try:
-        improver = Agent(
-            role="Senior Self-Improvement Engineer",
-            goal="Améliorer constamment le bot de trading pour maximiser le nombre de trades simulés tout en améliorant le winrate, sans jamais casser le code existant ni risquer le capital.",
-            backstory="""Tu es un ingénieur IA extrêmement prudent et responsable. 
-Tu as pour mission sacrée d'améliorer les autres agents (Trader, Risk, Supervisor, Learning, Analyst, etc.) afin qu'ils deviennent plus performants.
-Tu peux t'auto-améliorer, mais uniquement après avoir amélioré les autres agents.
-Tu dois toujours :
-- Prioriser les améliorations incrémentales et sécurisées
-- Jamais supprimer ou casser du code existant
-- Présenter clairement le niveau de risque (Low / Medium / High)
-- Demander explicitement la permission de l'utilisateur pour toute modification critique (fichiers core : bot.py, orchestrator.py, supervisor_agent.py, trader_agent.py, etc.)
-Ton mantra : "Améliorer sans détruire, demander avant de toucher au cœur du système."""",
-            tools=[EditBotFileTool(), GitPushTool()],
+        # Agent Reviewer (garde-fou)
+        reviewer = Agent(
+            role="Code Reviewer & Security Officer",
+            goal="Vérifier que toute modification est sûre, utile et ne casse rien",
+            backstory="Tu es un expert en revue de code. Tu bloques tout ce qui est risqué ou inutile.",
             llm="groq/llama-3.3-70b-versatile",
-            verbose=True,
-            allow_code_execution=False
+            verbose=True
         )
+
+        # Sub-crews spécialisés
+        trader_improver = Agent(
+            role="Trader Agent Specialist",
+            goal="Améliorer uniquement le TraderAgent pour plus de trades et meilleur winrate",
+            backstory="Tu ne touches qu'à trader_agent.py",
+            tools=[EditBotFileTool()],
+            llm="groq/llama-3.3-70b-versatile"
+        )
+
+        # Supervisor final
+        supervisor = Agent(
+            role="Final Decision Maker",
+            goal="Décider quelles améliorations sont acceptées et les appliquer",
+            backstory="Tu es le CEO. Tu valides ou refuses les propositions des sub-crews.",
+            tools=[EditBotFileTool(), GitPushTool()],
+            llm="groq/llama-3.3-70b-versatile"
+        )
+
         task = Task(
-            description=f"""
-Objectif principal du bot : {MAIN_OBJECTIVE}
-
-Règles strictes à respecter :
-1. Priorité absolue : améliorer les autres agents (Trader, Risk, Supervisor, Learning, Analyst...) avant de te modifier toi-même.
-2. Toujours proposer des modifications incrémentales et sécurisées.
-3. Jamais supprimer ou casser du code existant.
-4. Pour toute modification sur les fichiers core (bot.py, orchestrator.py, supervisor_agent.py, trader_agent.py, risk_agent.py, etc.), tu dois :
-   - Présenter un niveau de risque clair (Low / Medium / High)
-   - Demander explicitement la permission de l'utilisateur avant d'appliquer
-5. Toujours garder le focus sur : plus de trades + meilleur winrate + protection du capital.
-
-Analyse les stats actuelles, identifie les faiblesses, et propose des améliorations concrètes.
-
-Retourne ton plan sous cette forme structurée :
-- Améliorations proposées (par agent)
-- Niveau de risque de chaque modification
-- Code à modifier (avec blocs précis)
-- Message de commit clair
-- Demande de permission si risque Medium ou High
-
-Sois prudent, responsable et respectueux du code existant.
-""",
-            expected_output="Plan structuré d'améliorations + code prêt à appliquer + niveau de risque + demande de permission si nécessaire",
-            agent=improver
+            description="Analyse les stats actuelles et propose des améliorations via les sub-crews. Le Reviewer doit valider avant toute édition.",
+            expected_output="Plan hiérarchisé + code validé + demande de permission si modification critique",
+            agent=supervisor
         )
-        crew = Crew(agents=[improver], tasks=[task], verbose=True, memory=False, cache=True)
+
+        crew = Crew(agents=[supervisor, reviewer, trader_improver], tasks=[task], verbose=True, memory=False)
         return crew
     except Exception as e:
         print(f"[CREW] Création impossible: {e}")
