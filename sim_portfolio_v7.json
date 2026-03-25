@@ -1,8 +1,37 @@
 {
   "sim": {
-    "cash": 258.5220047469717,
+    "cash": 245.5959045096231,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MEME_LOLA_183": {
+        "id": 183,
+        "symbol": "LOLA",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "LOLA",
+        "price_in": 0.0003983,
+        "price_out": null,
+        "qty": 32453.17659389552,
+        "amount_usd": 12.926100237348585,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-25 15:51:57",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0004034,
+        "open_time": 1774453917.30343,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_LOLA_183"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -4916,6 +4945,33 @@
         "leverage": 1,
         "peak_price": 0.0003812,
         "open_time": 1774452969.9455674,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 183,
+        "symbol": "LOLA",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "LOLA",
+        "price_in": 0.0003983,
+        "price_out": null,
+        "qty": 32453.17659389552,
+        "amount_usd": 12.926100237348585,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-25 15:51:57",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0003983,
+        "open_time": 1774453917.30343,
         "kelly_pct": 0.05
       }
     ],
@@ -37697,6 +37753,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-25 15:51"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -1.6253,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-25 15:51"
       }
     ],
     "patterns_to_avoid": [
@@ -37933,7 +38000,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
@@ -37976,6 +38042,7 @@
       "backtest_5m",
       "backtest_5m",
       "memecoin",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
