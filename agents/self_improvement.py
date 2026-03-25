@@ -196,10 +196,7 @@ def start_self_improvement_loop(orchestrator):
                 result = crew.kickoff()
                 print(f"[SELF-IMPROVEMENT] Cycle terminé - {result}")
                 
-                # Mise à jour Prometheus
                 evolution_cycles_total.inc()
-                if hasattr(performance_tracker, 'winrate_gauge'):
-                    performance_tracker.winrate_gauge.set(performance_tracker.get_winrate())
 
         except Exception as e:
             err_str = str(e).lower()
