@@ -1,8 +1,37 @@
 {
   "sim": {
-    "cash": 257.46832162181323,
+    "cash": 244.59490554072258,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MEME_Figure03_186": {
+        "id": 186,
+        "symbol": "Figure03",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "Figure03",
+        "price_in": 0.0003644,
+        "price_out": null,
+        "qty": 35327.70604031466,
+        "amount_usd": 12.873416081090662,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-25 16:31:44",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0003804,
+        "open_time": 1774456304.189826,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_Figure03_186"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -4997,6 +5026,33 @@
         "leverage": 1,
         "peak_price": 0.0004394,
         "open_time": 1774454432.3177683,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 186,
+        "symbol": "Figure03",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "Figure03",
+        "price_in": 0.0003644,
+        "price_out": null,
+        "qty": 35327.70604031466,
+        "amount_usd": 12.873416081090662,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-25 16:31:44",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0003644,
+        "open_time": 1774456304.189826,
         "kelly_pct": 0.05
       }
     ],
@@ -40663,7 +40719,7 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 641,
-    "total_losses": 957,
+    "total_losses": 958,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
@@ -56682,6 +56738,34 @@
             "exit": 68502.42,
             "pnl": -2.4543,
             "pnl_pct": -1.23,
+            "exit_reason": "TIMEOUT"
+          }
+        ]
+      },
+      {
+        "symbol": "ETHUSDT",
+        "interval": "5m",
+        "days": 30,
+        "total_trades": 1,
+        "wins": 0,
+        "losses": 1,
+        "win_rate": 0.0,
+        "total_pnl": -1.63,
+        "total_pnl_pct": -0.16,
+        "sharpe": 0.0,
+        "max_drawdown": -0.16,
+        "profit_factor": 0.0,
+        "best_trade": -0.81,
+        "worst_trade": -0.81,
+        "final_equity": 998.37,
+        "sl_used": 0.025,
+        "tp_used": 0.04,
+        "trades": [
+          {
+            "entry": 2080.13955,
+            "exit": 2063.21,
+            "pnl": -1.6253,
+            "pnl_pct": -0.81,
             "exit_reason": "TIMEOUT"
           }
         ]
