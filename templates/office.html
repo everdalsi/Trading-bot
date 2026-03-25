@@ -13,51 +13,52 @@
         .modal { animation: modalPop 0.3s; }
         @keyframes modalPop { from { opacity:0; transform:scale(0.95); } to { opacity:1; transform:scale(1); } }
         .chat-bubble { max-width: 75%; }
+        .sidebar-info { font-size: 0.75rem; }
     </style>
 </head>
 <body class="min-h-screen p-6">
-    <div class="max-w-6xl mx-auto">
-        <!-- Header -->
-        <div class="flex items-center justify-between mb-8">
-            <div class="flex items-center gap-4">
-                <div class="text-4xl">🏢</div>
-                <div>
-                    <h1 class="text-5xl font-bold text-[#58a6ff]">Claude Office</h1>
-                    <p class="text-[#8b949e] text-sm">Tradbot • LIVE</p>
+    <div class="max-w-7xl mx-auto grid grid-cols-12 gap-6">
+        <!-- Colonne principale (agents + chat) -->
+        <div class="col-span-12 lg:col-span-8">
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-8">
+                <div class="flex items-center gap-4">
+                    <div class="text-4xl">🏢</div>
+                    <div>
+                        <h1 class="text-5xl font-bold text-[#58a6ff]">Claude Office</h1>
+                        <p class="text-[#8b949e] text-sm">Tradbot • LIVE</p>
+                    </div>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="quickCommand('force_max_trades')" class="bg-green-500 hover:bg-green-600 px-6 py-3 rounded-xl text-sm font-bold">🚀 MAX TRADES</button>
+                    <button onclick="quickCommand('reset_equity')" class="bg-yellow-500 hover:bg-yellow-600 px-6 py-3 rounded-xl text-sm font-bold">🔄 Reset Equity</button>
+                    <button onclick="quickCommand('conservative_mode')" class="bg-blue-500 hover:bg-blue-600 px-6 py-3 rounded-xl text-sm font-bold">🛡️ Mode Conservateur</button>
                 </div>
             </div>
-            <div class="flex gap-3">
-                <button onclick="quickCommand('force_max_trades')" class="bg-green-500 hover:bg-green-600 px-6 py-3 rounded-xl text-sm font-bold">🚀 MAX TRADES</button>
-                <button onclick="quickCommand('reset_equity')" class="bg-yellow-500 hover:bg-yellow-600 px-6 py-3 rounded-xl text-sm font-bold">🔄 Reset Equity</button>
-                <button onclick="quickCommand('conservative_mode')" class="bg-blue-500 hover:bg-blue-600 px-6 py-3 rounded-xl text-sm font-bold">🛡️ Mode Conservateur</button>
+
+            <!-- Agents -->
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-6 mb-8" id="agents-grid"></div>
+
+            <!-- Chat -->
+            <div class="bg-[#161b22] rounded-3xl p-6">
+                <h2 class="text-[#58a6ff] text-xl mb-4">💬 OFFICE CHAT • Agents en direct</h2>
+                <div id="chat-window" class="h-96 overflow-y-auto space-y-4 mb-4 pr-4"></div>
+                <div class="flex gap-3">
+                    <input id="chat-input" type="text" placeholder="Parle aux agents..." 
+                           class="flex-1 bg-[#21262d] text-white rounded-2xl px-6 py-4 focus:outline-none">
+                    <button onclick="sendChatMessage()" class="bg-[#58a6ff] hover:bg-[#1f8cff] px-8 rounded-2xl font-bold">ENVOYER</button>
+                </div>
             </div>
         </div>
 
-        <!-- Stats rapides -->
-        <div class="grid grid-cols-4 gap-4 mb-8" id="live-stats">
-            <!-- JS rempli ici -->
-        </div>
-
-        <!-- Agents cliquables -->
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-6 mb-8" id="agents-grid"></div>
-
-        <!-- Chat global intelligent -->
-        <div class="mt-12 bg-[#161b22] rounded-3xl p-6">
-            <h2 class="text-[#58a6ff] text-xl mb-4 flex items-center gap-2">
-                💬 OFFICE CHAT • Agents en direct
-            </h2>
-            <div id="chat-window" class="h-96 overflow-y-auto space-y-4 mb-4 pr-4"></div>
-            
-            <div class="flex gap-3">
-                <input id="chat-input" type="text" placeholder="Parle aux agents... (ex: force un trade sur SOL)" 
-                       class="flex-1 bg-[#21262d] text-white rounded-2xl px-6 py-4 focus:outline-none">
-                <button onclick="sendChatMessage()" 
-                        class="bg-[#58a6ff] hover:bg-[#1f8cff] px-8 rounded-2xl font-bold">ENVOYER</button>
-            </div>
+        <!-- Panneau latéral droit : infos importantes -->
+        <div class="col-span-12 lg:col-span-4 bg-[#161b22] rounded-3xl p-6 h-fit sticky top-6">
+            <h2 class="text-[#58a6ff] text-lg mb-6">📊 INFOS EN DIRECT</h2>
+            <div id="live-info" class="space-y-6 text-sm"></div>
         </div>
     </div>
 
-    <!-- Modal pour commander un agent -->
+    <!-- Modal agent -->
     <div id="agent-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50">
         <div class="modal bg-[#161b22] rounded-3xl p-8 max-w-md w-full mx-4">
             <div id="modal-content"></div>
@@ -89,23 +90,41 @@
 
         function openAgentPanel(agentId) {
             const agent = agents.find(a => a.id === agentId);
+            let buttons = '';
+            if (agentId === 'trader') {
+                buttons = `
+                    <button onclick="sendAgentCommand('${agentId}', 'force_trade')" class="bg-green-500 py-4 rounded-2xl mb-3 w-full">Force un trade maintenant</button>
+                    <button onclick="sendAgentCommand('${agentId}', 'analyze_symbol')" class="bg-blue-500 py-4 rounded-2xl w-full">Analyser un symbole spécifique</button>`;
+            } else if (agentId === 'risk') {
+                buttons = `
+                    <button onclick="sendAgentCommand('${agentId}', 'adjust_risk')" class="bg-yellow-500 py-4 rounded-2xl mb-3 w-full">Ajuster le risque global</button>
+                    <button onclick="sendAgentCommand('${agentId}', 'show_status')" class="bg-red-500 py-4 rounded-2xl w-full">Voir statut risque complet</button>`;
+            } else if (agentId === 'improver') {
+                buttons = `
+                    <button onclick="sendAgentCommand('${agentId}', 'build_patch')" class="bg-purple-500 py-4 rounded-2xl mb-3 w-full">Construire un nouveau patch</button>
+                    <button onclick="sendAgentCommand('${agentId}', 'optimize_code')" class="bg-indigo-500 py-4 rounded-2xl w-full">Optimiser le code actuel</button>`;
+            } else if (agentId === 'reflection') {
+                buttons = `
+                    <button onclick="sendAgentCommand('${agentId}', 'analyze_cycles')" class="bg-cyan-500 py-4 rounded-2xl mb-3 w-full">Analyser les cycles précédents</button>
+                    <button onclick="sendAgentCommand('${agentId}', 'find_patterns')" class="bg-teal-500 py-4 rounded-2xl w-full">Trouver les meilleurs patterns</button>`;
+            } else if (agentId === 'permission') {
+                buttons = `
+                    <button onclick="sendAgentCommand('${agentId}', 'check_risk')" class="bg-yellow-500 py-4 rounded-2xl mb-3 w-full">Vérifier risque actuel</button>
+                    <button onclick="sendAgentCommand('${agentId}', 'classify_patch')" class="bg-amber-500 py-4 rounded-2xl w-full">Classer un patch (Low/Med/High)</button>`;
+            } else if (agentId === 'supervisor') {
+                buttons = `
+                    <button onclick="sendAgentCommand('${agentId}', 'final_decision')" class="bg-amber-500 py-4 rounded-2xl mb-3 w-full">Prendre la décision finale</button>
+                    <button onclick="sendAgentCommand('${agentId}', 'orchestrate')" class="bg-orange-500 py-4 rounded-2xl w-full">Orchestrer tous les agents</button>`;
+            }
+
             document.getElementById('modal-content').innerHTML = `
                 <div class="text-center">
                     <div class="text-7xl mb-6">${agent.emoji}</div>
                     <h2 class="text-3xl font-bold">${agent.name}</h2>
                     <p class="text-gray-400 mb-8">${agent.desc}</p>
-                    
-                    <div class="grid grid-cols-2 gap-4 text-sm">
-                        <button onclick="sendAgentCommand('${agentId}', 'force_trade')" class="bg-green-500 py-4 rounded-2xl">Force un trade</button>
-                        <button onclick="sendAgentCommand('${agentId}', 'analyze_symbol')" class="bg-blue-500 py-4 rounded-2xl">Analyser un symbole</button>
-                        <button onclick="sendAgentCommand('${agentId}', 'adjust_risk')" class="bg-yellow-500 py-4 rounded-2xl">Ajuster risque</button>
-                        <button onclick="sendAgentCommand('${agentId}', 'show_status')" class="bg-purple-500 py-4 rounded-2xl">Voir statut</button>
-                    </div>
-                    
-                    <input id="agent-input" placeholder="Message personnalisé pour ${agent.name}..." 
-                           class="w-full mt-6 bg-[#21262d] rounded-2xl px-6 py-4 text-sm focus:outline-none">
-                    <button onclick="sendCustomAgentMessage('${agentId}')" 
-                            class="mt-4 w-full bg-[#58a6ff] py-4 rounded-2xl font-bold">Envoyer message</button>
+                    ${buttons}
+                    <input id="agent-input" placeholder="Message personnalisé..." class="w-full mt-6 bg-[#21262d] rounded-2xl px-6 py-4 text-sm focus:outline-none">
+                    <button onclick="sendCustomAgentMessage('${agentId}')" class="mt-4 w-full bg-[#58a6ff] py-4 rounded-2xl font-bold">Envoyer message</button>
                 </div>
             `;
             document.getElementById('agent-modal').classList.remove('hidden');
@@ -117,7 +136,7 @@
 
         async function quickCommand(cmd) {
             await fetch('/api/quick_command', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({command: cmd}) });
-            alert('✅ Commande envoyée depuis le dashboard !');
+            alert('✅ Commande envoyée !');
         }
 
         async function sendAgentCommand(agentId, action) {
@@ -158,11 +177,21 @@
             try {
                 const res = await fetch('/api/live_stats');
                 const data = await res.json();
-                document.getElementById('live-stats').innerHTML = `
-                    <div class="bg-[#161b22] rounded-2xl p-4 text-center"><div class="text-xs text-gray-400">LEÇONS</div><div class="text-4xl text-green-400">${data.lessons}</div></div>
-                    <div class="bg-[#161b22] rounded-2xl p-4 text-center"><div class="text-xs text-gray-400">WINRATE</div><div class="text-4xl text-yellow-400">${data.winrate}%</div></div>
-                    <div class="bg-[#161b22] rounded-2xl p-4 text-center"><div class="text-xs text-gray-400">CAPITAL</div><div class="text-4xl text-cyan-400">$${data.capital}</div></div>
-                    <div class="bg-[#161b22] rounded-2xl p-4 text-center"><div class="text-xs text-gray-400">CYCLE</div><div class="text-4xl text-purple-400">${data.cycle}</div></div>
+                document.getElementById('live-info').innerHTML = `
+                    <div class="bg-[#21262d] p-4 rounded-2xl">
+                        <div class="text-xs text-gray-400">DERNIERS TRADES</div>
+                        ${data.last_trades || '<div class="text-gray-400 text-xs">Aucun trade récent</div>'}
+                    </div>
+                    <div class="bg-[#21262d] p-4 rounded-2xl">
+                        <div class="text-xs text-gray-400">RISQUE ACTUEL</div>
+                        <div class="text-lg ${data.risk_level === 'LOW' ? 'text-green-400' : data.risk_level === 'MEDIUM' ? 'text-yellow-400' : 'text-red-400'}">${data.risk_level || 'N/A'}</div>
+                    </div>
+                    <div class="bg-[#21262d] p-4 rounded-2xl text-sm">
+                        <div>Leçons : <span class="text-green-400">${data.lessons}</span></div>
+                        <div>Winrate : <span class="text-yellow-400">${data.winrate}%</span></div>
+                        <div>Capital : <span class="text-cyan-400">$${data.capital}</span></div>
+                        <div>Cycle : <span class="text-purple-400">${data.cycle}</span></div>
+                    </div>
                 `;
             } catch(e) {}
         }
