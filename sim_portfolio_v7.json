@@ -2,36 +2,7 @@
   "sim": {
     "cash": 164.95163678830482,
     "initial": 1000.0,
-    "positions": {
-      "MEME_WOJAK_205": {
-        "id": 205,
-        "symbol": "WOJAK",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "WOJAK",
-        "price_in": 0.0002948,
-        "price_out": null,
-        "qty": 29322.702388333048,
-        "amount_usd": 8.644332664080583,
-        "confidence": 95,
-        "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-25 19:54:51",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0002948,
-        "open_time": 1774468491.9149728,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_WOJAK_205"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
