@@ -450,7 +450,7 @@ class LearningAgent(BaseAgent):
         if symbol_stats.get("count", 0) < 5:
             delta -= 0.05
 
-        adjusted_conf = max(0.10, min(0.95, base_conf + delta))
+                adjusted_conf = max(0.10, min(0.95, base_conf + delta))
 
         best_patterns  = self.get_best_patterns(symbol, limit=3)
         worst_patterns = self.get_worst_patterns(symbol, limit=3)
@@ -460,12 +460,12 @@ class LearningAgent(BaseAgent):
         if self.should_compress():
             self.compress_lessons()
 
-                should_blacklist = (
+        should_blacklist = (
             symbol_score < 0.30
             and symbol_stats.get("count", 0) >= 5
         )
         # === UPGRADE : blacklist auto après 2 SL -99% (même en EXTREME LEARNING) ===
-        severe_sl = context.get("severe_sl_count", 0)  # injecté plus bas par orchestrator
+        severe_sl = context.get("severe_sl_count", 0)
         if severe_sl >= 2 or (symbol_score < 0.15 and symbol_stats.get("count", 0) >= 3):
             should_blacklist = True
 
