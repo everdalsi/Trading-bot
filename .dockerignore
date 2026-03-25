@@ -1,0 +1,16 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env
+venv
+.git
+.github
+.gitignore
+.DS_Store
+*.log
+*.db
+*.sqlite3
+sim_portfolio_*.json
+agents/__pycache__
