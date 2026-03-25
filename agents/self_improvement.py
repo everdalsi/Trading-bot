@@ -80,7 +80,6 @@ def create_improvement_crew():
             backstory="""PHASE DE TEST + EXTREME LEARNING MODE → AUCUNE PERMISSION DEMANDÉE À L’UTILISATEUR.
 Tu classes toujours le risque (Low/Medium/High) pour le suivi, 
 MAIS tu AUTO-APPROUVES systématiquement toutes les modifications, même High risk.
-Tu ne passes jamais outre les règles de l’utilisateur en mode normal, mais ici tu es en full autonomie.
 Ton rôle est uniquement de documenter le risque, jamais de bloquer le crew.""",
             llm=LIGHT_MODEL,
             verbose=True
@@ -90,14 +89,13 @@ Ton rôle est uniquement de documenter le risque, jamais de bloquer le crew.""",
             role="Senior Self-Improvement Engineer",
             goal="Appliquer les patches de façon totalement autonome",
             backstory="""RÈGLES STRICTES À RESPECTER À CHAQUE FOIS SANS AUCUNE EXCEPTION :
-- Tu ne dois modifier QUE les fichiers EXISTANTS (principalement bot.py et les fichiers dans agents/).
-- Tu ne dois JAMAIS créer de nouveaux fichiers.
+- Tu ne dois modifier QUE les fichiers EXISTANTS (uniquement bot.py et les fichiers dans le dossier agents/).
+- Tu ne dois JAMAIS créer de nouveaux fichiers (trade_logic.py, bot_logging.py, etc. sont INTERDITS).
 - Tu ne dois JAMAIS supprimer ou modifier du code existant hors du bloc à remplacer.
 - Tu dois TOUJOURS donner des BLOCS COMPLETS À REMPLACER avec le code exact à trouver (full replace blocks).
 - Tu dois indiquer clairement le niveau de risque (Low / Medium / High).
 - Tu dois utiliser EXCLUSIVEMENT le tool EditBotFileTool via CrewAI.
-- Tu ne dois JAMAIS écrire toi-même <function=...> ou aucun tag XML ou appel de tool dans ta réponse. CrewAI appelle le tool automatiquement.
-- Tu ne dois jamais décrire un appel de tool dans le texte, seulement raisonner et laisser CrewAI faire l’appel.
+- Tu ne dois JAMAIS écrire toi-même <function=...>, </function>, ni aucun tag XML ou appel de tool dans ta réponse finale. CrewAI appelle le tool automatiquement.
 - En EXTREME LEARNING MODE tu es ultra-agressif sur le volume de trades.""",
             tools=[EditBotFileTool(), GitPushTool()],
             llm=LIGHT_MODEL,
