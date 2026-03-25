@@ -1,8 +1,37 @@
 {
   "sim": {
-    "cash": 958.8229899113421,
+    "cash": 910.8818404157751,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MEME_GigaChud_83": {
+        "id": 83,
+        "symbol": "GigaChud",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "GigaChud",
+        "price_in": 0.0003271,
+        "price_out": null,
+        "qty": 146564.1990081538,
+        "amount_usd": 47.94114949556711,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-25 10:33:11",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0003271,
+        "open_time": 1774434791.7600076,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_GigaChud_83"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -2216,6 +2245,33 @@
         "leverage": 1,
         "peak_price": 0.0003271,
         "open_time": 1774434748.5310073,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 83,
+        "symbol": "GigaChud",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "GigaChud",
+        "price_in": 0.0003271,
+        "price_out": null,
+        "qty": 146564.1990081538,
+        "amount_usd": 47.94114949556711,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-25 10:33:11",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0003271,
+        "open_time": 1774434791.7600076,
         "kelly_pct": 0.05
       }
     ],
@@ -16055,6 +16111,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-25 10:32"
+      },
+      {
+        "trade_id": -5,
+        "pnl": 5.0924,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-25 10:32"
       }
     ],
     "patterns_to_avoid": [
@@ -16404,7 +16471,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
@@ -16438,6 +16504,7 @@
       "backtest_5m",
       "memecoin",
       "memecoin",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -16661,13 +16728,13 @@
       "backtest_5m",
       "backtest_5m"
     ],
-    "confidence_threshold": 29,
+    "confidence_threshold": 32,
     "total_wins": 330,
-    "total_losses": 554,
+    "total_losses": 555,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -13,
+      "SOLUSDT": -11,
       "TARO": 15,
       "\u96ea\u5c71\u6551\u72d0": -15,
       "LOLA": -4,
@@ -28565,6 +28632,34 @@
             "entry": 2080.13955,
             "exit": 2063.21,
             "pnl": -1.6244,
+            "pnl_pct": -0.81,
+            "exit_reason": "TIMEOUT"
+          }
+        ]
+      },
+      {
+        "symbol": "ETHUSDT",
+        "interval": "5m",
+        "days": 30,
+        "total_trades": 1,
+        "wins": 0,
+        "losses": 1,
+        "win_rate": 0.0,
+        "total_pnl": -1.63,
+        "total_pnl_pct": -0.16,
+        "sharpe": 0.0,
+        "max_drawdown": -0.16,
+        "profit_factor": 0.0,
+        "best_trade": -0.81,
+        "worst_trade": -0.81,
+        "final_equity": 998.37,
+        "sl_used": 0.025,
+        "tp_used": 0.04,
+        "trades": [
+          {
+            "entry": 2080.13955,
+            "exit": 2063.21,
+            "pnl": -1.6253,
             "pnl_pct": -0.81,
             "exit_reason": "TIMEOUT"
           }
