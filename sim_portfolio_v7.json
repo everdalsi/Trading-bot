@@ -1,8 +1,37 @@
 {
   "sim": {
-    "cash": 3.4028425297156313e+28,
+    "cash": 2.5626223319182885e+29,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MEME_APES_240": {
+        "id": 240,
+        "symbol": "APES",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "APES",
+        "price_in": 0.0005456,
+        "price_out": null,
+        "qty": 3.118440734710073e+30,
+        "amount_usd": 1.7014212648578158e+27,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-25 23:41:52",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.07181,
+        "open_time": 1774482112.9171174,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_APES_240"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -6455,6 +6484,33 @@
         "leverage": 1,
         "peak_price": 0.0005456,
         "open_time": 1774482066.3205688,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 240,
+        "symbol": "APES",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "APES",
+        "price_in": 0.0005456,
+        "price_out": 0.07181,
+        "qty": 3.118440734710073e+30,
+        "amount_usd": 1.7014212648578158e+27,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": "\ud83c\udfaf MEME TP (+13061.7%)",
+        "time_in": "2026-03-25 23:41:52",
+        "time_out": "2026-03-25 23:41:53",
+        "pnl": 2.2223380789467254e+29,
+        "pnl_pct": 13061.66,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0005456,
+        "open_time": 1774482112.9171174,
         "kelly_pct": 0.05
       }
     ],
@@ -65042,6 +65098,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-25 23:41"
+      },
+      {
+        "trade_id": 240,
+        "pnl": 2.2223380789467254e+29,
+        "symbol": "APES",
+        "market": "MEME",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "memecoin",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-25 23:41"
       }
     ],
     "patterns_to_avoid": [
@@ -65420,7 +65487,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "memecoin",
@@ -65646,7 +65712,8 @@
       "memecoin",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "memecoin"
     ],
     "confidence_threshold": 8,
     "total_wins": 1042,
