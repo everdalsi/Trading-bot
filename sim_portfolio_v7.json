@@ -41205,6 +41205,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-25 16:51"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -1.6253,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-25 16:52"
       }
     ],
     "patterns_to_avoid": [
@@ -41289,7 +41300,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
@@ -41394,6 +41404,7 @@
       "backtest_5m",
       "backtest_5m",
       "memecoin",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -41813,7 +41824,7 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 658,
-    "total_losses": 973,
+    "total_losses": 974,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
@@ -57833,6 +57844,34 @@
             "exit": 68502.42,
             "pnl": -2.4543,
             "pnl_pct": -1.23,
+            "exit_reason": "TIMEOUT"
+          }
+        ]
+      },
+      {
+        "symbol": "ETHUSDT",
+        "interval": "5m",
+        "days": 30,
+        "total_trades": 1,
+        "wins": 0,
+        "losses": 1,
+        "win_rate": 0.0,
+        "total_pnl": -1.63,
+        "total_pnl_pct": -0.16,
+        "sharpe": 0.0,
+        "max_drawdown": -0.16,
+        "profit_factor": 0.0,
+        "best_trade": -0.81,
+        "worst_trade": -0.81,
+        "final_equity": 998.37,
+        "sl_used": 0.025,
+        "tp_used": 0.04,
+        "trades": [
+          {
+            "entry": 2080.13955,
+            "exit": 2063.21,
+            "pnl": -1.6253,
+            "pnl_pct": -0.81,
             "exit_reason": "TIMEOUT"
           }
         ]
