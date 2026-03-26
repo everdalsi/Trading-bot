@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 3.8367873801860166e+33,
+    "cash": 3.9772931007308516e+33,
     "initial": 1000.0,
     "positions": {},
     "trades": [
@@ -7832,6 +7832,33 @@
         "leverage": 1,
         "peak_price": 0.0006667,
         "open_time": 1774490185.2723875,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 291,
+        "symbol": "TARO",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "TARO",
+        "price_in": 0.0006667,
+        "price_out": 0.001155,
+        "qty": 2.877446662806372e+35,
+        "amount_usd": 1.9183936900930082e+32,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": "\ud83c\udfaf MEME TP (+73.2%)",
+        "time_in": "2026-03-26 01:57:08",
+        "time_out": "2026-03-26 01:57:08",
+        "pnl": 1.4050572054483515e+32,
+        "pnl_pct": 73.24,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0006667,
+        "open_time": 1774490228.3668406,
         "kelly_pct": 0.05
       }
     ],
@@ -74141,6 +74168,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-26 01:57"
+      },
+      {
+        "trade_id": 291,
+        "pnl": 1.4050572054483515e+32,
+        "symbol": "TARO",
+        "market": "MEME",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "memecoin",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-26 01:57"
       }
     ],
     "patterns_to_avoid": [
@@ -74471,7 +74509,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "memecoin",
@@ -74745,7 +74782,8 @@
       "memecoin",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "memecoin"
     ],
     "confidence_threshold": 8,
     "total_wins": 1206,
