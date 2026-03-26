@@ -18220,11 +18220,21 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-26 07:29"
+      },
+      {
+        "trade_id": -5,
+        "pnl": -1.6175,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-26 07:29"
       }
     ],
     "patterns_to_avoid": [
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
@@ -18232,6 +18242,7 @@
       "memecoin",
       "backtest_5m",
       "memecoin",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -18828,11 +18839,11 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 203,
-    "total_losses": 470,
+    "total_losses": 471,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": 6,
+      "SOLUSDT": 3,
       "BITSY": -15,
       "7roamers": -15
     },
@@ -29895,6 +29906,34 @@
             "exit": 2173.23,
             "pnl": -0.8911,
             "pnl_pct": -0.45,
+            "exit_reason": "TIMEOUT"
+          }
+        ]
+      },
+      {
+        "symbol": "BTCUSDT",
+        "interval": "5m",
+        "days": 30,
+        "total_trades": 1,
+        "wins": 0,
+        "losses": 1,
+        "win_rate": 0.0,
+        "total_pnl": -0.73,
+        "total_pnl_pct": -0.07,
+        "sharpe": 0.0,
+        "max_drawdown": -0.07,
+        "profit_factor": 0.0,
+        "best_trade": -0.36,
+        "worst_trade": -0.36,
+        "final_equity": 999.27,
+        "sl_used": 0.025,
+        "tp_used": 0.04,
+        "trades": [
+          {
+            "entry": 71503.24375499999,
+            "exit": 71242.73,
+            "pnl": -0.7276,
+            "pnl_pct": -0.36,
             "exit_reason": "TIMEOUT"
           }
         ]
