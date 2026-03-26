@@ -2,36 +2,7 @@
   "sim": {
     "cash": 717.3211097622441,
     "initial": 1000.0,
-    "positions": {
-      "MEME_BITSY_9": {
-        "id": 9,
-        "symbol": "BITSY",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "BITSY",
-        "price_in": 0.0005098,
-        "price_out": null,
-        "qty": 73026.8775145575,
-        "amount_usd": 37.22910215692142,
-        "confidence": 95,
-        "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-26 04:33:35",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0005098,
-        "open_time": 1774499615.9345014,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_BITSY_9"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
@@ -3930,7 +3901,7 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 42,
-    "total_losses": 93,
+    "total_losses": 95,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
@@ -6316,6 +6287,34 @@
             "exit": 2173.23,
             "pnl": -0.8911,
             "pnl_pct": -0.45,
+            "exit_reason": "TIMEOUT"
+          }
+        ]
+      },
+      {
+        "symbol": "BTCUSDT",
+        "interval": "5m",
+        "days": 30,
+        "total_trades": 1,
+        "wins": 0,
+        "losses": 1,
+        "win_rate": 0.0,
+        "total_pnl": -0.73,
+        "total_pnl_pct": -0.07,
+        "sharpe": 0.0,
+        "max_drawdown": -0.07,
+        "profit_factor": 0.0,
+        "best_trade": -0.36,
+        "worst_trade": -0.36,
+        "final_equity": 999.27,
+        "sl_used": 0.025,
+        "tp_used": 0.04,
+        "trades": [
+          {
+            "entry": 71503.24375499999,
+            "exit": 71242.73,
+            "pnl": -0.7276,
+            "pnl_pct": -0.36,
             "exit_reason": "TIMEOUT"
           }
         ]
