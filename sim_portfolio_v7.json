@@ -2,36 +2,7 @@
   "sim": {
     "cash": 40.988235008644466,
     "initial": 1000.0,
-    "positions": {
-      "MEME_CHIBI_89": {
-        "id": 89,
-        "symbol": "CHIBI",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "CHIBI",
-        "price_in": 0.000836,
-        "price_out": null,
-        "qty": 2415.335003455773,
-        "amount_usd": 2.0192200628890262,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-26 21:11:42",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.001086,
-        "open_time": 1774559502.3488579,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_CHIBI_89"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
