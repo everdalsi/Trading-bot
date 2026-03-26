@@ -2,36 +2,7 @@
   "sim": {
     "cash": 2.712279353144815e+33,
     "initial": 1000.0,
-    "positions": {
-      "MEME_TARO_279": {
-        "id": 279,
-        "symbol": "TARO",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "TARO",
-        "price_in": 0.0005891,
-        "price_out": null,
-        "qty": 2.1965511165014415e+35,
-        "amount_usd": 1.2939882627309991e+32,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-26 01:38:30",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.001155,
-        "open_time": 1774489110.0373492,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_TARO_279"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
@@ -73138,8 +73109,8 @@
       "memecoin"
     ],
     "confidence_threshold": 8,
-    "total_wins": 1178,
-    "total_losses": 1463,
+    "total_wins": 1179,
+    "total_losses": 1464,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
@@ -111444,6 +111415,34 @@
             "exit": 71242.73,
             "pnl": -0.7276,
             "pnl_pct": -0.36,
+            "exit_reason": "TIMEOUT"
+          }
+        ]
+      },
+      {
+        "symbol": "ETHUSDT",
+        "interval": "5m",
+        "days": 30,
+        "total_trades": 1,
+        "wins": 0,
+        "losses": 1,
+        "win_rate": 0.0,
+        "total_pnl": -0.89,
+        "total_pnl_pct": -0.09,
+        "sharpe": 0.0,
+        "max_drawdown": -0.09,
+        "profit_factor": 0.0,
+        "best_trade": -0.45,
+        "worst_trade": -0.45,
+        "final_equity": 999.11,
+        "sl_used": 0.025,
+        "tp_used": 0.04,
+        "trades": [
+          {
+            "entry": 2182.97094,
+            "exit": 2173.23,
+            "pnl": -0.8911,
+            "pnl_pct": -0.45,
             "exit_reason": "TIMEOUT"
           }
         ]
