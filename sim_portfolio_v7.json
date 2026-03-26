@@ -19078,6 +19078,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-26 07:42"
+      },
+      {
+        "trade_id": -2,
+        "pnl": -2.0276,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-26 07:42"
       }
     ],
     "patterns_to_avoid": [
@@ -19690,7 +19701,7 @@
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": 5,
+      "SOLUSDT": 2,
       "BITSY": -15,
       "7roamers": -15
     },
