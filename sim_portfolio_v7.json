@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 50.11504049298277,
+    "cash": 50.95700385985684,
     "initial": 1000.0,
     "positions": {},
     "trades": [
@@ -2054,6 +2054,33 @@
         "leverage": 1,
         "peak_price": 0.002613,
         "open_time": 1774533880.5560865,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 77,
+        "symbol": "LOL",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "LOL",
+        "price_in": 0.002613,
+        "price_out": 0.003491,
+        "qty": 958.9559987176192,
+        "amount_usd": 2.505752024649139,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": "\ud83c\udfaf MEME TP (+33.6%)",
+        "time_in": "2026-03-26 14:05:23",
+        "time_out": "2026-03-26 14:05:23",
+        "pnl": 0.841963,
+        "pnl_pct": 33.6,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.002613,
+        "open_time": 1774533923.0564873,
         "kelly_pct": 0.05
       }
     ],
@@ -47232,6 +47259,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-26 14:05"
+      },
+      {
+        "trade_id": 77,
+        "pnl": 0.841963,
+        "symbol": "LOL",
+        "market": "MEME",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "memecoin",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-26 14:05"
       }
     ],
     "patterns_to_avoid": [
@@ -47832,11 +47870,11 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "memecoin"
     ],
     "confidence_threshold": 82,
     "total_wins": 599,
@@ -47847,7 +47885,7 @@
       "SOLUSDT": -14,
       "BITSY": -15,
       "7roamers": -15,
-      "LOL": 2
+      "LOL": 4
     },
     "symbol_blacklist": {},
     "consecutive_losses": {},
