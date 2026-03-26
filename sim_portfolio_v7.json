@@ -2,36 +2,7 @@
   "sim": {
     "cash": 102.02847818582038,
     "initial": 1000.0,
-    "positions": {
-      "MEME_7roamers_57": {
-        "id": 57,
-        "symbol": "7roamers",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "7roamers",
-        "price_in": 0.0004106,
-        "price_out": null,
-        "qty": 12927.663075699531,
-        "amount_usd": 5.3080984588822275,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-26 05:50:04",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0004106,
-        "open_time": 1774504204.4495835,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_7roamers_57"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
@@ -10811,6 +10782,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-26 05:50"
+      },
+      {
+        "trade_id": -4,
+        "pnl": 5.1017,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-26 05:50"
       }
     ],
     "patterns_to_avoid": [
@@ -11423,7 +11405,7 @@
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": 4,
+      "SOLUSDT": 6,
       "BITSY": -15,
       "7roamers": -15
     },
