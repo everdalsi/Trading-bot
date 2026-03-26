@@ -50502,6 +50502,39 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-26 14:46"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -0.7276,
+        "symbol": "BTCUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-26 14:47"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -0.8911,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-26 14:47"
+      },
+      {
+        "trade_id": -2,
+        "pnl": -5.1664,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-26 14:47"
       }
     ],
     "patterns_to_avoid": [
@@ -51110,7 +51143,7 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 639,
-    "total_losses": 1187,
+    "total_losses": 1188,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
@@ -83592,6 +83625,41 @@
             "pnl": -0.7276,
             "pnl_pct": -0.36,
             "exit_reason": "TIMEOUT"
+          }
+        ]
+      },
+      {
+        "symbol": "ETHUSDT",
+        "interval": "5m",
+        "days": 30,
+        "total_trades": 2,
+        "wins": 0,
+        "losses": 2,
+        "win_rate": 0.0,
+        "total_pnl": -6.06,
+        "total_pnl_pct": -0.61,
+        "sharpe": -22.55,
+        "max_drawdown": -0.61,
+        "profit_factor": 0.0,
+        "best_trade": -0.45,
+        "worst_trade": -2.59,
+        "final_equity": 993.94,
+        "sl_used": 0.025,
+        "tp_used": 0.04,
+        "trades": [
+          {
+            "entry": 2182.97094,
+            "exit": 2173.23,
+            "pnl": -0.8911,
+            "pnl_pct": -0.45,
+            "exit_reason": "TIMEOUT"
+          },
+          {
+            "entry": 2122.92093,
+            "exit": 2067.95,
+            "pnl": -5.1664,
+            "pnl_pct": -2.59,
+            "exit_reason": "SL"
           }
         ]
       }
