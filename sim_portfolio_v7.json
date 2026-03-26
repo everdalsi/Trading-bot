@@ -91522,7 +91522,7 @@
       "backtest_5m"
     ],
     "confidence_threshold": 82,
-    "total_wins": 1035,
+    "total_wins": 1036,
     "total_losses": 1963,
     "symbol_scores": {
       "BTCUSDT": -15,
