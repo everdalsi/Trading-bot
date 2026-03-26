@@ -1,8 +1,37 @@
 {
   "sim": {
-    "cash": 49.286988899907406,
+    "cash": 50.11504049298277,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MEME_LOL_76": {
+        "id": 76,
+        "symbol": "LOL",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "LOL",
+        "price_in": 0.002613,
+        "price_out": null,
+        "qty": 943.1111538443822,
+        "amount_usd": 2.4643494449953707,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-26 14:04:40",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.003491,
+        "open_time": 1774533880.5560865,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_LOL_76"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -2027,6 +2056,33 @@
         "leverage": 1,
         "peak_price": 0.0006453,
         "open_time": 1774505184.4800112,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 76,
+        "symbol": "LOL",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "LOL",
+        "price_in": 0.002613,
+        "price_out": 0.003491,
+        "qty": 943.1111538443822,
+        "amount_usd": 2.4643494449953707,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": "\ud83c\udfaf MEME TP (+33.6%)",
+        "time_in": "2026-03-26 14:04:40",
+        "time_out": "2026-03-26 14:04:41",
+        "pnl": 0.828052,
+        "pnl_pct": 33.6,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.002613,
+        "open_time": 1774533880.5560865,
         "kelly_pct": 0.05
       }
     ],
@@ -47106,6 +47162,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-26 14:04"
+      },
+      {
+        "trade_id": 76,
+        "pnl": 0.828052,
+        "symbol": "LOL",
+        "market": "MEME",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "memecoin",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-26 14:04"
       }
     ],
     "patterns_to_avoid": [
@@ -47710,7 +47777,7 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "memecoin"
     ],
     "confidence_threshold": 82,
     "total_wins": 597,
@@ -47720,7 +47787,8 @@
       "ETHUSDT": -15,
       "SOLUSDT": -14,
       "BITSY": -15,
-      "7roamers": -15
+      "7roamers": -15,
+      "LOL": 2
     },
     "symbol_blacklist": {},
     "consecutive_losses": {},
