@@ -2,36 +2,7 @@
   "sim": {
     "cash": 4.689363860623611e+33,
     "initial": 1000.0,
-    "positions": {
-      "MEME_LEGACY_296": {
-        "id": 296,
-        "symbol": "LEGACY",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "LEGACY",
-        "price_in": 0.0006461,
-        "price_out": null,
-        "qty": 3.573447633602288e+35,
-        "amount_usd": 2.3088045160704386e+32,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-26 02:10:28",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0008469,
-        "open_time": 1774491028.6129766,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_LEGACY_296"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
@@ -75786,8 +75757,8 @@
       "memecoin"
     ],
     "confidence_threshold": 8,
-    "total_wins": 1221,
-    "total_losses": 1515,
+    "total_wins": 1222,
+    "total_losses": 1516,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
@@ -115548,6 +115519,34 @@
             "exit": 71242.73,
             "pnl": -0.7276,
             "pnl_pct": -0.36,
+            "exit_reason": "TIMEOUT"
+          }
+        ]
+      },
+      {
+        "symbol": "ETHUSDT",
+        "interval": "5m",
+        "days": 30,
+        "total_trades": 1,
+        "wins": 0,
+        "losses": 1,
+        "win_rate": 0.0,
+        "total_pnl": -0.89,
+        "total_pnl_pct": -0.09,
+        "sharpe": 0.0,
+        "max_drawdown": -0.09,
+        "profit_factor": 0.0,
+        "best_trade": -0.45,
+        "worst_trade": -0.45,
+        "final_equity": 999.11,
+        "sl_used": 0.025,
+        "tp_used": 0.04,
+        "trades": [
+          {
+            "entry": 2182.97094,
+            "exit": 2173.23,
+            "pnl": -0.8911,
+            "pnl_pct": -0.45,
             "exit_reason": "TIMEOUT"
           }
         ]
