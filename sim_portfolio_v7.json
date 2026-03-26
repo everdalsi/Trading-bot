@@ -1,8 +1,65 @@
 {
   "sim": {
-    "cash": 489.7743592626406,
+    "cash": 444.8363875374442,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MEME_7roamers_20": {
+        "id": 20,
+        "symbol": "7roamers",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "7roamers",
+        "price_in": 0.0004588,
+        "price_out": null,
+        "qty": 53375.58405216224,
+        "amount_usd": 24.488717963132032,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-26 04:50:03",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0004588,
+        "open_time": 1774500603.1883268,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_7roamers_20"
+      },
+      "MEME_BITSY_21": {
+        "id": 21,
+        "symbol": "BITSY",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "BITSY",
+        "price_in": 0.0004643,
+        "price_out": null,
+        "qty": 50106.14272017107,
+        "amount_usd": 23.26428206497543,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-26 04:50:03",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0004643,
+        "open_time": 1774500603.242579,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_BITSY_21"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -515,6 +572,60 @@
         "leverage": 1,
         "peak_price": 0.0004643,
         "open_time": 1774500557.1305163,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 20,
+        "symbol": "7roamers",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "7roamers",
+        "price_in": 0.0004588,
+        "price_out": 5.274e-05,
+        "qty": 53375.58405216224,
+        "amount_usd": 24.488717963132032,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": "\ud83d\uded1 MEME SL (-88.5%)",
+        "time_in": "2026-03-26 04:50:03",
+        "time_out": "2026-03-26 04:50:03",
+        "pnl": -21.67369,
+        "pnl_pct": -88.5,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0004588,
+        "open_time": 1774500603.1883268,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 21,
+        "symbol": "BITSY",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "BITSY",
+        "price_in": 0.0004643,
+        "price_out": null,
+        "qty": 50106.14272017107,
+        "amount_usd": 23.26428206497543,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-26 04:50:03",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0004643,
+        "open_time": 1774500603.242579,
         "kelly_pct": 0.05
       }
     ],
@@ -5125,6 +5236,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-26 04:49"
+      },
+      {
+        "trade_id": 20,
+        "pnl": -21.67369,
+        "symbol": "7roamers",
+        "market": "MEME",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "memecoin",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-26 04:50"
       }
     ],
     "patterns_to_avoid": [
@@ -5374,7 +5496,8 @@
       "memecoin",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "memecoin"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -5557,7 +5680,7 @@
       "ETHUSDT": -15,
       "SOLUSDT": 3,
       "BITSY": -15,
-      "7roamers": -6
+      "7roamers": -9
     },
     "symbol_blacklist": {},
     "consecutive_losses": {},
