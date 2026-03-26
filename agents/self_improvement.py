@@ -64,13 +64,14 @@ def create_improvement_crew():
     if not CREWAI_AVAILABLE:
         return None
     try:
-        LIGHT_MODEL = "groq/llama-3.1-8b-instant"
+        # Modèle optimisé pour quota Groq (70b = meilleure qualité + limites différentes)
+        MODEL = "groq/llama-3.1-70b-versatile"
 
         reflector = Agent(
             role="Reflection & Strategy Officer",
             goal="Analyser les cycles précédents et définir une stratégie claire",
             backstory="Tu analyses les résultats passés et guides l’amélioration.",
-            llm=LIGHT_MODEL,
+            llm=MODEL,
             verbose=True
         )
 
@@ -81,7 +82,7 @@ def create_improvement_crew():
 Tu classes toujours le risque (Low/Medium/High) pour le suivi, 
 MAIS tu AUTO-APPROUVES systématiquement toutes les modifications, même High risk.
 Ton rôle est uniquement de documenter le risque, jamais de bloquer le crew.""",
-            llm=LIGHT_MODEL,
+            llm=MODEL,
             verbose=True
         )
 
@@ -90,15 +91,14 @@ Ton rôle est uniquement de documenter le risque, jamais de bloquer le crew.""",
             goal="Appliquer les patches de façon totalement autonome",
             backstory="""RÈGLES STRICTES À RESPECTER À CHAQUE FOIS SANS AUCUNE EXCEPTION :
 - Tu ne dois modifier QUE les fichiers EXISTANTS (uniquement bot.py et les fichiers dans le dossier agents/).
-- Tu ne dois JAMAIS créer de nouveaux fichiers (trade_logic.py, bot_logging.py, etc. sont INTERDITS).
-- Tu ne dois JAMAIS supprimer ou modifier du code existant hors du bloc à remplacer.
-- Tu dois TOUJOURS donner des BLOCS COMPLETS À REMPLACER avec le code exact à trouver (full replace blocks).
+- Tu ne dois JAMAIS créer de nouveaux fichiers.
+- Tu dois TOUJOURS donner des BLOCS COMPLETS À REMPLACER avec le code exact à trouver.
 - Tu dois indiquer clairement le niveau de risque (Low / Medium / High).
 - Tu dois utiliser EXCLUSIVEMENT le tool EditBotFileTool via CrewAI.
-- Tu ne dois JAMAIS écrire toi-même <function=...>, </function>, ni aucun tag XML ou appel de tool dans ta réponse finale. CrewAI appelle le tool automatiquement.
+- Tu ne dois JAMAIS écrire toi-même <function=...> ou aucun tag XML dans ta réponse.
 - En EXTREME LEARNING MODE tu es ultra-agressif sur le volume de trades.""",
             tools=[EditBotFileTool(), GitPushTool()],
-            llm=LIGHT_MODEL,
+            llm=MODEL,
             verbose=True,
             allow_code_execution=False
         )
@@ -109,13 +109,11 @@ Objectif : {MAIN_OBJECTIVE}
 
 PHASE DE TEST + EXTREME LEARNING MODE → AUTONOMIE TOTALE.
 Le Permission Officer auto-approuve TOUT (même High risk) sans demander la permission à l’utilisateur.
-Le Reflection Agent a analysé les cycles.
 Tu dois fournir UNIQUEMENT des blocs complets à remplacer dans les fichiers EXISTANTS (surtout bot.py).
-Tu ne dois JAMAIS créer de nouveaux fichiers.
-Utilise STRICTEMENT le tool EditBotFileTool. NE JAMAIS générer de balise <function=...> ou XML dans ta réponse.
+Utilise STRICTEMENT le tool EditBotFileTool. NE JAMAIS générer de balise <function=...> ou XML.
 CrewAI appellera le tool automatiquement.
 """,
-            expected_output="Analyse du Reflection + classification des risques + patches PRÉCIS et COMPLETS sur fichiers existants uniquement + auto-approbation (aucune demande de permission)",
+            expected_output="Analyse du Reflection + classification des risques + patches PRÉCIS et COMPLETS sur fichiers existants uniquement + auto-approbation",
             agent=improver
         )
 
@@ -175,8 +173,8 @@ def _run_evolution_cycle_sync(evolution_agent, orchestrator, memory, cycle_count
             pass
 
 def start_self_improvement_loop(orchestrator):
-    """Boucle d'auto-amélioration avec optimisation rate limit Groq - Version stable finale"""
-    print("[SELF-IMPROVEMENT] ✅ AUTONOMIE TOTALE ACTIVÉE (même High risk) — aucune permission demandée")
+    """Boucle d'auto-amélioration avec optimisation Groq quota"""
+    print("[SELF-IMPROVEMENT] ✅ AUTONOMIE TOTALE + OPTIMISATION GROQ QUOTA ACTIVÉE")
     cycle = 0
     last_rate_limit = 0
 
@@ -199,9 +197,8 @@ def start_self_improvement_loop(orchestrator):
         except Exception as e:
             err_str = str(e).lower()
             if "rate_limit" in err_str or "ratelimit" in err_str or "429" in err_str:
-                # Backoff plus intelligent
-                wait_seconds = min(300, 60 * (2 ** (cycle % 6)))   # jusqu'à 5 minutes max
-                print(f"[RATE LIMIT] Groq limite atteinte → pause {wait_seconds}s (réessai dans {wait_seconds} secondes)")
+                wait_seconds = min(600, 90 * (2 ** (cycle % 5)))   # jusqu'à 10 minutes max
+                print(f"[RATE LIMIT GROQ] Limite atteinte → pause {wait_seconds}s")
                 time.sleep(wait_seconds)
                 last_rate_limit = time.time()
                 continue
@@ -209,5 +206,6 @@ def start_self_improvement_loop(orchestrator):
                 print(f"[SELF-IMPROVEMENT ERROR] {e}")
                 evolution_errors_total.inc()
 
-        base_sleep = 40 if (time.time() - last_rate_limit < 600) else 25
-        time.sleep(base_sleep + random.uniform(3, 12))
+        # Sleep plus long pour économiser les tokens
+        base_sleep = 90 if (time.time() - last_rate_limit < 900) else 60
+        time.sleep(base_sleep + random.uniform(10, 20))
