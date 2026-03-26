@@ -4472,13 +4472,22 @@ async def cmd_debugpnl(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(msg)
 
 # Safety cap dans le calcul PnL (à appliquer partout où PnL est calculé)
+
+# Safety cap dans le calcul PnL (à appliquer partout où PnL est calculé)
 def safe_pnl(pnl_pct: float, amount_usd: float, leverage: float = 1) -> float:
     """Empêche les gains absurdes sur memecoins à très petit prix"""
-    pnl = pnl_pct * amount_usd * leverage
-    if abs(pnl) > amount_usd * 100:   # > 100x en une seule trade = suspicion
-        print(f"[SAFETY-PnL] CAP appliqué ! {pnl:,.2f} → limité à 100x")
-        pnl = amount_usd * 100 * (1 if pnl > 0 else -1)
-    return round(pnl, 4)
+    try:
+        pnl = pnl_pct * amount_usd * leverage
+        
+        # Cap très strict : maximum 50x par trade (même sur les plus gros mèmes)
+        if abs(pnl) > amount_usd * 50:
+            print(f"[SAFETY-PnL] CAP appliqué ! {pnl:,.2f} → limité à 50x")
+            pnl = amount_usd * 50 * (1 if pnl > 0 else -1)
+        
+        return round(pnl, 4)
+    except Exception as e:
+        print(f"[SAFETY-PnL] Erreur: {e}")
+        return 0.0
 
 #    # ═══════════════════════════════════════════════════════════════
     #  DASHBOARD PIXEL-ART OFFICE (Claude Office style) — version optimisée
