@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 218.57264411111692,
+    "cash": 219.8013849626469,
     "initial": 1000.0,
     "positions": {
       "MEME_7roamers_38": {
@@ -1040,17 +1040,17 @@
         "trade_type": "MEME",
         "meme_symbol": "7roamers",
         "price_in": 0.0005799,
-        "price_out": null,
+        "price_out": 6.194e-05,
         "qty": 19837.59850710349,
         "amount_usd": 11.503823374269311,
         "confidence": 95,
         "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
+        "exit_reason": "\ud83d\uded1 MEME SL (-89.3%)",
         "time_in": "2026-03-26 05:10:16",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-26 05:10:16",
+        "pnl": -10.275083,
+        "pnl_pct": -89.32,
+        "duration_min": 1,
         "patterns": [
           "memecoin"
         ],
@@ -7306,6 +7306,28 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-26 05:10"
+      },
+      {
+        "trade_id": 38,
+        "pnl": -10.275083,
+        "symbol": "7roamers",
+        "market": "MEME",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "memecoin",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-26 05:10"
+      },
+      {
+        "trade_id": -4,
+        "pnl": 5.1017,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-26 05:10"
       }
     ],
     "patterns_to_avoid": [
@@ -7404,7 +7426,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "memecoin",
@@ -7608,9 +7629,11 @@
       "memecoin",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "memecoin"
     ],
     "patterns_that_work": [
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -7845,7 +7868,7 @@
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": 4,
+      "SOLUSDT": 6,
       "BITSY": -15,
       "7roamers": -15
     },
