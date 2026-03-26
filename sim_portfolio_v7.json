@@ -90629,6 +90629,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-26 23:03"
+      },
+      {
+        "trade_id": -5,
+        "pnl": -4.3328,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-26 23:03"
       }
     ],
     "patterns_to_avoid": [
@@ -91241,7 +91252,7 @@
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -14,
+      "SOLUSDT": -15,
       "BITSY": -15,
       "7roamers": -15,
       "LOL": 12,
