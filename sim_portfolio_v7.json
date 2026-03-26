@@ -2,36 +2,7 @@
   "sim": {
     "cash": 52.700910485302195,
     "initial": 1000.0,
-    "positions": {
-      "MEME_LOL_79": {
-        "id": 79,
-        "symbol": "LOL",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "LOL",
-        "price_in": 0.0026,
-        "price_out": null,
-        "qty": 996.406013977845,
-        "amount_usd": 2.590655636342397,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-26 14:06:58",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.003491,
-        "open_time": 1774534018.0564504,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_LOL_79"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
