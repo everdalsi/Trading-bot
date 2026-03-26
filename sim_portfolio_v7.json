@@ -1,8 +1,37 @@
 {
   "sim": {
-    "cash": 831.9423854443536,
+    "cash": 802.2513403609757,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MEME_BITSY_6": {
+        "id": 6,
+        "symbol": "BITSY",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "BITSY",
+        "price_in": 0.0004769,
+        "price_out": null,
+        "qty": 87223.98673142731,
+        "amount_usd": 41.59711927221768,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-26 04:28:53",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0004769,
+        "open_time": 1774499333.452755,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_BITSY_6"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -137,6 +166,33 @@
         "leverage": 1,
         "peak_price": 0.0004769,
         "open_time": 1774499287.5055954,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 6,
+        "symbol": "BITSY",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "BITSY",
+        "price_in": 0.0004769,
+        "price_out": 0.0001365,
+        "qty": 87223.98673142731,
+        "amount_usd": 41.59711927221768,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": "\ud83d\uded1 MEME SL (-71.4%)",
+        "time_in": "2026-03-26 04:28:53",
+        "time_out": "2026-03-26 04:28:53",
+        "pnl": -29.691045,
+        "pnl_pct": -71.38,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0004769,
+        "open_time": 1774499333.452755,
         "kelly_pct": 0.05
       }
     ],
@@ -3053,6 +3109,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-26 04:28"
+      },
+      {
+        "trade_id": 6,
+        "pnl": -29.691045,
+        "symbol": "BITSY",
+        "market": "MEME",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "memecoin",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-26 04:28"
       }
     ],
     "patterns_to_avoid": [
@@ -3208,6 +3275,7 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "memecoin",
       "memecoin"
     ],
     "patterns_that_work": [
@@ -3325,7 +3393,7 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 37,
-    "total_losses": 79,
+    "total_losses": 80,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
