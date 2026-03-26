@@ -5490,8 +5490,8 @@
       "backtest_5m"
     ],
     "confidence_threshold": 82,
-    "total_wins": 56,
-    "total_losses": 133,
+    "total_wins": 57,
+    "total_losses": 134,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
