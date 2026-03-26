@@ -1,8 +1,37 @@
 {
   "sim": {
-    "cash": 641.445096407799,
+    "cash": 609.3728415874091,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MEME_BITSY_13": {
+        "id": 13,
+        "symbol": "BITSY",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "BITSY",
+        "price_in": 0.0004642,
+        "price_out": null,
+        "qty": 69091.45803616964,
+        "amount_usd": 32.07225482038995,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-26 04:46:12",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0004642,
+        "open_time": 1774500372.446645,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_BITSY_13"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -326,6 +355,33 @@
         "leverage": 1,
         "peak_price": 0.0005086,
         "open_time": 1774500040.6025019,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 13,
+        "symbol": "BITSY",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "BITSY",
+        "price_in": 0.0004642,
+        "price_out": null,
+        "qty": 69091.45803616964,
+        "amount_usd": 32.07225482038995,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-26 04:46:12",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0004642,
+        "open_time": 1774500372.446645,
         "kelly_pct": 0.05
       }
     ],
@@ -4965,7 +5021,7 @@
       "backtest_5m"
     ],
     "confidence_threshold": 82,
-    "total_wins": 53,
+    "total_wins": 54,
     "total_losses": 121,
     "symbol_scores": {
       "BTCUSDT": -15,
