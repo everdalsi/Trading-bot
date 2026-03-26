@@ -7124,6 +7124,28 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-26 05:09"
+      },
+      {
+        "trade_id": -3,
+        "pnl": 3.0266,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-26 05:09"
+      },
+      {
+        "trade_id": -4,
+        "pnl": 5.1017,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-26 05:09"
       }
     ],
     "patterns_to_avoid": [
@@ -7651,6 +7673,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "backtest_5m",
+      "backtest_5m",
       "backtest_5m"
     ],
     "confidence_threshold": 82,
@@ -7659,7 +7683,7 @@
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": 2,
+      "SOLUSDT": 6,
       "BITSY": -15,
       "7roamers": -15
     },
