@@ -1,8 +1,37 @@
 {
   "sim": {
-    "cash": 219.8013849626469,
+    "cash": 209.96528246139982,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MEME_7roamers_39": {
+        "id": 39,
+        "symbol": "7roamers",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "7roamers",
+        "price_in": 0.0005799,
+        "price_out": null,
+        "qty": 18951.662783466712,
+        "amount_usd": 10.990069248132345,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-26 05:11:02",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0005799,
+        "open_time": 1774501862.9101715,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_7roamers_39"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -1028,6 +1057,33 @@
         "leverage": 1,
         "peak_price": 0.0005799,
         "open_time": 1774501816.2364264,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 39,
+        "symbol": "7roamers",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "7roamers",
+        "price_in": 0.0005799,
+        "price_out": 6.089e-05,
+        "qty": 18951.662783466712,
+        "amount_usd": 10.990069248132345,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": "\ud83d\uded1 MEME SL (-89.5%)",
+        "time_in": "2026-03-26 05:11:02",
+        "time_out": "2026-03-26 05:11:03",
+        "pnl": -9.836103,
+        "pnl_pct": -89.5,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0005799,
+        "open_time": 1774501862.9101715,
         "kelly_pct": 0.05
       }
     ],
@@ -7310,6 +7366,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-26 05:10"
+      },
+      {
+        "trade_id": 39,
+        "pnl": -9.836103,
+        "symbol": "7roamers",
+        "market": "MEME",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "memecoin",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-26 05:11"
       }
     ],
     "patterns_to_avoid": [
@@ -7406,7 +7473,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "memecoin",
@@ -7612,7 +7678,8 @@
       "backtest_5m",
       "backtest_5m",
       "memecoin",
-      "backtest_5m"
+      "backtest_5m",
+      "memecoin"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -7846,7 +7913,7 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 76,
-    "total_losses": 190,
+    "total_losses": 191,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
