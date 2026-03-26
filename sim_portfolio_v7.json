@@ -4079,6 +4079,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-26 04:39"
+      },
+      {
+        "trade_id": -5,
+        "pnl": -1.6175,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-26 04:39"
       }
     ],
     "patterns_to_avoid": [
@@ -4282,6 +4293,7 @@
       "memecoin",
       "backtest_5m",
       "backtest_5m",
+      "backtest_5m",
       "backtest_5m"
     ],
     "patterns_that_work": [
@@ -4436,7 +4448,7 @@
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": 6,
+      "SOLUSDT": 3,
       "BITSY": -15
     },
     "symbol_blacklist": {},
