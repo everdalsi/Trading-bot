@@ -1,8 +1,37 @@
 {
   "sim": {
-    "cash": 1.4540714844895678e+33,
+    "cash": 1.3813679102650894e+33,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MEME_TARO_263": {
+        "id": 263,
+        "symbol": "TARO",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "TARO",
+        "price_in": 0.0006842,
+        "price_out": null,
+        "qty": 1.0626070480046535e+35,
+        "amount_usd": 7.270357422447839e+31,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-26 00:51:13",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0006842,
+        "open_time": 1774486273.8539557,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_TARO_263"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -7076,6 +7105,33 @@
         "leverage": 1,
         "peak_price": 0.000659,
         "open_time": 1774485800.7590601,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 263,
+        "symbol": "TARO",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "TARO",
+        "price_in": 0.0006842,
+        "price_out": null,
+        "qty": 1.0626070480046535e+35,
+        "amount_usd": 7.270357422447839e+31,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-26 00:51:13",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0006842,
+        "open_time": 1774486273.8539557,
         "kelly_pct": 0.05
       }
     ],
@@ -69106,6 +69162,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-26 00:50"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -0.8911,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-26 00:51"
       }
     ],
     "patterns_to_avoid": [
