@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 3769.233786191876,
+    "cash": 38434.65445761951,
     "initial": 1000.0,
     "positions": {
       "MEME_APES_94": {
@@ -26,7 +26,7 @@
           "memecoin"
         ],
         "leverage": 1,
-        "peak_price": 0.0003971,
+        "peak_price": 0.06939,
         "open_time": 1774565084.8021557,
         "kelly_pct": 0.05,
         "pos_key": "MEME_APES_94"
@@ -2552,17 +2552,17 @@
         "trade_type": "MEME",
         "meme_symbol": "APES",
         "price_in": 0.0003971,
-        "price_out": null,
+        "price_out": 0.06939,
         "qty": 499573.7234677565,
         "amount_usd": 198.3807255890461,
         "confidence": 85,
         "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
+        "exit_reason": "\ud83c\udfaf MEME TP (+17374.2%)",
         "time_in": "2026-03-26 22:44:44",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-26 22:46:21",
+        "pnl": 34467.039946,
+        "pnl_pct": 17374.19,
+        "duration_min": 1,
         "patterns": [
           "memecoin"
         ],
@@ -89118,6 +89118,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-26 22:46"
+      },
+      {
+        "trade_id": 94,
+        "pnl": 34467.039946,
+        "symbol": "APES",
+        "market": "MEME",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "memecoin",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-26 22:46"
       }
     ],
     "patterns_to_avoid": [
@@ -89579,7 +89590,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
@@ -89722,7 +89732,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "memecoin"
     ],
     "confidence_threshold": 82,
     "total_wins": 1018,
@@ -89737,7 +89748,7 @@
       "FOMO": -15,
       "ARTEMIS": -3,
       "CHIBI": 6,
-      "APES": 4
+      "APES": 6
     },
     "symbol_blacklist": {},
     "consecutive_losses": {},
