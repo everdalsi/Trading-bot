@@ -2,36 +2,7 @@
   "sim": {
     "cash": 4.446455253460332e+33,
     "initial": 1000.0,
-    "positions": {
-      "MEME_TARO_294": {
-        "id": 294,
-        "symbol": "TARO",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "TARO",
-        "price_in": 0.0006526,
-        "price_out": null,
-        "qty": 3.2804515533408574e+35,
-        "amount_usd": 2.1408226837102437e+32,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-26 02:04:08",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.001155,
-        "open_time": 1774490648.4131713,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_TARO_294"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
@@ -74707,6 +74678,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-26 02:04"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -0.7276,
+        "symbol": "BTCUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-26 02:04"
       }
     ],
     "patterns_to_avoid": [
@@ -75315,7 +75297,7 @@
     ],
     "confidence_threshold": 8,
     "total_wins": 1214,
-    "total_losses": 1504,
+    "total_losses": 1505,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
@@ -114768,6 +114750,34 @@
             "exit": 2173.23,
             "pnl": -0.8911,
             "pnl_pct": -0.45,
+            "exit_reason": "TIMEOUT"
+          }
+        ]
+      },
+      {
+        "symbol": "BTCUSDT",
+        "interval": "5m",
+        "days": 30,
+        "total_trades": 1,
+        "wins": 0,
+        "losses": 1,
+        "win_rate": 0.0,
+        "total_pnl": -0.73,
+        "total_pnl_pct": -0.07,
+        "sharpe": 0.0,
+        "max_drawdown": -0.07,
+        "profit_factor": 0.0,
+        "best_trade": -0.36,
+        "worst_trade": -0.36,
+        "final_equity": 999.27,
+        "sl_used": 0.025,
+        "tp_used": 0.04,
+        "trades": [
+          {
+            "entry": 71503.24375499999,
+            "exit": 71242.73,
+            "pnl": -0.7276,
+            "pnl_pct": -0.36,
             "exit_reason": "TIMEOUT"
           }
         ]
