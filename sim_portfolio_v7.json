@@ -2,36 +2,7 @@
   "sim": {
     "cash": 288.4984987192191,
     "initial": 1000.0,
-    "positions": {
-      "MEME_7roamers_32": {
-        "id": 32,
-        "symbol": "7roamers",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "7roamers",
-        "price_in": 0.0004678,
-        "price_out": null,
-        "qty": 32244.520774545268,
-        "amount_usd": 15.083986818332276,
-        "confidence": 95,
-        "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-26 05:05:38",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0004678,
-        "open_time": 1774501538.2382202,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_7roamers_32"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
@@ -7258,7 +7229,7 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 71,
-    "total_losses": 175,
+    "total_losses": 177,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
@@ -11297,6 +11268,34 @@
             "exit": 71242.73,
             "pnl": -0.7276,
             "pnl_pct": -0.36,
+            "exit_reason": "TIMEOUT"
+          }
+        ]
+      },
+      {
+        "symbol": "ETHUSDT",
+        "interval": "5m",
+        "days": 30,
+        "total_trades": 1,
+        "wins": 0,
+        "losses": 1,
+        "win_rate": 0.0,
+        "total_pnl": -0.89,
+        "total_pnl_pct": -0.09,
+        "sharpe": 0.0,
+        "max_drawdown": -0.09,
+        "profit_factor": 0.0,
+        "best_trade": -0.45,
+        "worst_trade": -0.45,
+        "final_equity": 999.11,
+        "sl_used": 0.025,
+        "tp_used": 0.04,
+        "trades": [
+          {
+            "entry": 2182.97094,
+            "exit": 2173.23,
+            "pnl": -0.8911,
+            "pnl_pct": -0.45,
             "exit_reason": "TIMEOUT"
           }
         ]
