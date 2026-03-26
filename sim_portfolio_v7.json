@@ -1,8 +1,37 @@
 {
   "sim": {
-    "cash": 40.988235008644466,
+    "cash": 41.60109737420434,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MEME_CHIBI_90": {
+        "id": 90,
+        "symbol": "CHIBI",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "CHIBI",
+        "price_in": 0.000836,
+        "price_out": null,
+        "qty": 2451.449462239502,
+        "amount_usd": 2.0494117504322236,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-26 21:12:26",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.001086,
+        "open_time": 1774559546.769619,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_CHIBI_90"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -2405,6 +2434,33 @@
         "leverage": 1,
         "peak_price": 0.000836,
         "open_time": 1774559502.3488579,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 90,
+        "symbol": "CHIBI",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "CHIBI",
+        "price_in": 0.000836,
+        "price_out": 0.001086,
+        "qty": 2451.449462239502,
+        "amount_usd": 2.0494117504322236,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": "\ud83c\udfaf MEME TP (+29.9%)",
+        "time_in": "2026-03-26 21:12:26",
+        "time_out": "2026-03-26 21:12:27",
+        "pnl": 0.612862,
+        "pnl_pct": 29.9,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.000836,
+        "open_time": 1774559546.769619,
         "kelly_pct": 0.05
       }
     ],
@@ -81430,6 +81486,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-26 21:11"
+      },
+      {
+        "trade_id": 90,
+        "pnl": 0.612862,
+        "symbol": "CHIBI",
+        "market": "MEME",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "memecoin",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-26 21:12"
       }
     ],
     "patterns_to_avoid": [
@@ -82031,10 +82098,10 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "memecoin"
     ],
     "confidence_threshold": 82,
     "total_wins": 946,
@@ -82048,7 +82115,7 @@
       "LOL": 12,
       "FOMO": -15,
       "ARTEMIS": -3,
-      "CHIBI": 2
+      "CHIBI": 4
     },
     "symbol_blacklist": {},
     "consecutive_losses": {},
