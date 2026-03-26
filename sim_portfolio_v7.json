@@ -2,36 +2,7 @@
   "sim": {
     "cash": 963.5766858961607,
     "initial": 1000.0,
-    "positions": {
-      "MEME_BITSY_1": {
-        "id": 1,
-        "symbol": "BITSY",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "BITSY",
-        "price_in": 0.0005027,
-        "price_out": null,
-        "qty": 99462.90033817386,
-        "amount_usd": 50.0,
-        "confidence": 95,
-        "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-26 04:25:06",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0005027,
-        "open_time": 1774499106.048709,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_BITSY_1"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
