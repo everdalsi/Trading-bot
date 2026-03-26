@@ -552,78 +552,9 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-26 03:56"
-      },
-      {
-        "trade_id": -1,
-        "pnl": -0.8911,
-        "symbol": "ETHUSDT",
-        "market": "BACKTEST",
-        "lecon": "Entr\u00e9e trop agressive",
-        "pattern": "backtest_5m",
-        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
-        "type": "erreur",
-        "date": "2026-03-26 03:56"
-      },
-      {
-        "trade_id": -1,
-        "pnl": 11.614,
-        "symbol": "SOLUSDT",
-        "market": "BACKTEST",
-        "lecon": "Scalp rapide gagnant",
-        "pattern": "backtest_5m",
-        "action_future": "Conserver ce setup pour micro-trading",
-        "type": "succes",
-        "date": "2026-03-26 03:56"
-      },
-      {
-        "trade_id": -2,
-        "pnl": -2.0276,
-        "symbol": "SOLUSDT",
-        "market": "BACKTEST",
-        "lecon": "Entr\u00e9e trop agressive",
-        "pattern": "backtest_5m",
-        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
-        "type": "erreur",
-        "date": "2026-03-26 03:56"
-      },
-      {
-        "trade_id": -3,
-        "pnl": 3.0266,
-        "symbol": "SOLUSDT",
-        "market": "BACKTEST",
-        "lecon": "Scalp rapide gagnant",
-        "pattern": "backtest_5m",
-        "action_future": "Conserver ce setup pour micro-trading",
-        "type": "succes",
-        "date": "2026-03-26 03:56"
-      },
-      {
-        "trade_id": -4,
-        "pnl": 5.1017,
-        "symbol": "SOLUSDT",
-        "market": "BACKTEST",
-        "lecon": "Scalp rapide gagnant",
-        "pattern": "backtest_5m",
-        "action_future": "Conserver ce setup pour micro-trading",
-        "type": "succes",
-        "date": "2026-03-26 03:56"
-      },
-      {
-        "trade_id": -5,
-        "pnl": -1.6175,
-        "symbol": "SOLUSDT",
-        "market": "BACKTEST",
-        "lecon": "Entr\u00e9e trop agressive",
-        "pattern": "backtest_5m",
-        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
-        "type": "erreur",
-        "date": "2026-03-26 03:56"
       }
     ],
     "patterns_to_avoid": [
-      "backtest_5m",
-      "backtest_5m",
-      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -674,14 +605,11 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
-      "backtest_5m",
-      "backtest_5m",
       "backtest_5m"
     ],
     "confidence_threshold": 65,
-    "total_wins": 8,
-    "total_losses": 16,
+    "total_wins": 7,
+    "total_losses": 15,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
@@ -1109,34 +1037,6 @@
             "exit_reason": "TIMEOUT"
           }
         ]
-      },
-      {
-        "symbol": "ETHUSDT",
-        "interval": "5m",
-        "days": 30,
-        "total_trades": 1,
-        "wins": 0,
-        "losses": 1,
-        "win_rate": 0.0,
-        "total_pnl": -0.89,
-        "total_pnl_pct": -0.09,
-        "sharpe": 0.0,
-        "max_drawdown": -0.09,
-        "profit_factor": 0.0,
-        "best_trade": -0.45,
-        "worst_trade": -0.45,
-        "final_equity": 999.11,
-        "sl_used": 0.025,
-        "tp_used": 0.04,
-        "trades": [
-          {
-            "entry": 2182.97094,
-            "exit": 2173.23,
-            "pnl": -0.8911,
-            "pnl_pct": -0.45,
-            "exit_reason": "TIMEOUT"
-          }
-        ]
       }
     ]
   },
@@ -1187,6 +1087,6 @@
         "status": "\u2705 Promos d\u00e9tect\u00e9es"
       }
     ],
-    "last_scan": 1774497300.8979328
+    "last_scan": 1774497398.6550663
   }
 }
