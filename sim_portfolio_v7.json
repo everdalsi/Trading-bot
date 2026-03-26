@@ -2,36 +2,7 @@
   "sim": {
     "cash": 1.0046693427188063e+33,
     "initial": 1000.0,
-    "positions": {
-      "MEME_TARO_252": {
-        "id": 252,
-        "symbol": "TARO",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "TARO",
-        "price_in": 0.0006644,
-        "price_out": null,
-        "qty": 7.291519767747133e+34,
-        "amount_usd": 4.844485733691195e+31,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-26 00:30:53",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.001155,
-        "open_time": 1774485053.5968382,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_TARO_252"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
@@ -68438,7 +68409,7 @@
       "memecoin"
     ],
     "confidence_threshold": 8,
-    "total_wins": 1095,
+    "total_wins": 1097,
     "total_losses": 1380,
     "symbol_scores": {
       "BTCUSDT": -15,
@@ -104425,6 +104396,55 @@
       }
     ],
     "good_setups": [
+      {
+        "symbol": "SOLUSDT",
+        "interval": "5m",
+        "days": 30,
+        "total_trades": 4,
+        "wins": 3,
+        "losses": 1,
+        "win_rate": 75.0,
+        "total_pnl": 17.71,
+        "total_pnl_pct": 1.77,
+        "sharpe": 14.34,
+        "max_drawdown": -0.2,
+        "profit_factor": 9.74,
+        "best_trade": 5.82,
+        "worst_trade": -1.0,
+        "final_equity": 1017.71,
+        "sl_used": 0.025,
+        "tp_used": 0.04,
+        "trades": [
+          {
+            "entry": 85.75285499999998,
+            "exit": 90.74,
+            "pnl": 11.614,
+            "pnl_pct": 5.82,
+            "exit_reason": "TP"
+          },
+          {
+            "entry": 91.22559,
+            "exit": 90.31,
+            "pnl": -2.0276,
+            "pnl_pct": -1.0,
+            "exit_reason": "TIMEOUT"
+          },
+          {
+            "entry": 90.25510499999999,
+            "exit": 91.61,
+            "pnl": 3.0266,
+            "pnl_pct": 1.5,
+            "exit_reason": "TIMEOUT"
+          },
+          {
+            "entry": 89.78486999999998,
+            "exit": 92.05,
+            "pnl": 5.1017,
+            "pnl_pct": 2.52,
+            "exit_reason": "TIMEOUT"
+          }
+        ]
+      },
       {
         "symbol": "SOLUSDT",
         "interval": "5m",
