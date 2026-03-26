@@ -1,8 +1,37 @@
 {
   "sim": {
-    "cash": 119.61135405671374,
+    "cash": 113.63078635387805,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MEME_7roamers_54": {
+        "id": 54,
+        "symbol": "7roamers",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "7roamers",
+        "price_in": 0.0003883,
+        "price_out": null,
+        "qty": 15401.925580313384,
+        "amount_usd": 5.980567702835687,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-26 05:47:47",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0003883,
+        "open_time": 1774504067.0255914,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_7roamers_54"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -1433,6 +1462,33 @@
         "leverage": 1,
         "peak_price": 0.0003883,
         "open_time": 1774504017.7071314,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 54,
+        "symbol": "7roamers",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "7roamers",
+        "price_in": 0.0003883,
+        "price_out": null,
+        "qty": 15401.925580313384,
+        "amount_usd": 5.980567702835687,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-26 05:47:47",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0003883,
+        "open_time": 1774504067.0255914,
         "kelly_pct": 0.05
       }
     ],
@@ -11050,7 +11106,7 @@
       "backtest_5m"
     ],
     "confidence_threshold": 82,
-    "total_wins": 109,
+    "total_wins": 110,
     "total_losses": 274,
     "symbol_scores": {
       "BTCUSDT": -15,
