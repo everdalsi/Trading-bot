@@ -2,36 +2,7 @@
   "sim": {
     "cash": 412.961258448237,
     "initial": 1000.0,
-    "positions": {
-      "MEME_7roamers_23": {
-        "id": 23,
-        "symbol": "7roamers",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "7roamers",
-        "price_in": 0.0004487,
-        "price_out": null,
-        "qty": 48129.056063167685,
-        "amount_usd": 21.59550745554334,
-        "confidence": 95,
-        "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-26 04:51:37",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0004487,
-        "open_time": 1774500697.4263794,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_7roamers_23"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
