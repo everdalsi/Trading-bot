@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 575.8906014986992,
+    "cash": 531.0619426175542,
     "initial": 1000.0,
     "positions": {},
     "trades": [
@@ -407,6 +407,60 @@
         "leverage": 1,
         "peak_price": 0.0004642,
         "open_time": 1774500462.8019783,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 16,
+        "symbol": "7roamers",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "7roamers",
+        "price_in": 0.0004588,
+        "price_out": 5.224e-05,
+        "qty": 62760.52762627498,
+        "amount_usd": 28.79453007493496,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": "\ud83d\uded1 MEME SL (-88.6%)",
+        "time_in": "2026-03-26 04:48:31",
+        "time_out": "2026-03-26 04:48:31",
+        "pnl": -25.51592,
+        "pnl_pct": -88.61,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0004588,
+        "open_time": 1774500511.439683,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 17,
+        "symbol": "BITSY",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "BITSY",
+        "price_in": 0.0004643,
+        "price_out": 0.0001365,
+        "qty": 58916.22565407756,
+        "amount_usd": 27.354803571188214,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": "\ud83d\uded1 MEME SL (-70.6%)",
+        "time_in": "2026-03-26 04:48:31",
+        "time_out": "2026-03-26 04:48:34",
+        "pnl": -19.312739,
+        "pnl_pct": -70.6,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0004643,
+        "open_time": 1774500511.5013397,
         "kelly_pct": 0.05
       }
     ],
@@ -4874,6 +4928,50 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-26 04:48"
+      },
+      {
+        "trade_id": -4,
+        "pnl": 5.1017,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-26 04:48"
+      },
+      {
+        "trade_id": -5,
+        "pnl": -1.6175,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-26 04:48"
+      },
+      {
+        "trade_id": 16,
+        "pnl": -25.51592,
+        "symbol": "7roamers",
+        "market": "MEME",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "memecoin",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-26 04:48"
+      },
+      {
+        "trade_id": 17,
+        "pnl": -19.312739,
+        "symbol": "BITSY",
+        "market": "MEME",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "memecoin",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-26 04:48"
       }
     ],
     "patterns_to_avoid": [
@@ -5114,9 +5212,13 @@
       "memecoin",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "backtest_5m",
+      "memecoin",
+      "memecoin"
     ],
     "patterns_that_work": [
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -5287,12 +5389,13 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 56,
-    "total_losses": 128,
+    "total_losses": 131,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": 4,
-      "BITSY": -15
+      "SOLUSDT": 3,
+      "BITSY": -15,
+      "7roamers": -3
     },
     "symbol_blacklist": {},
     "consecutive_losses": {},
@@ -8457,6 +8560,34 @@
             "exit": 2173.23,
             "pnl": -0.8911,
             "pnl_pct": -0.45,
+            "exit_reason": "TIMEOUT"
+          }
+        ]
+      },
+      {
+        "symbol": "BTCUSDT",
+        "interval": "5m",
+        "days": 30,
+        "total_trades": 1,
+        "wins": 0,
+        "losses": 1,
+        "win_rate": 0.0,
+        "total_pnl": -0.73,
+        "total_pnl_pct": -0.07,
+        "sharpe": 0.0,
+        "max_drawdown": -0.07,
+        "profit_factor": 0.0,
+        "best_trade": -0.36,
+        "worst_trade": -0.36,
+        "final_equity": 999.27,
+        "sl_used": 0.025,
+        "tp_used": 0.04,
+        "trades": [
+          {
+            "entry": 71503.24375499999,
+            "exit": 71242.73,
+            "pnl": -0.7276,
+            "pnl_pct": -0.36,
             "exit_reason": "TIMEOUT"
           }
         ]
