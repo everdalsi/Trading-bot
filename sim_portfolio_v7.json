@@ -81375,6 +81375,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-26 21:11"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -2.0043,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-26 21:11"
       }
     ],
     "patterns_to_avoid": [
@@ -81982,7 +81993,7 @@
       "memecoin"
     ],
     "confidence_threshold": 82,
-    "total_wins": 944,
+    "total_wins": 946,
     "total_losses": 1793,
     "symbol_scores": {
       "BTCUSDT": -15,
