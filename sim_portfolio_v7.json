@@ -2,36 +2,7 @@
   "sim": {
     "cash": 1.7193800180104805e+33,
     "initial": 1000.0,
-    "positions": {
-      "MEME_TARO_267": {
-        "id": 267,
-        "symbol": "TARO",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "TARO",
-        "price_in": 0.0006907,
-        "price_out": null,
-        "qty": 1.204190987729968e+35,
-        "amount_usd": 8.31734715225089e+31,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-26 00:58:52",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.001155,
-        "open_time": 1774486732.9693124,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_TARO_267"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
