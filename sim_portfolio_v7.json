@@ -2488,9 +2488,21 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-26 04:23"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -0.8911,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-26 04:23"
       }
     ],
     "patterns_to_avoid": [
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -2720,7 +2732,7 @@
       "backtest_5m"
     ],
     "confidence_threshold": 65,
-    "total_wins": 32,
+    "total_wins": 33,
     "total_losses": 67,
     "symbol_scores": {
       "BTCUSDT": -15,
