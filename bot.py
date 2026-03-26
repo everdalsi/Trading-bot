@@ -679,35 +679,56 @@ def check_daily_reset():
         bot_state["daily_stopped"] = False
 
 def get_equity_safe() -> float:
+    """Calcul sécurisé du capital total (cash + positions) avec protection contre les valeurs fantômes"""
     try:
         prices = get_prices_batch()
         equity = float(sim.get("cash", CAPITAL_INITIAL))
+
+        # Protection immédiate sur le cash de base
         if not (0 < equity < 1_000_000):
             equity = CAPITAL_INITIAL
+
         for pos in list(sim.get("positions", {}).values()):
             try:
-                symbol   = pos.get("symbol","")
+                symbol   = pos.get("symbol", "")
                 price_in = float(pos.get("price_in", 0))
                 amount   = float(pos.get("amount_usd", 0))
                 lev      = float(pos.get("leverage", 1))
-                side     = pos.get("side","LONG")
+                side     = pos.get("side", "LONG")
+
                 if price_in <= 0 or amount <= 0:
                     continue
                 if amount > CAPITAL_INITIAL * 2:
                     continue
+
                 p = prices.get(symbol, price_in)
                 if p <= 0 or p > price_in * 100:
                     p = price_in
+
+                # Utilise la fonction safe_pnl que nous venons de corriger
                 if side == "LONG":
-                    pos_pnl = (p - price_in) / price_in * amount * lev
+                    pnl_pct = (p - price_in) / price_in
                 else:
-                    pos_pnl = (price_in - p) / price_in * amount * lev
-                pos_pnl = max(-amount, min(amount * 10, pos_pnl))
+                    pnl_pct = (price_in - p) / price_in
+
+                pos_pnl = safe_pnl(pnl_pct, amount, lev)
+
                 equity += amount + pos_pnl
+
             except Exception:
                 continue
-        return round(max(0, min(equity, CAPITAL_INITIAL * 100)), 2)
-    except Exception:
+
+        # Protection ultime contre capital fantôme
+        if equity > CAPITAL_INITIAL * 1000 or equity < 0:
+            print(f"[SAFETY-EQUITY] Capital anormal ({equity:,.2f}) → reset à ${CAPITAL_INITIAL:,.2f}")
+            equity = CAPITAL_INITIAL
+            sim["cash"] = CAPITAL_INITIAL
+            sim["positions"] = {}
+
+        return round(max(0, equity), 2)
+
+    except Exception as e:
+        print(f"[SAFETY-EQUITY] Erreur globale: {e}")
         return CAPITAL_INITIAL
 
 def check_risk_limits(send_fn) -> bool:
@@ -4471,9 +4492,9 @@ async def cmd_debugpnl(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     await update.message.reply_text(msg)
 
-# Safety cap dans le calcul PnL (à appliquer partout où PnL est calculé)
 
 # Safety cap dans le calcul PnL (à appliquer partout où PnL est calculé)
+
 def safe_pnl(pnl_pct: float, amount_usd: float, leverage: float = 1) -> float:
     """Empêche les gains absurdes sur memecoins à très petit prix"""
     try:
