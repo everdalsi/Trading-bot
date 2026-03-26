@@ -1,8 +1,37 @@
 {
   "sim": {
-    "cash": 2.4693704535178665e+33,
+    "cash": 2.5879765254619983e+33,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MEME_TARO_278": {
+        "id": 278,
+        "symbol": "TARO",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "TARO",
+        "price_in": 0.0005891,
+        "price_out": null,
+        "qty": 2.095883936104114e+35,
+        "amount_usd": 1.2346852267589333e+32,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-26 01:37:46",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.001155,
+        "open_time": 1774489066.2288332,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_TARO_278"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -7481,6 +7510,33 @@
         "leverage": 1,
         "peak_price": 0.0006189,
         "open_time": 1774489019.1014085,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 278,
+        "symbol": "TARO",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "TARO",
+        "price_in": 0.0005891,
+        "price_out": 0.001155,
+        "qty": 2.095883936104114e+35,
+        "amount_usd": 1.2346852267589333e+32,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": "\ud83c\udfaf MEME TP (+96.1%)",
+        "time_in": "2026-03-26 01:37:46",
+        "time_out": "2026-03-26 01:37:46",
+        "pnl": 1.1860607194413181e+32,
+        "pnl_pct": 96.06,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0005891,
+        "open_time": 1774489066.2288332,
         "kelly_pct": 0.05
       }
     ],
@@ -72415,6 +72471,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-26 01:37"
+      },
+      {
+        "trade_id": 278,
+        "pnl": 1.1860607194413181e+32,
+        "symbol": "TARO",
+        "market": "MEME",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "memecoin",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-26 01:37"
       }
     ],
     "patterns_to_avoid": [
@@ -72806,7 +72873,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "memecoin",
@@ -73019,7 +73085,8 @@
       "memecoin",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "memecoin"
     ],
     "confidence_threshold": 8,
     "total_wins": 1177,
