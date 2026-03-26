@@ -199,8 +199,9 @@ def start_self_improvement_loop(orchestrator):
         except Exception as e:
             err_str = str(e).lower()
             if "rate_limit" in err_str or "ratelimit" in err_str or "429" in err_str:
-                wait_seconds = min(60, 15 * (2 ** (cycle % 4)))
-                print(f"[RATE LIMIT] Groq limite atteinte → pause {wait_seconds}s")
+                # Backoff plus intelligent
+                wait_seconds = min(300, 60 * (2 ** (cycle % 6)))   # jusqu'à 5 minutes max
+                print(f"[RATE LIMIT] Groq limite atteinte → pause {wait_seconds}s (réessai dans {wait_seconds} secondes)")
                 time.sleep(wait_seconds)
                 last_rate_limit = time.time()
                 continue
