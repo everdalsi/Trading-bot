@@ -59,13 +59,35 @@ profit_factor_gauge  = Gauge('bot_profit_factor',          'Profit Factor')
 lesson_count_gauge   = Gauge('bot_lesson_count',           'Nombre de leçons en base')
 streak_gauge         = Gauge('bot_current_streak',         'Longueur de la streak actuelle')
 
+# Gestion intelligente des quotas Groq
+class QuotaManager:
+    def __init__(self):
+        self.current_model = "groq/llama-3.1-8b-instant"   # Modèle léger par défaut (stable)
+        self.last_rate_limit = 0
+        self.rate_limit_count = 0
+
+    def get_model(self):
+        if self.rate_limit_count >= 2 or (time.time() - self.last_rate_limit < 600):
+            self.current_model = "groq/llama-3.1-8b-instant"
+            print(f"[QUOTA MANAGER] ⚠️ Utilisation du modèle léger : {self.current_model}")
+        else:
+            self.current_model = "groq/llama-3.1-8b-instant"
+        return self.current_model
+
+    def handle_rate_limit(self):
+        self.rate_limit_count += 1
+        self.last_rate_limit = time.time()
+        print(f"[QUOTA MANAGER] Rate limit détecté ({self.rate_limit_count})")
+
+# Instance globale
+quota_manager = QuotaManager()
+
 # ── Architecture multi-agent avancée (Reflection + Permission-Based) ───────────────────────────────
 def create_improvement_crew():
     if not CREWAI_AVAILABLE:
         return None
     try:
-        # Modèle optimisé pour quota Groq (70b = meilleure qualité + limites différentes)
-        MODEL = "groq/llama-3.1-70b-versatile"
+        MODEL = quota_manager.get_model()
 
         reflector = Agent(
             role="Reflection & Strategy Officer",
@@ -197,7 +219,8 @@ def start_self_improvement_loop(orchestrator):
         except Exception as e:
             err_str = str(e).lower()
             if "rate_limit" in err_str or "ratelimit" in err_str or "429" in err_str:
-                wait_seconds = min(600, 90 * (2 ** (cycle % 5)))   # jusqu'à 10 minutes max
+                quota_manager.handle_rate_limit()
+                wait_seconds = min(600, 90 * (2 ** (cycle % 5)))
                 print(f"[RATE LIMIT GROQ] Limite atteinte → pause {wait_seconds}s")
                 time.sleep(wait_seconds)
                 last_rate_limit = time.time()
@@ -206,6 +229,5 @@ def start_self_improvement_loop(orchestrator):
                 print(f"[SELF-IMPROVEMENT ERROR] {e}")
                 evolution_errors_total.inc()
 
-        # Sleep plus long pour économiser les tokens
         base_sleep = 90 if (time.time() - last_rate_limit < 900) else 60
         time.sleep(base_sleep + random.uniform(10, 20))
