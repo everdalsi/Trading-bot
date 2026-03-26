@@ -2,36 +2,7 @@
   "sim": {
     "cash": 190.41787512284765,
     "initial": 1000.0,
-    "positions": {
-      "MEME_BITSY_42": {
-        "id": 42,
-        "symbol": "BITSY",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "BITSY",
-        "price_in": 0.0003802,
-        "price_out": null,
-        "qty": 25870.9393805752,
-        "amount_usd": 9.836131152494692,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-26 05:13:24",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0003802,
-        "open_time": 1774502004.3463411,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_BITSY_42"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
@@ -7656,6 +7627,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-26 05:13"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -0.8911,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-26 05:13"
       }
     ],
     "patterns_to_avoid": [
@@ -7739,7 +7721,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "memecoin",
@@ -7958,7 +7939,8 @@
       "backtest_5m",
       "memecoin",
       "backtest_5m",
-      "memecoin"
+      "memecoin",
+      "backtest_5m"
     ],
     "patterns_that_work": [
       "backtest_5m",
