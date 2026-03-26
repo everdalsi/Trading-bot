@@ -1,8 +1,37 @@
 {
   "sim": {
-    "cash": 134.9058842993564,
+    "cash": 128.16059008438856,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MEME_7roamers_51": {
+        "id": 51,
+        "symbol": "7roamers",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "7roamers",
+        "price_in": 0.0004271,
+        "price_out": null,
+        "qty": 15793.24330360061,
+        "amount_usd": 6.74529421496782,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-26 05:31:16",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0004271,
+        "open_time": 1774503076.6009183,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_7roamers_51"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -1352,6 +1381,33 @@
         "leverage": 1,
         "peak_price": 0.0004271,
         "open_time": 1774503029.504212,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 51,
+        "symbol": "7roamers",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "7roamers",
+        "price_in": 0.0004271,
+        "price_out": null,
+        "qty": 15793.24330360061,
+        "amount_usd": 6.74529421496782,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-26 05:31:16",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0004271,
+        "open_time": 1774503076.6009183,
         "kelly_pct": 0.05
       }
     ],
@@ -9218,6 +9274,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-26 05:31"
+      },
+      {
+        "trade_id": -5,
+        "pnl": -1.6175,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-26 05:31"
       }
     ],
     "patterns_to_avoid": [
@@ -9227,7 +9294,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "memecoin",
@@ -9518,6 +9584,7 @@
       "backtest_5m",
       "backtest_5m",
       "memecoin",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m"
@@ -9815,7 +9882,7 @@
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": 6,
+      "SOLUSDT": 3,
       "BITSY": -15,
       "7roamers": -15
     },
