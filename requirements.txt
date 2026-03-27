@@ -35,7 +35,7 @@ matplotlib>=3.8.0
 # === Utilitaires & Persistance ===
 python-dotenv
 gitpython
-pybit
+# pybit a été supprimé car il n'existe plus sur PyPI (ccxt le remplace largement)
 praw
 
 # ================================================
