@@ -1,35 +1,8 @@
 {
   "sim": {
-    "cash": 522.6601103324614,
+    "cash": 772.9204403833951,
     "initial": 1000.0,
     "positions": {
-      "MICRO_BONKUSDT_5": {
-        "id": 5,
-        "symbol": "BONKUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 5.89e-06,
-        "price_out": null,
-        "qty": 42417005.09337859,
-        "amount_usd": 249.83615999999992,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=14 mom=+0.00% vol=44.7x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 05:33:27",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 5.9e-06,
-        "open_time": 1774589607.1513314,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_BONKUSDT_5"
-      },
       "MICRO_JUPUSDT_6": {
         "id": 6,
         "symbol": "JUPUSDT",
@@ -225,17 +198,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 5.89e-06,
-        "price_out": null,
+        "price_out": 5.9e-06,
         "qty": 42417005.09337859,
         "amount_usd": 249.83615999999992,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=14 mom=+0.00% vol=44.7x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 64s",
         "time_in": "2026-03-27 05:33:27",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 05:34:31",
+        "pnl": 0.42417,
+        "pnl_pct": 0.17,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -6866,6 +6839,28 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 05:34"
+      },
+      {
+        "trade_id": 5,
+        "pnl": 0.42417,
+        "symbol": "BONKUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 05:34"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -0.8911,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 05:34"
       }
     ],
     "patterns_to_avoid": [
@@ -7114,7 +7109,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -7166,6 +7160,7 @@
       "backtest_5m",
       "backtest_5m",
       "score=4",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m"
@@ -7335,7 +7330,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
     "confidence_threshold": 82,
     "total_wins": 56,
@@ -7347,7 +7343,8 @@
       "TARO": -3,
       "OPUSDT": -6,
       "PENDLEUSDT": -6,
-      "ARBUSDT": -6
+      "ARBUSDT": -6,
+      "BONKUSDT": 2
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
