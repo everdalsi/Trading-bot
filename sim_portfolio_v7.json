@@ -2,36 +2,7 @@
   "sim": {
     "cash": 980.5831441543701,
     "initial": 1000.0,
-    "positions": {
-      "MEME_Deadwhale_1": {
-        "id": 1,
-        "symbol": "Deadwhale",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "Deadwhale",
-        "price_in": 0.0007048,
-        "price_out": null,
-        "qty": 70942.11123723042,
-        "amount_usd": 50.0,
-        "confidence": 95,
-        "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-27 09:15:23",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0007048,
-        "open_time": 1774602923.9740005,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_Deadwhale_1"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
