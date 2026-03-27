@@ -1,8 +1,63 @@
 {
   "sim": {
-    "cash": 1000.0,
+    "cash": 92.41600000000003,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MICRO_UNIUSDT_33": {
+        "id": 33,
+        "symbol": "UNIUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 3.506,
+        "price_out": null,
+        "qty": 198.51682829435256,
+        "amount_usd": 696.0,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=24 mom=-0.06% vol=21.6x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 07:07:46",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 3.506,
+        "open_time": 1774595266.818485,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_UNIUSDT_33"
+      },
+      "MICRO_LTCUSDT_34": {
+        "id": 34,
+        "symbol": "LTCUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 54.84,
+        "price_out": null,
+        "qty": 3.8582056892778986,
+        "amount_usd": 211.58399999999997,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=25 mom=-0.04% vol=15.8x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 07:07:47",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 54.84,
+        "open_time": 1774595267.074055,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_LTCUSDT_34"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -842,6 +897,58 @@
         "leverage": 1,
         "peak_price": 0.2857,
         "open_time": 1774594824.5564284,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 33,
+        "symbol": "UNIUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 3.506,
+        "price_out": null,
+        "qty": 198.51682829435256,
+        "amount_usd": 696.0,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=24 mom=-0.06% vol=21.6x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 07:07:46",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 3.506,
+        "open_time": 1774595266.818485,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 34,
+        "symbol": "LTCUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 54.84,
+        "price_out": null,
+        "qty": 3.8582056892778986,
+        "amount_usd": 211.58399999999997,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=25 mom=-0.04% vol=15.8x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 07:07:47",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 54.84,
+        "open_time": 1774595267.074055,
         "kelly_pct": 0.48
       }
     ],
@@ -15099,6 +15206,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 07:07"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -0.8911,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 07:07"
       }
     ],
     "patterns_to_avoid": [
@@ -15122,8 +15240,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
