@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 944.8478835978835,
+    "cash": 287.23375661375667,
     "initial": 1000.0,
     "positions": {
       "MEME_NEKO_3": {
@@ -30,6 +30,33 @@
         "open_time": 1774608559.0249715,
         "kelly_pct": 0.05,
         "pos_key": "MEME_NEKO_3"
+      },
+      "MICRO_APTUSDT_5": {
+        "id": 5,
+        "symbol": "APTUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.993,
+        "price_out": null,
+        "qty": 662.2498761169455,
+        "amount_usd": 657.6141269841269,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=28 mom=-0.20% vol=4.6x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 10:49:43",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.993,
+        "open_time": 1774608583.9976473,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_APTUSDT_5"
       }
     },
     "trades": [
@@ -140,6 +167,32 @@
         "peak_price": 0.000756,
         "open_time": 1774608559.1027722,
         "kelly_pct": 0.05
+      },
+      {
+        "id": 5,
+        "symbol": "APTUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.993,
+        "price_out": null,
+        "qty": 662.2498761169455,
+        "amount_usd": 657.6141269841269,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=28 mom=-0.20% vol=4.6x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 10:49:43",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.993,
+        "open_time": 1774608583.9976473,
+        "kelly_pct": 0.48
       }
     ],
     "equity_history": [
@@ -536,6 +589,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 10:49"
+      },
+      {
+        "trade_id": -5,
+        "pnl": 1.2958,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 10:49"
       }
     ],
     "patterns_to_avoid": [
@@ -575,6 +639,7 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "backtest_5m",
       "backtest_5m"
     ],
     "confidence_threshold": 82,
@@ -584,7 +649,7 @@
       "Deadwhale": -9,
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -2
+      "SOLUSDT": 0
     },
     "symbol_blacklist": {},
     "consecutive_losses": {},
