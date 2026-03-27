@@ -35,7 +35,8 @@ matplotlib>=3.8.0
 # === Utilitaires & Persistance ===
 python-dotenv
 gitpython
-pybit
+# pybit → commenté car il n'existe plus sur PyPI (le build plante à cause de lui)
+# pybit
 praw
 
 # ================================================
