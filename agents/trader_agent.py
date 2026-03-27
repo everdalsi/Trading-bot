@@ -25,6 +25,7 @@ class TraderAgent(BaseAgent):
     async def respond(self, question: str, context: dict) -> Dict[str, Any]:
         # === EXTREME LEARNING MODE (MAX TRADES) ===
         extreme_learning = context.get("extreme_learning_mode", False) or context.get("learning_mode", False)
+        precision_mode   = context.get("precision_mode", False)
 
         if extreme_learning:
             composite = (context.get("symbol_score", 0.5) * 0.6 + 
