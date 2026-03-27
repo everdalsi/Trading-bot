@@ -10,6 +10,7 @@ crewai-tools
 groq
 langchain-groq
 litellm
+sentence-transformers
 
 # === Core Trading & Data ===
 ccxt
