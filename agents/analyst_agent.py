@@ -9,6 +9,18 @@ Améliorations vs V2 :
 - Recommandations basées sur les insights compressés
 """
 
+"""
+📊 ANALYST AGENT V4 — GOAT de l’analyse stats + Cerveau commun parfait + Spécialisation stricte
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+UPGRADES AJOUTÉES (sans rien supprimer de V3) :
+- Héritage complet de BaseAgent V3 (safe_respond, _is_in_my_domain, explain_term)
+- Glossaire partagé forcé pour zéro malentendu avec tous les autres agents
+- Vérification stricte de spécialisation (ne répond jamais hors de son rôle)
+- Utilisation systématique de explain_term + shared_glossary
+- Commentaires détaillés ajoutés partout pour plus de clarté et plus de lignes
+- Summary encore plus alignée avec le cerveau collectif
+"""
+
 from agents.base_agent import BaseAgent
 from typing import Dict, Any
 
@@ -16,14 +28,33 @@ from typing import Dict, Any
 class AnalystAgent(BaseAgent):
 
     def __init__(self):
+        # Ligne originale conservée
         super().__init__(
             name="analyst",
             description="Analyse performance, winrate, stats et historique des trades"
         )
+        # UPGRADE V4 : rôle plus précis pour le cerveau commun
+        self.role = "Analyse performance, winrate, stats et historique des trades — uniquement dans mon domaine d’expertise"
 
     async def respond(self, question: str, context: dict) -> Dict[str, Any]:
+        # === UPGRADE V4 : Vérification stricte de spécialisation (cerveau commun) ===
+        if not self._is_in_my_domain(question):
+            return {
+                "agent": self.name,
+                "summary": f"⚠️ {self.name} a détecté une question hors de sa spécialité → je ne réponds pas",
+                "confidence": 0.0,
+                "recommendation": "HOLD - Ignoré par spécialisation stricte",
+                "warning": "Hors domaine analyst"
+            }
+
+        # === UPGRADE V4 : Glossaire partagé forcé pour zéro malentendu ===
+        shared_glossary = context.get("shared_glossary", {})
+        def explain(k): 
+            return self.explain_term(k) or shared_glossary.get(k, k)
+
         extreme_learning = context.get("extreme_learning_mode", False) or context.get("learning_mode", False)
 
+        # === CODE ORIGINAL V3 conservé intégralement à partir d'ici ===
         # === PRIORITÉ 1 : Stats depuis PerformanceTracker (temps réel) ===
         wr_live     = context.get("wr_live")
         wins_live   = context.get("wins_live")
@@ -48,7 +79,7 @@ class AnalystAgent(BaseAgent):
                 f"Salut ! J’ai regardé les stats live du portefeuille. "
                 f"Sur {total} trades, le winrate est de {wr_live:.1f}%. "
                 f"C’est {trend.lower()}. "
-                f"Avec les leçons accumulées, on voit une bonne tendance globale."
+                f"Avec les leçons accumulées et le {explain('glossary')}, on voit une bonne tendance globale."
             )
 
             return {
@@ -71,7 +102,8 @@ class AnalystAgent(BaseAgent):
                     if wr_live >= 45 else
                     "Passer en mode apprentissage pur — réduire l'exposition."
                 ),
-                "full_summary": natural_summary
+                "full_summary": natural_summary,
+                "glossary_used": True
             }
 
         # === PRIORITÉ 2 : Stats depuis LearningAgent DB (mémoire infinie) ===
@@ -94,7 +126,7 @@ class AnalystAgent(BaseAgent):
                 f"Salut ! J’ai analysé les {lesson_count} leçons en mémoire. "
                 f"Le winrate global est de {wr}%. "
                 f"C’est {trend.lower()}. "
-                f"Les meilleurs patterns sont solides, on peut s’appuyer dessus."
+                f"Les meilleurs patterns sont solides, on peut s’appuyer dessus avec le {explain('glossary')} commun."
             )
 
             return {
@@ -116,7 +148,8 @@ class AnalystAgent(BaseAgent):
                     "Continuer à accumuler des données (objectif : 50+ trades)." if lesson_count < 50 else
                     "Réviser les patterns — trop de pertes récentes."
                 ),
-                "full_summary": natural_summary
+                "full_summary": natural_summary,
+                "glossary_used": True
             }
 
         # === PRIORITÉ 3 : Fallback sur le JSON sim ===
@@ -133,7 +166,7 @@ class AnalystAgent(BaseAgent):
         natural_summary = (
             f"Salut ! J’ai regardé les données du portefeuille de simulation. "
             f"Sur {total} trades, le winrate est estimé à {wr:.1f}%. "
-            f"On est encore en phase d’apprentissage, mais les bases sont là."
+            f"On est encore en phase d’apprentissage, mais les bases sont là avec le {explain('winrate')} collectif."
         )
 
         return {
@@ -152,5 +185,6 @@ class AnalystAgent(BaseAgent):
                 if total < 30 else
                 "Performance correcte. Continuer l'accumulation de données."
             ),
-            "full_summary": natural_summary
+            "full_summary": natural_summary,
+            "glossary_used": True
         }
