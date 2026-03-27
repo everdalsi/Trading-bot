@@ -310,7 +310,8 @@ _macro_cache        = {"trend": "NEUTRAL", "ts": 0}
 #  MODULES PROPRES (refactor étape 2)
 # ═══════════════════════════════════════════════════════════════
 from websocket_manager import ws_manager
-from data_handler import data_handler
+
+
 
 # Symboles surveillés
 WS_SYMBOLS_WATCH = [
@@ -326,7 +327,7 @@ data_handler.prefill_caches(WS_SYMBOLS_WATCH)
 # ═══════════════════════════════════════════════════════════════
 #  DATA HANDLER (nouveau module propre)
 # ═══════════════════════════════════════════════════════════════
-from data_handler import data_handler
+from data_handler import data_handler, get_prices_batch, get_klines_1m_cached, get_klines_5m_cached, get_volume_data
 
 # Remplacement des anciennes fonctions par le handler propre
 def get_current_price(symbol: str) -> float | None:
@@ -2627,7 +2628,8 @@ def trading_loop(send_fn):
         if now - bot_state["last_scalp"] >= CYCLE_SCALP:
             bot_state["cycle_count"] += 1
             try:
-                fear_greed = get_fear_greed()
+                fear_greed = get_fear_greed_value()
+
                 threshold  = memory.get("confidence_threshold", CONFIDENCE_BASE)
                 macro      = get_macro_trend()
 
