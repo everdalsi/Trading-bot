@@ -10738,10 +10738,20 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 06:06"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -0.7276,
+        "symbol": "BTCUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 06:07"
       }
     ],
     "patterns_to_avoid": [
-      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -11040,6 +11050,7 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "backtest_5m",
       "backtest_5m"
     ],
     "patterns_that_work": [
@@ -11300,7 +11311,7 @@
       "backtest_5m",
       "backtest_5m"
     ],
-    "confidence_threshold": 68,
+    "confidence_threshold": 71,
     "total_wins": 92,
     "total_losses": 191,
     "symbol_scores": {
