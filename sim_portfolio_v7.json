@@ -2,35 +2,7 @@
   "sim": {
     "cash": 1730.4553695607733,
     "initial": 1000.0,
-    "positions": {
-      "MICRO_ORDIUSDT_29": {
-        "id": 29,
-        "symbol": "ORDIUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 2.205,
-        "price_out": null,
-        "qty": 330.0747264169785,
-        "amount_usd": 727.8147717494376,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=27 mom=-0.31% vol=4.0x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 11:00:59",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 2.213,
-        "open_time": 1774609259.1410084,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_ORDIUSDT_29"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
