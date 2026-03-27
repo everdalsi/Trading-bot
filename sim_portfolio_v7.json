@@ -79,7 +79,7 @@
     ],
     "patterns_that_work": [],
     "confidence_threshold": 65,
-    "total_wins": 0,
+    "total_wins": 1,
     "total_losses": 2,
     "symbol_scores": {
       "BTCUSDT": -6,
