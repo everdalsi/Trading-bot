@@ -2,35 +2,7 @@
   "sim": {
     "cash": 1277.6009634479515,
     "initial": 1000.0,
-    "positions": {
-      "MICRO_STRKUSDT_56": {
-        "id": 56,
-        "symbol": "STRKUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.0342,
-        "price_out": null,
-        "qty": 26000.300308765323,
-        "amount_usd": 889.2102705597741,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=24 mom=-0.58% vol=15.5x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 11:35:50",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0342,
-        "open_time": 1774611350.322925,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_STRKUSDT_56"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
