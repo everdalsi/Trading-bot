@@ -3,33 +3,6 @@
     "cash": 750.9088956773329,
     "initial": 1000.0,
     "positions": {
-      "MICRO_STXUSDT_9": {
-        "id": 9,
-        "symbol": "STXUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.2342,
-        "price_out": null,
-        "qty": 2081.185115056686,
-        "amount_usd": 487.4135539462758,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=24 mom=-0.09% vol=13.8x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 05:35:08",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.2344,
-        "open_time": 1774589708.768863,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_STXUSDT_9"
-      },
       "MICRO_FLOKIUSDT_10": {
         "id": 10,
         "symbol": "FLOKIUSDT",
