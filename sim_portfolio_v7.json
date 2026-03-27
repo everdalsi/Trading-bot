@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 497.2944027776047,
+    "cash": 517.5669388953968,
     "initial": 1000.0,
     "positions": {
       "MICRO_XRPUSDT_97": {
@@ -2616,17 +2616,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 1.335,
-        "price_out": null,
+        "price_out": 1.3353,
         "qty": 15.182008625621267,
         "amount_usd": 20.26798151520439,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=23 mom=-0.23% vol=3.5x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 72s",
         "time_in": "2026-03-27 14:23:59",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 14:25:19",
+        "pnl": 0.004555,
+        "pnl_pct": 0.022,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -13759,6 +13759,28 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 14:25"
+      },
+      {
+        "trade_id": 97,
+        "pnl": 0.004555,
+        "symbol": "XRPUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 14:25"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -0.8911,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 14:25"
       }
     ],
     "patterns_to_avoid": [
@@ -13767,7 +13789,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
@@ -14050,6 +14071,7 @@
       "score=4",
       "backtest_5m",
       "score=4",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -14285,16 +14307,17 @@
       "score=4",
       "score=4",
       "score=4",
+      "score=4",
       "score=4"
     ],
     "confidence_threshold": 82,
-    "total_wins": 20,
+    "total_wins": 21,
     "total_losses": 310,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -13,
+      "SOLUSDT": -11,
       "APTUSDT": -11,
       "NEKO": -10,
       "ARBUSDT": -12,
@@ -14321,7 +14344,8 @@
       "DOGEUSDT": -6,
       "UNIUSDT": -6,
       "LINKUSDT": 4,
-      "FLOKIUSDT": 4
+      "FLOKIUSDT": 4,
+      "XRPUSDT": 2
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
@@ -14350,7 +14374,8 @@
       "UNIUSDT": 1,
       "LINKUSDT": 0,
       "FLOKIUSDT": 0,
-      "BTCUSDT": 0
+      "BTCUSDT": 0,
+      "SOLUSDT": 0
     },
     "bad_setups": [
       {
