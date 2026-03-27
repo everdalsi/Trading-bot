@@ -2,35 +2,7 @@
   "sim": {
     "cash": 1001.950675745527,
     "initial": 1000.0,
-    "positions": {
-      "MICRO_XRPUSDT_102": {
-        "id": 102,
-        "symbol": "XRPUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 1.3409,
-        "price_out": null,
-        "qty": 14.58255421284213,
-        "amount_usd": 19.55374694400001,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=6 mom=-0.31% vol=4.3x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 09:11:28",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 1.3424,
-        "open_time": 1774602688.4398146,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_XRPUSDT_102"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
