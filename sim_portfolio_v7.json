@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 2170.3798879498627,
+    "cash": 2173.4477251397702,
     "initial": 1000.0,
     "positions": {
       "MICRO_FETUSDT_74": {
@@ -1983,17 +1983,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.2298,
-        "price_out": 0.2289,
+        "price_out": 0.2295,
         "qty": 5113.061983179828,
         "amount_usd": 1174.9816437347245,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=23 mom=-0.13% vol=4.5x",
-        "exit_reason": "\u23f1 TIMEOUT 918s",
+        "exit_reason": "\u23f1 TIMEOUT 1302s",
         "time_in": "2026-03-27 11:53:12",
-        "time_out": "2026-03-27 12:08:31",
-        "pnl": -4.601756,
-        "pnl_pct": -0.392,
-        "duration_min": 15,
+        "time_out": "2026-03-27 12:14:55",
+        "pnl": -1.533919,
+        "pnl_pct": -0.131,
+        "duration_min": 21,
         "patterns": [
           "score=4"
         ],
@@ -10045,12 +10045,22 @@
         "action_future": "Diminuer la priorit\u00e9 de ce setup",
         "type": "erreur",
         "date": "2026-03-27 12:08"
+      },
+      {
+        "trade_id": 74,
+        "pnl": -1.533919,
+        "symbol": "FETUSDT",
+        "market": "MICRO",
+        "lecon": "Setup peu performant",
+        "pattern": "score=4",
+        "action_future": "Diminuer la priorit\u00e9 de ce setup",
+        "type": "erreur",
+        "date": "2026-03-27 12:14"
       }
     ],
     "patterns_to_avoid": [
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -10347,6 +10357,7 @@
       "memecoin",
       "memecoin",
       "memecoin",
+      "score=4",
       "score=4"
     ],
     "patterns_that_work": [
@@ -10547,7 +10558,7 @@
       "NEARUSDT": -6,
       "STRKUSDT": -6,
       "IMXUSDT": -6,
-      "FETUSDT": -3
+      "FETUSDT": -6
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
