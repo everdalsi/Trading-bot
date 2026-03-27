@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 304.0,
+    "cash": 92.41600000000003,
     "initial": 1000.0,
     "positions": {
       "MICRO_WIFUSDT_30": {
@@ -29,6 +29,33 @@
         "open_time": 1774609453.71316,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_WIFUSDT_30"
+      },
+      "MICRO_JUPUSDT_31": {
+        "id": 31,
+        "symbol": "JUPUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.1425,
+        "price_out": null,
+        "qty": 1484.8,
+        "amount_usd": 211.58399999999997,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=16 mom=-0.48% vol=6.8x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 11:04:59",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.1431,
+        "open_time": 1774609499.4869533,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_JUPUSDT_31"
       }
     },
     "trades": [
@@ -821,6 +848,32 @@
         "leverage": 1,
         "peak_price": 0.175,
         "open_time": 1774609453.71316,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 31,
+        "symbol": "JUPUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.1425,
+        "price_out": null,
+        "qty": 1484.8,
+        "amount_usd": 211.58399999999997,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=16 mom=-0.48% vol=6.8x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 11:04:59",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.1425,
+        "open_time": 1774609499.4869533,
         "kelly_pct": 0.48
       }
     ],
@@ -3445,7 +3498,7 @@
     ],
     "confidence_threshold": 62,
     "total_wins": 8,
-    "total_losses": 68,
+    "total_losses": 69,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -15,
@@ -4817,6 +4870,48 @@
             "exit": 2050.53,
             "pnl": -1.8027,
             "pnl_pct": -0.91,
+            "exit_reason": "TIMEOUT"
+          }
+        ]
+      },
+      {
+        "symbol": "BTCUSDT",
+        "interval": "5m",
+        "days": 30,
+        "total_trades": 3,
+        "wins": 0,
+        "losses": 3,
+        "win_rate": 0.0,
+        "total_pnl": -5.63,
+        "total_pnl_pct": -0.56,
+        "sharpe": -30.41,
+        "max_drawdown": -0.56,
+        "profit_factor": 0.0,
+        "best_trade": -0.36,
+        "worst_trade": -1.56,
+        "final_equity": 994.37,
+        "sl_used": 0.025,
+        "tp_used": 0.04,
+        "trades": [
+          {
+            "entry": 71503.24375499999,
+            "exit": 71242.73,
+            "pnl": -0.7276,
+            "pnl_pct": -0.36,
+            "exit_reason": "TIMEOUT"
+          },
+          {
+            "entry": 70091.49823499999,
+            "exit": 68996.89,
+            "pnl": -3.1164,
+            "pnl_pct": -1.56,
+            "exit_reason": "TIMEOUT"
+          },
+          {
+            "entry": 69199.572495,
+            "exit": 68578.0,
+            "pnl": -1.7869,
+            "pnl_pct": -0.9,
             "exit_reason": "TIMEOUT"
           }
         ]
