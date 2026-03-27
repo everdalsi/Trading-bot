@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 785.9059680066795,
+    "cash": 72.63028593930531,
     "initial": 1000.0,
     "positions": {
       "MICRO_XRPUSDT_78": {
@@ -29,6 +29,60 @@
         "open_time": 1774600484.6543345,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_XRPUSDT_78"
+      },
+      "MICRO_BTCUSDT_79": {
+        "id": 79,
+        "symbol": "BTCUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 68052.16,
+        "price_out": null,
+        "qty": 0.008037813255782754,
+        "amount_usd": 546.9905537326489,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=23 mom=-0.11% vol=4.8x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 08:35:48",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 68052.16,
+        "open_time": 1774600548.0805116,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_BTCUSDT_79"
+      },
+      "MICRO_BNBUSDT_80": {
+        "id": 80,
+        "symbol": "BNBUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 624.1,
+        "price_out": null,
+        "qty": 0.26643987876097625,
+        "amount_usd": 166.28512833472527,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=13 mom=-0.31% vol=4.5x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 08:35:48",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 624.1,
+        "open_time": 1774600548.8501728,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_BNBUSDT_80"
       }
     },
     "trades": [
@@ -2066,6 +2120,58 @@
         "leverage": 1,
         "peak_price": 1.3518,
         "open_time": 1774600484.6543345,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 79,
+        "symbol": "BTCUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 68052.16,
+        "price_out": null,
+        "qty": 0.008037813255782754,
+        "amount_usd": 546.9905537326489,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=23 mom=-0.11% vol=4.8x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 08:35:48",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 68052.16,
+        "open_time": 1774600548.0805116,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 80,
+        "symbol": "BNBUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 624.1,
+        "price_out": null,
+        "qty": 0.26643987876097625,
+        "amount_usd": 166.28512833472527,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=13 mom=-0.31% vol=4.5x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 08:35:48",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 624.1,
+        "open_time": 1774600548.8501728,
         "kelly_pct": 0.48
       }
     ],
@@ -25178,6 +25284,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 08:35"
+      },
+      {
+        "trade_id": -2,
+        "pnl": -5.1664,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 08:35"
       }
     ],
     "patterns_to_avoid": [
@@ -25320,7 +25437,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -25480,6 +25596,7 @@
       "backtest_5m",
       "backtest_5m",
       "score=4",
+      "backtest_5m",
       "backtest_5m"
     ],
     "patterns_that_work": [
