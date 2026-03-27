@@ -4272,4 +4272,4 @@ if __name__ == "__main__":
 
     # Telegram (boucle principale — bloquant)
     asyncio.run(run_telegram())
-``` result =
+    result =
