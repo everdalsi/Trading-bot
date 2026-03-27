@@ -85,68 +85,53 @@ class SupervisorAgent(BaseAgent):
                         "recommendation": "Éviter ce symbole pour le moment",
                     }
 
-        # (le reste du code original reste IDENTIQUE – aucune ligne supprimée)
-        final_decision = "HOLD"
-        reason         = "Pas de consensus clair"
+        # === COLLECTIVE BRAIN : SYNTHÈSE DE LA DISCUSSION ENTRE AGENTS ===
+        # On regarde les réponses raffinées des agents après leur deuxième round
+        collective_consensus = "HOLD"
+        collective_reason = "Discussion collective en cours"
 
-        if "CRITICAL" in risk_summary or "STOP" in risk_reco:
-            final_decision = "NO TRADE"
-            reason = "Veto risque critique — capital à protéger"
+        # Compter les votes BUY / SELL / NO TRADE des agents
+        buy_votes = 0
+        sell_votes = 0
+        no_trade_votes = 0
+        total_confidence = 0
 
-        elif degraded:
-            final_decision = "NO TRADE"
-            reason = "Performance en dégradation détectée — pause prudente"
+        for resp in agent_outputs:
+            if isinstance(resp, dict):
+                dec = str(resp.get("decision", "HOLD")).upper()
+                conf = resp.get("confidence", 0.5)
+                total_confidence += conf
+                if dec == "BUY":
+                    buy_votes += 1
+                elif dec == "SELL":
+                    sell_votes += 1
+                elif dec == "NO TRADE":
+                    no_trade_votes += 1
 
-        elif streak_type == "loss" and streak_count >= 5:
-            final_decision = "NO TRADE"
-            reason = f"Série de {streak_count} pertes consécutives — pause obligatoire"
+        avg_confidence = total_confidence / max(len(agent_outputs), 1)
 
-        elif has_buy and not has_sell:
-            effective_score = (score + global_score) / 2
-            if (effective_score >= 0.45 and
-                    "CRITICAL" not in risk_reco and
-                    "STOP" not in risk_reco):
-                final_decision = "BUY"
-                reason = (
-                    f"Confluence haussière | score={effective_score:.2f} "
-                    f"| mémoire={lesson_count} leçons"
-                )
-            else:
-                final_decision = "HOLD"
-                reason = f"Signal BUY insuffisant ou risque trop élevé"
-
-        elif has_sell and not has_buy:
-            if score <= 0.40:
-                final_decision = "SELL"
-                reason = "Confluence baissière confirmée"
-            else:
-                final_decision = "HOLD"
-                reason = "Signal SELL faible — pas assez de confluence"
-
-        if final_decision == "HOLD" and auto_rules and score >= 0.58:
-            buy_rules = [r for r in auto_rules if "✅" in r]
-            if len(buy_rules) >= 2:
-                final_decision = "BUY"
-                reason = f"Règles automatiques validées ({len(buy_rules)} règles actives)"
-
-        insight_str = ""
-        if insights:
-            insight_str = " | Insight: " + insights[0][:60]
-
-        confidence_final = round(max(0.50, min(0.95, (score + global_score) / 2 * 0.9)), 2)
+        if buy_votes > sell_votes + no_trade_votes and avg_confidence > 0.65:
+            collective_consensus = "BUY"
+            collective_reason = f"Consensus haussier fort ({buy_votes} agents sur {len(agent_outputs)})"
+        elif sell_votes > buy_votes + no_trade_votes and avg_confidence > 0.65:
+            collective_consensus = "SELL"
+            collective_reason = f"Consensus baissier fort ({sell_votes} agents sur {len(agent_outputs)})"
+        elif no_trade_votes > buy_votes + sell_votes or avg_confidence < 0.55:
+            collective_consensus = "NO TRADE"
+            collective_reason = "Consensus prudent — trop d’incertitudes ou risques élevés"
 
         # === UPGRADE GROK-LIKE : RAISONNEMENT NATUREL PROFESSIONNEL ===
         natural_summary = (
-            f"Salut, j’ai tout analysé avec l’équipe. "
-            f"Après avoir croisé les leçons, les stats live, le risque et les signaux des autres agents sur {symbol}, "
-            f"je recommande {final_decision.lower() if final_decision != 'HOLD' else 'de rester en attente'}. "
-            f"{reason}. "
-            f"On a déjà {lesson_count} leçons en mémoire, donc la décision est basée sur une vraie expérience passée."
+            f"Salut, j’ai écouté toute l’équipe. "
+            f"Après que chaque agent ait analysé sa partie et qu’ils aient discuté ensemble, "
+            f"le consensus sur {symbol} est de {collective_consensus.lower() if collective_consensus != 'NO TRADE' else 'ne pas prendre de position pour l’instant'}. "
+            f"{collective_reason}. "
+            f"On a déjà {lesson_count} leçons en mémoire, donc la décision est solide et basée sur une vraie expérience collective."
         )
 
         return {
             "agent": self.name,
-            "decision": final_decision,
+            "decision": collective_consensus,
             "summary": natural_summary,
             "arguments": [
                 f"Symbol: {symbol}",
@@ -156,11 +141,11 @@ class SupervisorAgent(BaseAgent):
                 f"Règles auto actives: {len(auto_rules)}",
             ],
             "risks": (
-                [] if final_decision in ("BUY", "SELL") else
+                [] if collective_consensus in ("BUY", "SELL") else
                 ["Décision bloquée — voir raison ci-dessus"]
             ),
-            "confidence": confidence_final,
-            "recommendation": reason,
+            "confidence": round(avg_confidence, 2),
+            "recommendation": collective_reason,
             "full_summary": natural_summary,
-            "final_decision": final_decision,
+            "final_decision": collective_consensus,
         }
