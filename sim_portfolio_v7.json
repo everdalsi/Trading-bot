@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 92.3461844428578,
+    "cash": 787.0248825405467,
     "initial": 1000.0,
     "positions": {
       "MICRO_UNIUSDT_96": {
@@ -2544,17 +2544,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 3.497,
-        "price_out": null,
+        "price_out": 3.493,
         "qty": 198.87738279349813,
         "amount_usd": 695.4742076288629,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=18 mom=-0.23% vol=3.4x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 72s",
         "time_in": "2026-03-27 08:52:25",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 08:53:38",
+        "pnl": -0.79551,
+        "pnl_pct": -0.114,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -27668,6 +27668,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 08:52"
+      },
+      {
+        "trade_id": 96,
+        "pnl": -0.79551,
+        "symbol": "UNIUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 08:53"
       }
     ],
     "patterns_to_avoid": [
@@ -27681,7 +27692,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -27970,7 +27980,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -28301,7 +28312,7 @@
       "SUIUSDT": -14,
       "PEPEUSDT": -15,
       "ONDOUSDT": 4,
-      "UNIUSDT": -11,
+      "UNIUSDT": -14,
       "APTUSDT": -8,
       "SEIUSDT": -12,
       "AVAXUSDT": -12,
