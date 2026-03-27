@@ -5150,6 +5150,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 11:19"
+      },
+      {
+        "trade_id": -2,
+        "pnl": -0.7287,
+        "symbol": "BTCUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 11:19"
       }
     ],
     "patterns_to_avoid": [
@@ -5425,7 +5436,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "memecoin"
+      "memecoin",
+      "backtest_5m"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -5527,7 +5539,7 @@
     "total_losses": 112,
     "symbol_scores": {
       "Deadwhale": -15,
-      "BTCUSDT": -13,
+      "BTCUSDT": -15,
       "ETHUSDT": -15,
       "SOLUSDT": -15,
       "APTUSDT": -5,
