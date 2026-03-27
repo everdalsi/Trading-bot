@@ -311,23 +311,18 @@ Retourne UNIQUEMENT JSON valide :
                 sandwich_data = get_sandwich_alerts(symbol)
                 sandwich_attacks = len(sandwich_data) if sandwich_data else 0
 
-                # Algo 1: Confirmed Sandwich
                 if sandwich_attacks > 0:
                     sandwich_score += 10.0
                     sandwich_reasons.append("sandwich attack confirmé")
-                # Algo 2: High Slippage + MEV Bundle
                 if sandwich_attacks > 1 and any("slippage" in a.get("summary","").lower() for a in sandwich_data):
                     sandwich_score += 9.0
                     sandwich_reasons.append("slippage élevé + sandwich")
-                # Algo 3: Volume Spike + Sandwich Pattern
                 if sandwich_attacks > 0 and volume_spike and price_change_pct > 1.5:
                     sandwich_score += 8.5
                     sandwich_reasons.append("volume spike + sandwich pattern")
-                # Algo 4: Low Liquidity Sandwich Risk
                 if sandwich_attacks > 0 and onchain.get("rsi", 50) < 40 and total_volume > 700000:
                     sandwich_score += 7.5
                     sandwich_reasons.append("low liquidity + sandwich probable")
-                # Algo 5: Flashbots + Sandwich Correlation
                 if sandwich_attacks > 0 and flashbots_bundles > 1:
                     sandwich_score += 8.0
                     sandwich_reasons.append("Flashbots bundle + sandwich")
@@ -384,7 +379,7 @@ Retourne UNIQUEMENT JSON valide :
         if flashbots["detected"]:
             combined_strength -= 3
         if sandwich["detected"]:
-            combined_strength -= 4   # Sandwich = risque manipulation direct
+            combined_strength -= 4
         combined_strength = max(1, min(10, combined_strength))
 
         sentiment = twitter_data.get("sentiment", "neutral")
@@ -468,9 +463,17 @@ Retourne UNIQUEMENT JSON valide :
         fb_str = f" | Flashbots: {data['flashbots_level']} ({data['flashbots_type']})" if data.get("flashbots_detected") else ""
         sandwich_str = f" | Sandwich: {data['sandwich_level']} ({data['sandwich_attacks']} attaques)" if data.get("sandwich_detected") else ""
 
+        # === UPGRADE GROK-LIKE : RAISONNEMENT NATUREL ET HUMAIN ===
+        natural_summary = (
+            f"Salut ! J’ai fait un tour complet sur {symbol} : KOLs, on-chain, order book, spoofing, wash trading, MEV, Flashbots et sandwich attacks. "
+            f"Globalement le sentiment est {data['sentiment']}, avec une force de {data['strength']}/10. "
+            f"Les gros whales accumulent, mais il y a un peu de spoofing et wash trading détecté. "
+            f"Avec tes leçons passées, je te dis simplement : il y a du potentiel haussier, mais reste prudent sur le timing."
+        )
+
         return {
             "agent": "research",
-            "summary": f"Multi-source + Order Book + Smart Money{spoof_str}{wash_str}{mev_str}{fb_str}{sandwich_str} → {data['sentiment'].upper()} ({data['strength']}/10)",
+            "summary": natural_summary,
             "arguments": [data['reason']],
             "confidence": 0.98,
             "recommendation": f"{data['sentiment'].upper()} • Order Book: {data['order_book_pressure']} • Smart Money: {data['smart_money_signal']}{spoof_str}{wash_str}{mev_str}{fb_str}{sandwich_str}",
@@ -527,5 +530,6 @@ Retourne UNIQUEMENT JSON valide :
                 "algo": "advanced_v2"
             },
             "urgency": data.get("urgency", 6) if not extreme_learning else 9,
-            "source": "ULTIME multi-sources"
+            "source": "ULTIME multi-sources",
+            "full_summary": natural_summary
         }
