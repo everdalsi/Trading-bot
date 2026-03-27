@@ -4,7 +4,6 @@
 
 # === IA & Agents (installés en premier pour meilleur caching) ===
 chromadb
-sentence-transformers
 pypdf
 crewai>=1.11.0
 crewai-tools
