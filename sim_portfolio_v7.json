@@ -3,33 +3,6 @@
     "cash": 1627.3154767377137,
     "initial": 1000.0,
     "positions": {
-      "MICRO_ONDOUSDT_85": {
-        "id": 85,
-        "symbol": "ONDOUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.2624,
-        "price_out": null,
-        "qty": 2387.9538513045823,
-        "amount_usd": 626.5990905823224,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=9 mom=-0.08% vol=3.9x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 12:31:26",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.2627,
-        "open_time": 1774614686.8165777,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_ONDOUSDT_85"
-      },
       "MICRO_TAOUSDT_86": {
         "id": 86,
         "symbol": "TAOUSDT",
