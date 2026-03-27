@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 933.7382454591461,
+    "cash": 979.5494886725617,
     "initial": 1000.0,
     "positions": {
       "MICRO_SUIUSDT_84": {
@@ -2232,17 +2232,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.9167,
-        "price_out": null,
+        "price_out": 0.9142,
         "qty": 50.1107451470308,
         "amount_usd": 45.93652007628313,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=16 mom=-0.59% vol=3.0x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 61s",
         "time_in": "2026-03-27 08:36:22",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 08:37:26",
+        "pnl": -0.125277,
+        "pnl_pct": -0.273,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -25651,6 +25651,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 08:37"
+      },
+      {
+        "trade_id": 84,
+        "pnl": -0.125277,
+        "symbol": "SUIUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 08:37"
       }
     ],
     "patterns_to_avoid": [
@@ -25775,7 +25786,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -25953,6 +25963,7 @@
       "score=4",
       "backtest_5m",
       "backtest_5m",
+      "score=4",
       "score=4"
     ],
     "patterns_that_work": [
@@ -26259,7 +26270,7 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 217,
-    "total_losses": 436,
+    "total_losses": 437,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
@@ -26281,7 +26292,7 @@
       "MEMEUSDT": 4,
       "FETUSDT": -2,
       "LEGACY": 9,
-      "SUIUSDT": -2,
+      "SUIUSDT": -5,
       "PEPEUSDT": -8,
       "ONDOUSDT": 4,
       "UNIUSDT": -15,
@@ -26322,7 +26333,7 @@
       "AVAXUSDT": 2,
       "SOLUSDT": 0,
       "XRPUSDT": 2,
-      "WIFUSDT": 3,
+      "WIFUSDT": 4,
       "LINKUSDT": 0,
       "INJUSDT": 1,
       "IMXUSDT": 2,
