@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 83.20083556789646,
+    "cash": 96.06548771511815,
     "initial": 1000.0,
     "positions": {
       "MEME_NEKO_84": {
@@ -2306,17 +2306,17 @@
         "trade_type": "MEME",
         "meme_symbol": "NEKO",
         "price_in": 0.0006551,
-        "price_out": null,
+        "price_out": 0.0006062,
         "qty": 21221.795030058875,
         "amount_usd": 13.90239792419157,
         "confidence": 95,
         "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
+        "exit_reason": "\ud83d\uded1 MEME SL (-7.5%)",
         "time_in": "2026-03-27 12:28:53",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 12:31:58",
+        "pnl": -1.037746,
+        "pnl_pct": -7.46,
+        "duration_min": 3,
         "patterns": [
           "memecoin"
         ],
@@ -11297,13 +11297,33 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 12:31"
+      },
+      {
+        "trade_id": -5,
+        "pnl": -6.2028,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 12:31"
+      },
+      {
+        "trade_id": 84,
+        "pnl": -1.037746,
+        "symbol": "NEKO",
+        "market": "MEME",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "memecoin",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 12:31"
       }
     ],
     "patterns_to_avoid": [
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "memecoin",
@@ -11599,7 +11619,9 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "backtest_5m",
+      "memecoin"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -11796,9 +11818,9 @@
       "Deadwhale": -15,
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -13,
+      "SOLUSDT": -15,
       "APTUSDT": -5,
-      "NEKO": -7,
+      "NEKO": -10,
       "ARBUSDT": -12,
       "TONUSDT": -15,
       "TRXUSDT": -2,
