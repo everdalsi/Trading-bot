@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 978.8968627381323,
+    "cash": 929.9520196012257,
     "initial": 1000.0,
     "positions": {
       "MEME_NEKO_3": {
@@ -30,6 +30,34 @@
         "open_time": 1774608559.0249715,
         "kelly_pct": 0.05,
         "pos_key": "MEME_NEKO_3"
+      },
+      "MEME_Deadwhale_10": {
+        "id": 10,
+        "symbol": "Deadwhale",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "Deadwhale",
+        "price_in": 0.0008555,
+        "price_out": null,
+        "qty": 57211.973275168464,
+        "amount_usd": 48.94484313690662,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-27 10:53:04",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0008555,
+        "open_time": 1774608784.8084571,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_Deadwhale_10"
       }
     },
     "trades": [
@@ -273,6 +301,33 @@
         "leverage": 1,
         "peak_price": 0.0008555,
         "open_time": 1774608734.8203576,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 10,
+        "symbol": "Deadwhale",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "Deadwhale",
+        "price_in": 0.0008555,
+        "price_out": null,
+        "qty": 57211.973275168464,
+        "amount_usd": 48.94484313690662,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-27 10:53:04",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0008555,
+        "open_time": 1774608784.8084571,
         "kelly_pct": 0.05
       }
     ],
@@ -1088,6 +1143,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 10:53"
+      },
+      {
+        "trade_id": -2,
+        "pnl": 5.0532,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 10:53"
       }
     ],
     "patterns_to_avoid": [
@@ -1165,6 +1231,7 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "backtest_5m",
       "backtest_5m"
     ],
     "confidence_threshold": 82,
@@ -1174,7 +1241,7 @@
       "Deadwhale": -15,
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -7,
+      "SOLUSDT": -5,
       "APTUSDT": -3
     },
     "symbol_blacklist": {},
