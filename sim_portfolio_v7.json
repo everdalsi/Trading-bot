@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 787.9768451320202,
+    "cash": 239.54496092013426,
     "initial": 1000.0,
     "positions": {
       "MICRO_WIFUSDT_54": {
@@ -29,6 +29,33 @@
         "open_time": 1774599324.69813,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_WIFUSDT_54"
+      },
+      "MICRO_LINKUSDT_55": {
+        "id": 55,
+        "symbol": "LINKUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 8.9,
+        "price_out": null,
+        "qty": 61.62156002380741,
+        "amount_usd": 548.431884211886,
+        "confidence": 88,
+        "reason": "EMA\u2191 RSI7=52 mom=+0.00% vol=4.6x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 08:16:21",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 8.9,
+        "open_time": 1774599381.7620943,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_LINKUSDT_55"
       }
     },
     "trades": [
@@ -1442,6 +1469,32 @@
         "leverage": 1,
         "peak_price": 0.182,
         "open_time": 1774599324.69813,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 55,
+        "symbol": "LINKUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 8.9,
+        "price_out": null,
+        "qty": 61.62156002380741,
+        "amount_usd": 548.431884211886,
+        "confidence": 88,
+        "reason": "EMA\u2191 RSI7=52 mom=+0.00% vol=4.6x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 08:16:21",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 8.9,
+        "open_time": 1774599381.7620943,
         "kelly_pct": 0.48
       }
     ],
@@ -22332,6 +22385,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 08:16"
+      },
+      {
+        "trade_id": -3,
+        "pnl": -1.7869,
+        "symbol": "BTCUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 08:16"
       }
     ],
     "patterns_to_avoid": [
@@ -22370,7 +22434,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "score=4",
       "backtest_5m",
@@ -22633,6 +22696,7 @@
       "backtest_5m",
       "backtest_5m",
       "score=4",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m"
     ],
@@ -22938,7 +23002,7 @@
       "backtest_5m",
       "backtest_5m"
     ],
-    "confidence_threshold": 17,
+    "confidence_threshold": 20,
     "total_wins": 193,
     "total_losses": 378,
     "symbol_scores": {
