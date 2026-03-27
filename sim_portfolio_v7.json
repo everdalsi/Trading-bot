@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 92.10804488437134,
+    "cash": 787.7798314771926,
     "initial": 1000.0,
     "positions": {
       "MICRO_UNIUSDT_94": {
@@ -25,7 +25,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 3.486,
+        "peak_price": 3.494,
         "open_time": 1774601422.610424,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_UNIUSDT_94"
@@ -2492,17 +2492,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 3.484,
-        "price_out": null,
+        "price_out": 3.494,
         "qty": 199.10468992353213,
         "amount_usd": 693.6807396935859,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=18 mom=-0.23% vol=4.0x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 69s",
         "time_in": "2026-03-27 08:50:22",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 08:51:32",
+        "pnl": 1.991047,
+        "pnl_pct": 0.287,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -27418,6 +27418,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 08:51"
+      },
+      {
+        "trade_id": 94,
+        "pnl": 1.991047,
+        "symbol": "UNIUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 08:51"
       }
     ],
     "patterns_to_avoid": [
@@ -27747,7 +27758,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -28022,7 +28032,8 @@
       "score=4",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
     "confidence_threshold": 82,
     "total_wins": 231,
@@ -28051,7 +28062,7 @@
       "SUIUSDT": -14,
       "PEPEUSDT": -15,
       "ONDOUSDT": 4,
-      "UNIUSDT": -15,
+      "UNIUSDT": -13,
       "APTUSDT": -8,
       "SEIUSDT": -12,
       "AVAXUSDT": -12,
