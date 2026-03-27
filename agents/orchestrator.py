@@ -17,7 +17,7 @@ from agents.learning_agent import LearningAgent
 from agents.performance_tracker import PerformanceTracker
 from agents.research_agent import ResearchAgent
 from agents.knowledge_specialist_agent import KnowledgeSpecialistAgent
-from agents.self_improvement import SelfImprovementEngineer
+from agents.self_improvement import ImmuneSystemAgent as SelfImprovementEngineer
 from agents.wallet_copier_agent import WalletCopierAgent
 from agents.social_listener_agent import SocialListenerAgent   # ← UPGRADE AJOUTÉE
 
