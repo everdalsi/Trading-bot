@@ -32,7 +32,6 @@ def get_total_lessons():
         pass
     return len(memory.get("lessons", []))
 
-
 def load_json(path, default=None):
     try:
         with open(path, "r") as f:
@@ -112,7 +111,7 @@ USER_WALLET    = os.environ.get("USER_WALLET", "")
 
 AGENT_CHAT_SESSIONS = set()
 AGENT_CHAT_MEMORY = defaultdict(list)
-LIVE_MODE = False                    # ← CHANGE EN True QUAND TU VEUX PASSER EN VRAI ARGENT         # Nombre de trades simulés avant autorisation live
+LIVE_MODE = False                    # ← CHANGE EN True QUAND TU VEUX PASSER EN VRAI ARGENT
 LIVE_MAX_PCT_PER_TRADE = 0.08        # ← très conservateur en live (8 % max)
 
 
@@ -2715,7 +2714,7 @@ def trading_loop(send_fn):
                 daily_pnl   = equity - daily_start
                 daily_pct   = daily_pnl/daily_start*100 if daily_start>0 else 0
                 bl_count    = len(memory.get("symbol_blacklist",{}))
-                macro_e     = "🐂" if macro=="BULL" else "🐻" if macro=="BEAR" else "➡️"
+                macro_e     = "🐂" if macro == "BULL" else "🐻" if macro == "BEAR" else "➡️"
 
                 if not in_secretary_mode:
                     # BILAN v7 → seulement si on n’est PAS en mode secrétaire
