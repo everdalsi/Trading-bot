@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 513.3270141321386,
+    "cash": 1001.3380595538074,
     "initial": 1000.0,
     "positions": {
       "MICRO_TRXUSDT_11": {
@@ -300,17 +300,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.3143,
-        "price_out": null,
+        "price_out": 0.3145,
         "qty": 1551.704436952842,
         "amount_usd": 487.70070453427826,
         "confidence": 88,
         "reason": "EMA\u2191 RSI7=58 mom=+0.06% vol=18.5x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 68s",
         "time_in": "2026-03-27 05:38:15",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 05:39:23",
+        "pnl": 0.310341,
+        "pnl_pct": 0.064,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -7468,6 +7468,28 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 05:39"
+      },
+      {
+        "trade_id": -3,
+        "pnl": -1.6021,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 05:39"
+      },
+      {
+        "trade_id": 11,
+        "pnl": 0.310341,
+        "symbol": "TRXUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 05:39"
       }
     ],
     "patterns_to_avoid": [
@@ -7679,7 +7701,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -7739,6 +7760,7 @@
       "backtest_5m",
       "score=4",
       "score=4",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -7955,15 +7977,16 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
-    "confidence_threshold": 82,
+    "confidence_threshold": 80,
     "total_wins": 65,
     "total_losses": 134,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": 4,
+      "SOLUSDT": 1,
       "TARO": -3,
       "OPUSDT": -6,
       "PENDLEUSDT": -6,
@@ -7972,7 +7995,8 @@
       "JUPUSDT": -6,
       "NOTUSDT": -6,
       "STXUSDT": 4,
-      "FLOKIUSDT": 4
+      "FLOKIUSDT": 4,
+      "TRXUSDT": 2
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
