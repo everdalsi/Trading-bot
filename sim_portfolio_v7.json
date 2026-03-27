@@ -1,8 +1,37 @@
 {
   "sim": {
-    "cash": 1008.0539193475306,
+    "cash": 1016.8578338447774,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MEME_LEGACY_27": {
+        "id": 27,
+        "symbol": "LEGACY",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "LEGACY",
+        "price_in": 0.0008828,
+        "price_out": null,
+        "qty": 57094.12773830599,
+        "amount_usd": 50.40269596737653,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-27 06:37:52",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.001037,
+        "open_time": 1774593472.8533387,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_LEGACY_27"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -681,6 +710,33 @@
         "leverage": 1,
         "peak_price": 0.0008828,
         "open_time": 1774593425.093942,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 27,
+        "symbol": "LEGACY",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "LEGACY",
+        "price_in": 0.0008828,
+        "price_out": 0.001037,
+        "qty": 57094.12773830599,
+        "amount_usd": 50.40269596737653,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": "\ud83c\udfaf MEME TP (+17.5%)",
+        "time_in": "2026-03-27 06:37:52",
+        "time_out": "2026-03-27 06:37:53",
+        "pnl": 8.803914,
+        "pnl_pct": 17.47,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0008828,
+        "open_time": 1774593472.8533387,
         "kelly_pct": 0.05
       }
     ],
@@ -12177,6 +12233,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 06:37"
+      },
+      {
+        "trade_id": 27,
+        "pnl": 8.803914,
+        "symbol": "LEGACY",
+        "market": "MEME",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "memecoin",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 06:37"
       }
     ],
     "patterns_to_avoid": [
@@ -12772,7 +12839,8 @@
       "memecoin",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "memecoin"
     ],
     "confidence_threshold": 8,
     "total_wins": 105,
@@ -12797,7 +12865,7 @@
       "LTCUSDT": -6,
       "MEMEUSDT": 4,
       "FETUSDT": 4,
-      "LEGACY": -1,
+      "LEGACY": 1,
       "SUIUSDT": -6,
       "PEPEUSDT": 4
     },
