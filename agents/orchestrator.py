@@ -3,7 +3,7 @@
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Corrections vs V2 :
 [BUG FIX] Injection des stats LearningAgent dans le contexte avant ask_all
-[BUG FIX] Injection des stats PerformanceTracker dans le contexte
+[BUG FIX] Injection desstats PerformanceTracker dans le contexte
 [BUG FIX] Supervisor reçoit toujours trader_decision et risk dans son contexte
 [AMÉLIORATION] Contexte enrichi transmis à tous les agents
 [AMÉLIORATION] Décision finale plus robuste (score composite)
