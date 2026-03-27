@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 526.4383317564764,
+    "cash": 523.3725511222873,
     "initial": 1000.0,
     "positions": {
       "MICRO_FETUSDT_74": {
@@ -2027,6 +2027,33 @@
         "leverage": 1,
         "peak_price": 0.001202,
         "open_time": 1774612412.6980615,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 76,
+        "symbol": "Deadwhale",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "Deadwhale",
+        "price_in": 0.001202,
+        "price_out": 0.001062,
+        "qty": 21898.433101350933,
+        "amount_usd": 26.32191658782382,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": "\ud83d\uded1 MEME SL (-11.6%)",
+        "time_in": "2026-03-27 11:54:24",
+        "time_out": "2026-03-27 11:54:24",
+        "pnl": -3.065781,
+        "pnl_pct": -11.65,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.001202,
+        "open_time": 1774612464.062248,
         "kelly_pct": 0.05
       }
     ],
@@ -9849,6 +9876,28 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 11:54"
+      },
+      {
+        "trade_id": 76,
+        "pnl": -3.065781,
+        "symbol": "Deadwhale",
+        "market": "MEME",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "memecoin",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 11:54"
+      },
+      {
+        "trade_id": -1,
+        "pnl": 5.0381,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 11:54"
       }
     ],
     "patterns_to_avoid": [
@@ -9861,7 +9910,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -10151,7 +10199,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "memecoin"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -10322,6 +10371,7 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "backtest_5m",
       "backtest_5m"
     ],
     "confidence_threshold": 82,
@@ -10331,7 +10381,7 @@
       "Deadwhale": -15,
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -15,
+      "SOLUSDT": -13,
       "APTUSDT": -5,
       "NEKO": -1,
       "ARBUSDT": -12,
