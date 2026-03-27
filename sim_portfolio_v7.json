@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 897.4245488845954,
+    "cash": 1045.7108789503413,
     "initial": 1000.0,
     "positions": {
       "MICRO_TONUSDT_27": {
@@ -53,7 +53,7 @@
           "memecoin"
         ],
         "leverage": 1,
-        "peak_price": 0.0005826,
+        "peak_price": 0.0005968,
         "open_time": 1774609006.205308,
         "kelly_pct": 0.05,
         "pos_key": "MEME_NEKO_28"
@@ -753,17 +753,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 1.233,
-        "price_out": null,
+        "price_out": 1.231,
         "qty": 120.46005691774657,
         "amount_usd": 148.52725017958153,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=23 mom=-0.24% vol=3.9x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 67s",
         "time_in": "2026-03-27 10:56:41",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 10:57:48",
+        "pnl": -0.24092,
+        "pnl_pct": -0.162,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -2382,6 +2382,28 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 10:57"
+      },
+      {
+        "trade_id": -6,
+        "pnl": -6.2214,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 10:57"
+      },
+      {
+        "trade_id": 27,
+        "pnl": -0.24092,
+        "symbol": "TONUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 10:57"
       }
     ],
     "patterns_to_avoid": [
@@ -2492,7 +2514,9 @@
       "score=4",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "backtest_5m",
+      "score=4"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -2538,11 +2562,11 @@
       "Deadwhale": -15,
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -13,
+      "SOLUSDT": -15,
       "APTUSDT": -5,
       "NEKO": 2,
       "ARBUSDT": -12,
-      "TONUSDT": -12,
+      "TONUSDT": -15,
       "TRXUSDT": -2,
       "ONDOUSDT": -6,
       "AVAXUSDT": -2,
