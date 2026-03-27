@@ -2,36 +2,7 @@
   "sim": {
     "cash": 914.631442381024,
     "initial": 1000.0,
-    "positions": {
-      "MEME_NEKO_82": {
-        "id": 82,
-        "symbol": "NEKO",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "NEKO",
-        "price_in": 0.0006535,
-        "price_out": null,
-        "qty": 73166.71072152442,
-        "amount_usd": 47.814445456516204,
-        "confidence": 95,
-        "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-27 12:28:05",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0006535,
-        "open_time": 1774614485.413886,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_NEKO_82"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
@@ -11206,7 +11177,7 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 14,
-    "total_losses": 241,
+    "total_losses": 242,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -15,
