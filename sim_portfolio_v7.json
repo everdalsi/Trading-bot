@@ -3,33 +3,6 @@
     "cash": 1592.003571968584,
     "initial": 1000.0,
     "positions": {
-      "MICRO_PYTHUSDT_102": {
-        "id": 102,
-        "symbol": "PYTHUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.0372,
-        "price_out": null,
-        "qty": 3019.1623865148076,
-        "amount_usd": 112.31284077835083,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=27 mom=-0.27% vol=5.1x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 14:26:23",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0372,
-        "open_time": 1774621583.7400908,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_PYTHUSDT_102"
-      },
       "MICRO_BTCUSDT_103": {
         "id": 103,
         "symbol": "BTCUSDT",
