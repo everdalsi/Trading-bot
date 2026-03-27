@@ -43,9 +43,17 @@ class AnalystAgent(BaseAgent):
                 else:
                     trend = "Performance à améliorer"
 
+            # === UPGRADE GROK-LIKE : RAISONNEMENT NATUREL ===
+            natural_summary = (
+                f"Salut ! J’ai regardé les stats live du portefeuille. "
+                f"Sur {total} trades, le winrate est de {wr_live:.1f}%. "
+                f"C’est {trend.lower()}. "
+                f"Avec les leçons accumulées, on voit une bonne tendance globale."
+            )
+
             return {
                 "agent": self.name,
-                "summary": f"WR live: {wr_live:.1f}% ({total} trades) | {trend}",
+                "summary": natural_summary,
                 "arguments": [
                     f"{total} trades analysés (source live)",
                     f"{wins_live or 0} gagnants | {losses_live or 0} perdants",
@@ -63,6 +71,7 @@ class AnalystAgent(BaseAgent):
                     if wr_live >= 45 else
                     "Passer en mode apprentissage pur — réduire l'exposition."
                 ),
+                "full_summary": natural_summary
             }
 
         # === PRIORITÉ 2 : Stats depuis LearningAgent DB (mémoire infinie) ===
@@ -80,9 +89,17 @@ class AnalystAgent(BaseAgent):
                 "Apprentissage en cours" if wr >= 45 else
                 "Stratégie à revoir"
             )
+
+            natural_summary = (
+                f"Salut ! J’ai analysé les {lesson_count} leçons en mémoire. "
+                f"Le winrate global est de {wr}%. "
+                f"C’est {trend.lower()}. "
+                f"Les meilleurs patterns sont solides, on peut s’appuyer dessus."
+            )
+
             return {
                 "agent": self.name,
-                "summary": f"WR global: {wr}% | {lesson_count} leçons en mémoire ∞ | {trend}",
+                "summary": natural_summary,
                 "arguments": [
                     f"{lesson_count} leçons enregistrées (sans limite)",
                     f"Score global: {global_score:.1%} | Score symbole: {symbol_score:.1%}" if symbol_score else f"Score global: {global_score:.1%}",
@@ -99,6 +116,7 @@ class AnalystAgent(BaseAgent):
                     "Continuer à accumuler des données (objectif : 50+ trades)." if lesson_count < 50 else
                     "Réviser les patterns — trop de pertes récentes."
                 ),
+                "full_summary": natural_summary
             }
 
         # === PRIORITÉ 3 : Fallback sur le JSON sim ===
@@ -112,9 +130,15 @@ class AnalystAgent(BaseAgent):
         total = len(trades)
         wr    = round(len(wins) / total * 100, 1) if total > 0 else 0.0
 
+        natural_summary = (
+            f"Salut ! J’ai regardé les données du portefeuille de simulation. "
+            f"Sur {total} trades, le winrate est estimé à {wr:.1f}%. "
+            f"On est encore en phase d’apprentissage, mais les bases sont là."
+        )
+
         return {
             "agent": self.name,
-            "summary": f"WR estimé: {wr:.1f}% ({total} trades — fallback JSON)",
+            "summary": natural_summary,
             "arguments": [
                 f"{total} trades analysés (JSON portfolio)",
                 f"{len(wins)} gagnants",
@@ -128,4 +152,5 @@ class AnalystAgent(BaseAgent):
                 if total < 30 else
                 "Performance correcte. Continuer l'accumulation de données."
             ),
+            "full_summary": natural_summary
         }
