@@ -3,33 +3,6 @@
     "cash": 807.0078262368079,
     "initial": 1000.0,
     "positions": {
-      "MICRO_TURBOUSDT_13": {
-        "id": 13,
-        "symbol": "TURBOUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.001036,
-        "price_out": null,
-        "qty": 241477.27380383646,
-        "amount_usd": 250.1704556607746,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=10 mom=+0.00% vol=21.4x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 05:41:14",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.001037,
-        "open_time": 1774590074.1662068,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_TURBOUSDT_13"
-      },
       "MICRO_JUPUSDT_14": {
         "id": 14,
         "symbol": "JUPUSDT",
