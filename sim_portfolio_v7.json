@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 302.2884536813971,
+    "cash": 993.5614070474422,
     "initial": 1000.0,
     "positions": {
       "MICRO_PIXELUSDT_38": {
@@ -1016,17 +1016,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.00856,
-        "price_out": null,
+        "price_out": 0.00855,
         "qty": 80850.63782059007,
         "amount_usd": 692.081459744251,
         "confidence": 88,
         "reason": "EMA\u2191 RSI7=55 mom=+0.82% vol=0.5x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 62s",
         "time_in": "2026-03-27 11:15:32",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 11:16:34",
+        "pnl": -0.808506,
+        "pnl_pct": -0.117,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -4719,6 +4719,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 11:16"
+      },
+      {
+        "trade_id": 38,
+        "pnl": -0.808506,
+        "symbol": "PIXELUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 11:16"
       }
     ],
     "patterns_to_avoid": [
@@ -4972,7 +4983,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -5081,7 +5093,7 @@
       "WIFUSDT": -6,
       "JUPUSDT": 4,
       "PIXEL": -3,
-      "PIXELUSDT": -2
+      "PIXELUSDT": -5
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
