@@ -1,8 +1,36 @@
 {
   "sim": {
-    "cash": 990.3094334839807,
+    "cash": 301.05406777913015,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MICRO_OPUSDT_90": {
+        "id": 90,
+        "symbol": "OPUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.1085,
+        "price_out": null,
+        "qty": 6352.584015712908,
+        "amount_usd": 689.2553657048505,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=16 mom=-0.55% vol=2.6x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 08:39:28",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.1085,
+        "open_time": 1774600768.9243097,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_OPUSDT_90"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -2324,6 +2352,32 @@
         "leverage": 1,
         "peak_price": 8.78,
         "open_time": 1774600699.354825,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 90,
+        "symbol": "OPUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.1085,
+        "price_out": null,
+        "qty": 6352.584015712908,
+        "amount_usd": 689.2553657048505,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=16 mom=-0.55% vol=2.6x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 08:39:28",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.1085,
+        "open_time": 1774600768.9243097,
         "kelly_pct": 0.48
       }
     ],
@@ -26560,7 +26614,7 @@
       "score=4"
     ],
     "confidence_threshold": 82,
-    "total_wins": 219,
+    "total_wins": 220,
     "total_losses": 446,
     "symbol_scores": {
       "BTCUSDT": -15,
