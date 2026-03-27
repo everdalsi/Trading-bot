@@ -1,46 +1,36 @@
-# ================================================
-# REQUIREMENTS. TXT — Trading Bot v7.1
-# ================================================
+# --- Dépendances critiques ---
+sgmllib3k
+feedparser>=6.0.10
+pydantic>=2.4.1
 
-# === IA & Agents ===
-chromadb
-pypdf
-sentence-transformers     # ← OBLIGATOIRE pour KnowledgeBase
+# --- Intelligence & Agents ---
 crewai>=1.11.0
 crewai-tools
-groq
 langchain-groq
 litellm
+openai
+groq
 
-# === Core Trading & Data ===
+# --- Base de données ---
+chromadb
+pypdf
+pdfminer.six
+
+# --- Trading & Data ---
 ccxt
 pandas
 numpy
 requests
 httpx
-feedparser
-
-# === WebSocket & Temps réel ===
 websocket-client
 
-# === Telegram Bot ===
-python-telegram-bot==21.10
-
-# === Dashboard & Web ===
+# --- Réseau & Bot ---
+python-telegram-bot>=21.0
 flask
 prometheus-client
 
-# === Visualisation ===
-matplotlib>=3.8.0
-
-# === Utilitaires & Persistance ===
+# --- Utilitaires ---
 python-dotenv
 gitpython
-# pybit → commenté car il n'existe plus
-# pybit
 praw
-
-# ================================================
-# Installation rapide :
-# pip install -r requirements.txt
-# ================================================
+matplotlib
