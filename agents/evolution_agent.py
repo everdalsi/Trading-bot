@@ -16,10 +16,10 @@ except ImportError:
     except ImportError:
         class EditBotFileTool:
             def _run(self, new_code="", filename="bot.py"):
-                return f"⚠️ EditBotFileTool non disponible"
+                return f"Warning: EditBotFileTool non disponible"
         class GitPushTool:
             def _run(self, commit_message=""):
-                return f"⚠️ GitPushTool non disponible"
+                return f"Warning: GitPushTool non disponible"
 
 class EvolutionAgent(BaseAgent):
 
@@ -52,14 +52,14 @@ class EvolutionAgent(BaseAgent):
                 filename="evolution_marker.txt"
             )
         except Exception as e:
-            edit_result = f"⚠️ Edit skipped: {e}"
+            edit_result = f"Warning: Edit skipped: {e}"
 
         try:
             push_result = self.push_tool._run(
-                commit_message=f"🧬 EvolutionAgent — MAX TRADES cycle | Leçons={lesson_count}"
+                commit_message=f"EvolutionAgent — MAX TRADES cycle | Leçons={lesson_count}"
             )
         except Exception as e:
-            push_result = f"⚠️ Push skipped: {e}"
+            push_result = f"Warning: Push skipped: {e}"
 
         return {
             "agent": "evolution",
