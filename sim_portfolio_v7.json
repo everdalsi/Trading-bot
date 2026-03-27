@@ -3,33 +3,6 @@
     "cash": 701.8748339685366,
     "initial": 1000.0,
     "positions": {
-      "MICRO_OPUSDT_66": {
-        "id": 66,
-        "symbol": "OPUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.1097,
-        "price_out": null,
-        "qty": 6320.56913205042,
-        "amount_usd": 693.3664337859311,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=21 mom=-0.18% vol=4.7x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 08:26:21",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.1097,
-        "open_time": 1774599981.8636494,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_OPUSDT_66"
-      },
       "MICRO_IMXUSDT_67": {
         "id": 67,
         "symbol": "IMXUSDT",
@@ -24090,6 +24063,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 08:27"
+      },
+      {
+        "trade_id": -2,
+        "pnl": 5.0532,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 08:27"
       }
     ],
     "patterns_to_avoid": [
@@ -24402,7 +24386,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -24688,6 +24671,7 @@
       "backtest_5m",
       "backtest_5m",
       "score=4",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -24702,7 +24686,7 @@
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -2,
+      "SOLUSDT": 0,
       "TARO": -3,
       "OPUSDT": -9,
       "PENDLEUSDT": -12,
