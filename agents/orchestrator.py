@@ -19,6 +19,7 @@ from agents.research_agent import ResearchAgent
 from agents.knowledge_specialist_agent import KnowledgeSpecialistAgent
 from agents.self_improvement import SelfImprovementEngineer
 from agents.wallet_copier_agent import WalletCopierAgent
+from agents.social_listener_agent import SocialListenerAgent   # ← UPGRADE AJOUTÉE
 
 class Orchestrator:
 
@@ -34,12 +35,17 @@ class Orchestrator:
         self.knowledge_specialist = KnowledgeSpecialistAgent()
         self.self_improvement = SelfImprovementEngineer(orchestrator=self)
         self.wallet_copier = WalletCopierAgent()
+        self.social_listener = SocialListenerAgent()   # ← UPGRADE AJOUTÉE
         self.debate_rounds = 0
 
     async def ask_all(
         self, question: str, context: dict
     ) -> Tuple[List[Dict], Dict]:
         print(f"[ORCHESTRATOR] ask_all → {question[:80]}...")
+
+        # === UPGRADE : Vérification ImmuneSystem avant toute décision ===
+        immune_status = await self.self_improvement.respond("monitor health", context)
+        context["immune_health"] = immune_status.get("score", 100)
 
         restart_reason = self._check_for_crash_flag()
         if restart_reason:
@@ -56,13 +62,14 @@ class Orchestrator:
             self.research.respond(question, enriched_ctx),
             self.knowledge_specialist.respond(question, enriched_ctx),
             self.wallet_copier.respond(question, enriched_ctx),
+            self.social_listener.respond(question, enriched_ctx),   # ← UPGRADE AJOUTÉE
             self.self_improvement.respond(question, enriched_ctx),
         ]
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         responses = []
-        agent_names = ["analyst", "risk", "trader", "learning", "research", "knowledge_specialist", "wallet_copier", "self_improvement"]
+        agent_names = ["analyst", "risk", "trader", "learning", "research", "knowledge_specialist", "wallet_copier", "social_listener", "self_improvement"]
         for i, res in enumerate(results):
             if isinstance(res, Exception):
                 responses.append({
@@ -100,6 +107,7 @@ class Orchestrator:
                 self.research.respond("Raffine ton analyse en tenant compte des réponses des autres agents et vise une confiance ≥ 98 %", collaboration_ctx),
                 self.knowledge_specialist.respond("Raffine ton analyse en tenant compte des réponses des autres agents et vise une confiance ≥ 98 %", collaboration_ctx),
                 self.wallet_copier.respond("Raffine ton analyse en tenant compte des réponses des autres agents et vise une confiance ≥ 98 %", collaboration_ctx),
+                self.social_listener.respond("Raffine ton analyse en tenant compte des réponses des autres agents et vise une confiance ≥ 98 %", collaboration_ctx),   # ← UPGRADE AJOUTÉE
             ]
 
             collab_results = await asyncio.gather(*collab_tasks, return_exceptions=True)
@@ -232,11 +240,62 @@ class Orchestrator:
 
     def _enrich_context(self, context):
         # code original complet (inchangé)
-        return context
+        enriched = dict(context)
+        enriched["extreme_learning_mode"] = True         
+        enriched["learning_mode"] = True
+
+        try:
+            symbol = context.get("symbol")
+            global_stats  = self.learning.get_global_stats_db(window=100)
+            symbol_stats  = self.learning.get_symbol_stats_db(symbol, window=20) if symbol else global_stats
+            best_patterns = self.learning.get_best_patterns(symbol, limit=3)
+            worst_patterns= self.learning.get_worst_patterns(symbol, limit=3)
+            auto_rules    = self.learning.get_auto_rules()
+            insights      = self.learning.get_active_insights(limit=3)
+            lesson_count  = self.learning.get_lesson_count()
+
+            enriched.update({
+                "global_score":   global_stats["score"],
+                "symbol_score":   symbol_stats["score"],
+                "lesson_count":   lesson_count,
+                "best_patterns":  best_patterns,
+                "worst_patterns": worst_patterns,
+                "auto_rules":     auto_rules,
+                "insights":       insights,
+            })
+        except Exception as e:
+            print(f"[ORCHESTRATOR] enrich learning error: {e}")
+
+        try:
+            memory = context.get("memory", {})
+            if memory:
+                stats = self.performance.get_global_stats(memory)
+                enriched.update({
+                    "wr_live":       stats["winrate"],
+                    "wins_live":     stats["wins"],
+                    "losses_live":   stats["losses"],
+                    "total_trades":  stats["total_trades"],
+                    "sharpe":        stats.get("sharpe", 0.0),
+                    "profit_factor": stats.get("profit_factor", 0.0),
+                    "streak_type":   stats.get("streak_type", "none"),
+                })
+        except Exception as e:
+            print(f"[ORCHESTRATOR] enrich performance error: {e}")
+
+        return enriched
 
     def _check_for_crash_flag(self):
         # code original complet (inchangé)
-        return None
+        flag_file = "/workspace/.last_crash_by_engineer.txt"
+        if os.path.exists(flag_file):
+            try:
+                with open(flag_file, "r") as f:
+                    reason = f.read().strip()
+                os.remove(flag_file)
+                return reason
+            except Exception:
+                return ""
+        return ""
 
     def get_position_size(self, balance, risk_per_trade, confidence):
         # code original complet (inchangé)
