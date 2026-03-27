@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 263.31570127841803,
+    "cash": 135.02829161557278,
     "initial": 1000.0,
     "positions": {
       "MICRO_BNBUSDT_12": {
@@ -56,6 +56,33 @@
         "open_time": 1774590074.1662068,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_TURBOUSDT_13"
+      },
+      "MICRO_JUPUSDT_14": {
+        "id": 14,
+        "symbol": "JUPUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.1486,
+        "price_out": null,
+        "qty": 863.3069290904795,
+        "amount_usd": 128.28740966284525,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=23 mom=-0.07% vol=3.3x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 05:41:28",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.1486,
+        "open_time": 1774590088.0838273,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_JUPUSDT_14"
       }
     },
     "trades": [
@@ -396,6 +423,32 @@
         "leverage": 1,
         "peak_price": 0.001036,
         "open_time": 1774590074.1662068,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 14,
+        "symbol": "JUPUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.1486,
+        "price_out": null,
+        "qty": 863.3069290904795,
+        "amount_usd": 128.28740966284525,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=23 mom=-0.07% vol=3.3x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 05:41:28",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.1486,
+        "open_time": 1774590088.0838273,
         "kelly_pct": 0.48
       }
     ],
@@ -7734,6 +7787,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 05:41"
+      },
+      {
+        "trade_id": -3,
+        "pnl": -1.7869,
+        "symbol": "BTCUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 05:41"
       }
     ],
     "patterns_to_avoid": [
@@ -7933,7 +7997,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -7993,6 +8056,7 @@
       "backtest_5m",
       "score=4",
       "score=4",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -8228,7 +8292,7 @@
       "backtest_5m",
       "backtest_5m"
     ],
-    "confidence_threshold": 50,
+    "confidence_threshold": 48,
     "total_wins": 67,
     "total_losses": 137,
     "symbol_scores": {
