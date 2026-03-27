@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 705.9099623516663,
+    "cash": 917.8708305839355,
     "initial": 1000.0,
     "positions": {
       "MICRO_ETHUSDT_100": {
@@ -2675,17 +2675,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 2037.98,
-        "price_out": null,
+        "price_out": 2041.61,
         "qty": 0.10382044966093876,
         "amount_usd": 211.58399999999997,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=10 mom=-0.34% vol=4.4x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 68s",
         "time_in": "2026-03-27 09:11:27",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 09:12:39",
+        "pnl": 0.376868,
+        "pnl_pct": 0.178,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -29761,6 +29761,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 09:12"
+      },
+      {
+        "trade_id": 100,
+        "pnl": 0.376868,
+        "symbol": "ETHUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 09:12"
       }
     ],
     "patterns_to_avoid": [
@@ -30128,7 +30139,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "score=4",
       "score=4",
@@ -30365,14 +30375,15 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "score=4",
       "score=4"
     ],
     "confidence_threshold": 82,
-    "total_wins": 251,
+    "total_wins": 252,
     "total_losses": 505,
     "symbol_scores": {
-      "BTCUSDT": -13,
-      "ETHUSDT": -15,
+      "BTCUSDT": -11,
+      "ETHUSDT": -13,
       "SOLUSDT": 2,
       "TARO": -3,
       "OPUSDT": -15,
@@ -30419,7 +30430,7 @@
       "BONKUSDT": 0,
       "JUPUSDT": 2,
       "NOTUSDT": 0,
-      "BTCUSDT": 1,
+      "BTCUSDT": 0,
       "STXUSDT": 1,
       "FLOKIUSDT": 1,
       "TRXUSDT": 0,
