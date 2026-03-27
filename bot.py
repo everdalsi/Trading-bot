@@ -15,7 +15,6 @@ from logging_config import logger
 logger.info("Bot v7.1 démarré avec logging étendu ✅")
 
 from collections import defaultdict, deque
-import matplotlib.pyplot as plt
 from memory import Memory
 from agents.orchestrator import Orchestrator
 from agents.performance_tracker import PerformanceTracker
@@ -2231,7 +2230,7 @@ def backtest_strategy(
 
     # === VISUALISATION GRAPHIQUE DU BACKTEST ===
     try:
-        import matplotlib.pyplot as plt
+        import matplotlib.pyplot as plt   # ← import local (lazy)
         plt.figure(figsize=(10, 5))
         plt.plot(equity_curve, label="Equity Curve", color="#2ecc71", linewidth=2)
         plt.title(f"Backtest {symbol} — {days}j / {interval}\nWin Rate: {win_rate}% | Sharpe: {sharpe}")
