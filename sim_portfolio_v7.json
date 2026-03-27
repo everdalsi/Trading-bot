@@ -10436,7 +10436,7 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 14,
-    "total_losses": 221,
+    "total_losses": 222,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -15,
@@ -15136,6 +15136,6 @@
         "status": "\u2705 Promos d\u00e9tect\u00e9es"
       }
     ],
-    "last_scan": 1774612381.4353836
+    "last_scan": 1774612668.2652316
   }
 }
