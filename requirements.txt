@@ -1,21 +1,43 @@
-groq
-pybit
-praw
-requests
-python-telegram-bot==21.10
-feedparser
-pandas
-numpy
-httpx
-ccxt
-python-dotenv
-websocket-client
-crewai>=1.11.0
-crewai-tools
-gitpython
-chromadb
-langchain-groq
-litellm
-prometheus-client
-flask
-matplotlib>=3.8.0
+# ================================================
+# REQUIREMENTS.TXT — Trading Bot v7.1
+# ================================================
+
+# === Core Trading & Data ===
+ccxt                           # Bibliothèque principale pour Binance (spot + futures)
+pandas                         # Analyse de données et backtesting
+numpy                          # Calculs mathématiques rapides
+requests                       # Requêtes HTTP vers l'API Binance
+httpx                          # Requêtes HTTP asynchrones (utilisé par certains agents)
+feedparser                     # Parsing de flux RSS (news crypto / on-chain)
+
+# === WebSocket & Temps réel ===
+websocket-client               # Gestion WebSocket Binance (15 symboles en live)
+
+# === IA & Agents ===
+groq                           # API Groq (llama-3.1 ultra rapide)
+langchain-groq                 # Intégration Groq avec LangChain
+crewai>=1.11.0                 # Framework multi-agents (EvolutionAgent, Orchestrator...)
+crewai-tools                   # Outils supplémentaires pour CrewAI
+litellm                        # Gestion unifiée des LLM (fallback Groq / HF)
+chromadb                       # Base vectorielle pour mémoire longue des agents
+
+# === Telegram Bot ===
+python-telegram-bot==21.10     # Interface Telegram complète (/start, /agent, /status...)
+
+# === Dashboard & Web ===
+flask                          # Serveur web pour le dashboard /office
+prometheus-client              # Métriques pour monitoring (optionnel mais déjà présent)
+
+# === Visualisation ===
+matplotlib>=3.8.0              # Graphiques equity curve pour les backtests (étape 4)
+
+# === Utilitaires & Persistance ===
+python-dotenv                  # Chargement des variables d'environnement (.env)
+gitpython                      # GitHub sync des leçons / trades
+pybit                          # Alternative Bitget / Bybit (si tu veux ajouter d'autres exchanges)
+praw                           # Reddit (pour sentiment analysis / memecoins)
+
+# ================================================
+# Installation rapide :
+# pip install -r requirements.txt
+# ================================================
