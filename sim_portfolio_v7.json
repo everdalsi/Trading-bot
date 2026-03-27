@@ -2,35 +2,7 @@
   "sim": {
     "cash": 1001.3380595538074,
     "initial": 1000.0,
-    "positions": {
-      "MICRO_TRXUSDT_11": {
-        "id": 11,
-        "symbol": "TRXUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.3143,
-        "price_out": null,
-        "qty": 1551.704436952842,
-        "amount_usd": 487.70070453427826,
-        "confidence": 88,
-        "reason": "EMA\u2191 RSI7=58 mom=+0.06% vol=18.5x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 05:38:15",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.3147,
-        "open_time": 1774589895.2055438,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_TRXUSDT_11"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
@@ -7490,6 +7462,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 05:39"
+      },
+      {
+        "trade_id": -4,
+        "pnl": -4.3415,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 05:39"
       }
     ],
     "patterns_to_avoid": [
@@ -7700,7 +7683,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -7760,6 +7742,7 @@
       "backtest_5m",
       "score=4",
       "score=4",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -7980,13 +7963,13 @@
       "backtest_5m",
       "score=4"
     ],
-    "confidence_threshold": 80,
+    "confidence_threshold": 78,
     "total_wins": 65,
     "total_losses": 134,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": 1,
+      "SOLUSDT": -2,
       "TARO": -3,
       "OPUSDT": -6,
       "PENDLEUSDT": -6,
