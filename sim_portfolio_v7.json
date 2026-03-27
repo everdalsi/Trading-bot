@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 590.019840513799,
+    "cash": 179.36603151619488,
     "initial": 1000.0,
     "positions": {
       "MICRO_UNIUSDT_56": {
@@ -56,6 +56,33 @@
         "open_time": 1774599400.9047887,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_INJUSDT_57"
+      },
+      "MICRO_WIFUSDT_58": {
+        "id": 58,
+        "symbol": "WIFUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.182,
+        "price_out": null,
+        "qty": 2256.3396098769454,
+        "amount_usd": 410.6538089976041,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=8 mom=+0.00% vol=2.8x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 08:17:43",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.182,
+        "open_time": 1774599463.7532654,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_WIFUSDT_58"
       }
     },
     "trades": [
@@ -1547,6 +1574,32 @@
         "leverage": 1,
         "peak_price": 2.974,
         "open_time": 1774599400.9047887,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 58,
+        "symbol": "WIFUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.182,
+        "price_out": null,
+        "qty": 2256.3396098769454,
+        "amount_usd": 410.6538089976041,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=8 mom=+0.00% vol=2.8x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 08:17:43",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.182,
+        "open_time": 1774599463.7532654,
         "kelly_pct": 0.48
       }
     ],
@@ -23231,7 +23284,7 @@
       "backtest_5m"
     ],
     "confidence_threshold": 68,
-    "total_wins": 194,
+    "total_wins": 195,
     "total_losses": 383,
     "symbol_scores": {
       "BTCUSDT": -15,
