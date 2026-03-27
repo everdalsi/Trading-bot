@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 303.14931725232975,
+    "cash": 995.826432562757,
     "initial": 1000.0,
     "positions": {
       "MICRO_IMXUSDT_98": {
@@ -2569,17 +2569,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.1514,
-        "price_out": null,
+        "price_out": 0.1511,
         "qty": 4584.229750565369,
         "amount_usd": 694.0523842355968,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=24 mom=-0.33% vol=2.9x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 66s",
         "time_in": "2026-03-27 08:54:39",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 08:55:45",
+        "pnl": -1.375269,
+        "pnl_pct": -0.198,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -27931,11 +27931,21 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 08:55"
+      },
+      {
+        "trade_id": 98,
+        "pnl": -1.375269,
+        "symbol": "IMXUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 08:55"
       }
     ],
     "patterns_to_avoid": [
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -28233,7 +28243,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -28572,7 +28583,7 @@
       "WIFUSDT": -11,
       "LINKUSDT": -8,
       "INJUSDT": -6,
-      "IMXUSDT": -4,
+      "IMXUSDT": -7,
       "NEARUSDT": 4
     },
     "symbol_blacklist": {
