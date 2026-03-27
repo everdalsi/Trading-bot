@@ -3,33 +3,6 @@
     "cash": 375.716250197078,
     "initial": 1000.0,
     "positions": {
-      "MICRO_PEPEUSDT_63": {
-        "id": 63,
-        "symbol": "PEPEUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 3.39e-06,
-        "price_out": null,
-        "qty": 92423506.30609775,
-        "amount_usd": 313.3156863776714,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=27 mom=-0.29% vol=2.8x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 08:24:41",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 3.39e-06,
-        "open_time": 1774599881.559481,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_PEPEUSDT_63"
-      },
       "MICRO_BNBUSDT_64": {
         "id": 64,
         "symbol": "BNBUSDT",
