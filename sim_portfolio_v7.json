@@ -30,34 +30,6 @@
         "open_time": 1774608559.0249715,
         "kelly_pct": 0.05,
         "pos_key": "MEME_NEKO_3"
-      },
-      "MEME_Deadwhale_4": {
-        "id": 4,
-        "symbol": "Deadwhale",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "Deadwhale",
-        "price_in": 0.000756,
-        "price_out": null,
-        "qty": 62830.68783068783,
-        "amount_usd": 47.5,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-27 10:49:19",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.000756,
-        "open_time": 1774608559.1027722,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_Deadwhale_4"
       }
     },
     "trades": [
