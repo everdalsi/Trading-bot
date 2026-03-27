@@ -2,35 +2,7 @@
   "sim": {
     "cash": 1002.9808654133506,
     "initial": 1000.0,
-    "positions": {
-      "MICRO_FETUSDT_21": {
-        "id": 21,
-        "symbol": "FETUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.2348,
-        "price_out": null,
-        "qty": 1067.0963715603332,
-        "amount_usd": 250.55422804236622,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=28 mom=-0.25% vol=3.6x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 05:49:39",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.2349,
-        "open_time": 1774590579.731576,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_FETUSDT_21"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
@@ -8993,6 +8965,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 05:50"
+      },
+      {
+        "trade_id": -3,
+        "pnl": -1.7869,
+        "symbol": "BTCUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 05:50"
       }
     ],
     "patterns_to_avoid": [
@@ -9121,7 +9104,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -9294,6 +9276,7 @@
       "backtest_5m",
       "backtest_5m",
       "score=4",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m"
     ],
