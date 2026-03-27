@@ -30,34 +30,6 @@
         "open_time": 1774610776.354918,
         "kelly_pct": 0.05,
         "pos_key": "MEME_NEKO_44"
-      },
-      "MEME_PIXEL_46": {
-        "id": 46,
-        "symbol": "PIXEL",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "PIXEL",
-        "price_in": 0.0006611,
-        "price_out": null,
-        "qty": 112218.24803523277,
-        "amount_usd": 74.18748377609238,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-27 11:27:03",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0006611,
-        "open_time": 1774610823.9170086,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_PIXEL_46"
       }
     },
     "trades": [
