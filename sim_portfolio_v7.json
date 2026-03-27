@@ -1,35 +1,8 @@
 {
   "sim": {
-    "cash": 295.5503810918164,
+    "cash": 315.1041280358164,
     "initial": 1000.0,
     "positions": {
-      "MICRO_APTUSDT_91": {
-        "id": 91,
-        "symbol": "APTUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.989,
-        "price_out": null,
-        "qty": 19.771230479272003,
-        "amount_usd": 19.55374694400001,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=18 mom=-0.20% vol=2.5x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 14:22:44",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.989,
-        "open_time": 1774621364.5537593,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_APTUSDT_91"
-      },
       "MICRO_LINKUSDT_92": {
         "id": 92,
         "symbol": "LINKUSDT",
@@ -2514,17 +2487,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.989,
-        "price_out": null,
+        "price_out": 0.989,
         "qty": 19.771230479272003,
         "amount_usd": 19.55374694400001,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=18 mom=-0.20% vol=2.5x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 61s",
         "time_in": "2026-03-27 14:22:44",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 14:23:54",
+        "pnl": 0.0,
+        "pnl_pct": 0.0,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -13489,6 +13462,39 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 14:23"
+      },
+      {
+        "trade_id": 91,
+        "pnl": 0.0,
+        "symbol": "APTUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 14:23"
+      },
+      {
+        "trade_id": -3,
+        "pnl": -1.7869,
+        "symbol": "BTCUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 14:23"
+      },
+      {
+        "trade_id": -4,
+        "pnl": -5.0627,
+        "symbol": "BTCUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 14:23"
       }
     ],
     "patterns_to_avoid": [
@@ -13497,9 +13503,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
-      "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "memecoin",
       "backtest_5m",
@@ -13791,6 +13794,9 @@
       "score=4",
       "backtest_5m",
       "score=4",
+      "backtest_5m",
+      "score=4",
+      "backtest_5m",
       "backtest_5m"
     ],
     "patterns_that_work": [
@@ -14010,15 +14016,15 @@
       "backtest_5m",
       "backtest_5m"
     ],
-    "confidence_threshold": 80,
+    "confidence_threshold": 82,
     "total_wins": 16,
-    "total_losses": 304,
+    "total_losses": 305,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -15,
       "ETHUSDT": -15,
       "SOLUSDT": -15,
-      "APTUSDT": -5,
+      "APTUSDT": -8,
       "NEKO": -10,
       "ARBUSDT": -12,
       "TONUSDT": -15,
@@ -14042,7 +14048,7 @@
       "STXUSDT": -6,
       "RENDERUSDT": -6,
       "DOGEUSDT": -6,
-      "UNIUSDT": -3
+      "UNIUSDT": -6
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
@@ -14067,7 +14073,8 @@
       "TAOUSDT": 0,
       "STXUSDT": 1,
       "RENDERUSDT": 1,
-      "DOGEUSDT": 1
+      "DOGEUSDT": 1,
+      "UNIUSDT": 1
     },
     "bad_setups": [
       {
