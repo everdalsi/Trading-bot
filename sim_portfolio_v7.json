@@ -3,33 +3,6 @@
     "cash": 703.286663001946,
     "initial": 1000.0,
     "positions": {
-      "MICRO_RENDERUSDT_88": {
-        "id": 88,
-        "symbol": "RENDERUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 1.665,
-        "price_out": null,
-        "qty": 418.018018018018,
-        "amount_usd": 696.0,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=14 mom=-0.60% vol=2.7x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 14:22:13",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 1.665,
-        "open_time": 1774621333.8548474,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_RENDERUSDT_88"
-      },
       "MICRO_DOGEUSDT_89": {
         "id": 89,
         "symbol": "DOGEUSDT",
