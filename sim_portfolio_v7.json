@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 767.3092860094978,
+    "cash": 782.6312715240043,
     "initial": 1000.0,
     "positions": {
       "MICRO_APTUSDT_82": {
@@ -2234,17 +2234,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 1.015,
-        "price_out": null,
+        "price_out": 1.012,
         "qty": 15.140301891804908,
         "amount_usd": 15.36740642018198,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=24 mom=-0.29% vol=3.4x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 66s",
         "time_in": "2026-03-27 08:35:51",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 08:37:07",
+        "pnl": -0.045421,
+        "pnl_pct": -0.296,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -25628,6 +25628,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 08:37"
+      },
+      {
+        "trade_id": 82,
+        "pnl": -0.045421,
+        "symbol": "APTUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 08:37"
       }
     ],
     "patterns_to_avoid": [
@@ -25756,7 +25767,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -25930,6 +25940,7 @@
       "score=4",
       "backtest_5m",
       "backtest_5m",
+      "score=4",
       "score=4"
     ],
     "patterns_that_work": [
@@ -26235,8 +26246,8 @@
       "backtest_5m"
     ],
     "confidence_threshold": 82,
-    "total_wins": 216,
-    "total_losses": 434,
+    "total_wins": 217,
+    "total_losses": 435,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
@@ -26262,7 +26273,7 @@
       "PEPEUSDT": -8,
       "ONDOUSDT": 4,
       "UNIUSDT": -15,
-      "APTUSDT": -2,
+      "APTUSDT": -5,
       "SEIUSDT": -12,
       "AVAXUSDT": -12,
       "XRPUSDT": -8,
@@ -26293,7 +26304,7 @@
       "SUIUSDT": 0,
       "PEPEUSDT": 2,
       "ONDOUSDT": 0,
-      "UNIUSDT": 3,
+      "UNIUSDT": 4,
       "APTUSDT": 0,
       "SEIUSDT": 2,
       "AVAXUSDT": 2,
