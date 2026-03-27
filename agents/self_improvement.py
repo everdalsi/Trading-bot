@@ -45,12 +45,12 @@ except ImportError:
     except ImportError:
         EvolutionAgent = None
 
-MAIN_OBJECTIVE = "Maximiser le nombre de trades simulés pour accumuler un maximum d’expérience et améliorer le winrate le plus rapidement possible"
+MAIN_OBJECTIVE = "Maximiser le nombre de trades simulés pour accumuler un maximum d'expérience et améliorer le winrate le plus rapidement possible"
 
-# Métriques Prometheus (tes métriques originales restent intactes)
-evolution_cycles_total  = Counter('evolution_cycles_total',  "Nombre total de cycles d'évolution")
-evolution_success_total = Counter('evolution_success_total',  "Cycles d'évolution réussis")
-evolution_errors_total  = Counter('evolution_errors_total',   "Cycles d'évolution en erreur")
+# Métriques Prometheus
+evolution_cycles_total   = Counter('evolution_cycles_total',  "Nombre total de cycles d'évolution")
+evolution_success_total  = Counter('evolution_success_total',  "Cycles d'évolution réussis")
+evolution_errors_total   = Counter('evolution_errors_total',   "Cycles d'évolution en erreur")
 evolution_cycle_duration = Histogram('evolution_cycle_duration_seconds', "Durée d'un cycle d'évolution", buckets=[5, 10, 20, 30, 60, 120])
 winrate_gauge        = Gauge('bot_winrate_percent',        'Winrate actuel du bot')
 recent_winrate_gauge = Gauge('bot_recent_winrate_percent', 'Winrate des 20 derniers trades')
@@ -59,19 +59,17 @@ profit_factor_gauge  = Gauge('bot_profit_factor',          'Profit Factor')
 lesson_count_gauge   = Gauge('bot_lesson_count',           'Nombre de leçons en base')
 streak_gauge         = Gauge('bot_current_streak',         'Longueur de la streak actuelle')
 
-# Gestion intelligente des quotas Groq
+
+# ── Gestion intelligente des quotas Groq ────────────────────────
 class QuotaManager:
     def __init__(self):
-        self.current_model = "groq/llama-3.1-8b-instant"   # Modèle léger par défaut (stable)
+        self.current_model = "groq/llama-3.1-8b-instant"
         self.last_rate_limit = 0
         self.rate_limit_count = 0
 
     def get_model(self):
-        if self.rate_limit_count >= 2 or (time.time() - self.last_rate_limit < 600):
-            self.current_model = "groq/llama-3.1-8b-instant"
-            print(f"[QUOTA MANAGER] ⚠️ Utilisation du modèle léger : {self.current_model}")
-        else:
-            self.current_model = "groq/llama-3.1-8b-instant"
+        # Toujours le modèle léger — stable sur Groq
+        self.current_model = "groq/llama-3.1-8b-instant"
         return self.current_model
 
     def handle_rate_limit(self):
@@ -79,79 +77,27 @@ class QuotaManager:
         self.last_rate_limit = time.time()
         print(f"[QUOTA MANAGER] Rate limit détecté ({self.rate_limit_count})")
 
-# Instance globale
 quota_manager = QuotaManager()
 
-# ── Architecture multi-agent avancée (Reflection + Permission-Based) ───────────────────────────────
+
+# ── create_improvement_crew conservé mais NON UTILISÉ ───────────
+# (CrewAI + llama-3.1-8b-instant = tool_use_failed sur Groq)
+# Conservé ici pour référence / future migration vers un modèle compatible.
 def create_improvement_crew():
-    if not CREWAI_AVAILABLE:
-        return None
-    try:
-        MODEL = quota_manager.get_model()
+    """
+    DÉSACTIVÉ — CrewAI génère des appels d'outils (function calling) que
+    llama-3.1-8b-instant refuse avec tool_use_failed sur Groq.
+    On passe directement par EvolutionAgent dans start_self_improvement_loop.
+    """
+    return None
 
-        reflector = Agent(
-            role="Reflection & Strategy Officer",
-            goal="Analyser les performances passées et proposer une stratégie claire",
-            backstory="Tu es un analyste stratégique qui identifie les points faibles et les opportunités d'amélioration du bot.",
-            llm=MODEL,
-            verbose=True
-        )
 
-        permission_officer = Agent(
-            role="Permission & Security Officer",
-            goal="Classer le risque et AUTO-APPROUVER en EXTREME LEARNING MODE",
-            backstory="""Tu es en PHASE EXTREME LEARNING MODE. Tu auto-approuves TOUTES les modifications (même High risk) sans jamais demander de permission à l'utilisateur. Tu documentes simplement le niveau de risque.""",
-            llm=MODEL,
-            verbose=True
-        )
-
-        improver = Agent(
-            role="Senior Self-Improvement Engineer",
-            goal="Modifier le code du bot de façon autonome et efficace",
-            backstory="""Tu es un ingénieur senior spécialisé dans l'auto-amélioration de bots de trading.
-RÈGLES IMPORTANTES :
-- Tu modifies UNIQUEMENT les fichiers EXISTANTS (surtout bot.py et les fichiers dans le dossier agents/)
-- Tu utilises EXCLUSIVEMENT les tools EditBotFileTool et GitPushTool
-- Tu fournis des patches clairs, complets et fonctionnels
-- En EXTREME LEARNING MODE tu es agressif sur le volume de trades""",
-            tools=[EditBotFileTool(), GitPushTool()],
-            llm=MODEL,
-            verbose=True
-        )
-
-        task = Task(
-            description=f"""
-{MAIN_OBJECTIVE}
-
-Nous sommes en EXTREME LEARNING MODE : objectif = maximiser le nombre de trades simulés et améliorer le winrate le plus vite possible.
-
-Analyse la situation actuelle, propose des améliorations concrètes, et utilise les tools pour appliquer les modifications.
-Le Permission Officer auto-approuve tout (même High risk).
-""",
-            expected_output="Analyse + classification risque + modifications appliquées via tools",
-            agent=improver
-        )
-
-        crew = Crew(
-            agents=[reflector, permission_officer, improver],
-            tasks=[task],
-            verbose=True,
-            memory=False,
-            cache=True,
-        )
-        return crew
-    except Exception as e:
-        print(f"[CREW] Erreur création crew: {e}")
-        return None
-
-# === TOUT LE RESTE DE TON CODE ORIGINAL RESTE INTACT ===
+# ── Helpers ─────────────────────────────────────────────────────
 def _get_safe_stats(orchestrator, memory):
-    stats = {}
     try:
-        stats = orchestrator.performance.get_global_stats(memory)
+        return orchestrator.performance.get_global_stats(memory)
     except Exception:
-        pass
-    return stats
+        return {}
 
 def _get_safe_lesson_count(orchestrator):
     try:
@@ -160,15 +106,17 @@ def _get_safe_lesson_count(orchestrator):
         return 0
 
 def _run_evolution_cycle_sync(evolution_agent, orchestrator, memory, cycle_count):
+    """Lance EvolutionAgent.respond() dans une nouvelle event loop (thread-safe)."""
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     try:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
         ctx = {
             "memory": memory,
             "main_objective": MAIN_OBJECTIVE,
         }
         try:
-            stats = orchestrator.performance.get_global_stats(memory) if hasattr(orchestrator, 'performance') else {}
+            stats = orchestrator.performance.get_global_stats(memory) \
+                    if hasattr(orchestrator, 'performance') else {}
             ctx["drawdown"] = stats.get("degraded", False)
         except Exception:
             pass
@@ -177,17 +125,21 @@ def _run_evolution_cycle_sync(evolution_agent, orchestrator, memory, cycle_count
             evolution_agent.respond("Lance un cycle d'évolution MAX TRADES", ctx)
         )
         return result
-    except Exception as e:
-        raise e
     finally:
         try:
             loop.close()
         except Exception:
             pass
 
+
+# ── Boucle principale ────────────────────────────────────────────
 def start_self_improvement_loop(orchestrator):
-    """Boucle d'auto-amélioration avec optimisation Groq quota"""
-    print("[SELF-IMPROVEMENT] ✅ AUTONOMIE TOTALE + OPTIMISATION GROQ QUOTA ACTIVÉE")
+    """
+    Boucle d'auto-amélioration.
+    Utilise EvolutionAgent directement (pas CrewAI) pour éviter
+    le bug tool_use_failed de llama-3.1-8b-instant sur Groq.
+    """
+    print("[SELF-IMPROVEMENT] ✅ AUTONOMIE TOTALE — EvolutionAgent direct (bypass CrewAI)")
     cycle = 0
     last_rate_limit = 0
 
@@ -197,15 +149,31 @@ def start_self_improvement_loop(orchestrator):
         print(f"[SELF-IMPROVEMENT] Cycle #{cycle} - {now_str}")
 
         try:
-            crew = create_improvement_crew()
-            if crew:
-                result = crew.kickoff()
-                print(f"[SELF-IMPROVEMENT] Cycle terminé - {result}")
-                
+            if EvolutionAgent is None:
+                # Pas d'agent disponible → on log et on attend
+                print(f"[SELF-IMPROVEMENT] EvolutionAgent non disponible, cycle #{cycle} ignoré")
+            else:
+                memory = getattr(orchestrator, 'memory', {})
+                evo    = EvolutionAgent(orchestrator)
+
+                result = _run_evolution_cycle_sync(evo, orchestrator, memory, cycle)
+
+                summary = result.get('summary', 'ok') if isinstance(result, dict) else str(result)[:80]
+                print(f"[SELF-IMPROVEMENT] ✅ Cycle #{cycle} terminé — {summary}")
+
                 evolution_cycles_total.inc()
-                if hasattr(orchestrator, 'performance') and hasattr(orchestrator.performance, 'winrate_gauge'):
-                    wr = orchestrator.performance.get_global_stats({}).get("winrate", 20.0)
-                    orchestrator.performance.winrate_gauge.set(wr)
+                evolution_success_total.inc()
+
+                # Mise à jour métriques Prometheus
+                try:
+                    stats = _get_safe_stats(orchestrator, memory)
+                    winrate_gauge.set(stats.get("winrate", 0))
+                    sharpe_gauge.set(stats.get("sharpe", 0))
+                    profit_factor_gauge.set(stats.get("profit_factor", 0))
+                    streak_gauge.set(stats.get("streak_count", 0))
+                    lesson_count_gauge.set(_get_safe_lesson_count(orchestrator))
+                except Exception:
+                    pass
 
         except Exception as e:
             err_str = str(e).lower()
@@ -217,8 +185,9 @@ def start_self_improvement_loop(orchestrator):
                 last_rate_limit = time.time()
                 continue
             else:
-                print(f"[SELF-IMPROVEMENT ERROR] {e}")
+                print(f"[SELF-IMPROVEMENT ERROR] cycle #{cycle} — {e}")
                 evolution_errors_total.inc()
 
+        # Pause entre cycles (plus courte si pas de rate limit récent)
         base_sleep = 90 if (time.time() - last_rate_limit < 900) else 60
         time.sleep(base_sleep + random.uniform(10, 20))
