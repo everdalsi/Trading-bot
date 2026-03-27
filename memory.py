@@ -2,8 +2,42 @@ from typing import Dict, Any, List
 
 class Memory:
     def __init__(self):
-        self.data: Dict[str, dict] = {}
+        # Initialisation de la structure de données interne
+        # pour éviter les erreurs de clés manquantes dans bot.py
+        self.data: Dict[str, Any] = {
+            "lessons": [],
+            "trades": [],
+            "symbol_scores": {},
+            "symbol_blacklist": {},
+            "consecutive_losses": {},
+            "total_wins": 0,
+            "total_losses": 0,
+            "confidence_threshold": 65
+        }
 
+    # --- MÉTHODES DE COMPATIBILITÉ DICTIONNAIRE (OBLIGATOIRE POUR BOT.PY) ---
+    def get(self, key: str, default=None):
+        return self.data.get(key, default)
+
+    def setdefault(self, key: str, default=None):
+        return self.data.setdefault(key, default)
+
+    def __getitem__(self, key):
+        return self.data[key]
+
+    def __setitem__(self, key, value):
+        self.data[key] = value
+
+    def __contains__(self, key):
+        return key in self.data
+
+    def items(self):
+        return self.data.items()
+
+    def update(self, other_dict):
+        self.data.update(other_dict)
+
+    # --- TES FONCTIONS ORIGINALES (CONSERVÉES ET ADAPTÉES) ---
     def _init_symbol(self, symbol: str):
         if symbol not in self.data:
             self.data[symbol] = {
@@ -14,32 +48,25 @@ class Memory:
                 "total_confidence": 0.0
             }
 
-    # 🔥 ADD TRADE (SAFE)
     def add_trade(self, trade: dict):
         symbol = trade.get("symbol")
         if not symbol:
             return
         self._init_symbol(symbol)
-
         self.data[symbol]["trades"].append(trade)
-
-        # Accumule la confiance
         self.data[symbol]["total_confidence"] += trade.get("confidence", 0.0)
-
-        # Ne compte que les trades résolus
+        
         result = trade.get("result")
         if result == "win":
             self.data[symbol]["wins"] += 1
         elif result == "loss":
             self.data[symbol]["losses"] += 1
 
-    # 🔄 UPDATE RESULT
     def update_trade_result(self, symbol: str, index: int, result: str):
         self._init_symbol(symbol)
         try:
             trade = self.data[symbol]["trades"][index]
             trade["result"] = result
-
             if result == "win":
                 self.data[symbol]["wins"] += 1
             elif result == "loss":
@@ -47,24 +74,19 @@ class Memory:
         except (IndexError, KeyError):
             pass
 
-    # ❌ MISTAKES
     def add_mistake(self, symbol: str, mistake: str):
         self._init_symbol(symbol)
         self.data[symbol]["mistakes"].append(mistake)
 
-    # 📊 STATS par symbole
     def stats(self, symbol: str) -> dict:
         self._init_symbol(symbol)
         data = self.data[symbol]
-
         resolved = data["wins"] + data["losses"]
         winrate = data["wins"] / resolved if resolved > 0 else 0.0
-
         avg_confidence = (
             data["total_confidence"] / len(data["trades"])
             if len(data["trades"]) > 0 else 0.0
         )
-
         return {
             "symbol": symbol,
             "total_trades": len(data["trades"]),
@@ -74,21 +96,24 @@ class Memory:
             "avg_confidence": round(avg_confidence, 4)
         }
 
-    # 💀 BLACKLIST AUTO
     def is_bad_symbol(self, symbol: str) -> bool:
         stats = self.stats(symbol)
         return stats["resolved_trades"] > 10 and stats["winrate"] < 0.40
 
-    # 🔥 SCORE GLOBAL PAR COIN
     def get_symbol_score(self, symbol: str) -> float:
         stats = self.stats(symbol)
         score = stats["winrate"] * 0.7 + stats["avg_confidence"] * 0.3
         return round(score, 2)
 
-    # === MÉTHODES AJOUTÉES POUR COMPATIBILITÉ ORCHESTRATOR ===
     def get_global_stats(self) -> dict:
-        total_wins = sum(d["wins"] for d in self.data.values())
-        total_losses = sum(d["losses"] for d in self.data.values())
+        # On calcule sur la base des symboles individuels stockés dans data
+        total_wins = 0
+        total_losses = 0
+        for key, val in self.data.items():
+            if isinstance(val, dict) and "wins" in val:
+                total_wins += val["wins"]
+                total_losses += val["losses"]
+        
         total = total_wins + total_losses
         winrate = total_wins / total if total > 0 else 0.0
         return {
@@ -99,11 +124,11 @@ class Memory:
         }
 
     def update_trade_results(self, current_price: float):
-        """Met à jour tous les trades pending avec le prix actuel."""
         for symbol in list(self.data.keys()):
+            if not isinstance(self.data[symbol], dict) or "trades" not in self.data[symbol]:
+                continue
             for i, trade in enumerate(self.data[symbol]["trades"]):
                 if trade.get("result") == "pending":
-                    # Calcul simplifié PNL (comme dans bot.py)
                     entry = trade.get("price_in") or trade.get("entry_price")
                     if entry:
                         pnl_pct = (current_price - entry) / entry if trade.get("decision") == "BUY" else (entry - current_price) / entry
@@ -112,5 +137,4 @@ class Memory:
                         self.update_trade_result(symbol, i, trade["result"])
 
     def log_trade(self, trade_data: dict):
-        """Ajoute un trade pending (utilisé par l'orchestrator)."""
         self.add_trade(trade_data)
