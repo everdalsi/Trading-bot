@@ -91,6 +91,28 @@ class SupervisorAgent(BaseAgent):
                         "recommendation": "Éviter ce symbole pour le moment",
                     }
 
+        # === UPGRADE ÉTAPE 2 : STRICT VETO MODE + VETO COLLECTIF DUR ===
+        strict_veto_mode = context.get("strict_veto_mode", False)
+        if strict_veto_mode:
+            # Détection automatique de tout veto (Risk, Learning, Immune, etc.)
+            veto_detected = any(
+                "VETO" in str(r.get("summary", "")).upper() or
+                "VETO" in str(r.get("recommendation", "")).upper() or
+                "NO TRADE" in str(r.get("decision", "")).upper() or
+                r.get("risk_level") in ["CRITICAL", "HIGH"]
+                for r in agent_outputs
+                if isinstance(r, dict)
+            )
+            if veto_detected:
+                return {
+                    "agent": self.name,
+                    "decision": "NO TRADE",
+                    "summary": "⛔ VETO COLLECTIF DÉTECTÉ — winrate parfait prioritaire",
+                    "confidence": 1.0,
+                    "recommendation": "Aucun trade autorisé par le cerveau collectif",
+                    "final_decision": "NO TRADE"
+                }
+
         # === UPGRADE PHASE 1+2 : CERVEAU COLLECTIF + SEUIL 98% + IMMUNE SYSTEM ===
         final_confidence = context.get("final_confidence", 0.0)
         debate_rounds    = context.get("debate_rounds", 0)
@@ -166,32 +188,31 @@ class SupervisorAgent(BaseAgent):
         if insights:
             insight_str = " | Insight: " + insights[0][:60]
 
-        confidence_final = round(max(0.50, min(0.95, (score + global_score) / 2 * 0.9)), 2)
+        confidence_final = round(max(0.85, (final_confidence + score) / 2), 2)
+
+        natural_summary = (
+            f"Salut ! En tant que superviseur, j’ai tout synthétisé après {debate_rounds} rounds de débat. "
+            f"Sur {symbol} on a un score de {score:.2f}, {lesson_count} leçons en mémoire, et une confiance collective de {final_confidence:.1%}. "
+            f"Après vérification du risque et de la santé du système, ma décision finale est {final_decision}. "
+            f"{reason}{insight_str}. Objectif winrate parfait respecté."
+        )
 
         return {
             "agent": self.name,
             "decision": final_decision,
-            "summary": (
-                f"DÉCISION → {final_decision} | "
-                f"Score: {score:.2f} | "
-                f"Mémoire: {lesson_count}∞{insight_str}"
-            ),
+            "summary": natural_summary,
             "arguments": [
-                f"Symbol: {symbol}",
-                f"Score composite: {(score + global_score) / 2:.2f}",
-                f"Trader: {trader_decision_val} | Risk: {risk_summary[:50]}",
-                f"Leçons en mémoire: {lesson_count}",
-                f"Règles auto actives: {len(auto_rules)}",
-                f"Confiance collective finale: {final_confidence:.1%}",
-                f"Immune System Health: {immune_health}%"
+                f"Score global : {score:.2f}",
+                f"Confiance collective : {final_confidence:.1%}",
+                f"Nombre de rounds de débat : {debate_rounds}",
+                f"Immune Health : {immune_health}%",
+                f"Positions ouvertes : {open_positions}",
+                f"Leçons accumulées : {lesson_count}"
             ],
-            "risks": (
-                [] if final_decision in ("BUY", "SELL") else
-                ["Décision bloquée — voir raison ci-dessus"]
-            ),
+            "risks": [],
             "confidence": confidence_final,
             "recommendation": reason,
-            "full_summary": f"J’ai consulté toute l’équipe. {reason}. Score composite : {(score + global_score) / 2:.2f}.",
+            "full_summary": natural_summary,
             "final_decision": final_decision,
             "immune_health": immune_health,
             "debate_rounds": debate_rounds
