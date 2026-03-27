@@ -2,36 +2,7 @@
   "sim": {
     "cash": 1671.8558386717707,
     "initial": 1000.0,
-    "positions": {
-      "MEME_Deadwhale_41": {
-        "id": 41,
-        "symbol": "Deadwhale",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "Deadwhale",
-        "price_in": 0.0009118,
-        "price_out": null,
-        "qty": 92890.16894310381,
-        "amount_usd": 84.69725604232205,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-27 11:18:25",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0009118,
-        "open_time": 1774610305.9569232,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_Deadwhale_41"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
@@ -4987,6 +4958,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 11:18"
+      },
+      {
+        "trade_id": -1,
+        "pnl": 1.519,
+        "symbol": "BTCUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 11:18"
       }
     ],
     "patterns_to_avoid": [
@@ -5342,14 +5324,15 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "score=4"
+      "score=4",
+      "backtest_5m"
     ],
     "confidence_threshold": 80,
     "total_wins": 11,
     "total_losses": 107,
     "symbol_scores": {
       "Deadwhale": -15,
-      "BTCUSDT": -15,
+      "BTCUSDT": -13,
       "ETHUSDT": -15,
       "SOLUSDT": -15,
       "APTUSDT": -5,
