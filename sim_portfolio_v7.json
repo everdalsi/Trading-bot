@@ -3,34 +3,6 @@
     "cash": 1446.1303972642238,
     "initial": 1000.0,
     "positions": {
-      "MEME_NEKO_44": {
-        "id": 44,
-        "symbol": "NEKO",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "NEKO",
-        "price_in": 0.0004103,
-        "price_out": null,
-        "qty": 198456.94128273675,
-        "amount_usd": 81.42688300830689,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-27 11:26:16",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0004752,
-        "open_time": 1774610776.354918,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_NEKO_44"
-      },
       "MEME_PIXEL_47": {
         "id": 47,
         "symbol": "PIXEL",
