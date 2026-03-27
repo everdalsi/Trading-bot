@@ -63,6 +63,11 @@ profit_factor_gauge  = Gauge('bot_profit_factor',          'Profit Factor')
 lesson_count_gauge   = Gauge('bot_lesson_count',           'Nombre de leçons en base')
 streak_gauge         = Gauge('bot_current_streak',         'Longueur de la streak actuelle')
 
+# === NOUVELLES MÉTRIQUES IMMUNITAIRES OPTIMISÉES ===
+immune_health_gauge      = Gauge('immune_system_health', 'État de santé du système immunitaire (0-100)')
+repair_count_total       = Counter('immune_repair_total', 'Nombre total de réparations effectuées')
+backup_count_total       = Counter('immune_backup_total', 'Nombre total de backups créés')
+self_heal_count_total    = Counter('immune_self_heal_total', 'Nombre de fois où l\'immune s\'est auto-réparé')
 
 # ── QuotaManager (inchangé) ─────────────────────────────────────
 class QuotaManager:
@@ -169,8 +174,8 @@ def start_self_improvement_loop(orchestrator):
 
 
 # ─────────────────────────────────────────────────────────────
-#  === IMMUNE SYSTEM AGENT — SYSTÈME IMMUNITAIRE ULTIME ===
-#  (tout le code ci-dessus est intact à 100 % + upgrades ci-dessous)
+#  === IMMUNE SYSTEM AGENT — SYSTÈME IMMUNITAIRE OPTIMISÉ ULTIME ===
+#  (tout le code ci-dessus est intact à 100 % + OPTIMISATIONS ci-dessous)
 # ─────────────────────────────────────────────────────────────
 
 from agents.base_agent import BaseAgent
@@ -181,7 +186,7 @@ import json
 import difflib
 
 class ImmuneSystemAgent(BaseAgent):
-    """SYSTÈME IMMUNITAIRE DU BOT — Vrai être vivant : surveille, répare, reprogramme, protège et auto-ajuste TOUT le système"""
+    """SYSTÈME IMMUNITAIRE DU BOT — Vrai être vivant optimisé : surveille, répare, reprogramme, protège et auto-ajuste TOUT le système en temps réel"""
     def __init__(self, orchestrator=None):
         super().__init__(
             name="immune_system",
@@ -197,61 +202,127 @@ class ImmuneSystemAgent(BaseAgent):
         self.git_tool = GitPushTool()
         self.repair_history = []
         self.last_crash_reason = None
-        self.health_status = {"status": "HEALTHY", "last_check": datetime.datetime.now()}
+        self.health_status = {"status": "HEALTHY", "last_check": datetime.datetime.now(), "score": 100}
+        self.heartbeat_thread = None
+        self.start_heartbeat()
+
+    def start_heartbeat(self):
+        """Heartbeat optimisé : surveillance continue toutes les 30 secondes"""
+        def heartbeat_loop():
+            while True:
+                try:
+                    asyncio.run(self.monitor_agents({}))
+                except Exception as e:
+                    logger.error(f"[IMMUNE HEARTBEAT ERROR] {e}")
+                time.sleep(30)
+        self.heartbeat_thread = threading.Thread(target=heartbeat_loop, daemon=True)
+        self.heartbeat_thread.start()
+        print("[IMMUNE SYSTEM] ❤️ Heartbeat lancé — surveillance live activée")
 
     async def monitor_agents(self, context: dict):
-        """Surveillance live de tous les agents (détection dérive, performance drop, incohérences)"""
+        """Surveillance optimisée + détection proactive de dérive"""
         print("[IMMUNE SYSTEM] 🔍 Surveillance live de tous les agents...")
         issues = []
-        for agent_name in ["analyst", "risk", "trader", "learning", "research", "knowledge_specialist", "wallet_copier", "evolution"]:
+        agents_to_check = ["analyst", "risk", "trader", "learning", "research", "knowledge_specialist", "wallet_copier", "evolution", "supervisor"]
+        
+        for agent_name in agents_to_check:
             try:
                 agent = getattr(self.orchestrator, agent_name, None)
                 if agent and hasattr(agent, "get_health"):
                     health = await agent.get_health()
-                    if health.get("status") != "HEALTHY":
+                    if health.get("status") != "HEALTHY" or health.get("confidence", 1.0) < 0.85:
                         issues.append((agent_name, health))
+                else:
+                    issues.append((agent_name, {"status": "UNREACHABLE"}))
             except Exception:
                 issues.append((agent_name, {"status": "UNREACHABLE"}))
-        
+
+        # Vérification mémoire et knowledge base
+        try:
+            if len(self.kb.get_all_lessons()) < 10:
+                issues.append(("knowledge_base", {"status": "LOW_DATA"}))
+        except Exception:
+            pass
+
         if issues:
             await self.repair_agents(issues, context)
-        self.health_status = {"status": "HEALTHY" if not issues else "DEGRADED", "last_check": datetime.datetime.now(), "issues": len(issues)}
+        
+        health_score = 100 - (len(issues) * 15)
+        self.health_status = {"status": "HEALTHY" if health_score > 70 else "DEGRADED", "last_check": datetime.datetime.now(), "score": max(0, health_score), "issues": len(issues)}
+        immune_health_gauge.set(self.health_status["score"])
         return self.health_status
 
     async def repair_agents(self, issues: list, context: dict):
-        """Auto-réparation + reprogrammation des agents défaillants"""
-        print(f"[IMMUNE SYSTEM] 🛠️ Réparation de {len(issues)} agents défaillants...")
+        """Réparation optimisée avec comparaison de code et patch intelligent"""
+        print(f"[IMMUNE SYSTEM] 🛠️ Réparation optimisée de {len(issues)} agents...")
         for agent_name, issue in issues:
             try:
                 self._create_backup(agent_name)
-                repair_prompt = f"Répare l'agent {agent_name} qui a le problème : {issue}. Rends-le plus fort et aligné avec le but quasi 100% winrate et être vivant."
+                repair_prompt = f"Répare l'agent {agent_name} qui a le problème : {issue}. Rends-le plus fort, plus rapide et aligné avec le but winrate >95% et être vivant. Fournis le code complet corrigé."
                 repair_code = await self.knowledge_specialist.respond(repair_prompt, context)
                 if repair_code.get("code_snippet"):
-                    await self.edit_tool._run(file_path=f"agents/{agent_name}_agent.py", new_content=repair_code["code_snippet"])
-                    self.git_tool._run(message=f"Auto-repair {agent_name} via ImmuneSystem")
+                    # Comparaison intelligente avant écriture
+                    current_code = self._read_file(f"agents/{agent_name}_agent.py")
+                    if current_code and difflib.SequenceMatcher(None, current_code, repair_code["code_snippet"]).ratio() < 0.95:
+                        await self.edit_tool._run(file_path=f"agents/{agent_name}_agent.py", new_content=repair_code["code_snippet"])
+                        self.git_tool._run(message=f"Auto-repair optimisé {agent_name} via ImmuneSystem")
+                        repair_count_total.inc()
+                        logger.info(f"✅ Agent {agent_name} réparé et reprogrammé avec succès")
+                    else:
+                        logger.info(f"✅ Agent {agent_name} déjà optimal, pas de modification")
                 self.repair_history.append({"agent": agent_name, "time": str(datetime.datetime.now()), "issue": issue})
-                logger.info(f"✅ Agent {agent_name} réparé et reprogrammé")
             except Exception as e:
                 logger.error(f"❌ Échec réparation {agent_name}: {e}")
+                # Auto-guérison de l'immune lui-même
+                if "immune" in str(e).lower():
+                    self._self_heal()
 
     def _create_backup(self, agent_name: str):
-        """Backups intelligents horodatés"""
+        """Backups optimisés + rotation automatique"""
         try:
             src = f"agents/{agent_name}_agent.py"
             if os.path.exists(src):
                 dst = f"{self.backup_dir}/{agent_name}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.py"
                 shutil.copy2(src, dst)
-                print(f"[IMMUNE SYSTEM] 💾 Backup créé : {dst}")
+                backup_count_total.inc()
+                print(f"[IMMUNE SYSTEM] 💾 Backup optimisé créé : {dst}")
+                # Nettoyage anciens backups (garder seulement les 10 derniers)
+                self._cleanup_old_backups(agent_name)
         except Exception:
             pass
 
-    async def respond(self, question: str, context: dict):
-        if "monitor" in question.lower() or "health" in question.lower():
-            return await self.monitor_agents(context)
-        if "repair" in question.lower() or "fix" in question.lower():
-            return await self.repair_agents([], context)
-        # Comportement par défaut (rétro-compatible)
-        return {"agent": "immune_system", "summary": "Système immunitaire opérationnel — aucune anomalie détectée", "confidence": 1.0}
+    def _cleanup_old_backups(self, agent_name: str):
+        """Nettoyage intelligent des backups"""
+        try:
+            backups = sorted([f for f in os.listdir(self.backup_dir) if f.startswith(agent_name)], reverse=True)
+            for old in backups[10:]:
+                os.remove(os.path.join(self.backup_dir, old))
+        except Exception:
+            pass
 
-# Compatibilité avec l'ancien nom
+    def _read_file(self, filepath: str):
+        try:
+            with open(filepath, "r", encoding="utf-8") as f:
+                return f.read()
+        except Exception:
+            return None
+
+    def _self_heal(self):
+        """Auto-guérison de l'ImmuneSystemAgent lui-même"""
+        print("[IMMUNE SYSTEM] 🧬 Auto-guérison activée sur le système immunitaire...")
+        self_heal_count_total.inc()
+        # Réinitialisation des outils critiques
+        self.edit_tool = EditBotFileTool()
+        self.git_tool = GitPushTool()
+        logger.info("✅ ImmuneSystemAgent auto-réparé avec succès")
+
+    async def respond(self, question: str, context: dict):
+        if any(keyword in question.lower() for keyword in ["monitor", "health", "status", "heartbeat"]):
+            return await self.monitor_agents(context)
+        if any(keyword in question.lower() for keyword in ["repair", "fix", "heal", "répare"]):
+            return await self.repair_agents([], context)
+        # Comportement par défaut ultra-rapide
+        return {"agent": "immune_system", "summary": "Système immunitaire opérationnel et optimisé — santé à " + str(self.health_status["score"]) + "%", "confidence": 1.0, "health_score": self.health_status["score"]}
+
+# Compatibilité avec l'ancien nom (rien supprimé)
 SelfImprovementEngineer = ImmuneSystemAgent
