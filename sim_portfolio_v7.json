@@ -2,35 +2,7 @@
   "sim": {
     "cash": 1693.945120846441,
     "initial": 1000.0,
-    "positions": {
-      "MICRO_PIXELUSDT_39": {
-        "id": 39,
-        "symbol": "PIXELUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.00855,
-        "price_out": null,
-        "qty": 80879.3847140374,
-        "amount_usd": 691.5187393050197,
-        "confidence": 88,
-        "reason": "EMA\u2191 RSI7=55 mom=+0.82% vol=0.6x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 11:16:46",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.00858,
-        "open_time": 1774610206.4980638,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_PIXELUSDT_39"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
