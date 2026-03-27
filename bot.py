@@ -15,7 +15,7 @@ from logging_config import logger
 logger.info("Bot v7.1 démarré avec logging étendu ✅")
 
 from collections import defaultdict, deque
-
+import matplotlib.pyplot as plt
 from memory import Memory
 from agents.orchestrator import Orchestrator
 from agents.performance_tracker import PerformanceTracker
@@ -2147,22 +2147,37 @@ def backtest_strategy(
             if change <= -sl_pct or change >= tp_pct or (i - entry_idx > 100):
                 pnl = change * (equity * 0.20) * (1 - FEE - SLIPPAGE)
                 equity += pnl
-                bt_trades.append({"entry": entry_price, "exit": price, "pnl": round(pnl,4), "pnl_pct": round(change*100,2), "exit_reason": "SL" if change <= -sl_pct else "TP" if change >= tp_pct else "TIMEOUT"})
+                bt_trades.append({
+                    "entry": entry_price,
+                    "exit": price,
+                    "pnl": round(pnl, 4),
+                    "pnl_pct": round(change * 100, 2),
+                    "exit_reason": "SL" if change <= -sl_pct else "TP" if change >= tp_pct else "TIMEOUT"
+                })
                 in_trade = False
             equity_curve.append(equity)
             continue
 
         # Signal d'entrée
         score = 0
-        if ind.get("rsi",50) < 35: score += 3
-        elif ind.get("rsi",50) < 45: score += 1
-        if ind.get("rsi",50) > 70: score -= 3
-        if ind.get("macd_h",0) > 0: score += 2
-        else: score -= 1
-        if ind.get("mom5",0) > 1: score += 2
-        elif ind.get("mom5",0) < -1: score -= 2
-        if ind.get("ema_cross","BEAR") == "BULL": score += 1
-        else: score -= 1
+        if ind.get("rsi", 50) < 35:
+            score += 3
+        elif ind.get("rsi", 50) < 45:
+            score += 1
+        if ind.get("rsi", 50) > 70:
+            score -= 3
+        if ind.get("macd_h", 0) > 0:
+            score += 2
+        else:
+            score -= 1
+        if ind.get("mom5", 0) > 1:
+            score += 2
+        elif ind.get("mom5", 0) < -1:
+            score -= 2
+        if ind.get("ema_cross", "BEAR") == "BULL":
+            score += 1
+        else:
+            score -= 1
 
         if score >= 4 and not in_trade:
             in_trade = True
@@ -2176,8 +2191,8 @@ def backtest_strategy(
     wins = [t for t in bt_trades if t["pnl"] > 0]
     losses = [t for t in bt_trades if t["pnl"] <= 0]
     total_pnl = sum(t["pnl"] for t in bt_trades)
-    win_rate = round(len(wins)/len(bt_trades)*100, 1)
-    pnl_pcts = [t["pnl_pct"]/100 for t in bt_trades]
+    win_rate = round(len(wins) / len(bt_trades) * 100, 1)
+    pnl_pcts = [t["pnl_pct"] / 100 for t in bt_trades]
 
     # Sharpe
     if len(pnl_pcts) > 1:
@@ -2214,6 +2229,24 @@ def backtest_strategy(
         "trades": bt_trades[-10:],
     }
 
+    # === VISUALISATION GRAPHIQUE DU BACKTEST ===
+    try:
+        import matplotlib.pyplot as plt
+        plt.figure(figsize=(10, 5))
+        plt.plot(equity_curve, label="Equity Curve", color="#2ecc71", linewidth=2)
+        plt.title(f"Backtest {symbol} — {days}j / {interval}\nWin Rate: {win_rate}% | Sharpe: {sharpe}")
+        plt.xlabel("Trades")
+        plt.ylabel("Equity ($)")
+        plt.grid(True, alpha=0.3)
+        plt.legend()
+        
+        filename = f"backtest_{symbol}_{interval}_{days}j.png"
+        plt.savefig(filename, dpi=200, bbox_inches='tight')
+        plt.close()
+        print(f"[BACKTEST] Graphique sauvegardé → {filename}")
+    except Exception as e:
+        print(f"[BACKTEST] Impossible de générer le graphique: {e}")
+
     # Sauvegarde en DB
     try:
         con = sqlite3.connect(DB_FILE)
@@ -2222,11 +2255,12 @@ def backtest_strategy(
             VALUES(?,?,?,?,?,?,?,?,?)""", (
             datetime.now().strftime("%Y-%m-%d %H:%M"),
             symbol, f"{days}d/{interval}",
-            len(bt_trades), win_rate, round(total_pnl,2),
+            len(bt_trades), win_rate, round(total_pnl, 2),
             sharpe, max_dd,
-            json.dumps({"sl":sl_pct,"tp":tp_pct})
+            json.dumps({"sl": sl_pct, "tp": tp_pct})
         ))
-        con.commit(); con.close()
+        con.commit()
+        con.close()
     except Exception:
         pass
 
