@@ -2,36 +2,7 @@
   "sim": {
     "cash": 1235.8692273506397,
     "initial": 1000.0,
-    "positions": {
-      "MEME_Deadwhale_58": {
-        "id": 58,
-        "symbol": "Deadwhale",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "Deadwhale",
-        "price_in": 0.001005,
-        "price_out": null,
-        "qty": 62515.51557239313,
-        "amount_usd": 62.8280931502551,
-        "confidence": 95,
-        "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-27 11:39:29",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.001005,
-        "open_time": 1774611569.8366213,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_Deadwhale_58"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
@@ -7908,6 +7879,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 11:39"
+      },
+      {
+        "trade_id": -2,
+        "pnl": -3.1164,
+        "symbol": "BTCUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 11:39"
       }
     ],
     "patterns_to_avoid": [
@@ -7924,7 +7906,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "score=4",
       "backtest_5m",
@@ -8210,6 +8191,7 @@
       "backtest_5m",
       "memecoin",
       "memecoin",
+      "backtest_5m",
       "backtest_5m"
     ],
     "patterns_that_work": [
