@@ -2,36 +2,7 @@
   "sim": {
     "cash": 956.288909130324,
     "initial": 1000.0,
-    "positions": {
-      "MEME_NEKO_81": {
-        "id": 81,
-        "symbol": "NEKO",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "NEKO",
-        "price_in": 0.0006535,
-        "price_out": null,
-        "qty": 76474.11374649325,
-        "amount_usd": 49.97583333333334,
-        "confidence": 95,
-        "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-27 12:26:29",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0006535,
-        "open_time": 1774614389.3761666,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_NEKO_81"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
