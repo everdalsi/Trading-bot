@@ -307,17 +307,21 @@ _fg_cache           = {"value": 50, "ts": 0}
 _macro_cache        = {"trend": "NEUTRAL", "ts": 0}
 
 # ═══════════════════════════════════════════════════════════════
-#  WEBSOCKET MANAGER (nouveau module propre)
+#  MODULES PROPRES (refactor étape 2)
 # ═══════════════════════════════════════════════════════════════
 from websocket_manager import ws_manager
+from data_handler import data_handler
 
-# Démarrage du WebSocket (on garde tes symboles actuels)
+# Symboles surveillés
 WS_SYMBOLS_WATCH = [
     "btcusdt","ethusdt","solusdt","bnbusdt","xrpusdt",
     "dogeusdt","avaxusdt","linkusdt","arbusdt","aptusdt",
     "fetusdt","injusdt","nearusdt","suiusdt","opusdt",
 ]
+
+# Démarrage des modules
 ws_manager.start(WS_SYMBOLS_WATCH)
+data_handler.prefill_caches(WS_SYMBOLS_WATCH)
 # ═══════════════════════════════════════════════════════════════
 #  AI POOL — Optimisé avec cache 
 # ═══════════════════════════════════════════════════════════════
