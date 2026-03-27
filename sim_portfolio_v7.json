@@ -3,33 +3,6 @@
     "cash": 213.4012215223873,
     "initial": 1000.0,
     "positions": {
-      "MICRO_TONUSDT_20": {
-        "id": 20,
-        "symbol": "TONUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 1.236,
-        "price_out": null,
-        "qty": 167.81598188349923,
-        "amount_usd": 207.42055360800504,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=23 mom=-0.24% vol=3.2x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 10:55:32",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 1.236,
-        "open_time": 1774608932.0235868,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_TONUSDT_20"
-      },
       "MICRO_MEMEUSDT_21": {
         "id": 21,
         "symbol": "MEMEUSDT",
