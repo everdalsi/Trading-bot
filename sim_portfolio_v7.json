@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 298.422585007213,
+    "cash": 1693.945120846441,
     "initial": 1000.0,
     "positions": {
       "MICRO_PIXELUSDT_39": {
@@ -1042,17 +1042,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.00855,
-        "price_out": null,
+        "price_out": 0.00858,
         "qty": 80879.3847140374,
         "amount_usd": 691.5187393050197,
         "confidence": 88,
         "reason": "EMA\u2191 RSI7=55 mom=+0.82% vol=0.6x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 73s",
         "time_in": "2026-03-27 11:16:46",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 11:18:00",
+        "pnl": 2.426382,
+        "pnl_pct": 0.351,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -1093,8 +1093,8 @@
       1000.0
     ],
     "session": 1,
-    "peak_equity": 1000.0,
-    "daily_start_equity": 1000.0,
+    "peak_equity": 1691.5187393050196,
+    "daily_start_equity": 1691.5187393050196,
     "daily_start_date": "2026-03-27"
   },
   "memory": {
@@ -4937,6 +4937,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 11:17"
+      },
+      {
+        "trade_id": 39,
+        "pnl": 2.426382,
+        "symbol": "PIXELUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 11:18"
       }
     ],
     "patterns_to_avoid": [
@@ -5290,9 +5301,10 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
-    "confidence_threshold": 82,
+    "confidence_threshold": 80,
     "total_wins": 10,
     "total_losses": 106,
     "symbol_scores": {
@@ -5314,7 +5326,7 @@
       "WIFUSDT": -6,
       "JUPUSDT": 4,
       "PIXEL": -3,
-      "PIXELUSDT": -8
+      "PIXELUSDT": -6
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
