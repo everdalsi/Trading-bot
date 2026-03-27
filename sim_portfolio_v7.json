@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 303.8407056386583,
+    "cash": 789.3722350920999,
     "initial": 1000.0,
     "positions": {
       "MICRO_APTUSDT_39": {
@@ -25,10 +25,37 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 1.016,
+        "peak_price": 1.018,
         "open_time": 1774595451.1215012,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_APTUSDT_39"
+      },
+      "MICRO_SEIUSDT_40": {
+        "id": 40,
+        "symbol": "SEIUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.0578,
+        "price_out": null,
+        "qty": 3658.7046907354,
+        "amount_usd": 211.47313112450612,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=18 mom=-0.17% vol=6.6x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 07:11:56",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0578,
+        "open_time": 1774595516.8741343,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_SEIUSDT_40"
       }
     },
     "trades": [
@@ -1035,13 +1062,39 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 1.016,
-        "price_out": null,
+        "price_out": 1.018,
         "qty": 684.6804131414026,
         "amount_usd": 695.635299751665,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=10 mom=+0.00% vol=4.2x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 69s",
         "time_in": "2026-03-27 07:10:51",
+        "time_out": "2026-03-27 07:12:01",
+        "pnl": 1.369361,
+        "pnl_pct": 0.197,
+        "duration_min": 1,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 1.016,
+        "open_time": 1774595451.1215012,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 40,
+        "symbol": "SEIUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.0578,
+        "price_out": null,
+        "qty": 3658.7046907354,
+        "amount_usd": 211.47313112450612,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=18 mom=-0.17% vol=6.6x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 07:11:56",
         "time_out": null,
         "pnl": null,
         "pnl_pct": null,
@@ -1050,8 +1103,8 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 1.016,
-        "open_time": 1774595451.1215012,
+        "peak_price": 0.0578,
+        "open_time": 1774595516.8741343,
         "kelly_pct": 0.48
       }
     ],
@@ -15826,6 +15879,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 07:11"
+      },
+      {
+        "trade_id": 39,
+        "pnl": 1.369361,
+        "symbol": "APTUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 07:12"
       }
     ],
     "patterns_to_avoid": [
@@ -16219,7 +16283,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -16430,7 +16493,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
     "confidence_threshold": 82,
     "total_wins": 138,
@@ -16460,7 +16524,7 @@
       "PEPEUSDT": 4,
       "ONDOUSDT": 4,
       "UNIUSDT": -6,
-      "APTUSDT": -6
+      "APTUSDT": -4
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
