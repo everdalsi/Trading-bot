@@ -1,35 +1,8 @@
 {
   "sim": {
-    "cash": 479.6193969693422,
+    "cash": 279.7131880990495,
     "initial": 1000.0,
     "positions": {
-      "MICRO_ORDIUSDT_15": {
-        "id": 15,
-        "symbol": "ORDIUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 2.294,
-        "price_out": null,
-        "qty": 28.67732505453664,
-        "amount_usd": 65.78578367510706,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=17 mom=-0.13% vol=5.1x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 05:41:44",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 2.296,
-        "open_time": 1774590104.5039146,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_ORDIUSDT_15"
-      },
       "MICRO_LTCUSDT_16": {
         "id": 16,
         "symbol": "LTCUSDT",
@@ -52,10 +25,37 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 54.9,
+        "peak_price": 54.91,
         "open_time": 1774590161.8033535,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_LTCUSDT_16"
+      },
+      "MICRO_TURBOUSDT_17": {
+        "id": 17,
+        "symbol": "TURBOUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.001036,
+        "price_out": null,
+        "qty": 256514.81389527876,
+        "amount_usd": 265.7493471955088,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=10 mom=+0.00% vol=15.7x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 05:43:04",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.001036,
+        "open_time": 1774590184.613853,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_TURBOUSDT_17"
       }
     },
     "trades": [
@@ -431,17 +431,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 2.294,
-        "price_out": null,
+        "price_out": 2.296,
         "qty": 28.67732505453664,
         "amount_usd": 65.78578367510706,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=17 mom=-0.13% vol=5.1x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 70s",
         "time_in": "2026-03-27 05:41:44",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 05:42:55",
+        "pnl": 0.057355,
+        "pnl_pct": 0.087,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -474,6 +474,32 @@
         "leverage": 1,
         "peak_price": 54.9,
         "open_time": 1774590161.8033535,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 17,
+        "symbol": "TURBOUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.001036,
+        "price_out": null,
+        "qty": 256514.81389527876,
+        "amount_usd": 265.7493471955088,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=10 mom=+0.00% vol=15.7x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 05:43:04",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.001036,
+        "open_time": 1774590184.613853,
         "kelly_pct": 0.48
       }
     ],
@@ -8065,6 +8091,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 05:42"
+      },
+      {
+        "trade_id": 15,
+        "pnl": 0.057355,
+        "symbol": "ORDIUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 05:42"
       }
     ],
     "patterns_to_avoid": [
@@ -8563,11 +8600,12 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
     "confidence_threshold": 32,
-    "total_wins": 69,
-    "total_losses": 143,
+    "total_wins": 70,
+    "total_losses": 144,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
@@ -8583,7 +8621,8 @@
       "FLOKIUSDT": 4,
       "TRXUSDT": 4,
       "BNBUSDT": -6,
-      "TURBOUSDT": -6
+      "TURBOUSDT": -6,
+      "ORDIUSDT": 4
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
@@ -8598,7 +8637,8 @@
       "FLOKIUSDT": 0,
       "TRXUSDT": 0,
       "BNBUSDT": 1,
-      "TURBOUSDT": 1
+      "TURBOUSDT": 1,
+      "ORDIUSDT": 0
     },
     "bad_setups": [
       {
@@ -13952,6 +13992,48 @@
             "exit": 2050.53,
             "pnl": -1.8027,
             "pnl_pct": -0.91,
+            "exit_reason": "TIMEOUT"
+          }
+        ]
+      },
+      {
+        "symbol": "BTCUSDT",
+        "interval": "5m",
+        "days": 30,
+        "total_trades": 3,
+        "wins": 0,
+        "losses": 3,
+        "win_rate": 0.0,
+        "total_pnl": -5.63,
+        "total_pnl_pct": -0.56,
+        "sharpe": -30.41,
+        "max_drawdown": -0.56,
+        "profit_factor": 0.0,
+        "best_trade": -0.36,
+        "worst_trade": -1.56,
+        "final_equity": 994.37,
+        "sl_used": 0.025,
+        "tp_used": 0.04,
+        "trades": [
+          {
+            "entry": 71503.24375499999,
+            "exit": 71242.73,
+            "pnl": -0.7276,
+            "pnl_pct": -0.36,
+            "exit_reason": "TIMEOUT"
+          },
+          {
+            "entry": 70091.49823499999,
+            "exit": 68996.89,
+            "pnl": -3.1164,
+            "pnl_pct": -1.56,
+            "exit_reason": "TIMEOUT"
+          },
+          {
+            "entry": 69199.572495,
+            "exit": 68578.0,
+            "pnl": -1.7869,
+            "pnl_pct": -0.9,
             "exit_reason": "TIMEOUT"
           }
         ]
