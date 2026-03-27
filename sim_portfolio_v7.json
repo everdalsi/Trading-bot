@@ -1,35 +1,8 @@
 {
   "sim": {
-    "cash": 557.0788478498372,
+    "cash": 807.0078262368079,
     "initial": 1000.0,
     "positions": {
-      "MICRO_BNBUSDT_12": {
-        "id": 12,
-        "symbol": "BNBUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 626.95,
-        "price_out": null,
-        "qty": 0.7781352621654276,
-        "amount_usd": 487.85190261461486,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=27 mom=-0.03% vol=18.5x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 05:40:53",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 626.95,
-        "open_time": 1774590053.9653206,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_BNBUSDT_12"
-      },
       "MICRO_TURBOUSDT_13": {
         "id": 13,
         "symbol": "TURBOUSDT",
@@ -433,17 +406,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.001036,
-        "price_out": null,
+        "price_out": 0.001035,
         "qty": 241477.27380383646,
         "amount_usd": 250.1704556607746,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=10 mom=+0.00% vol=21.4x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 63s",
         "time_in": "2026-03-27 05:41:14",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 05:42:18",
+        "pnl": -0.241477,
+        "pnl_pct": -0.097,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -7950,6 +7923,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 05:42"
+      },
+      {
+        "trade_id": 13,
+        "pnl": -0.241477,
+        "symbol": "TURBOUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 05:42"
       }
     ],
     "patterns_to_avoid": [
@@ -8142,7 +8126,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -8252,6 +8235,7 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "score=4",
       "score=4"
     ],
     "patterns_that_work": [
@@ -8449,7 +8433,7 @@
     ],
     "confidence_threshold": 32,
     "total_wins": 68,
-    "total_losses": 138,
+    "total_losses": 139,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
@@ -8464,7 +8448,8 @@
       "STXUSDT": 4,
       "FLOKIUSDT": 4,
       "TRXUSDT": 4,
-      "BNBUSDT": -3
+      "BNBUSDT": -6,
+      "TURBOUSDT": -3
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
@@ -8477,7 +8462,8 @@
       "BTCUSDT": 0,
       "STXUSDT": 0,
       "FLOKIUSDT": 0,
-      "TRXUSDT": 0
+      "TRXUSDT": 0,
+      "BNBUSDT": 1
     },
     "bad_setups": [
       {
