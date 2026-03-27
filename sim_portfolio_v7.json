@@ -4576,6 +4576,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 11:15"
+      },
+      {
+        "trade_id": -1,
+        "pnl": 1.519,
+        "symbol": "BTCUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 11:15"
       }
     ],
     "patterns_to_avoid": [
@@ -4901,14 +4912,15 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "score=4"
+      "score=4",
+      "backtest_5m"
     ],
     "confidence_threshold": 82,
     "total_wins": 10,
     "total_losses": 99,
     "symbol_scores": {
       "Deadwhale": -15,
-      "BTCUSDT": -15,
+      "BTCUSDT": -13,
       "ETHUSDT": -15,
       "SOLUSDT": -15,
       "APTUSDT": -5,
