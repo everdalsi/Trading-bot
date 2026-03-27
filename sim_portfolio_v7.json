@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 1592.003571968584,
+    "cash": 1626.1209912766656,
     "initial": 1000.0,
     "positions": {
       "MICRO_BTCUSDT_103": {
@@ -2799,17 +2799,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 65855.41,
-        "price_out": null,
+        "price_out": 65805.87,
         "qty": 0.0005184555619138755,
         "amount_usd": 34.14310359661866,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=21 mom=-0.30% vol=3.0x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 232s",
         "time_in": "2026-03-27 14:26:28",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 14:30:33",
+        "pnl": -0.025684,
+        "pnl_pct": -0.075,
+        "duration_min": 3,
         "patterns": [
           "score=4"
         ],
@@ -14265,6 +14265,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 14:30"
+      },
+      {
+        "trade_id": 103,
+        "pnl": -0.025684,
+        "symbol": "BTCUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 14:30"
       }
     ],
     "patterns_to_avoid": [
@@ -14282,7 +14293,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "score=4",
       "memecoin",
@@ -14566,6 +14576,7 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "score=4",
       "score=4",
       "score=4"
     ],
@@ -14802,7 +14813,7 @@
     ],
     "confidence_threshold": 76,
     "total_wins": 24,
-    "total_losses": 316,
+    "total_losses": 317,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -15,
@@ -14839,7 +14850,7 @@
       "LTCUSDT": -6,
       "DOTUSDT": 1,
       "BONKUSDT": 4,
-      "PYTHUSDT": -3
+      "PYTHUSDT": -6
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
@@ -14873,7 +14884,8 @@
       "XRPUSDT": 0,
       "LTCUSDT": 1,
       "DOTUSDT": 0,
-      "BONKUSDT": 0
+      "BONKUSDT": 0,
+      "PYTHUSDT": 1
     },
     "bad_setups": [
       {
