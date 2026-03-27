@@ -386,6 +386,20 @@ class LearningAgent(BaseAgent):
             print(f"[LEARNING] compress error: {e}")
             return f"Erreur compression: {e}"
 
+    # === NOUVEAU : confidence_score puissant basé sur l’historique réel ===
+    def get_pattern_confidence(self, pattern: str) -> float:
+        try:
+            con = sqlite3.connect(DB_FILE)
+            row = con.execute("""
+                SELECT wins, occurrences FROM memory_patterns WHERE pattern=?
+            """, (pattern,)).fetchone()
+            con.close()
+            if row and row[1] >= 5:
+                return round(row[0] / row[1], 3)
+            return 0.5
+        except:
+            return 0.5
+
     async def respond(self, question: str, context: dict) -> Dict[str, Any]:
         extreme_learning = context.get("extreme_learning_mode", False) or context.get("learning_mode", False)
 
@@ -413,6 +427,12 @@ class LearningAgent(BaseAgent):
         losses       = global_stats["losses"]
         winrate      = global_stats["winrate"]
         lesson_count = self.get_lesson_count()
+
+        # === NOUVEAU confidence_score basé sur historique réel ===
+        pattern_conf = 0.5
+        if context.get("patterns"):
+            for p in context.get("patterns")[:3]:
+                pattern_conf = max(pattern_conf, self.get_pattern_confidence(str(p)))
 
         if total == 0:
             sim    = context.get("sim", {})
@@ -450,7 +470,8 @@ class LearningAgent(BaseAgent):
         if symbol_stats.get("count", 0) < 5:
             delta -= 0.05
 
-        adjusted_conf = max(0.10, min(0.95, base_conf + delta))
+        # Boost du pattern historique
+        adjusted_conf = max(0.10, min(0.95, base_conf + delta + (pattern_conf - 0.5) * 0.4))
 
         best_patterns  = self.get_best_patterns(symbol, limit=3)
         worst_patterns = self.get_worst_patterns(symbol, limit=3)
@@ -464,7 +485,6 @@ class LearningAgent(BaseAgent):
             symbol_score < 0.30
             and symbol_stats.get("count", 0) >= 5
         )
-        # === UPGRADE : blacklist auto après 2 SL -99% ===
         severe_sl = context.get("severe_sl_count", 0)
         if severe_sl >= 2 or (symbol_score < 0.15 and symbol_stats.get("count", 0) >= 3):
             should_blacklist = True
@@ -486,7 +506,8 @@ class LearningAgent(BaseAgent):
             summary = (
                 f"Mémoire: {lesson_count} leçons ∞ | "
                 f"Score global: {global_score:.1%} | "
-                f"Symbole {symbol or 'global'}: {symbol_score:.1%}"
+                f"Symbole {symbol or 'global'}: {symbol_score:.1%} | "
+                f"Pattern confidence: {pattern_conf:.2f}"
             )
 
         return {
@@ -501,6 +522,7 @@ class LearningAgent(BaseAgent):
                 f"Auto-règles actives : {len(auto_rules)}",
                 f"Insights compressés : {len(insights)}",
                 f"Extreme Learning Mode : {'✅ ACTIVÉ (blacklist désactivé)' if extreme_learning else 'Inactif'}",
+                f"Pattern historique confidence : {pattern_conf:.2f}",
             ],
             "risks": (
                 ["Score < 0.3 → blacklist automatique recommandé"] if should_blacklist else []
