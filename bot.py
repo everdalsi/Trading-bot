@@ -4226,50 +4226,43 @@ def get_yahoo_price(ticker: str) -> float:
     return 0.0  # placeholder pour actions/forex
 
 if __name__ == "__main__":
-    print("🚀 Trading Bot v7.1 — WebSocket + Backtest + Agent Conscience + EXTREME LEARNING MODE")
-
+    print("🚀 Trading Bot v7.2 — LIVE PROGRESSIVE chargé")
     init_db()
     load_data()
 
-    # === PATCH EXTREME LEARNING : reset equity à chaque démarrage ===
-    # Empêche le capital fantôme (+8106 %) après redémarrage
+    # Reset equity en mode extreme learning pour éviter capital fantôme
     if EXTREME_LEARNING_MODE:
         sim["cash"] = CAPITAL_INITIAL
         sim["initial"] = CAPITAL_INITIAL
         sim["equity_history"] = [CAPITAL_INITIAL]
         sim["peak_equity"] = CAPITAL_INITIAL
         sim["daily_start_equity"] = CAPITAL_INITIAL
-        print(f"🔄 EXTREME LEARNING MODE → equity reset à ${CAPITAL_INITIAL:,.2f} (protection contre capital fantôme)")
+        print(f"🔄 EXTREME LEARNING MODE → equity reset à ${CAPITAL_INITIAL:,.2f}")
 
-
-    # Evolution agent — thread daemon séparé
+    # Evolution agent
     evolution_thread = threading.Thread(target=_evolution_loop_MAIN, daemon=True)
     evolution_thread.start()
-    print("🧬 EvolutionAgent activé")
 
-    # Serveur HTTP dashboard
+    # Dashboard server
     threading.Thread(target=run_server, daemon=True).start()
 
-    # Self-ping Railway
+    # Self-ping
     threading.Thread(target=self_ping, daemon=True).start()
 
-    # Auto-training backtest loop
+    # Auto-training
     def _auto_training_loop():
         time.sleep(30)
         while True:
             try:
-                print("[AUTO-TRAIN] lancement")
                 auto_training()
-                print("[AUTO-TRAIN] terminé")
             except Exception as e:
                 print(f"[AUTO-TRAIN ERROR] {e}")
             time.sleep(45)
 
     threading.Thread(target=_auto_training_loop, daemon=True).start()
 
-    # Auto-start trading
+    # Auto-start
     threading.Thread(target=auto_start, daemon=True).start()
 
-    # Telegram (boucle principale — bloquant)
+    # Lancement Telegram (bloquant)
     asyncio.run(run_telegram())
-    result =
