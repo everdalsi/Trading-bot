@@ -1,35 +1,8 @@
 {
   "sim": {
-    "cash": 143.97165320297455,
+    "cash": 672.9811033681056,
     "initial": 1000.0,
     "positions": {
-      "MICRO_AVAXUSDT_23": {
-        "id": 23,
-        "symbol": "AVAXUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 8.72,
-        "price_out": null,
-        "qty": 60.5967296867275,
-        "amount_usd": 528.4034828682638,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=26 mom=-0.34% vol=4.4x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 10:55:52",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 8.73,
-        "open_time": 1774608952.527365,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_AVAXUSDT_23"
-      },
       "MICRO_APTUSDT_24": {
         "id": 24,
         "symbol": "APTUSDT",
@@ -757,17 +730,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 8.72,
-        "price_out": null,
+        "price_out": 8.73,
         "qty": 60.5967296867275,
         "amount_usd": 528.4034828682638,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=26 mom=-0.34% vol=4.4x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 76s",
         "time_in": "2026-03-27 10:55:52",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 10:57:09",
+        "pnl": 0.605967,
+        "pnl_pct": 0.115,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -2358,6 +2331,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 10:57"
+      },
+      {
+        "trade_id": 23,
+        "pnl": 0.605967,
+        "symbol": "AVAXUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 10:57"
       }
     ],
     "patterns_to_avoid": [
@@ -2493,6 +2477,7 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "score=4",
       "score=4"
     ],
     "confidence_threshold": 82,
@@ -2509,7 +2494,7 @@
       "TONUSDT": -12,
       "TRXUSDT": -6,
       "ONDOUSDT": -6,
-      "AVAXUSDT": -6,
+      "AVAXUSDT": -4,
       "OPUSDT": -6,
       "MEMEUSDT": 4,
       "NOTUSDT": -6
