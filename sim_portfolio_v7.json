@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 28.094464000000016,
+    "cash": 8.540717056000005,
     "initial": 1000.0,
     "positions": {
       "MICRO_RENDERUSDT_88": {
@@ -83,6 +83,33 @@
         "open_time": 1774621363.7945673,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_UNIUSDT_90"
+      },
+      "MICRO_APTUSDT_91": {
+        "id": 91,
+        "symbol": "APTUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.989,
+        "price_out": null,
+        "qty": 19.771230479272003,
+        "amount_usd": 19.55374694400001,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=18 mom=-0.20% vol=2.5x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 14:22:44",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.989,
+        "open_time": 1774621364.5537593,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_APTUSDT_91"
       }
     },
     "trades": [
@@ -2478,6 +2505,32 @@
         "leverage": 1,
         "peak_price": 3.372,
         "open_time": 1774621363.7945673,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 91,
+        "symbol": "APTUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.989,
+        "price_out": null,
+        "qty": 19.771230479272003,
+        "amount_usd": 19.55374694400001,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=18 mom=-0.20% vol=2.5x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 14:22:44",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.989,
+        "open_time": 1774621364.5537593,
         "kelly_pct": 0.48
       }
     ],
@@ -13226,12 +13279,32 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 14:22"
+      },
+      {
+        "trade_id": -2,
+        "pnl": -5.1664,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 14:22"
+      },
+      {
+        "trade_id": -3,
+        "pnl": -1.8027,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 14:22"
       }
     ],
     "patterns_to_avoid": [
       "backtest_5m",
-      "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
@@ -13518,6 +13591,8 @@
       "backtest_5m",
       "backtest_5m",
       "score=4",
+      "backtest_5m",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
