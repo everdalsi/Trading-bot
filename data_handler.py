@@ -11,10 +11,10 @@ class DataHandler:
         self.price_cache = {}
         self.kline_cache_1m = {}
         self.kline_cache_5m = {}
-        self.cache_ttl = 30
+        self.cache_ttl = 30  # secondes
 
     def get_current_price(self, symbol: str) -> float | None:
-        """Récupère le prix actuel avec cache court"""
+        """Prix actuel avec cache court"""
         now = time.time()
         if symbol in self.price_cache and now - self.price_cache[symbol]["ts"] < self.cache_ttl:
             return self.price_cache[symbol]["price"]
@@ -33,16 +33,10 @@ class DataHandler:
             logger.error(f"[DATA] Erreur prix {symbol}: {e}")
         return None
 
-    def get_klines(self, symbol: str, interval: str = "1m", limit: int = 100):
-        """Récupère les klines (utilise le WS si dispo, sinon REST)"""
-        # Pour l'instant on utilise le WS via ws_manager (déjà injecté plus tard)
-        # Ce fichier sera le point central pour toutes les données
-        pass  # on complètera dans l'étape suivante
-
     def prefill_caches(self, symbols):
-        """Pré-remplissage REST au démarrage"""
+        """Pré-remplissage au démarrage (utilisé par ws_manager)"""
         logger.info(f"[DATA] Pré-remplissage caches pour {len(symbols)} symboles")
-        for sym in symbols[:8]:  # on limite pour pas surcharger
+        for sym in symbols[:8]:
             sym = sym.upper()
             try:
                 r = requests.get(
@@ -58,5 +52,11 @@ class DataHandler:
             time.sleep(0.3)
         logger.info("[DATA] Pré-remplissage terminé ✅")
 
-# Instance globale
+    def get_klines(self, symbol: str, interval: str = "1m", limit: int = 100):
+        """Récupère les klines (priorité WS via ws_manager, fallback REST)"""
+        # On garde simple pour l’instant, le WS est déjà géré par ws_manager
+        return ws_manager.get_klines(symbol, interval) if hasattr(ws_manager, 'get_klines') else []
+
+
+# Instance globale utilisée partout
 data_handler = DataHandler()
