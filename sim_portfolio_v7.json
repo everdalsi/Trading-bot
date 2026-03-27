@@ -3,33 +3,6 @@
     "cash": 429.8782548113844,
     "initial": 1000.0,
     "positions": {
-      "MICRO_SOLUSDT_73": {
-        "id": 73,
-        "symbol": "SOLUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 85.6,
-        "price_out": null,
-        "qty": 2.4596053577818653,
-        "amount_usd": 210.54221862612766,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=25 mom=-0.28% vol=10.3x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 08:31:47",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 85.72,
-        "open_time": 1774600307.300209,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_SOLUSDT_73"
-      },
       "MICRO_NEARUSDT_74": {
         "id": 74,
         "symbol": "NEARUSDT",
