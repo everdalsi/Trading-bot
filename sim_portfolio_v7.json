@@ -3,33 +3,6 @@
     "cash": 744.0380062172969,
     "initial": 1000.0,
     "positions": {
-      "MICRO_OPUSDT_70": {
-        "id": 70,
-        "symbol": "OPUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.1097,
-        "price_out": null,
-        "qty": 5787.777926372561,
-        "amount_usd": 634.9192385230699,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=21 mom=-0.09% vol=2.7x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 08:27:42",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.1097,
-        "open_time": 1774600062.5316377,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_OPUSDT_70"
-      },
       "MICRO_XRPUSDT_71": {
         "id": 71,
         "symbol": "XRPUSDT",
