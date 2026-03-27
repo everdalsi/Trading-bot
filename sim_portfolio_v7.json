@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 787.7798314771926,
+    "cash": 999.2445511908951,
     "initial": 1000.0,
     "positions": {
       "MICRO_NOTUSDT_95": {
@@ -2491,17 +2491,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.00036,
-        "price_out": null,
+        "price_out": 0.000361,
         "qty": 585774.8468523615,
         "amount_usd": 210.87894486685013,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=21 mom=-0.28% vol=4.5x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 66s",
         "time_in": "2026-03-27 08:51:12",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 08:52:19",
+        "pnl": 0.585775,
+        "pnl_pct": 0.278,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -27446,6 +27446,28 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 08:51"
+      },
+      {
+        "trade_id": -5,
+        "pnl": 1.2958,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 08:51"
+      },
+      {
+        "trade_id": 95,
+        "pnl": 0.585775,
+        "symbol": "NOTUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 08:52"
       }
     ],
     "patterns_to_avoid": [
@@ -27771,8 +27793,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -28050,7 +28070,9 @@
       "backtest_5m",
       "score=4",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "backtest_5m",
+      "score=4"
     ],
     "confidence_threshold": 82,
     "total_wins": 233,
@@ -28058,14 +28080,14 @@
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -2,
+      "SOLUSDT": 0,
       "TARO": -3,
       "OPUSDT": -15,
       "PENDLEUSDT": -12,
       "ARBUSDT": -6,
       "BONKUSDT": 4,
       "JUPUSDT": -12,
-      "NOTUSDT": -7,
+      "NOTUSDT": -5,
       "STXUSDT": -2,
       "FLOKIUSDT": -2,
       "TRXUSDT": 4,
