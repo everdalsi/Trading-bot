@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 92.41600000000003,
+    "cash": 788.416,
     "initial": 1000.0,
     "positions": {
       "MICRO_WIFUSDT_30": {
@@ -831,17 +831,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.175,
-        "price_out": null,
+        "price_out": 0.175,
         "qty": 3977.1428571428573,
         "amount_usd": 696.0,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=9 mom=-0.57% vol=9.8x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 68s",
         "time_in": "2026-03-27 11:04:13",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 11:05:22",
+        "pnl": 0.0,
+        "pnl_pct": 0.0,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -3328,6 +3328,28 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 11:05"
+      },
+      {
+        "trade_id": 30,
+        "pnl": 0.0,
+        "symbol": "WIFUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 11:05"
+      },
+      {
+        "trade_id": -3,
+        "pnl": -1.8027,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 11:05"
       }
     ],
     "patterns_to_avoid": [
@@ -3499,6 +3521,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "backtest_5m",
+      "score=4",
       "backtest_5m"
     ],
     "patterns_that_work": [
@@ -3556,7 +3580,7 @@
       "backtest_5m",
       "backtest_5m"
     ],
-    "confidence_threshold": 62,
+    "confidence_threshold": 68,
     "total_wins": 8,
     "total_losses": 70,
     "symbol_scores": {
@@ -3574,7 +3598,8 @@
       "OPUSDT": -12,
       "MEMEUSDT": 4,
       "NOTUSDT": -6,
-      "ORDIUSDT": 1
+      "ORDIUSDT": 1,
+      "WIFUSDT": -3
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
