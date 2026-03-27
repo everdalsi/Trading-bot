@@ -146,7 +146,7 @@ class TraderAgent(BaseAgent):
             "symbol":       symbol,
             "decision":     "HOLD",
             "confidence":   0.25,
-            "symbol_score": round(symbol_score 2),
+            "symbol_score": round(symbol_score, 2),
             "global_score": round(global_score, 2),
             "summary":      natural_hold,
             "reason": reason,
