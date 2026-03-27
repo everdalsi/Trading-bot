@@ -128,7 +128,7 @@ class TraderAgent(BaseAgent):
 
         # Boost via auto-règles
         if decision == "HOLD" and auto_rules:
-            buy_rules = [r for r in auto_rules if "✅" in r]
+            buy_rules = [r for r in auto_rules if "Checkmark" in r]
             if len(buy_rules) >= 2 and composite >= 0.65:
                 decision = "BUY"
                 reason   = f"Règles automatiques actives ({len(buy_rules)}) + score {composite:.2f}"
@@ -139,6 +139,16 @@ class TraderAgent(BaseAgent):
         else:
             confidence = round(max(0.55, min(0.96, composite * 1.25)), 2)
 
+        # === UPGRADE GROK-LIKE : RAISONNEMENT NATUREL ET HUMAIN ===
+        natural_summary = (
+            f"Salut ! J’ai tout regardé avec l’équipe. "
+            f"On est sur {symbol}. Après avoir analysé les leçons passées, "
+            f"les stats live et le risque actuel, je pense qu’on devrait "
+            f"{decision.lower() if decision != 'HOLD' else 'rester en attente pour l’instant'}. "
+            f"{reason}. "
+            f"On a déjà {lesson_count} leçons en mémoire, donc on sait vraiment ce qu’on fait."
+        )
+
         return {
             "agent":        self.name,
             "symbol":       symbol,
@@ -147,17 +157,19 @@ class TraderAgent(BaseAgent):
             "symbol_score": round(symbol_score, 2),
             "global_score": round(global_score, 2),
             "composite":    round(composite, 2),
-            "summary":      (
-                f"{symbol} → {decision} | "
-                f"composite={composite:.2f} | conf={confidence:.2f} | "
-                f"leçons={lesson_count}∞"
-            ),
+            "summary":      natural_summary,   # ← Grok-like naturel
             "reason": reason,
             "macro":  macro,
+            "full_summary": natural_summary,   # même style humain partout
         }
 
     def _hold(self, symbol: str, reason: str,
               symbol_score: float, global_score: float) -> Dict[str, Any]:
+        natural_hold = (
+            f"Salut ! Après avoir tout vérifié, je préfère qu’on reste en attente sur {symbol}. "
+            f"{reason}. "
+            f"C’est plus prudent vu les leçons qu’on a accumulées."
+        )
         return {
             "agent":        self.name,
             "symbol":       symbol,
@@ -166,7 +178,8 @@ class TraderAgent(BaseAgent):
             "symbol_score": round(symbol_score, 2),
             "global_score": round(global_score, 2),
             "composite":    round((symbol_score * 0.65 + global_score * 0.25), 2),
-            "summary":      f"{symbol} → HOLD | {reason[:80]}",
+            "summary":      natural_hold,   # ← Grok-like naturel
             "reason":       reason,
             "macro":        "neutral",
+            "full_summary": natural_hold,
         }
