@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 301.05406777913015,
+    "cash": 91.52043660485555,
     "initial": 1000.0,
     "positions": {
       "MICRO_OPUSDT_90": {
@@ -29,6 +29,33 @@
         "open_time": 1774600768.9243097,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_OPUSDT_90"
+      },
+      "MICRO_WIFUSDT_91": {
+        "id": 91,
+        "symbol": "WIFUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.179,
+        "price_out": null,
+        "qty": 1170.5789451076794,
+        "amount_usd": 209.5336311742746,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=8 mom=+0.00% vol=2.9x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 08:39:31",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.179,
+        "open_time": 1774600771.3140426,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_WIFUSDT_91"
       }
     },
     "trades": [
@@ -2378,6 +2405,32 @@
         "leverage": 1,
         "peak_price": 0.1085,
         "open_time": 1774600768.9243097,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 91,
+        "symbol": "WIFUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.179,
+        "price_out": null,
+        "qty": 1170.5789451076794,
+        "amount_usd": 209.5336311742746,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=8 mom=+0.00% vol=2.9x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 08:39:31",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.179,
+        "open_time": 1774600771.3140426,
         "kelly_pct": 0.48
       }
     ],
@@ -26018,6 +26071,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 08:39"
+      },
+      {
+        "trade_id": -2,
+        "pnl": 5.0532,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 08:39"
       }
     ],
     "patterns_to_avoid": [
@@ -26323,7 +26387,6 @@
       "backtest_5m"
     ],
     "patterns_that_work": [
-      "backtest_5m",
       "memecoin",
       "memecoin",
       "backtest_5m",
@@ -26622,6 +26685,7 @@
       "backtest_5m",
       "backtest_5m",
       "score=4",
+      "backtest_5m",
       "backtest_5m"
     ],
     "confidence_threshold": 82,
@@ -26630,7 +26694,7 @@
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": 2,
+      "SOLUSDT": 4,
       "TARO": -3,
       "OPUSDT": -15,
       "PENDLEUSDT": -12,
