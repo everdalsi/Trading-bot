@@ -4147,6 +4147,55 @@ def safe_pnl(pnl_pct: float, amount_usd: float, leverage: float = 1) -> float:
             response = _ask_secretary(TELEGRAM_CHAT_ID, data.get("message", ""))
             return jsonify({"response": response})
 
+# ═══════════════════════════════════════════════════════════════
+#  FONCTIONS MANQUANTES (SCALP / ANALYSE) — AJOUTÉES ICI
+# ═══════════════════════════════════════════════════════════════
+
+def detect_arbitrage() -> list:
+    """Détection simple d’arbitrage Binance vs KuCoin (placeholder)"""
+    return []  # on l’activera plus tard si tu veux du vrai arbitrage
+
+def get_order_book(symbol: str) -> dict:
+    """Order book simplifié"""
+    return {"pressure": "NEUTRAL"}
+
+def get_onchain_data() -> dict:
+    """Données on-chain placeholder"""
+    return {"mcap_change_24h": 0, "btc_dominance": "50%"}
+
+def get_whale_alerts() -> list:
+    return []
+
+def get_liquidations() -> dict:
+    return {}
+
+def interpret_liquidations(data):
+    return ""
+
+def format_onchain(data):
+    return ""
+
+def format_whale_alerts(data):
+    return ""
+
+def format_arbitrage(opps):
+    return ""
+
+def get_options_data() -> dict:
+    return {"put_call_ratio": "N/A"}
+
+def format_options(data):
+    return ""
+
+def get_polymarket_markets() -> list:
+    return []
+
+def format_polymarket(mkts):
+    return ""
+
+def get_yahoo_price(ticker: str) -> float:
+    return 0.0  # placeholder pour actions/forex
+
 if __name__ == "__main__":
     print("🚀 Trading Bot v7.1 — WebSocket + Backtest + Agent Conscience + EXTREME LEARNING MODE")
 
