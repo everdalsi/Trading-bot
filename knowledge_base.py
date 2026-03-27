@@ -1,5 +1,5 @@
 """
-🔍 KNOWLEDGE BASE V1.2 — Version Intégrale Stable
+🔍 KNOWLEDGE BASE V1.3 — Version Intégrale Stable
 """
 
 import os
@@ -26,20 +26,23 @@ class KnowledgeBase:
             self.collection = None
 
     def load_pdfs_from_root(self) -> int:
-        """Cherche les PDF dans le dossier 'knowledge' ou à la racine."""
+        """Cherche les PDF dans le dossier 'knowledge' ou à la racine (Fix Railway)."""
         if self.collection is None: return 0
 
-        # On cherche d'abord dans le dossier spécialisé
-        search_path = Path("knowledge")
-        if not search_path.exists():
-            search_path = Path("/workspace/knowledge")
-        if not search_path.exists():
-            search_path = Path(".")
-
-        pdf_files = list(search_path.glob("*.pdf")) + list(search_path.glob("*.PDF"))
+        # Détection hybride du chemin
+        search_dirs = [Path("knowledge"), Path("/workspace/knowledge"), Path(".")]
+        pdf_files = []
         
+        for d in search_dirs:
+            if d.exists():
+                found = list(d.glob("*.pdf")) + list(d.glob("*.PDF"))
+                if found:
+                    pdf_files = found
+                    logger.info(f"📂 [KNOWLEDGE-BASE] PDFs trouvés dans : {d.absolute()}")
+                    break
+
         if not pdf_files:
-            logger.info(f"ℹ️ [KNOWLEDGE-BASE] Aucun PDF trouvé dans {search_path.absolute()}")
+            logger.warning("ℹ️ [KNOWLEDGE-BASE] Aucun PDF trouvé.")
             return 0
 
         total_chunks = 0
