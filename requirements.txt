@@ -2,7 +2,7 @@
 # REQUIREMENTS. TXT — Trading Bot v7.1
 # ================================================
 
-# === IA & Agents (installés en premier pour meilleur caching) ===
+# === IA & Agents ===
 chromadb
 pypdf
 crewai>=1.11.0
@@ -35,7 +35,6 @@ matplotlib>=3.8.0
 # === Utilitaires & Persistance ===
 python-dotenv
 gitpython
-# pybit a été supprimé car il n'existe plus sur PyPI (ccxt le remplace largement)
 praw
 
 # ================================================
