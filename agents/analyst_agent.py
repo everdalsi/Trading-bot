@@ -37,11 +37,11 @@ class AnalystAgent(BaseAgent):
             trend = ""
             if isinstance(wr_live, float):
                 if wr_live >= 60:
-                    trend = "🟢 Excellente performance"
+                    trend = "Excellente performance"
                 elif wr_live >= 50:
-                    trend = "🟡 Performance correcte"
+                    trend = "Performance correcte"
                 else:
-                    trend = "🔴 Performance à améliorer"
+                    trend = "Performance à améliorer"
 
             return {
                 "agent": self.name,
@@ -53,8 +53,8 @@ class AnalystAgent(BaseAgent):
                     "Source: PerformanceTracker temps réel",
                 ],
                 "risks": (
-                    ["⚠️ WR en dessous de 50% — revoir la stratégie"] if wr_live < 50 else
-                    ["✅ Performance dans les clous"]
+                    ["WR en dessous de 50% — revoir la stratégie"] if wr_live < 50 else
+                    ["Performance dans les clous"]
                 ),
                 "confidence": 0.95,
                 "recommendation": (
@@ -76,9 +76,9 @@ class AnalystAgent(BaseAgent):
         if lesson_count > 0 and global_score is not None:
             wr = round(global_score * 100, 1)
             trend = (
-                "🟢 Bonne trajectoire" if wr >= 60 else
-                "🟡 Apprentissage en cours" if wr >= 45 else
-                "🔴 Stratégie à revoir"
+                "Bonne trajectoire" if wr >= 60 else
+                "Apprentissage en cours" if wr >= 45 else
+                "Stratégie à revoir"
             )
             return {
                 "agent": self.name,
@@ -90,8 +90,8 @@ class AnalystAgent(BaseAgent):
                     f"Meilleurs patterns: {', '.join(p['pattern'] for p in best_patterns[:2]) or 'Aucun encore'}",
                 ],
                 "risks": (
-                    ["⚠️ Peu de données — score peu fiable"] if lesson_count < 20 else
-                    ["🔴 Performance dégradée"] if wr < 45 else []
+                    ["Peu de données — score peu fiable"] if lesson_count < 20 else
+                    ["Performance dégradée"] if wr < 45 else []
                 ),
                 "confidence": min(0.95, 0.50 + lesson_count / 200),
                 "recommendation": (
