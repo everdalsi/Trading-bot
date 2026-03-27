@@ -1,35 +1,8 @@
 {
   "sim": {
-    "cash": 492.2139824085217,
+    "cash": 587.3964982957381,
     "initial": 1000.0,
     "positions": {
-      "MICRO_UNIUSDT_56": {
-        "id": 56,
-        "symbol": "UNIUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 3.502,
-        "price_out": null,
-        "qty": 89.43623524651996,
-        "amount_usd": 313.20569583331286,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=18 mom=-0.23% vol=4.8x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 08:16:39",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 3.502,
-        "open_time": 1774599399.3784456,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_UNIUSDT_56"
-      },
       "MICRO_INJUSDT_57": {
         "id": 57,
         "symbol": "INJUSDT",
@@ -1557,17 +1530,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 2.974,
-        "price_out": null,
+        "price_out": 2.973,
         "qty": 32.01564611073542,
         "amount_usd": 95.21453153332713,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=19 mom=-0.27% vol=3.9x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 70s",
         "time_in": "2026-03-27 08:16:40",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 08:17:54",
+        "pnl": -0.032016,
+        "pnl_pct": -0.034,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -22743,6 +22716,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 08:17"
+      },
+      {
+        "trade_id": 57,
+        "pnl": -0.032016,
+        "symbol": "INJUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 08:17"
       }
     ],
     "patterns_to_avoid": [
@@ -22764,7 +22748,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "score=4",
       "backtest_5m",
@@ -23045,6 +23028,7 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "score=4",
       "score=4"
     ],
     "patterns_that_work": [
@@ -23351,7 +23335,7 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 195,
-    "total_losses": 383,
+    "total_losses": 384,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
@@ -23376,13 +23360,14 @@
       "SUIUSDT": -6,
       "PEPEUSDT": 4,
       "ONDOUSDT": 4,
-      "UNIUSDT": -11,
+      "UNIUSDT": -14,
       "APTUSDT": -2,
       "SEIUSDT": -12,
       "AVAXUSDT": -12,
       "XRPUSDT": 4,
       "WIFUSDT": -6,
-      "LINKUSDT": -6
+      "LINKUSDT": -6,
+      "INJUSDT": -3
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
@@ -23405,7 +23390,7 @@
       "SUIUSDT": 1,
       "PEPEUSDT": 0,
       "ONDOUSDT": 0,
-      "UNIUSDT": 1,
+      "UNIUSDT": 2,
       "APTUSDT": 0,
       "SEIUSDT": 2,
       "AVAXUSDT": 2,
