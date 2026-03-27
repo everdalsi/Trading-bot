@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 304.0,
+    "cash": 1000.727818794245,
     "initial": 1000.0,
     "positions": {
       "MICRO_BTCUSDT_50": {
@@ -25,7 +25,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 68536.3,
+        "peak_price": 68541.39,
         "open_time": 1774598334.571685,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_BTCUSDT_50"
@@ -1321,17 +1321,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 68469.79,
-        "price_out": null,
+        "price_out": 68541.39,
         "qty": 0.010165066958727346,
         "amount_usd": 696.0,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=24 mom=-0.14% vol=2.9x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 76s",
         "time_in": "2026-03-27 07:58:54",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 08:00:11",
+        "pnl": 0.727819,
+        "pnl_pct": 0.105,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -20611,6 +20611,28 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 08:00"
+      },
+      {
+        "trade_id": 50,
+        "pnl": 0.727819,
+        "symbol": "BTCUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 08:00"
+      },
+      {
+        "trade_id": -3,
+        "pnl": -1.7869,
+        "symbol": "BTCUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 08:00"
       }
     ],
     "patterns_to_avoid": [
@@ -20622,7 +20644,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -20800,6 +20821,7 @@
       "backtest_5m",
       "backtest_5m",
       "score=4",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -20921,7 +20943,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -21215,9 +21236,10 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
-    "confidence_threshold": 82,
+    "confidence_threshold": 78,
     "total_wins": 178,
     "total_losses": 350,
     "symbol_scores": {
