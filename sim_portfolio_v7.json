@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 979.9278666849025,
+    "cash": 999.4760053903233,
     "initial": 1000.0,
     "positions": {
       "MICRO_BNBUSDT_36": {
@@ -957,17 +957,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 627.59,
-        "price_out": null,
+        "price_out": 627.41,
         "qty": 0.03115688099555444,
         "amount_usd": 19.55374694400001,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=26 mom=-0.02% vol=3.1x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 79s",
         "time_in": "2026-03-27 07:08:00",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 07:09:19",
+        "pnl": -0.005608,
+        "pnl_pct": -0.029,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -15451,6 +15451,28 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 07:09"
+      },
+      {
+        "trade_id": -4,
+        "pnl": -4.3415,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 07:09"
+      },
+      {
+        "trade_id": 36,
+        "pnl": -0.005608,
+        "symbol": "BNBUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 07:09"
       }
     ],
     "patterns_to_avoid": [
@@ -15459,8 +15481,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -15753,7 +15773,9 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "backtest_5m",
+      "score=4"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -16057,13 +16079,13 @@
       "backtest_5m",
       "backtest_5m"
     ],
-    "confidence_threshold": 35,
+    "confidence_threshold": 41,
     "total_wins": 136,
     "total_losses": 263,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -1,
+      "SOLUSDT": -4,
       "TARO": -3,
       "OPUSDT": -6,
       "PENDLEUSDT": -12,
@@ -16074,7 +16096,7 @@
       "STXUSDT": -2,
       "FLOKIUSDT": -2,
       "TRXUSDT": 4,
-      "BNBUSDT": -6,
+      "BNBUSDT": -9,
       "TURBOUSDT": -12,
       "ORDIUSDT": 4,
       "LTCUSDT": -2,
