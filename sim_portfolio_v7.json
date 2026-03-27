@@ -1040,7 +1040,7 @@
       "backtest_5m"
     ],
     "confidence_threshold": 65,
-    "total_wins": 8,
+    "total_wins": 9,
     "total_losses": 18,
     "symbol_scores": {
       "BTCUSDT": -15,
