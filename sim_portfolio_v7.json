@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 787.6494801762116,
+    "cash": 999.2334801762115,
     "initial": 1000.0,
     "positions": {
       "MICRO_FETUSDT_44": {
@@ -25,7 +25,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 0.2364,
+        "peak_price": 0.2365,
         "open_time": 1774596838.457946,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_FETUSDT_44"
@@ -1165,17 +1165,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.2364,
-        "price_out": null,
+        "price_out": 0.2364,
         "qty": 895.0253807106598,
         "amount_usd": 211.58399999999997,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=14 mom=-0.04% vol=3.5x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 73s",
         "time_in": "2026-03-27 07:33:58",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 07:35:11",
+        "pnl": 0.0,
+        "pnl_pct": 0.0,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -18068,6 +18068,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 07:34"
+      },
+      {
+        "trade_id": 44,
+        "pnl": 0.0,
+        "symbol": "FETUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 07:35"
       }
     ],
     "patterns_to_avoid": [
@@ -18201,7 +18212,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -18370,6 +18380,7 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "score=4",
       "score=4"
     ],
     "patterns_that_work": [
@@ -18676,7 +18687,7 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 156,
-    "total_losses": 307,
+    "total_losses": 308,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
@@ -18696,7 +18707,7 @@
       "ORDIUSDT": -2,
       "LTCUSDT": -8,
       "MEMEUSDT": 4,
-      "FETUSDT": 4,
+      "FETUSDT": 1,
       "LEGACY": 9,
       "SUIUSDT": -6,
       "PEPEUSDT": 4,
@@ -18704,7 +18715,7 @@
       "UNIUSDT": -6,
       "APTUSDT": -2,
       "SEIUSDT": -12,
-      "AVAXUSDT": -3
+      "AVAXUSDT": -6
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
@@ -18729,7 +18740,8 @@
       "ONDOUSDT": 0,
       "UNIUSDT": 1,
       "APTUSDT": 0,
-      "SEIUSDT": 2
+      "SEIUSDT": 2,
+      "AVAXUSDT": 1
     },
     "bad_setups": [
       {
