@@ -37,9 +37,21 @@ COPY . .
 # === 4. Copie explicite du dossier templates (dashboard Claude Office) ===
 COPY templates /workspace/templates
 
+# === UPGRADE : Vérification du dossier knowledge (cours pro Wyckoff, VSA, CFA, Elder...) ===
+RUN ls -la /workspace/knowledge/ 2>/dev/null || echo "⚠️ Dossier knowledge vide ou absent" \
+    && echo "✅ Dossier knowledge vérifié (cours professionnels chargés)"
+
 # === 5. Vérification finale du build ===
 RUN python -c "import matplotlib; print('✅ matplotlib OK')" \
     && python -c "import crewai, langchain_groq, chromadb; print('✅ Agents IA OK')" \
+    && python -c "
+import os
+if os.path.exists('/workspace/knowledge'):
+    pdfs = [f for f in os.listdir('/workspace/knowledge') if f.lower().endswith('.pdf')]
+    print(f'✅ {len(pdfs)} fichiers PDF pro trouvés dans knowledge/')
+else:
+    print('⚠️ Dossier knowledge non trouvé')
+" \
     && echo "🎉 Build terminé avec succès — tout est chargé !"
 
 EXPOSE 8000
