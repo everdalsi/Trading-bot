@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 8.852681581353643,
+    "cash": 500.06374662736073,
     "initial": 1000.0,
     "positions": {
       "MICRO_LINKUSDT_92": {
@@ -52,7 +52,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 1.668,
+        "peak_price": 1.669,
         "open_time": 1774621416.8174174,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_RENDERUSDT_93"
@@ -79,7 +79,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 2.781e-05,
+        "peak_price": 2.782e-05,
         "open_time": 1774621418.5792038,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_FLOKIUSDT_94"
@@ -133,7 +133,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 82.87,
+        "peak_price": 82.88,
         "open_time": 1774621438.6421194,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_SOLUSDT_96"
@@ -160,7 +160,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 1.3363,
+        "peak_price": 1.3366,
         "open_time": 1774621439.336631,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_XRPUSDT_97"
@@ -2594,17 +2594,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 8.52,
-        "price_out": null,
+        "price_out": 8.55,
         "qty": 57.45158655508854,
         "amount_usd": 489.48751744935436,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=23 mom=-0.23% vol=5.6x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 67s",
         "time_in": "2026-03-27 14:23:34",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 14:24:41",
+        "pnl": 1.723548,
+        "pnl_pct": 0.352,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -13742,6 +13742,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 14:24"
+      },
+      {
+        "trade_id": 92,
+        "pnl": 1.723548,
+        "symbol": "LINKUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 14:24"
       }
     ],
     "patterns_to_avoid": [
@@ -14263,7 +14274,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
     "confidence_threshold": 82,
     "total_wins": 16,
@@ -14297,7 +14309,8 @@
       "STXUSDT": -6,
       "RENDERUSDT": -6,
       "DOGEUSDT": -6,
-      "UNIUSDT": -6
+      "UNIUSDT": -6,
+      "LINKUSDT": 2
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
