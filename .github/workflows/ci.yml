@@ -36,3 +36,5 @@ jobs:
 
       - name: Summary
         run: echo "✅ CI terminé avec succès pour ce commit"
+
+        
