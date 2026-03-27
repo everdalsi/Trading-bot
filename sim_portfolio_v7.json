@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 701.8748339685366,
+    "cash": 912.2402852342959,
     "initial": 1000.0,
     "positions": {
       "MICRO_IMXUSDT_67": {
@@ -1817,17 +1817,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.1513,
-        "price_out": null,
+        "price_out": 0.151,
         "qty": 1393.148683879201,
         "amount_usd": 210.78339587092307,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=24 mom=-0.33% vol=2.6x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 64s",
         "time_in": "2026-03-27 08:26:28",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 08:27:35",
+        "pnl": -0.417945,
+        "pnl_pct": -0.198,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -24074,6 +24074,39 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 08:27"
+      },
+      {
+        "trade_id": -3,
+        "pnl": -1.6021,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 08:27"
+      },
+      {
+        "trade_id": 67,
+        "pnl": -0.417945,
+        "symbol": "IMXUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 08:27"
+      },
+      {
+        "trade_id": -4,
+        "pnl": -4.3415,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 08:27"
       }
     ],
     "patterns_to_avoid": [
@@ -24276,9 +24309,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
-      "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -24376,7 +24406,10 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "score=4"
+      "score=4",
+      "backtest_5m",
+      "score=4",
+      "backtest_5m"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -24682,13 +24715,13 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 206,
-    "total_losses": 406,
+    "total_losses": 407,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": 0,
+      "SOLUSDT": -6,
       "TARO": -3,
-      "OPUSDT": -9,
+      "OPUSDT": -12,
       "PENDLEUSDT": -12,
       "ARBUSDT": -6,
       "BONKUSDT": 4,
@@ -24715,11 +24748,11 @@
       "WIFUSDT": -12,
       "LINKUSDT": -2,
       "INJUSDT": -6,
-      "IMXUSDT": -2
+      "IMXUSDT": -5
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
-      "OPUSDT": 1,
+      "OPUSDT": 2,
       "PENDLEUSDT": 2,
       "ARBUSDT": 1,
       "BONKUSDT": 0,
