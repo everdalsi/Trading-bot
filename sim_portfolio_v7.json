@@ -970,44 +970,9 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 04:01"
-      },
-      {
-        "trade_id": -3,
-        "pnl": -1.6021,
-        "symbol": "SOLUSDT",
-        "market": "BACKTEST",
-        "lecon": "Entr\u00e9e trop agressive",
-        "pattern": "backtest_5m",
-        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
-        "type": "erreur",
-        "date": "2026-03-27 04:01"
-      },
-      {
-        "trade_id": -4,
-        "pnl": -4.3415,
-        "symbol": "SOLUSDT",
-        "market": "BACKTEST",
-        "lecon": "Entr\u00e9e trop agressive",
-        "pattern": "backtest_5m",
-        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
-        "type": "erreur",
-        "date": "2026-03-27 04:01"
-      },
-      {
-        "trade_id": -5,
-        "pnl": 1.2958,
-        "symbol": "SOLUSDT",
-        "market": "BACKTEST",
-        "lecon": "Scalp rapide gagnant",
-        "pattern": "backtest_5m",
-        "action_future": "Conserver ce setup pour micro-trading",
-        "type": "succes",
-        "date": "2026-03-27 04:01"
       }
     ],
     "patterns_to_avoid": [
-      "backtest_5m",
-      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -1096,7 +1061,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "backtest_5m"
     ],
     "confidence_threshold": 65,
@@ -1105,7 +1069,7 @@
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": 0
+      "SOLUSDT": 4
     },
     "symbol_blacklist": {},
     "consecutive_losses": {},
@@ -1825,6 +1789,18 @@
         "name": "Gold & Crypto Airdrops: 10 Ways to Get Precious Metal Exposu",
         "date": "2026-03-27 03:53",
         "url": "https://airdrops.io/blog/gold-crypto-airdrops-2026/"
+      },
+      {
+        "hash": "662dde5c",
+        "name": "Binance Records $700M Net Inflow in 24 Hours: What This Mean",
+        "date": "2026-03-27 04:02",
+        "url": "https://airdrops.io/blog/binance-net-inflow-airdrop-farming/"
+      },
+      {
+        "hash": "d949b426",
+        "name": "The ULTIMATE Airdrop Tier List for 2026",
+        "date": "2026-03-27 04:02",
+        "url": "https://airdrops.io/blog/the-ultimate-airdrop-tier-list-for-2026/"
       }
     ],
     "faucets_used": [],
@@ -1840,6 +1816,6 @@
         "status": "\u2705 Promos d\u00e9tect\u00e9es"
       }
     ],
-    "last_scan": 1774583593.2329047
+    "last_scan": 1774584123.7277887
   }
 }
