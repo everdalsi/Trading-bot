@@ -5,7 +5,7 @@
 # === IA & Agents ===
 chromadb
 pypdf
-sentence-transformers     # ← AJOUTÉ pour KnowledgeBase (obligatoire)
+sentence-transformers     # ← OBLIGATOIRE pour KnowledgeBase
 crewai>=1.11.0
 crewai-tools
 groq
@@ -36,7 +36,7 @@ matplotlib>=3.8.0
 # === Utilitaires & Persistance ===
 python-dotenv
 gitpython
-# pybit → commenté car il n'existe plus sur PyPI
+# pybit → commenté car il n'existe plus
 # pybit
 praw
 
