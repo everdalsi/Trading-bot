@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 535.6021001278388,
+    "cash": 695.7174620316908,
     "initial": 1000.0,
     "positions": {
       "MICRO_APTUSDT_17": {
@@ -600,17 +600,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.987,
-        "price_out": null,
+        "price_out": 0.986,
         "qty": 162.38880517632063,
         "amount_usd": 160.27775070902845,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=26 mom=-0.30% vol=3.8x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 69s",
         "time_in": "2026-03-27 10:54:30",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 10:55:43",
+        "pnl": -0.162389,
+        "pnl_pct": -0.101,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -1969,6 +1969,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 10:55"
+      },
+      {
+        "trade_id": 17,
+        "pnl": -0.162389,
+        "symbol": "APTUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 10:55"
       }
     ],
     "patterns_to_avoid": [
@@ -2056,6 +2067,7 @@
       "score=4",
       "score=4",
       "score=4",
+      "score=4",
       "score=4"
     ],
     "patterns_that_work": [
@@ -2087,26 +2099,27 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 3,
-    "total_losses": 35,
+    "total_losses": 36,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -15,
       "ETHUSDT": -15,
       "SOLUSDT": -15,
-      "APTUSDT": -3,
+      "APTUSDT": -6,
       "NEKO": 2,
       "ARBUSDT": -6,
       "TONUSDT": -6,
       "TRXUSDT": -6,
       "ONDOUSDT": -6,
-      "AVAXUSDT": -3
+      "AVAXUSDT": -6
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
       "ARBUSDT": 1,
       "TONUSDT": 1,
       "TRXUSDT": 1,
-      "ONDOUSDT": 1
+      "ONDOUSDT": 1,
+      "AVAXUSDT": 1
     },
     "bad_setups": [
       {
