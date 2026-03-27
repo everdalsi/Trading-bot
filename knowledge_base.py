@@ -1,6 +1,6 @@
 """
 KNOWLEDGE BASE V1 — RAG pour tous tes agents
-Compatible avec ta structure actuelle (PDFs à la racine + agents/ dossier)
+Compatible avec tes PDFs à la racine + structure actuelle
 """
 
 import os
@@ -46,7 +46,6 @@ class KnowledgeBase:
                 if not full_text.strip():
                     continue
 
-                # Splitter simple et efficace (pas de LangChain)
                 chunks = self._simple_split(full_text, chunk_size=1100, overlap=150)
 
                 ids = [f"{pdf_path.stem}_chunk_{i}" for i in range(len(chunks))]
@@ -69,7 +68,6 @@ class KnowledgeBase:
         while start < len(text):
             end = start + chunk_size
             chunk = text[start:end]
-            # Coupe proprement sur une phrase
             if end < len(text):
                 last_period = chunk.rfind(". ")
                 if last_period > chunk_size // 2:
@@ -80,7 +78,6 @@ class KnowledgeBase:
         return [c for c in chunks if c.strip()]
 
     def query(self, query_text: str, n_results: int = 6) -> List[Dict[str, Any]]:
-        """Requête RAG"""
         if not query_text.strip():
             return []
         results = self.collection.query(
@@ -97,11 +94,9 @@ class KnowledgeBase:
         return formatted
 
     def get_context_for_agent(self, query_text: str, max_results: int = 7) -> str:
-        """Contexte prêt à injecter dans n’importe quel agent"""
         results = self.query(query_text, n_results=max_results)
         if not results:
             return "Aucune connaissance pertinente trouvée dans les PDFs."
-
         context = "📚 **Connaissances extraites de tes PDFs :**\n\n"
         for i, r in enumerate(results, 1):
             context += f"[{i}] Source: {r['source']}\n{r['content'][:750]}...\n\n"
