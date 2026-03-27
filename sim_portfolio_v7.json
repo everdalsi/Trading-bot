@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 901.036423231395,
+    "cash": 966.7342992358494,
     "initial": 1000.0,
     "positions": {
       "MICRO_NOTUSDT_7": {
@@ -223,17 +223,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.000361,
-        "price_out": null,
+        "price_out": 0.000361,
         "qty": 181988.57618962435,
         "amount_usd": 65.69787600445439,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=11 mom=+0.00% vol=30.0x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 62s",
         "time_in": "2026-03-27 05:33:29",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 05:34:37",
+        "pnl": 0.0,
+        "pnl_pct": 0.0,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -6867,6 +6867,28 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 05:34"
+      },
+      {
+        "trade_id": 7,
+        "pnl": 0.0,
+        "symbol": "NOTUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 05:34"
+      },
+      {
+        "trade_id": -1,
+        "pnl": 2.9979,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 05:34"
       }
     ],
     "patterns_to_avoid": [
@@ -7111,7 +7133,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -7169,6 +7190,7 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "score=4",
       "score=4"
     ],
     "patterns_that_work": [
@@ -7337,28 +7359,31 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "score=4"
+      "score=4",
+      "backtest_5m"
     ],
     "confidence_threshold": 82,
     "total_wins": 58,
-    "total_losses": 124,
+    "total_losses": 125,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": 0,
+      "SOLUSDT": 2,
       "TARO": -3,
       "OPUSDT": -6,
       "PENDLEUSDT": -6,
       "ARBUSDT": -6,
       "BONKUSDT": 4,
-      "JUPUSDT": -3
+      "JUPUSDT": -6,
+      "NOTUSDT": -3
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
       "OPUSDT": 1,
       "PENDLEUSDT": 1,
       "ARBUSDT": 1,
-      "BONKUSDT": 0
+      "BONKUSDT": 0,
+      "JUPUSDT": 1
     },
     "bad_setups": [
       {
