@@ -2,35 +2,7 @@
   "sim": {
     "cash": 1002.0591715976332,
     "initial": 1000.0,
-    "positions": {
-      "MICRO_PEPEUSDT_25": {
-        "id": 25,
-        "symbol": "PEPEUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 3.38e-06,
-        "price_out": null,
-        "qty": 205917159.76331362,
-        "amount_usd": 696.0,
-        "confidence": 88,
-        "reason": "EMA\u2191 RSI7=54 mom=+0.00% vol=13.4x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 06:10:51",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 3.39e-06,
-        "open_time": 1774591851.9367456,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_PEPEUSDT_25"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
