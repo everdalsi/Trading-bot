@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 716.961621770897,
+    "cash": 767.3092860094978,
     "initial": 1000.0,
     "positions": {
       "MICRO_UNIUSDT_81": {
@@ -2235,17 +2235,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 3.486,
-        "price_out": null,
+        "price_out": 3.472,
         "qty": 14.501055368260609,
         "amount_usd": 50.550679013756486,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=18 mom=-0.23% vol=11.4x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 67s",
         "time_in": "2026-03-27 08:35:50",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 08:37:04",
+        "pnl": -0.203015,
+        "pnl_pct": -0.402,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -25633,6 +25633,28 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 08:37"
+      },
+      {
+        "trade_id": -3,
+        "pnl": -1.8027,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 08:37"
+      },
+      {
+        "trade_id": 81,
+        "pnl": -0.203015,
+        "symbol": "UNIUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 08:37"
       }
     ],
     "patterns_to_avoid": [
@@ -25762,8 +25784,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -25935,7 +25955,9 @@
       "score=4",
       "backtest_5m",
       "score=4",
-      "backtest_5m"
+      "backtest_5m",
+      "backtest_5m",
+      "score=4"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -26241,7 +26263,7 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 216,
-    "total_losses": 433,
+    "total_losses": 434,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
@@ -26289,7 +26311,7 @@
       "STXUSDT": 1,
       "FLOKIUSDT": 1,
       "TRXUSDT": 0,
-      "BNBUSDT": 2,
+      "BNBUSDT": 3,
       "TURBOUSDT": 2,
       "ORDIUSDT": 1,
       "LTCUSDT": 1,
