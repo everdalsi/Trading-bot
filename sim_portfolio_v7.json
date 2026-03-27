@@ -13,13 +13,29 @@
     "daily_start_date": "2026-03-27"
   },
   "memory": {
-    "lessons": [],
-    "patterns_to_avoid": [],
+    "lessons": [
+      {
+        "trade_id": -1,
+        "pnl": -0.7276,
+        "symbol": "BTCUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 03:53"
+      }
+    ],
+    "patterns_to_avoid": [
+      "backtest_5m"
+    ],
     "patterns_that_work": [],
     "confidence_threshold": 65,
     "total_wins": 0,
     "total_losses": 1,
-    "symbol_scores": {},
+    "symbol_scores": {
+      "BTCUSDT": -3
+    },
     "symbol_blacklist": {},
     "consecutive_losses": {},
     "bad_setups": [
