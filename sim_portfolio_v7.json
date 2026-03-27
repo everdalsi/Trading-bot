@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 64.56619928268887,
+    "cash": 757.5135677037415,
     "initial": 1000.0,
     "positions": {
       "MICRO_ARBUSDT_11": {
@@ -389,17 +389,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.0912,
-        "price_out": null,
+        "price_out": 0.0908,
         "qty": 7631.578947368421,
         "amount_usd": 696.0,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=25 mom=-0.22% vol=5.1x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 61s",
         "time_in": "2026-03-27 10:53:23",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 10:54:24",
+        "pnl": -3.052632,
+        "pnl_pct": -0.439,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -1546,6 +1546,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 10:54"
+      },
+      {
+        "trade_id": 11,
+        "pnl": -3.052632,
+        "symbol": "ARBUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 10:54"
       }
     ],
     "patterns_to_avoid": [
@@ -1619,7 +1630,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -1646,7 +1658,7 @@
       "memecoin"
     ],
     "confidence_threshold": 82,
-    "total_wins": 2,
+    "total_wins": 3,
     "total_losses": 28,
     "symbol_scores": {
       "Deadwhale": -15,
@@ -1654,7 +1666,8 @@
       "ETHUSDT": -15,
       "SOLUSDT": -15,
       "APTUSDT": -3,
-      "NEKO": 2
+      "NEKO": 2,
+      "ARBUSDT": -3
     },
     "symbol_blacklist": {},
     "consecutive_losses": {},
