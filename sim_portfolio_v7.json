@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 92.06631084017329,
+    "cash": 8.508400182605456,
     "initial": 1000.0,
     "positions": {
       "MICRO_OPUSDT_66": {
@@ -56,6 +56,60 @@
         "open_time": 1774599988.7483027,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_IMXUSDT_67"
+      },
+      "MICRO_ETHUSDT_68": {
+        "id": 68,
+        "symbol": "ETHUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 2057.39,
+        "price_out": null,
+        "qty": 0.03114536006530634,
+        "amount_usd": 64.07815234476061,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=26 mom=-0.10% vol=4.3x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 08:27:19",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 2057.39,
+        "open_time": 1774600039.6021037,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_ETHUSDT_68"
+      },
+      "MICRO_UNIUSDT_69": {
+        "id": 69,
+        "symbol": "UNIUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 3.489,
+        "price_out": null,
+        "qty": 5.58319240837123,
+        "amount_usd": 19.47975831280722,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=18 mom=-0.23% vol=8.1x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 08:27:21",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 3.489,
+        "open_time": 1774600041.900221,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_UNIUSDT_69"
       }
     },
     "trades": [
@@ -1807,6 +1861,58 @@
         "leverage": 1,
         "peak_price": 0.1513,
         "open_time": 1774599988.7483027,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 68,
+        "symbol": "ETHUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 2057.39,
+        "price_out": null,
+        "qty": 0.03114536006530634,
+        "amount_usd": 64.07815234476061,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=26 mom=-0.10% vol=4.3x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 08:27:19",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 2057.39,
+        "open_time": 1774600039.6021037,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 69,
+        "symbol": "UNIUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 3.489,
+        "price_out": null,
+        "qty": 5.58319240837123,
+        "amount_usd": 19.47975831280722,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=18 mom=-0.23% vol=8.1x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 08:27:21",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 3.489,
+        "open_time": 1774600041.900221,
         "kelly_pct": 0.48
       }
     ],
@@ -23940,6 +24046,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 08:27"
+      },
+      {
+        "trade_id": -2,
+        "pnl": -5.1664,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 08:27"
       }
     ],
     "patterns_to_avoid": [
@@ -24147,7 +24264,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -24239,6 +24355,7 @@
       "backtest_5m",
       "score=4",
       "score=4",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
