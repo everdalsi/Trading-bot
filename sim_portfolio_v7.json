@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 271.3922070343776,
+    "cash": 284.1267063062497,
     "initial": 1000.0,
     "positions": {
       "MEME_NEKO_3": {
@@ -57,34 +57,6 @@
         "open_time": 1774608583.9976473,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_APTUSDT_5"
-      },
-      "MEME_Deadwhale_7": {
-        "id": 7,
-        "symbol": "Deadwhale",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "Deadwhale",
-        "price_in": 0.000756,
-        "price_out": null,
-        "qty": 18893.915833638093,
-        "amount_usd": 14.283800370230399,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-27 10:50:52",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.000756,
-        "open_time": 1774608652.888826,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_Deadwhale_7"
       }
     },
     "trades": [
@@ -257,17 +229,17 @@
         "trade_type": "MEME",
         "meme_symbol": "Deadwhale",
         "price_in": 0.000756,
-        "price_out": null,
+        "price_out": 0.000674,
         "qty": 18893.915833638093,
         "amount_usd": 14.283800370230399,
         "confidence": 85,
         "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
+        "exit_reason": "\ud83d\uded1 MEME SL (-10.8%)",
         "time_in": "2026-03-27 10:50:52",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 10:50:53",
+        "pnl": -1.549301,
+        "pnl_pct": -10.85,
+        "duration_min": 1,
         "patterns": [
           "memecoin"
         ],
@@ -814,6 +786,28 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 10:50"
+      },
+      {
+        "trade_id": 7,
+        "pnl": -1.549301,
+        "symbol": "Deadwhale",
+        "market": "MEME",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "memecoin",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 10:50"
+      },
+      {
+        "trade_id": -5,
+        "pnl": 1.2958,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 10:50"
       }
     ],
     "patterns_to_avoid": [
@@ -853,9 +847,11 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "memecoin"
     ],
     "patterns_that_work": [
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -872,10 +868,10 @@
     "total_wins": 2,
     "total_losses": 14,
     "symbol_scores": {
-      "Deadwhale": -12,
+      "Deadwhale": -15,
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -5
+      "SOLUSDT": -3
     },
     "symbol_blacklist": {},
     "consecutive_losses": {},
