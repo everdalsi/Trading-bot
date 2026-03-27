@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 1106.525009560804,
+    "cash": 1144.1238385394454,
     "initial": 1000.0,
     "positions": {
       "MEME_Deadwhale_61": {
@@ -1635,17 +1635,17 @@
         "trade_type": "MEME",
         "meme_symbol": "Deadwhale",
         "price_in": 0.001035,
-        "price_out": null,
+        "price_out": 0.000674,
         "qty": 55784.61272795457,
         "amount_usd": 57.73707417343297,
         "confidence": 95,
         "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
+        "exit_reason": "\ud83d\uded1 MEME SL (-34.9%)",
         "time_in": "2026-03-27 11:41:09",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 11:41:13",
+        "pnl": -20.138245,
+        "pnl_pct": -34.88,
+        "duration_min": 1,
         "patterns": [
           "memecoin"
         ],
@@ -8264,6 +8264,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 11:41"
+      },
+      {
+        "trade_id": 61,
+        "pnl": -20.138245,
+        "symbol": "Deadwhale",
+        "market": "MEME",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "memecoin",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 11:41"
       }
     ],
     "patterns_to_avoid": [
@@ -8284,7 +8295,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -8566,7 +8576,8 @@
       "backtest_5m",
       "backtest_5m",
       "memecoin",
-      "backtest_5m"
+      "backtest_5m",
+      "memecoin"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -8721,7 +8732,7 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 13,
-    "total_losses": 180,
+    "total_losses": 181,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -15,
