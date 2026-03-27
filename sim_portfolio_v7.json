@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 304.0,
+    "cash": 999.5166666666668,
     "initial": 1000.0,
     "positions": {
       "MICRO_INJUSDT_80": {
@@ -2144,17 +2144,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 2.88,
-        "price_out": null,
+        "price_out": 2.878,
         "qty": 241.66666666666669,
         "amount_usd": 696.0,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=21 mom=-0.28% vol=12.2x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 70s",
         "time_in": "2026-03-27 12:23:46",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 12:24:57",
+        "pnl": -0.483333,
+        "pnl_pct": -0.069,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -10313,6 +10313,28 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 12:24"
+      },
+      {
+        "trade_id": -5,
+        "pnl": -6.2028,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 12:24"
+      },
+      {
+        "trade_id": 80,
+        "pnl": -0.483333,
+        "symbol": "INJUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 12:24"
       }
     ],
     "patterns_to_avoid": [
@@ -10320,8 +10342,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
@@ -10615,7 +10635,9 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "backtest_5m",
+      "score=4"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -10800,7 +10822,7 @@
       "Deadwhale": -15,
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -13,
+      "SOLUSDT": -15,
       "APTUSDT": -5,
       "NEKO": -1,
       "ARBUSDT": -12,
@@ -10819,7 +10841,8 @@
       "NEARUSDT": -6,
       "STRKUSDT": -6,
       "IMXUSDT": -6,
-      "FETUSDT": -9
+      "FETUSDT": -9,
+      "INJUSDT": -3
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
