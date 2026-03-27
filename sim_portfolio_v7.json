@@ -7864,6 +7864,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 05:41"
+      },
+      {
+        "trade_id": -4,
+        "pnl": -4.3415,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 05:41"
       }
     ],
     "patterns_to_avoid": [
@@ -8058,7 +8069,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -8118,6 +8128,7 @@
       "backtest_5m",
       "score=4",
       "score=4",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -8360,13 +8371,13 @@
       "backtest_5m",
       "backtest_5m"
     ],
-    "confidence_threshold": 36,
+    "confidence_threshold": 34,
     "total_wins": 68,
     "total_losses": 138,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": 1,
+      "SOLUSDT": -2,
       "TARO": -3,
       "OPUSDT": -6,
       "PENDLEUSDT": -6,
