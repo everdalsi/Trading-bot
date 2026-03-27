@@ -85,7 +85,7 @@ class SupervisorAgent(BaseAgent):
                         "recommendation": "Éviter ce symbole pour le moment",
                     }
 
-        # (le reste du code original reste IDENTIQUE – aucune ligne supprimée)
+        # === UPGRADE GROK-LIKE : RAISONNEMENT NATUREL ET HUMAIN ===
         final_decision = "HOLD"
         reason         = "Pas de consensus clair"
 
@@ -135,14 +135,19 @@ class SupervisorAgent(BaseAgent):
 
         confidence_final = round(max(0.50, min(0.95, (score + global_score) / 2 * 0.9)), 2)
 
+        # === RAISONNEMENT NATUREL GROK-LIKE (le plus important) ===
+        natural_summary = (
+            f"Hey, j’ai tout regardé avec l’équipe. "
+            f"On est sur {symbol}. Après avoir croisé les leçons passées, les stats live et le risque, "
+            f"je pense qu’on devrait {final_decision.lower() if final_decision != 'HOLD' else 'rester en attente'}. "
+            f"{reason}. "
+            f"On a déjà {lesson_count} leçons en mémoire, donc on n’est pas en train de tirer à pile ou face."
+        )
+
         return {
             "agent": self.name,
             "decision": final_decision,
-            "summary": (
-                f"DÉCISION → {final_decision} | "
-                f"Score: {score:.2f} | "
-                f"Mémoire: {lesson_count}∞{insight_str}"
-            ),
+            "summary": natural_summary,   # ← Grok-like naturel
             "arguments": [
                 f"Symbol: {symbol}",
                 f"Score composite: {(score + global_score) / 2:.2f}",
@@ -156,6 +161,6 @@ class SupervisorAgent(BaseAgent):
             ),
             "confidence": confidence_final,
             "recommendation": reason,
-            "full_summary": f"J’ai consulté toute l’équipe. {reason}. Score composite : {(score + global_score) / 2:.2f}.",
+            "full_summary": natural_summary,   # ← même style humain partout
             "final_decision": final_decision,
         }
