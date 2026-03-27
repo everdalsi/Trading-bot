@@ -1,8 +1,37 @@
 {
   "sim": {
-    "cash": 1693.945120846441,
+    "cash": 1671.8558386717707,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MEME_Deadwhale_41": {
+        "id": 41,
+        "symbol": "Deadwhale",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "Deadwhale",
+        "price_in": 0.0009118,
+        "price_out": null,
+        "qty": 92890.16894310381,
+        "amount_usd": 84.69725604232205,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-27 11:18:25",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0009118,
+        "open_time": 1774610305.9569232,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_Deadwhale_41"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -1058,6 +1087,33 @@
         "leverage": 1,
         "peak_price": 0.0008865,
         "open_time": 1774610224.8542733,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 41,
+        "symbol": "Deadwhale",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "Deadwhale",
+        "price_in": 0.0009118,
+        "price_out": 0.000674,
+        "qty": 92890.16894310381,
+        "amount_usd": 84.69725604232205,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": "\ud83d\uded1 MEME SL (-26.1%)",
+        "time_in": "2026-03-27 11:18:25",
+        "time_out": "2026-03-27 11:18:28",
+        "pnl": -22.089282,
+        "pnl_pct": -26.08,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0009118,
+        "open_time": 1774610305.9569232,
         "kelly_pct": 0.05
       }
     ],
@@ -4920,6 +4976,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 11:18"
+      },
+      {
+        "trade_id": 41,
+        "pnl": -22.089282,
+        "symbol": "Deadwhale",
+        "market": "MEME",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "memecoin",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 11:18"
       }
     ],
     "patterns_to_avoid": [
@@ -5184,7 +5251,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "memecoin"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -5277,8 +5345,8 @@
       "score=4"
     ],
     "confidence_threshold": 80,
-    "total_wins": 10,
-    "total_losses": 106,
+    "total_wins": 11,
+    "total_losses": 107,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -15,
@@ -5298,7 +5366,7 @@
       "WIFUSDT": -6,
       "JUPUSDT": 4,
       "PIXEL": -3,
-      "PIXELUSDT": -6
+      "PIXELUSDT": -4
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
@@ -5314,7 +5382,7 @@
       "ORDIUSDT": 0,
       "WIFUSDT": 1,
       "JUPUSDT": 0,
-      "PIXELUSDT": 1
+      "PIXELUSDT": 0
     },
     "bad_setups": [
       {
@@ -7553,6 +7621,55 @@
             "exit": 2050.53,
             "pnl": -1.8027,
             "pnl_pct": -0.91,
+            "exit_reason": "TIMEOUT"
+          }
+        ]
+      },
+      {
+        "symbol": "BTCUSDT",
+        "interval": "5m",
+        "days": 30,
+        "total_trades": 4,
+        "wins": 1,
+        "losses": 3,
+        "win_rate": 25.0,
+        "total_pnl": -4.12,
+        "total_pnl_pct": -0.41,
+        "sharpe": -9.62,
+        "max_drawdown": -0.56,
+        "profit_factor": 0.27,
+        "best_trade": 0.76,
+        "worst_trade": -1.56,
+        "final_equity": 995.88,
+        "sl_used": 0.025,
+        "tp_used": 0.04,
+        "trades": [
+          {
+            "entry": 70420.83282,
+            "exit": 70956.48,
+            "pnl": 1.519,
+            "pnl_pct": 0.76,
+            "exit_reason": "TIMEOUT"
+          },
+          {
+            "entry": 71503.24375499999,
+            "exit": 71242.73,
+            "pnl": -0.7287,
+            "pnl_pct": -0.36,
+            "exit_reason": "TIMEOUT"
+          },
+          {
+            "entry": 70091.49823499999,
+            "exit": 68996.89,
+            "pnl": -3.1211,
+            "pnl_pct": -1.56,
+            "exit_reason": "TIMEOUT"
+          },
+          {
+            "entry": 69199.572495,
+            "exit": 68578.0,
+            "pnl": -1.7896,
+            "pnl_pct": -0.9,
             "exit_reason": "TIMEOUT"
           }
         ]
