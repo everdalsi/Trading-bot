@@ -6856,10 +6856,20 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 11:31"
+      },
+      {
+        "trade_id": -6,
+        "pnl": -6.2214,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 11:31"
       }
     ],
     "patterns_to_avoid": [
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -7151,6 +7161,7 @@
       "backtest_5m",
       "score=4",
       "memecoin",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -7288,12 +7299,12 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 12,
-    "total_losses": 149,
+    "total_losses": 150,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -13,
+      "SOLUSDT": -15,
       "APTUSDT": -5,
       "NEKO": 1,
       "ARBUSDT": -12,
@@ -10503,6 +10514,48 @@
             "exit": 2050.53,
             "pnl": -1.8027,
             "pnl_pct": -0.91,
+            "exit_reason": "TIMEOUT"
+          }
+        ]
+      },
+      {
+        "symbol": "BTCUSDT",
+        "interval": "5m",
+        "days": 30,
+        "total_trades": 3,
+        "wins": 0,
+        "losses": 3,
+        "win_rate": 0.0,
+        "total_pnl": -5.63,
+        "total_pnl_pct": -0.56,
+        "sharpe": -30.41,
+        "max_drawdown": -0.56,
+        "profit_factor": 0.0,
+        "best_trade": -0.36,
+        "worst_trade": -1.56,
+        "final_equity": 994.37,
+        "sl_used": 0.025,
+        "tp_used": 0.04,
+        "trades": [
+          {
+            "entry": 71503.24375499999,
+            "exit": 71242.73,
+            "pnl": -0.7276,
+            "pnl_pct": -0.36,
+            "exit_reason": "TIMEOUT"
+          },
+          {
+            "entry": 70091.49823499999,
+            "exit": 68996.89,
+            "pnl": -3.1164,
+            "pnl_pct": -1.56,
+            "exit_reason": "TIMEOUT"
+          },
+          {
+            "entry": 69199.572495,
+            "exit": 68578.0,
+            "pnl": -1.7869,
+            "pnl_pct": -0.9,
             "exit_reason": "TIMEOUT"
           }
         ]
