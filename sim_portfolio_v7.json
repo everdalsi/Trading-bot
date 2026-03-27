@@ -1,8 +1,37 @@
 {
   "sim": {
-    "cash": 38434.65445761951,
+    "cash": 90297.21445368885,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MEME_PIGEON _95": {
+        "id": 95,
+        "symbol": "PIGEON ",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "PIGEON ",
+        "price_in": 0.000238,
+        "price_out": null,
+        "qty": 8074507.238995695,
+        "amount_usd": 1921.7327228809754,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-27 00:18:36",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.006661,
+        "open_time": 1774570716.5839536,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_PIGEON _95"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -2540,6 +2569,33 @@
         "leverage": 1,
         "peak_price": 0.0003971,
         "open_time": 1774565084.8021557,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 95,
+        "symbol": "PIGEON ",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "PIGEON ",
+        "price_in": 0.000238,
+        "price_out": 0.006661,
+        "qty": 8074507.238995695,
+        "amount_usd": 1921.7327228809754,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": "\ud83c\udfaf MEME TP (+2698.7%)",
+        "time_in": "2026-03-27 00:18:36",
+        "time_out": "2026-03-27 00:18:37",
+        "pnl": 51862.559996,
+        "pnl_pct": 2698.74,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.000238,
+        "open_time": 1774570716.5839536,
         "kelly_pct": 0.05
       }
     ],
@@ -97020,6 +97076,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 00:18"
+      },
+      {
+        "trade_id": 95,
+        "pnl": 51862.559996,
+        "symbol": "PIGEON ",
+        "market": "MEME",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "memecoin",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 00:18"
       }
     ],
     "patterns_to_avoid": [
@@ -97336,7 +97403,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
@@ -97624,9 +97690,10 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "memecoin"
     ],
-    "confidence_threshold": 82,
+    "confidence_threshold": 80,
     "total_wins": 1091,
     "total_losses": 2073,
     "symbol_scores": {
@@ -97639,7 +97706,8 @@
       "FOMO": -15,
       "ARTEMIS": -3,
       "CHIBI": 6,
-      "APES": 6
+      "APES": 6,
+      "PIGEON ": 2
     },
     "symbol_blacklist": {},
     "consecutive_losses": {},
