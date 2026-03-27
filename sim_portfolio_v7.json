@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 28.094464000000016,
+    "cash": 8.540717056000005,
     "initial": 1000.0,
     "positions": {
       "MICRO_UNIUSDT_33": {
@@ -83,6 +83,33 @@
         "open_time": 1774595272.5353677,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_PENDLEUSDT_35"
+      },
+      "MICRO_BNBUSDT_36": {
+        "id": 36,
+        "symbol": "BNBUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 627.59,
+        "price_out": null,
+        "qty": 0.03115688099555444,
+        "amount_usd": 19.55374694400001,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=26 mom=-0.02% vol=3.1x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 07:08:00",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 627.59,
+        "open_time": 1774595280.6076088,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_BNBUSDT_36"
       }
     },
     "trades": [
@@ -1002,6 +1029,32 @@
         "leverage": 1,
         "peak_price": 1.19,
         "open_time": 1774595272.5353677,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 36,
+        "symbol": "BNBUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 627.59,
+        "price_out": null,
+        "qty": 0.03115688099555444,
+        "amount_usd": 19.55374694400001,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=26 mom=-0.02% vol=3.1x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 07:08:00",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 627.59,
+        "open_time": 1774595280.6076088,
         "kelly_pct": 0.48
       }
     ],
@@ -15314,6 +15367,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 07:08"
+      },
+      {
+        "trade_id": -3,
+        "pnl": -1.6021,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 07:08"
       }
     ],
     "patterns_to_avoid": [
@@ -15334,8 +15398,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -15926,7 +15990,7 @@
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": 2,
+      "SOLUSDT": -1,
       "TARO": -3,
       "OPUSDT": -6,
       "PENDLEUSDT": -6,
