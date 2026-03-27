@@ -3,33 +3,6 @@
     "cash": 787.0248825405467,
     "initial": 1000.0,
     "positions": {
-      "MICRO_UNIUSDT_96": {
-        "id": 96,
-        "symbol": "UNIUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 3.497,
-        "price_out": null,
-        "qty": 198.87738279349813,
-        "amount_usd": 695.4742076288629,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=18 mom=-0.23% vol=3.4x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 08:52:25",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 3.497,
-        "open_time": 1774601545.4483314,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_UNIUSDT_96"
-      },
       "MICRO_PEPEUSDT_97": {
         "id": 97,
         "symbol": "PEPEUSDT",
