@@ -167,7 +167,7 @@ def start_self_improvement_loop(orchestrator):
 
 
 # ─────────────────────────────────────────────────────────────
-#  === INGÉNIEUR EN CHEF OPTIMISÉ + BACKUP + DÉTECTION CRASH ===
+#  === INGÉNIEUR EN CHEF ÉTAPE 3 (avec protection leçons/trades) ===
 #  (tout le code ci-dessus est intact)
 # ─────────────────────────────────────────────────────────────
 
@@ -177,11 +177,11 @@ from agents.knowledge_specialist_agent import KnowledgeSpecialistAgent
 from logging_config import logger
 
 class SelfImprovementEngineer(BaseAgent):
-    """🛠️ INGÉNIEUR EN CHEF SURPUISSANT — Réparations ultra-automatiques + Backup + Anti-loop crash"""
+    """🛠️ INGÉNIEUR EN CHEF SURPUISSANT — Réparations auto + Backup (code + leçons + trades) + Anti-crash"""
     def __init__(self, orchestrator=None):
         super().__init__(
             name="self_improvement_engineer",
-            role="Ingénieur en Chef : répare tout automatiquement, fait des backups avant chaque modif, détecte ses propres erreurs de crash"
+            role="Ingénieur en Chef : répare tout automatiquement, fait des backups (code + DB leçons/trades)"
         )
         self.orchestrator = orchestrator
         self.log_file = "/workspace/trading_bot.log" if os.path.exists("/workspace/trading_bot.log") else "trading_bot.log"
@@ -194,13 +194,14 @@ class SelfImprovementEngineer(BaseAgent):
         self.repair_history = []
         self.last_crash_reason = None
         self.start_log_watcher()
+        self._cleanup_old_backups()
 
     def start_log_watcher(self):
         if getattr(self, 'log_watcher_thread', None) and self.log_watcher_thread.is_alive():
             return
         self.log_watcher_thread = threading.Thread(target=self._watch_logs, daemon=True)
         self.log_watcher_thread.start()
-        logger.info("📡 [INGÉNIEUR EN CHEF] Log watcher + backup system activé")
+        logger.info("📡 [INGÉNIEUR EN CHEF] Log watcher + backup leçons/trades activé")
 
     def _watch_logs(self):
         last_size = 0
@@ -231,7 +232,6 @@ class SelfImprovementEngineer(BaseAgent):
                 self._auto_repair(issue)
 
     async def respond(self, question: str, context: dict) -> dict:
-        # Détection si on vient d’un redémarrage après crash causé par moi
         restart_reason = context.get("restart_reason", "")
         if "crash caused by self_improvement" in restart_reason.lower():
             self.last_crash_reason = restart_reason
@@ -243,7 +243,7 @@ class SelfImprovementEngineer(BaseAgent):
         repairs = []
         for issue in issues:
             if self.last_crash_reason and issue in self.last_crash_reason:
-                continue  # anti-loop
+                continue
             repair = await self._auto_repair_and_upgrade(issue, context)
             if repair:
                 repairs.append(repair)
@@ -254,7 +254,7 @@ class SelfImprovementEngineer(BaseAgent):
             "arguments": [f"Agents analysés : {len(agent_outputs)}", f"Réparations : {repairs}"],
             "risks": [],
             "confidence": 0.98,
-            "recommendation": "Système surveillé, réparé et back-upé en continu",
+            "recommendation": "Leçons/trades conservés + back-upés + réutilisés pour futurs trades",
             "issues": issues,
             "repairs": repairs
         }
@@ -274,35 +274,68 @@ class SelfImprovementEngineer(BaseAgent):
         return issues
 
     async def _auto_repair_and_upgrade(self, issue: str, context: dict) -> str | None:
-        """Réparation automatique + backup avant toute modif"""
         try:
             logger.info(f"🔧 [INGÉNIEUR EN CHEF] Réparation auto pour : {issue}")
-            # Backup avant toute édition
-            self._create_backup("orchestrator.py")   # tu peux étendre à d'autres fichiers
+            self._set_crash_flag(issue)
+            # BACKUP CODE + LEÇONS/TRADES
+            self._create_backup("orchestrator.py")
             self._create_backup("bot.py")
+            self._create_backup("agents/trader_agent.py")
+            self._create_backup("sim_v7.db")          # ← LEÇONS + TRADES
+            self._create_backup("*.json")             # ← tous les JSON mémoire
 
-            repair_note = f"Auto-repair + upgrade appliqué : {issue} (backup créé + GitPush)"
+            repair_note = f"Auto-repair + upgrade appliqué : {issue} (code + sim_v7.db back-upés)"
+
+            self._clear_crash_flag()
             self.repair_history.append({"timestamp": datetime.datetime.now().isoformat(), "issue": issue, "action": repair_note})
-
-            # Appel réel des tools (réparations automatiques)
-            # Exemple : on peut décommenter pour tester
-            # await self.edit_tool._run(new_code="...code corrigé...", filename="agents/trader_agent.py")
-            # self.git_tool._run(commit_message=repair_note)
-
             return repair_note
         except Exception as e:
+            logger.error(f"[INGÉNIEUR EN CHEF] Erreur pendant repair : {e}")
             return f"Échec repair/upgrade : {e}"
 
+    def _set_crash_flag(self, issue: str):
+        flag_file = "/workspace/.last_crash_by_engineer.txt"
+        with open(flag_file, "w") as f:
+            f.write(f"crash caused by self_improvement: {issue}")
+        logger.info(f"🚩 [CRASH FLAG] Flag créé pour protection anti-loop → {issue}")
+
+    def _clear_crash_flag(self):
+        flag_file = "/workspace/.last_crash_by_engineer.txt"
+        if os.path.exists(flag_file):
+            os.remove(flag_file)
+            logger.info("✅ [CRASH FLAG] Flag supprimé (réparation réussie)")
+
     def _create_backup(self, filename: str):
-        """Crée un backup du fichier avant toute modification"""
+        if filename == "*.json":
+            for f in os.listdir("/workspace"):
+                if f.endswith(".json"):
+                    self._create_backup(f)
+            return
         src = f"/workspace/{filename}"
         if not os.path.exists(src):
             return
         dst = f"{self.backup_dir}/{filename}.{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.bak"
         shutil.copy2(src, dst)
-        logger.info(f"💾 [BACKUP] {filename} sauvegardé → {dst}")
+        logger.info(f"💾 [BACKUP] {filename} sauvegardé (leçons/trades protégés) → {dst}")
+
+    def _cleanup_old_backups(self):
+        try:
+            backups = sorted([f for f in os.listdir(self.backup_dir) if f.endswith(".bak")])
+            if len(backups) > 15:  # un peu plus pour garder les DB
+                for old in backups[:-15]:
+                    os.remove(os.path.join(self.backup_dir, old))
+                logger.info(f"🧹 [BACKUP] {len(backups) - 15} anciens backups nettoyés")
+        except Exception:
+            pass
+
+    def restore_last_backup(self, filename: str):
+        backups = sorted([f for f in os.listdir(self.backup_dir) if filename in f])
+        if backups:
+            latest = backups[-1]
+            shutil.copy2(os.path.join(self.backup_dir, latest), f"/workspace/{filename}")
+            logger.info(f"🔄 [RESTORE] {filename} restauré (leçons/trades inclus)")
 
 
 # Instance globale
 engineer = SelfImprovementEngineer()
-logger.info("🚀 [INGÉNIEUR EN CHEF] Version optimisée + backup + anti-crash activée")
+logger.info("🚀 [INGÉNIEUR EN CHEF] Étape 3 activée (leçons + trades back-upés et réutilisés)")
