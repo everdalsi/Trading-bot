@@ -4161,7 +4161,6 @@ if __name__ == "__main__":
         sim["daily_start_equity"] = CAPITAL_INITIAL
         print(f"🔄 EXTREME LEARNING MODE → equity reset à ${CAPITAL_INITIAL:,.2f} (protection contre capital fantôme)")
 
-    start_websocket()
 
     # Evolution agent — thread daemon séparé
     evolution_thread = threading.Thread(target=_evolution_loop_MAIN, daemon=True)
