@@ -1,13 +1,14 @@
 """
-👑 TRADER AGENT V4 — Stratégie optimisée + utilisation maximale de la mémoire infinie
+👑 TRADER AGENT V5 — Stratégie optimisée + utilisation maximale de la mémoire infinie + VERROUILLAGE 99 % WINRATE PARFAIT
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Améliorations vs V3 :
+Améliorations vs V4 :
 - Score composite plus intelligent (symbol 60% + global 30% + pattern bonus 10%)
 - Meilleurs patterns boostent fortement la confiance
 - Worst patterns = veto automatique
 - Auto-rules utilisées de manière plus agressive
 - Meilleure gestion des streaks et dégradation
 - Confiance dynamique selon le nombre de leçons
+- UPGRADE ÉTAPE 2 : seuil passé à 99 % + force minimum 4 rounds de débat + veto dur
 """
 
 from agents.base_agent import BaseAgent
@@ -19,7 +20,7 @@ class TraderAgent(BaseAgent):
     def __init__(self):
         super().__init__(
             name="trader",
-            role="Décision trading (BUY / SELL / HOLD) — ULTRA CONSERVATEUR : seulement si confiance ≥ 98 %"
+            role="Décision trading (BUY / SELL / HOLD) — ULTRA CONSERVATEUR : seulement si confiance ≥ 99 %"
         )
 
     async def respond(self, question: str, context: dict) -> Dict[str, Any]:
@@ -78,11 +79,12 @@ class TraderAgent(BaseAgent):
         if len(same_symbol) >= 4 or severe_losses >= 2:
             return self._hold(symbol, f"Anti-spam : {len(same_symbol)} trades récents dont {severe_losses} SL sévères sur {symbol}", symbol_score, global_score)
 
-        if final_confidence < 0.98 and debate_rounds >= 3:
-            return self._hold(symbol, f"Confiance collective seulement {final_confidence:.1%} après {debate_rounds} rounds de débat — on skip pour protéger le winrate", symbol_score, global_score)
+        # === UPGRADE ÉTAPE 2 : VERROUILLAGE STRICT 99 % + MINIMUM 4 ROUNDS DE DÉBAT ===
+        if final_confidence < 0.99 or debate_rounds < 4:
+            return self._hold(symbol, f"Confiance collective seulement {final_confidence:.1%} après {debate_rounds} rounds de débat — veto total pour winrate parfait", symbol_score, global_score)
 
         decision = "HOLD"
-        reason   = "Pas de signal clair à ≥ 98 % de confiance"
+        reason   = "Pas de signal clair à ≥ 99 % de confiance"
 
         composite = (symbol_score * 0.65 + global_score * 0.25)
 
@@ -94,11 +96,11 @@ class TraderAgent(BaseAgent):
                 composite += 0.12
 
         if (macro in ("bullish", "BULL") and composite >= 0.92) or composite >= 0.95:
-            if ("CRITICAL" not in str(risk.get("summary", "")) and "STOP" not in str(risk.get("recommendation", "")) and final_confidence >= 0.98):
+            if ("CRITICAL" not in str(risk.get("summary", "")) and "STOP" not in str(risk.get("recommendation", "")) and final_confidence >= 0.99):
                 decision = "BUY"
-                reason   = f"Signal ultra-fort + confiance collective {final_confidence:.1%} ≥ 98 %"
+                reason   = f"Signal ultra-fort + confiance collective {final_confidence:.1%} ≥ 99 %"
 
-        if decision == "HOLD" and auto_rules and final_confidence >= 0.98:
+        if decision == "HOLD" and auto_rules and final_confidence >= 0.99:
             buy_rules = [r for r in auto_rules if "Checkmark" in r]
             if len(buy_rules) >= 3 and composite >= 0.90:
                 decision = "BUY"
@@ -107,7 +109,7 @@ class TraderAgent(BaseAgent):
         if decision == "HOLD":
             confidence = round(max(0.20, composite * 0.65), 2)
         else:
-            confidence = round(min(1.00, max(0.98, composite * 1.3)), 2)
+            confidence = round(min(1.00, max(0.99, composite * 1.3)), 2)
 
         natural_summary = (
             f"Salut ! J’ai tout regardé avec l’équipe après {debate_rounds} rounds de débat. "
@@ -144,7 +146,7 @@ class TraderAgent(BaseAgent):
             "symbol":       symbol,
             "decision":     "HOLD",
             "confidence":   0.25,
-            "symbol_score": round(symbol_score, 2),
+            "symbol_score": round(symbol_score 2),
             "global_score": round(global_score, 2),
             "summary":      natural_hold,
             "reason": reason,
