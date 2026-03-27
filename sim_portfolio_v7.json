@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 759.2004064199193,
+    "cash": 6.484115860032741,
     "initial": 1000.0,
     "positions": {
       "MICRO_TONUSDT_20": {
@@ -52,7 +52,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 0.000541,
+        "peak_price": 0.000542,
         "open_time": 1774608934.0279348,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_MEMEUSDT_21"
@@ -83,6 +83,114 @@
         "open_time": 1774608935.2757454,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_NOTUSDT_22"
+      },
+      "MICRO_AVAXUSDT_23": {
+        "id": 23,
+        "symbol": "AVAXUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 8.72,
+        "price_out": null,
+        "qty": 60.5967296867275,
+        "amount_usd": 528.4034828682638,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=26 mom=-0.34% vol=4.4x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 10:55:52",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 8.72,
+        "open_time": 1774608952.527365,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_AVAXUSDT_23"
+      },
+      "MICRO_APTUSDT_24": {
+        "id": 24,
+        "symbol": "APTUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.986,
+        "price_out": null,
+        "qty": 162.9154754482274,
+        "amount_usd": 160.6346587919522,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=26 mom=-0.30% vol=2.6x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 10:55:54",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.986,
+        "open_time": 1774608954.0416403,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_APTUSDT_24"
+      },
+      "MICRO_OPUSDT_25": {
+        "id": 25,
+        "symbol": "OPUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.1049,
+        "price_out": null,
+        "qty": 465.51893491662037,
+        "amount_usd": 48.83293627275347,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=22 mom=-0.28% vol=3.0x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 10:55:54",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.1049,
+        "open_time": 1774608954.5438333,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_OPUSDT_25"
+      },
+      "MICRO_TRXUSDT_26": {
+        "id": 26,
+        "symbol": "TRXUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.312,
+        "price_out": null,
+        "qty": 47.58080970165726,
+        "amount_usd": 14.845212626917064,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=23 mom=-0.16% vol=3.0x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 10:55:55",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.312,
+        "open_time": 1774608955.8420188,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_TRXUSDT_26"
       }
     },
     "trades": [
@@ -666,6 +774,110 @@
         "leverage": 1,
         "peak_price": 0.000348,
         "open_time": 1774608935.2757454,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 23,
+        "symbol": "AVAXUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 8.72,
+        "price_out": null,
+        "qty": 60.5967296867275,
+        "amount_usd": 528.4034828682638,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=26 mom=-0.34% vol=4.4x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 10:55:52",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 8.72,
+        "open_time": 1774608952.527365,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 24,
+        "symbol": "APTUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.986,
+        "price_out": null,
+        "qty": 162.9154754482274,
+        "amount_usd": 160.6346587919522,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=26 mom=-0.30% vol=2.6x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 10:55:54",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.986,
+        "open_time": 1774608954.0416403,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 25,
+        "symbol": "OPUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.1049,
+        "price_out": null,
+        "qty": 465.51893491662037,
+        "amount_usd": 48.83293627275347,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=22 mom=-0.28% vol=3.0x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 10:55:54",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.1049,
+        "open_time": 1774608954.5438333,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 26,
+        "symbol": "TRXUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.312,
+        "price_out": null,
+        "qty": 47.58080970165726,
+        "amount_usd": 14.845212626917064,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=23 mom=-0.16% vol=3.0x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 10:55:55",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.312,
+        "open_time": 1774608955.8420188,
         "kelly_pct": 0.48
       }
     ],
@@ -2042,7 +2254,7 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 3,
-    "total_losses": 38,
+    "total_losses": 40,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -15,
@@ -2055,7 +2267,7 @@
       "TRXUSDT": -6,
       "ONDOUSDT": -6,
       "AVAXUSDT": -6,
-      "OPUSDT": -3
+      "OPUSDT": -6
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
@@ -2064,7 +2276,8 @@
       "TRXUSDT": 1,
       "ONDOUSDT": 1,
       "AVAXUSDT": 1,
-      "APTUSDT": 1
+      "APTUSDT": 1,
+      "OPUSDT": 1
     },
     "bad_setups": [
       {
@@ -2735,6 +2948,48 @@
             "exit": 2050.53,
             "pnl": -1.8027,
             "pnl_pct": -0.91,
+            "exit_reason": "TIMEOUT"
+          }
+        ]
+      },
+      {
+        "symbol": "BTCUSDT",
+        "interval": "5m",
+        "days": 30,
+        "total_trades": 3,
+        "wins": 0,
+        "losses": 3,
+        "win_rate": 0.0,
+        "total_pnl": -5.63,
+        "total_pnl_pct": -0.56,
+        "sharpe": -30.41,
+        "max_drawdown": -0.56,
+        "profit_factor": 0.0,
+        "best_trade": -0.36,
+        "worst_trade": -1.56,
+        "final_equity": 994.37,
+        "sl_used": 0.025,
+        "tp_used": 0.04,
+        "trades": [
+          {
+            "entry": 71503.24375499999,
+            "exit": 71242.73,
+            "pnl": -0.7276,
+            "pnl_pct": -0.36,
+            "exit_reason": "TIMEOUT"
+          },
+          {
+            "entry": 70091.49823499999,
+            "exit": 68996.89,
+            "pnl": -3.1164,
+            "pnl_pct": -1.56,
+            "exit_reason": "TIMEOUT"
+          },
+          {
+            "entry": 69199.572495,
+            "exit": 68578.0,
+            "pnl": -1.7869,
+            "pnl_pct": -0.9,
             "exit_reason": "TIMEOUT"
           }
         ]
