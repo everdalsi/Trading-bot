@@ -12959,7 +12959,7 @@
     ],
     "confidence_threshold": 44,
     "total_wins": 16,
-    "total_losses": 284,
+    "total_losses": 285,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -15,
@@ -19251,6 +19251,69 @@
             "pnl": -1.8027,
             "pnl_pct": -0.91,
             "exit_reason": "TIMEOUT"
+          }
+        ]
+      },
+      {
+        "symbol": "SOLUSDT",
+        "interval": "5m",
+        "days": 30,
+        "total_trades": 6,
+        "wins": 2,
+        "losses": 4,
+        "win_rate": 33.3,
+        "total_pnl": -7.37,
+        "total_pnl_pct": -0.74,
+        "sharpe": -5.33,
+        "max_drawdown": -1.08,
+        "profit_factor": 0.46,
+        "best_trade": 2.52,
+        "worst_trade": -3.1,
+        "final_equity": 992.63,
+        "sl_used": 0.025,
+        "tp_used": 0.04,
+        "trades": [
+          {
+            "entry": 90.28511999999999,
+            "exit": 89.57,
+            "pnl": -1.5818,
+            "pnl_pct": -0.79,
+            "exit_reason": "TIMEOUT"
+          },
+          {
+            "entry": 89.78486999999998,
+            "exit": 92.05,
+            "pnl": 5.0301,
+            "pnl_pct": 2.52,
+            "exit_reason": "TIMEOUT"
+          },
+          {
+            "entry": 92.50622999999999,
+            "exit": 91.77,
+            "pnl": -1.5948,
+            "pnl_pct": -0.8,
+            "exit_reason": "TIMEOUT"
+          },
+          {
+            "entry": 89.09452499999999,
+            "exit": 87.17,
+            "pnl": -4.3217,
+            "pnl_pct": -2.16,
+            "exit_reason": "TIMEOUT"
+          },
+          {
+            "entry": 86.02299,
+            "exit": 86.58,
+            "pnl": 1.2899,
+            "pnl_pct": 0.65,
+            "exit_reason": "TIMEOUT"
+          },
+          {
+            "entry": 86.093025,
+            "exit": 83.42,
+            "pnl": -6.193,
+            "pnl_pct": -3.1,
+            "exit_reason": "SL"
           }
         ]
       }
