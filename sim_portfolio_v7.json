@@ -1,35 +1,8 @@
 {
   "sim": {
-    "cash": 41.587956301912996,
+    "cash": 590.019840513799,
     "initial": 1000.0,
     "positions": {
-      "MICRO_LINKUSDT_55": {
-        "id": 55,
-        "symbol": "LINKUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 8.9,
-        "price_out": null,
-        "qty": 61.62156002380741,
-        "amount_usd": 548.431884211886,
-        "confidence": 88,
-        "reason": "EMA\u2191 RSI7=52 mom=+0.00% vol=4.6x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 08:16:21",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 8.9,
-        "open_time": 1774599381.7620943,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_LINKUSDT_55"
-      },
       "MICRO_UNIUSDT_56": {
         "id": 56,
         "symbol": "UNIUSDT",
@@ -1505,17 +1478,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 8.9,
-        "price_out": null,
+        "price_out": 8.9,
         "qty": 61.62156002380741,
         "amount_usd": 548.431884211886,
         "confidence": 88,
         "reason": "EMA\u2191 RSI7=52 mom=+0.00% vol=4.6x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 72s",
         "time_in": "2026-03-27 08:16:21",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 08:17:34",
+        "pnl": 0.0,
+        "pnl_pct": 0.0,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -22607,6 +22580,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 08:17"
+      },
+      {
+        "trade_id": 55,
+        "pnl": 0.0,
+        "symbol": "LINKUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 08:17"
       }
     ],
     "patterns_to_avoid": [
@@ -22635,7 +22619,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "score=4",
       "backtest_5m",
@@ -22909,7 +22892,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -23213,7 +23197,7 @@
       "backtest_5m",
       "backtest_5m"
     ],
-    "confidence_threshold": 56,
+    "confidence_threshold": 59,
     "total_wins": 194,
     "total_losses": 381,
     "symbol_scores": {
@@ -23245,7 +23229,8 @@
       "SEIUSDT": -12,
       "AVAXUSDT": -12,
       "XRPUSDT": 4,
-      "WIFUSDT": -6
+      "WIFUSDT": -6,
+      "LINKUSDT": -3
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
