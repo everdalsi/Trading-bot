@@ -1,35 +1,8 @@
 {
   "sim": {
-    "cash": 1626.1209912766656,
+    "cash": 1886.8452479646053,
     "initial": 1000.0,
     "positions": {
-      "MICRO_BTCUSDT_103": {
-        "id": 103,
-        "symbol": "BTCUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 65855.41,
-        "price_out": null,
-        "qty": 0.0005184555619138755,
-        "amount_usd": 34.14310359661866,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=21 mom=-0.30% vol=3.0x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 14:26:28",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 65855.41,
-        "open_time": 1774621588.7801719,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_BTCUSDT_103"
-      },
       "MICRO_NEARUSDT_104": {
         "id": 104,
         "symbol": "NEARUSDT",
@@ -2825,17 +2798,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 1.18,
-        "price_out": null,
+        "price_out": 1.18,
         "qty": 220.95275990503373,
         "amount_usd": 260.72425668793977,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=19 mom=-0.17% vol=2.7x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 208s",
         "time_in": "2026-03-27 14:26:53",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 14:30:37",
+        "pnl": 0.0,
+        "pnl_pct": 0.0,
+        "duration_min": 3,
         "patterns": [
           "score=4"
         ],
@@ -14276,6 +14249,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 14:30"
+      },
+      {
+        "trade_id": 104,
+        "pnl": 0.0,
+        "symbol": "NEARUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 14:30"
       }
     ],
     "patterns_to_avoid": [
@@ -14292,7 +14276,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "score=4",
       "memecoin",
@@ -14576,6 +14559,7 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "score=4",
       "score=4",
       "score=4",
       "score=4"
@@ -14813,7 +14797,7 @@
     ],
     "confidence_threshold": 76,
     "total_wins": 24,
-    "total_losses": 317,
+    "total_losses": 318,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -15,
@@ -14834,7 +14818,7 @@
       "JUPUSDT": 4,
       "PIXEL": -15,
       "PIXELUSDT": -4,
-      "NEARUSDT": -6,
+      "NEARUSDT": -9,
       "STRKUSDT": -6,
       "IMXUSDT": -6,
       "FETUSDT": -9,
@@ -14879,7 +14863,7 @@
       "UNIUSDT": 1,
       "LINKUSDT": 0,
       "FLOKIUSDT": 0,
-      "BTCUSDT": 0,
+      "BTCUSDT": 1,
       "SOLUSDT": 0,
       "XRPUSDT": 0,
       "LTCUSDT": 1,
