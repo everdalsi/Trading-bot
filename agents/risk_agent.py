@@ -17,6 +17,11 @@ class RiskAgent(BaseAgent):
     async def respond(self, question: str, context: dict) -> Dict[str, Any]:
         extreme_learning = context.get("extreme_learning_mode", False) or context.get("learning_mode", False)
 
+        # === UPGRADE ÉTAPE 2 : STRICT VETO MODE ===
+        strict_veto_mode = context.get("strict_veto_mode", False)
+        if strict_veto_mode:
+            extreme_learning = False  # ← UPGRADE : on désactive complètement le force max trades quand on veut winrate parfait
+
         kelly          = context.get("kelly", 0.22)
         drawdown       = context.get("drawdown", 0.0)
         daily_pnl_pct  = context.get("daily_pnl_pct", 0.0)
@@ -42,8 +47,9 @@ class RiskAgent(BaseAgent):
         recommendation = "Risk acceptable — trading autorisé"
 
         # OVERRIDE APPRENTISSAGE MAX — force les trades même en risque critique
+        # UPGRADE ÉTAPE 2 : ce bloc est maintenant désactivé automatiquement en strict_veto_mode
         learning_mode = any(word in question.lower() for word in ["max de trade", "apprenez", "affûtez", "apprendre", "max trade", "beaucoup de trades", "vrai argent"])
-        if learning_mode or extreme_learning:
+        if (learning_mode or extreme_learning) and not strict_veto_mode:
             risk_level = "LOW"
             recommendation = "FORCE MAX TRADES — Apprentissage prioritaire (veto ignoré)"
             kelly_adjust = 1.0
@@ -139,7 +145,7 @@ class RiskAgent(BaseAgent):
         )
 
         natural_summary = (
-            f"Salut ! J’ai analysé le risque sur {symbol}. "
+            f"Salut ! J’ai analysé le risque sur {context.get('symbol', 'UNKNOWN')}. "
             f"Le drawdown est à {drawdown*100:.1f}%, le Sharpe à {sharpe:.2f}. "
             f"Avec les leçons accumulées et la santé immune à {immune_health}%, je recommande {recommendation.lower()}. "
             f"C’est prudent et aligné avec notre objectif de gains stables et winrate proche de 100%."
