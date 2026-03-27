@@ -91,51 +91,44 @@ def create_improvement_crew():
 
         reflector = Agent(
             role="Reflection & Strategy Officer",
-            goal="Analyser les cycles précédents et définir une stratégie claire",
-            backstory="Tu analyses les résultats passés et guides l’amélioration.",
+            goal="Analyser les performances passées et proposer une stratégie claire",
+            backstory="Tu es un analyste stratégique qui identifie les points faibles et les opportunités d'amélioration du bot.",
             llm=MODEL,
             verbose=True
         )
 
         permission_officer = Agent(
             role="Permission & Security Officer",
-            goal="Classer le risque mais AUTO-APPROUVER TOUT en phase de test",
-            backstory="""PHASE DE TEST + EXTREME LEARNING MODE → AUCUNE PERMISSION DEMANDÉE À L’UTILISATEUR.
-Tu classes toujours le risque (Low/Medium/High) pour le suivi, 
-MAIS tu AUTO-APPROUVES systématiquement toutes les modifications, même High risk.
-Ton rôle est uniquement de documenter le risque, jamais de bloquer le crew.""",
+            goal="Classer le risque et AUTO-APPROUVER en EXTREME LEARNING MODE",
+            backstory="""Tu es en PHASE EXTREME LEARNING MODE. Tu auto-approuves TOUTES les modifications (même High risk) sans jamais demander de permission à l'utilisateur. Tu documentes simplement le niveau de risque.""",
             llm=MODEL,
             verbose=True
         )
 
         improver = Agent(
             role="Senior Self-Improvement Engineer",
-            goal="Appliquer les patches de façon totalement autonome",
-            backstory="""RÈGLES STRICTES À RESPECTER À CHAQUE FOIS SANS AUCUNE EXCEPTION :
-- Tu ne dois modifier QUE les fichiers EXISTANTS (uniquement bot.py et les fichiers dans le dossier agents/).
-- Tu ne dois JAMAIS créer de nouveaux fichiers.
-- Tu dois TOUJOURS donner des BLOCS COMPLETS À REMPLACER avec le code exact à trouver.
-- Tu dois indiquer clairement le niveau de risque (Low / Medium / High).
-- Tu dois utiliser EXCLUSIVEMENT le tool EditBotFileTool via CrewAI.
-- Tu ne dois JAMAIS écrire toi-même <function=...> ou aucun tag XML dans ta réponse.
-- En EXTREME LEARNING MODE tu es ultra-agressif sur le volume de trades.""",
+            goal="Modifier le code du bot de façon autonome et efficace",
+            backstory="""Tu es un ingénieur senior spécialisé dans l'auto-amélioration de bots de trading.
+RÈGLES IMPORTANTES :
+- Tu modifies UNIQUEMENT les fichiers EXISTANTS (surtout bot.py et les fichiers dans le dossier agents/)
+- Tu utilises EXCLUSIVEMENT les tools EditBotFileTool et GitPushTool
+- Tu fournis des patches clairs, complets et fonctionnels
+- En EXTREME LEARNING MODE tu es agressif sur le volume de trades""",
             tools=[EditBotFileTool(), GitPushTool()],
             llm=MODEL,
-            verbose=True,
-            allow_code_execution=False
+            verbose=True
         )
 
         task = Task(
             description=f"""
-Objectif : {MAIN_OBJECTIVE}
+{MAIN_OBJECTIVE}
 
-PHASE DE TEST + EXTREME LEARNING MODE → AUTONOMIE TOTALE.
-Le Permission Officer auto-approuve TOUT (même High risk) sans demander la permission à l’utilisateur.
-Tu dois fournir UNIQUEMENT des blocs complets à remplacer dans les fichiers EXISTANTS (surtout bot.py).
-Utilise STRICTEMENT le tool EditBotFileTool. NE JAMAIS générer de balise <function=...> ou XML.
-CrewAI appellera le tool automatiquement.
+Nous sommes en EXTREME LEARNING MODE : objectif = maximiser le nombre de trades simulés et améliorer le winrate le plus vite possible.
+
+Analyse la situation actuelle, propose des améliorations concrètes, et utilise les tools pour appliquer les modifications.
+Le Permission Officer auto-approuve tout (même High risk).
 """,
-            expected_output="Analyse du Reflection + classification des risques + patches PRÉCIS et COMPLETS sur fichiers existants uniquement + auto-approbation",
+            expected_output="Analyse + classification risque + modifications appliquées via tools",
             agent=improver
         )
 
@@ -145,12 +138,10 @@ CrewAI appellera le tool automatiquement.
             verbose=True,
             memory=False,
             cache=True,
-            task_callback=None,
-            step_callback=None
         )
         return crew
     except Exception as e:
-        print(f"[CREW] Création impossible: {e}")
+        print(f"[CREW] Erreur création crew: {e}")
         return None
 
 # === TOUT LE RESTE DE TON CODE ORIGINAL RESTE INTACT ===
