@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 912.2402852342959,
+    "cash": 341.36743078872,
     "initial": 1000.0,
     "positions": {
       "MICRO_ETHUSDT_68": {
@@ -52,10 +52,37 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 3.489,
+        "peak_price": 3.492,
         "open_time": 1774600041.900221,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_UNIUSDT_69"
+      },
+      "MICRO_OPUSDT_70": {
+        "id": 70,
+        "symbol": "OPUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.1097,
+        "price_out": null,
+        "qty": 5787.777926372561,
+        "amount_usd": 634.9192385230699,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=21 mom=-0.09% vol=2.7x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 08:27:42",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.1097,
+        "open_time": 1774600062.5316377,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_OPUSDT_70"
       }
     },
     "trades": [
@@ -1816,17 +1843,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 2057.39,
-        "price_out": null,
+        "price_out": 2056.37,
         "qty": 0.03114536006530634,
         "amount_usd": 64.07815234476061,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=26 mom=-0.10% vol=4.3x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 60s",
         "time_in": "2026-03-27 08:27:19",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 08:28:20",
+        "pnl": -0.031768,
+        "pnl_pct": -0.05,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -1859,6 +1886,32 @@
         "leverage": 1,
         "peak_price": 3.489,
         "open_time": 1774600041.900221,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 70,
+        "symbol": "OPUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.1097,
+        "price_out": null,
+        "qty": 5787.777926372561,
+        "amount_usd": 634.9192385230699,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=21 mom=-0.09% vol=2.7x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 08:27:42",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.1097,
+        "open_time": 1774600062.5316377,
         "kelly_pct": 0.48
       }
     ],
@@ -24091,6 +24144,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 08:27"
+      },
+      {
+        "trade_id": 68,
+        "pnl": -0.031768,
+        "symbol": "ETHUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 08:28"
       }
     ],
     "patterns_to_avoid": [
@@ -24292,7 +24356,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -24393,7 +24456,8 @@
       "score=4",
       "backtest_5m",
       "score=4",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -24402,7 +24466,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -24688,6 +24751,7 @@
       "backtest_5m",
       "backtest_5m",
       "score=4",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -24699,11 +24763,11 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 206,
-    "total_losses": 407,
+    "total_losses": 408,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -6,
+      "SOLUSDT": -4,
       "TARO": -3,
       "OPUSDT": -12,
       "PENDLEUSDT": -12,
@@ -24732,7 +24796,7 @@
       "WIFUSDT": -12,
       "LINKUSDT": -2,
       "INJUSDT": -6,
-      "IMXUSDT": -5
+      "IMXUSDT": -8
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
@@ -24764,7 +24828,7 @@
       "WIFUSDT": 2,
       "LINKUSDT": 0,
       "INJUSDT": 1,
-      "IMXUSDT": 1
+      "IMXUSDT": 2
     },
     "bad_setups": [
       {
