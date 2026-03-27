@@ -32,7 +32,7 @@ class Orchestrator:
         self.learning   = LearningAgent()
         self.performance = PerformanceTracker()
         self.research   = ResearchAgent()
-        self.knowledge = KnowledgeBase()
+        self.knowledge  = KnowledgeBase()
 
     # ─────────────────────────────────────────────────────────────
     #  ask_all — Interroge tous les agents en parallèle
@@ -40,13 +40,8 @@ class Orchestrator:
     async def ask_all(
         self, question: str, context: dict
     ) -> Tuple[List[Dict], Dict]:
-        """
-        Lance tous les agents en parallèle, enrichit le contexte
-        avec leurs résultats, puis demande au Supervisor de synthétiser.
-        """
         print(f"[ORCHESTRATOR] ask_all → {question[:80]}...")
 
-        # === Enrichir le contexte avec les stats de mémoire infinie ===
         enriched_ctx = self._enrich_context(context)
 
         tasks = [
@@ -74,7 +69,6 @@ class Orchestrator:
             else:
                 responses.append(res)
 
-        # Extraire trader et risk pour le supervisor
         trader_resp = next((r for r in responses if r.get("agent") == "trader"), {})
         risk_resp   = next((r for r in responses if r.get("agent") == "risk"), {})
 
@@ -98,9 +92,6 @@ class Orchestrator:
     #  run — Pipeline de trading complet
     # ─────────────────────────────────────────────────────────────
     async def run(self, market_data: dict, memory: dict) -> Dict[str, Any]:
-        """
-        Pipeline complet : blacklist check → analyse → risk → trade → décision.
-        """
         symbol = market_data.get("symbol", "UNKNOWN")
 
         context = {
@@ -111,10 +102,8 @@ class Orchestrator:
             "base_confidence": 0.65,
         }
 
-        # === Enrichir avec mémoire infinie + perf tracker ===
         context = self._enrich_context(context)
 
-        # === Blacklist check via LearningAgent ===
         blacklist_check = await self.learning.respond(
             "should I blacklist this symbol?", context
         )
@@ -126,7 +115,6 @@ class Orchestrator:
             }
 
         try:
-            # === Analyses parallèles ===
             analysis, risk_result, trader_decision = await asyncio.gather(
                 self.analyst.respond("analyze current market", context),
                 self.risk.respond("assess risk", context),
@@ -139,7 +127,6 @@ class Orchestrator:
                 "trader_decision": trader_decision,
             })
 
-            # === Score final via LearningAgent ===
             learning_result = await self.learning.respond(
                 "compute global and symbol score", context
             )
@@ -147,7 +134,6 @@ class Orchestrator:
             final_score = learning_result.get("confidence", 0.5)
             context["score"] = final_score
 
-            # === Décision finale via Supervisor ===
             final = await self.supervisor.respond("validate final decision", context)
 
             if not final or final.get("decision") == "NO TRADE":
@@ -157,7 +143,6 @@ class Orchestrator:
                     "score": final_score,
                 }
 
-            # === Position sizing ===
             position_size = self.get_position_size(
                 balance=1000,
                 risk_per_trade=0.02,
@@ -165,7 +150,6 @@ class Orchestrator:
             )
             final["position_size"] = position_size
 
-            # === Logging du trade ===
             if final.get("decision") in ("BUY", "SELL"):
                 trade_entry = {
                     "symbol": symbol,
@@ -206,17 +190,11 @@ class Orchestrator:
     #  ENRICHISSEMENT DU CONTEXTE
     # ─────────────────────────────────────────────────────────────
     def _enrich_context(self, context: dict) -> dict:
-        """
-        Enrichit le contexte avec :
-          - Stats mémoire infinie (LearningAgent DB)
-          - Stats PerformanceTracker temps réel
-        """
         enriched = dict(context)
         enriched["extreme_learning_mode"] = True         
         enriched["learning_mode"] = True
 
         try:
-            # Stats depuis la mémoire infinie (DB)
             symbol = context.get("symbol")
             global_stats  = self.learning.get_global_stats_db(window=100)
             symbol_stats  = self.learning.get_symbol_stats_db(symbol, window=20) if symbol else global_stats
@@ -239,7 +217,6 @@ class Orchestrator:
             print(f"[ORCHESTRATOR] enrich learning error: {e}")
 
         try:
-            # Stats depuis PerformanceTracker
             memory = context.get("memory", {})
             if memory:
                 stats = self.performance.get_global_stats(memory)
@@ -277,41 +254,34 @@ class Orchestrator:
             return round(adjusted, 2)
         except Exception:
             return 0.0
-            
+
     # ─────────────────────────────────────────────────────────────
-    #  AUTO-AJUSTEMENT + AUTO-EXÉCUTION (cerveau + mains des agents)
+    #  AUTO-AJUSTEMENT + AUTO-EXÉCUTION
     # ─────────────────────────────────────────────────────────────
     async def self_tune_and_execute(self, memory: dict):
-        """Les agents s’auto-ajustent et forcent des trades en mode extrême"""
         if not EXTREME_LEARNING_MODE:
             return
 
         lesson_count = self.learning.get_lesson_count()
 
-                # AUTO-AJUSTEMENT (le cerveau)
         if lesson_count < 1000:
-            # On baisse les barrières pour accumuler plus de leçons
             global MICRO_CONF_MIN, MAX_MICRO_POSITIONS, CYCLE_MICRO
-            MICRO_CONF_MIN = max(3, MICRO_CONF_MIN - 2)      # confiance plus basse
+            MICRO_CONF_MIN = max(3, MICRO_CONF_MIN - 2)
             MAX_MICRO_POSITIONS = min(200, MAX_MICRO_POSITIONS + 20)
-            CYCLE_MICRO = max(5, CYCLE_MICRO - 2)            # cycle encore plus rapide
+            CYCLE_MICRO = max(5, CYCLE_MICRO - 2)
 
             print(f"[SELF-TUNE] Leçons = {lesson_count} → paramètres agressifs : conf_min={MICRO_CONF_MIN}, max_pos={MAX_MICRO_POSITIONS}, cycle={CYCLE_MICRO}s")
 
-            # === UPGRADE MAX TRADES : on force encore plus de volume ===
             global LEARN_MODE_MAX_PCT, MICRO_MAX_PCT
             LEARN_MODE_MAX_PCT = max(0.48, LEARN_MODE_MAX_PCT)
             MICRO_MAX_PCT = max(0.48, MICRO_MAX_PCT)
             print(f"[SELF-TUNE] Volume max forcé à {LEARN_MODE_MAX_PCT*100:.0f}% par trade")
 
-        # AUTO-EXÉCUTION (les mains)
-        # Force un micro-trade immédiat sur le meilleur symbole
         try:
             best_symbol = self.learning.get_best_patterns()[0]["pattern"].split()[0] if self.learning.get_best_patterns() else "BTCUSDT"
             context = self._enrich_context({"symbol": best_symbol, "memory": memory})
             trader_resp = await self.trader.respond("force micro trade maintenant", context)
             if trader_resp.get("decision") == "BUY":
                 print(f"[AUTO-EXEC] Ouverture forcée sur {best_symbol} (apprentissage extrême)")
-                # Ici tu peux appeler ta fonction open_trade si tu veux
         except:
             pass
