@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 284.1267063062497,
+    "cash": 941.7408332903765,
     "initial": 1000.0,
     "positions": {
       "MEME_NEKO_3": {
@@ -175,17 +175,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.993,
-        "price_out": null,
+        "price_out": 0.993,
         "qty": 662.2498761169455,
         "amount_usd": 657.6141269841269,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=28 mom=-0.20% vol=4.6x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 74s",
         "time_in": "2026-03-27 10:49:43",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 10:50:59",
+        "pnl": 0.0,
+        "pnl_pct": 0.0,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -819,6 +819,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 10:50"
+      },
+      {
+        "trade_id": 5,
+        "pnl": 0.0,
+        "symbol": "APTUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 10:50"
       }
     ],
     "patterns_to_avoid": [
@@ -860,7 +871,8 @@
       "backtest_5m",
       "backtest_5m",
       "memecoin",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -883,7 +895,8 @@
       "Deadwhale": -15,
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -6
+      "SOLUSDT": -6,
+      "APTUSDT": -3
     },
     "symbol_blacklist": {},
     "consecutive_losses": {},
