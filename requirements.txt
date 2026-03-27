@@ -5,12 +5,12 @@
 # === IA & Agents ===
 chromadb
 pypdf
+sentence-transformers     # ← AJOUTÉ pour KnowledgeBase (obligatoire)
 crewai>=1.11.0
 crewai-tools
 groq
 langchain-groq
 litellm
-sentence-transformers
 
 # === Core Trading & Data ===
 ccxt
@@ -36,7 +36,7 @@ matplotlib>=3.8.0
 # === Utilitaires & Persistance ===
 python-dotenv
 gitpython
-# pybit → commenté car il n'existe plus sur PyPI (le build plante à cause de lui)
+# pybit → commenté car il n'existe plus sur PyPI
 # pybit
 praw
 
