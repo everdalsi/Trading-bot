@@ -15,6 +15,7 @@ from typing import Dict, Any, List, Tuple
 from agents.analyst_agent import AnalystAgent
 from agents.risk_agent import RiskAgent
 from agents.trader_agent import TraderAgent
+from knowledge_base import KnowledgeBase
 from agents.supervisor_agent import SupervisorAgent
 from agents.learning_agent import LearningAgent
 from agents.performance_tracker import PerformanceTracker
