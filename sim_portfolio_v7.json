@@ -4584,61 +4584,6 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 04:53"
-      },
-      {
-        "trade_id": -3,
-        "pnl": -1.8027,
-        "symbol": "ETHUSDT",
-        "market": "BACKTEST",
-        "lecon": "Entr\u00e9e trop agressive",
-        "pattern": "backtest_5m",
-        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
-        "type": "erreur",
-        "date": "2026-03-27 04:54"
-      },
-      {
-        "trade_id": -1,
-        "pnl": 2.9979,
-        "symbol": "SOLUSDT",
-        "market": "BACKTEST",
-        "lecon": "Scalp rapide gagnant",
-        "pattern": "backtest_5m",
-        "action_future": "Conserver ce setup pour micro-trading",
-        "type": "succes",
-        "date": "2026-03-27 04:54"
-      },
-      {
-        "trade_id": -2,
-        "pnl": 5.0532,
-        "symbol": "SOLUSDT",
-        "market": "BACKTEST",
-        "lecon": "Scalp rapide gagnant",
-        "pattern": "backtest_5m",
-        "action_future": "Conserver ce setup pour micro-trading",
-        "type": "succes",
-        "date": "2026-03-27 04:54"
-      },
-      {
-        "trade_id": -3,
-        "pnl": -1.6021,
-        "symbol": "SOLUSDT",
-        "market": "BACKTEST",
-        "lecon": "Entr\u00e9e trop agressive",
-        "pattern": "backtest_5m",
-        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
-        "type": "erreur",
-        "date": "2026-03-27 04:54"
-      },
-      {
-        "trade_id": -4,
-        "pnl": -4.3415,
-        "symbol": "SOLUSDT",
-        "market": "BACKTEST",
-        "lecon": "Entr\u00e9e trop agressive",
-        "pattern": "backtest_5m",
-        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
-        "type": "erreur",
-        "date": "2026-03-27 04:54"
       }
     ],
     "patterns_to_avoid": [
@@ -4936,9 +4881,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
-      "backtest_5m",
-      "backtest_5m",
       "backtest_5m"
     ],
     "patterns_that_work": [
@@ -5059,17 +5001,15 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
-      "backtest_5m",
       "backtest_5m"
     ],
     "confidence_threshold": 82,
-    "total_wins": 41,
+    "total_wins": 40,
     "total_losses": 87,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": 0,
+      "SOLUSDT": 2,
       "TARO": -3
     },
     "symbol_blacklist": {},
@@ -8463,6 +8403,6 @@
         "status": "\u2705 Promos d\u00e9tect\u00e9es"
       }
     ],
-    "last_scan": 1774587000.3535528
+    "last_scan": 1774587252.9511144
   }
 }
