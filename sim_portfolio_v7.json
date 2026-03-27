@@ -23556,6 +23556,28 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 08:24"
+      },
+      {
+        "trade_id": -1,
+        "pnl": 2.9979,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 08:24"
+      },
+      {
+        "trade_id": -2,
+        "pnl": 5.0532,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 08:24"
       }
     ],
     "patterns_to_avoid": [
@@ -23874,8 +23896,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -24160,15 +24180,17 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "score=4"
+      "score=4",
+      "backtest_5m",
+      "backtest_5m"
     ],
     "confidence_threshold": 82,
-    "total_wins": 203,
+    "total_wins": 204,
     "total_losses": 399,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -4,
+      "SOLUSDT": 0,
       "TARO": -3,
       "OPUSDT": -6,
       "PENDLEUSDT": -12,
@@ -24186,7 +24208,7 @@
       "MEMEUSDT": 4,
       "FETUSDT": -2,
       "LEGACY": 9,
-      "SUIUSDT": -4,
+      "SUIUSDT": -2,
       "PEPEUSDT": 4,
       "ONDOUSDT": 4,
       "UNIUSDT": -14,
@@ -24217,7 +24239,7 @@
       "LTCUSDT": 1,
       "MEMEUSDT": 0,
       "FETUSDT": 1,
-      "SUIUSDT": 1,
+      "SUIUSDT": 0,
       "PEPEUSDT": 0,
       "ONDOUSDT": 0,
       "UNIUSDT": 2,
