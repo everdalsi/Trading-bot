@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 301.0236866702876,
+    "cash": 996.6677294448074,
     "initial": 1000.0,
     "positions": {
       "MICRO_IMXUSDT_93": {
@@ -25,7 +25,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 0.1497,
+        "peak_price": 0.151,
         "open_time": 1774601338.613021,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_IMXUSDT_93"
@@ -2439,17 +2439,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.1494,
-        "price_out": null,
+        "price_out": 0.1508,
         "qty": 4613.024156329707,
         "amount_usd": 689.1858089556582,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=24 mom=-0.33% vol=2.9x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 61s",
         "time_in": "2026-03-27 08:48:58",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 08:50:00",
+        "pnl": 6.458234,
+        "pnl_pct": 0.937,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -27141,6 +27141,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 08:49"
+      },
+      {
+        "trade_id": 93,
+        "pnl": 6.458234,
+        "symbol": "IMXUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 08:50"
       }
     ],
     "patterns_to_avoid": [
@@ -27474,7 +27485,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -27745,7 +27755,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
     "confidence_threshold": 82,
     "total_wins": 229,
@@ -27782,7 +27793,7 @@
       "WIFUSDT": -11,
       "LINKUSDT": -8,
       "INJUSDT": -6,
-      "IMXUSDT": -8,
+      "IMXUSDT": -6,
       "NEARUSDT": 4
     },
     "symbol_blacklist": {
