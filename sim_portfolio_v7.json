@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 96.06548771511815,
+    "cash": 1627.3154767377137,
     "initial": 1000.0,
     "positions": {
       "MICRO_ONDOUSDT_85": {
@@ -25,7 +25,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 0.2624,
+        "peak_price": 0.2627,
         "open_time": 1774614686.8165777,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_ONDOUSDT_85"
@@ -2304,17 +2304,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.2624,
-        "price_out": null,
+        "price_out": 0.2627,
         "qty": 2387.9538513045823,
         "amount_usd": 626.5990905823224,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=9 mom=-0.08% vol=3.9x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 1137s",
         "time_in": "2026-03-27 12:31:26",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 12:50:24",
+        "pnl": 0.716386,
+        "pnl_pct": 0.114,
+        "duration_min": 18,
         "patterns": [
           "score=4"
         ],
@@ -2354,8 +2354,8 @@
       1000.0
     ],
     "session": 1,
-    "peak_equity": 1000.0,
-    "daily_start_equity": 1000.0,
+    "peak_equity": 1817.0852141193486,
+    "daily_start_equity": 1817.0852141193486,
     "daily_start_date": "2026-03-27"
   },
   "memory": {
@@ -11291,6 +11291,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 12:31"
+      },
+      {
+        "trade_id": 85,
+        "pnl": 0.716386,
+        "symbol": "ONDOUSDT",
+        "market": "MICRO",
+        "lecon": "Trade gagnant exploitable",
+        "pattern": "score=4",
+        "action_future": "Rejouer ce setup avec prudence",
+        "type": "succes",
+        "date": "2026-03-27 12:50"
       }
     ],
     "patterns_to_avoid": [
@@ -11781,9 +11792,10 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
-    "confidence_threshold": 82,
+    "confidence_threshold": 80,
     "total_wins": 14,
     "total_losses": 253,
     "symbol_scores": {
@@ -11796,7 +11808,7 @@
       "ARBUSDT": -12,
       "TONUSDT": -15,
       "TRXUSDT": -2,
-      "ONDOUSDT": -6,
+      "ONDOUSDT": -4,
       "AVAXUSDT": -2,
       "OPUSDT": -12,
       "MEMEUSDT": 4,
