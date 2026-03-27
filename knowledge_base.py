@@ -1,6 +1,6 @@
 """
-KNOWLEDGE BASE V1 — RAG pour tous tes agents
-Compatible avec tes PDFs à la racine + structure actuelle
+KNOWLEDGE BASE V1 — Version légère (sans sentence-transformers)
+Compatible avec tes PDFs à la racine
 """
 
 import os
@@ -14,18 +14,16 @@ from pypdf import PdfReader
 class KnowledgeBase:
     def __init__(self, db_path: str = "knowledge_db", collection_name: str = "trading_knowledge"):
         self.client = chromadb.PersistentClient(path=db_path)
-        self.embedding_function = embedding_functions.SentenceTransformerEmbeddingFunction(
-            model_name="all-MiniLM-L6-v2"
-        )
+        # Embedding ultra-léger intégré à ChromaDB (pas de torch ni sentence-transformers)
+        self.embedding_function = embedding_functions.DefaultEmbeddingFunction()
         self.collection = self.client.get_or_create_collection(
             name=collection_name,
             embedding_function=self.embedding_function,
             metadata={"hnsw:space": "cosine"}
         )
-        print(f"✅ KnowledgeBase initialisée (stockée dans {db_path}/)")
+        print(f"✅ KnowledgeBase initialisée (version légère)")
 
     def load_pdfs_from_root(self) -> int:
-        """Scan la racine et charge automatiquement tous les .pdf"""
         root = Path(".")
         pdf_files = list(root.glob("*.pdf")) + list(root.glob("*.PDF"))
         
@@ -46,7 +44,7 @@ class KnowledgeBase:
                 if not full_text.strip():
                     continue
 
-                chunks = self._simple_split(full_text, chunk_size=1100, overlap=150)
+                chunks = self._simple_split(full_text)
 
                 ids = [f"{pdf_path.stem}_chunk_{i}" for i in range(len(chunks))]
                 metadatas = [{"source": pdf_path.name, "chunk": i} for i in range(len(chunks))]
@@ -62,7 +60,6 @@ class KnowledgeBase:
         return total_chunks
 
     def _simple_split(self, text: str, chunk_size: int = 1100, overlap: int = 150) -> List[str]:
-        """Splitter pur Python (rapide et sans dépendance)"""
         chunks = []
         start = 0
         while start < len(text):
