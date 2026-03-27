@@ -1,35 +1,8 @@
 {
   "sim": {
-    "cash": 211.19582466438408,
+    "cash": 430.5831263640683,
     "initial": 1000.0,
     "positions": {
-      "MICRO_BTCUSDT_95": {
-        "id": 95,
-        "symbol": "BTCUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 65915.15,
-        "price_out": null,
-        "qty": 0.003327193719697645,
-        "amount_usd": 219.3124731129282,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=21 mom=-0.30% vol=2.7x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 14:23:57",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 66005.29,
-        "open_time": 1774621437.9388,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_BTCUSDT_95"
-      },
       "MICRO_SOLUSDT_96": {
         "id": 96,
         "symbol": "SOLUSDT",
@@ -2618,17 +2591,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 65915.15,
-        "price_out": null,
+        "price_out": 65937.64,
         "qty": 0.003327193719697645,
         "amount_usd": 219.3124731129282,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=21 mom=-0.30% vol=2.7x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 73s",
         "time_in": "2026-03-27 14:23:57",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 14:25:11",
+        "pnl": 0.074829,
+        "pnl_pct": 0.034,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -13769,6 +13742,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 14:25"
+      },
+      {
+        "trade_id": 95,
+        "pnl": 0.074829,
+        "symbol": "BTCUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 14:25"
       }
     ],
     "patterns_to_avoid": [
@@ -14293,6 +14277,7 @@
       "backtest_5m",
       "score=4",
       "score=4",
+      "score=4",
       "score=4"
     ],
     "confidence_threshold": 82,
@@ -14300,7 +14285,7 @@
     "total_losses": 309,
     "symbol_scores": {
       "Deadwhale": -15,
-      "BTCUSDT": -15,
+      "BTCUSDT": -13,
       "ETHUSDT": -15,
       "SOLUSDT": -15,
       "APTUSDT": -11,
