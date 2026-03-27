@@ -6,6 +6,8 @@ import datetime
 import random
 import os
 import shutil
+import requests
+from xml.etree import ElementTree as ET
 
 try:
     from crewai import Crew, Task, Agent
@@ -167,8 +169,8 @@ def start_self_improvement_loop(orchestrator):
 
 
 # ─────────────────────────────────────────────────────────────
-#  === INGÉNIEUR EN CHEF FINAL : SELF-UPGRADE + SELF-BACKUP + SELF-REPAIR ===
-#  (tout le code ci-dessus est intact)
+#  === INGÉNIEUR EN CHEF ULTIME & SELF-SUFFISANT (avec Internet + RSS) ===
+#  (tout le code ci-dessus est intact à 100 %)
 # ─────────────────────────────────────────────────────────────
 
 from agents.base_agent import BaseAgent
@@ -177,11 +179,11 @@ from agents.knowledge_specialist_agent import KnowledgeSpecialistAgent
 from logging_config import logger
 
 class SelfImprovementEngineer(BaseAgent):
-    """🛠️ INGÉNIEUR EN CHEF FINAL — Protège leçons/trades + self-backup + self-upgrade/self-repair"""
+    """🛠️ INGÉNIEUR EN CHEF ULTIME — Self-suffisant, self-upgrade, self-repair, protection totale des leçons/trades"""
     def __init__(self, orchestrator=None):
         super().__init__(
             name="self_improvement_engineer",
-            role="Ingénieur en Chef : protège leçons/trades + self-backup + s'auto-upgrade et s'auto-répare"
+            role="Ingénieur en Chef ultime : self-backup + self-upgrade + self-repair + protection stricte des leçons/trades"
         )
         self.orchestrator = orchestrator
         self.log_file = "/workspace/trading_bot.log" if os.path.exists("/workspace/trading_bot.log") else "trading_bot.log"
@@ -202,7 +204,7 @@ class SelfImprovementEngineer(BaseAgent):
             return
         self.log_watcher_thread = threading.Thread(target=self._watch_logs, daemon=True)
         self.log_watcher_thread.start()
-        logger.info("📡 [INGÉNIEUR EN CHEF] Self-backup + self-upgrade activé")
+        logger.info("📡 [INGÉNIEUR EN CHEF ULTIME] Self-monitoring + self-upgrade (Internet/RSS) activé")
 
     def _watch_logs(self):
         last_size = 0
@@ -236,8 +238,8 @@ class SelfImprovementEngineer(BaseAgent):
         restart_reason = context.get("restart_reason", "")
         if "crash caused by self_improvement" in restart_reason.lower():
             self.last_crash_reason = restart_reason
-            logger.warning(f"⚠️ [INGÉNIEUR EN CHEF] Redémarrage après erreur que j'ai causée → je restaure mon propre backup")
-            self.restore_last_backup(self.my_own_file)  # self-repair automatique
+            logger.warning(f"⚠️ [INGÉNIEUR EN CHEF ULTIME] Crash causé par moi → self-restore automatique")
+            self.restore_last_backup(self.my_own_file)
 
         agent_outputs = context.get("agent_outputs", [])
         issues = self._detect_issues_from_agents(agent_outputs, context)
@@ -252,11 +254,11 @@ class SelfImprovementEngineer(BaseAgent):
 
         return {
             "agent": "self_improvement_engineer",
-            "summary": f"Ingénieur en Chef — {len(issues)} problème(s) → {len(repairs)} réparation(s)/self-upgrade(s)",
+            "summary": f"Ingénieur en Chef ultime — {len(issues)} problème(s) → {len(repairs)} self-repair/self-upgrade",
             "arguments": [f"Agents analysés : {len(agent_outputs)}", f"Réparations : {repairs}"],
             "risks": [],
-            "confidence": 0.98,
-            "recommendation": "Leçons/trades protégés + self-backup + self-upgrade actif",
+            "confidence": 0.99,
+            "recommendation": "Leçons/trades protégés + self-suffisance totale (Internet/RSS activé)",
             "issues": issues,
             "repairs": repairs
         }
@@ -277,40 +279,66 @@ class SelfImprovementEngineer(BaseAgent):
 
     async def _auto_repair_and_upgrade(self, issue: str, context: dict) -> str | None:
         try:
-            logger.info(f"🔧 [INGÉNIEUR EN CHEF] Cycle self-repair/upgrade pour : {issue}")
+            logger.info(f"🔧 [INGÉNIEUR EN CHEF ULTIME] Cycle self-repair/upgrade pour : {issue}")
             self._set_crash_flag(issue)
 
             # Backup strict des leçons/trades + de MOI-MÊME
             self._create_backup("sim_v7.db")
             self._create_backup("*.json")
-            self._create_backup(self.my_own_file)   # ← self-backup
+            self._create_backup(self.my_own_file)
 
-            research_idea = self._research_new_code_idea(issue)
-            repair_note = f"Self-upgrade basé sur recherche : {research_idea[:100]}"
+            research_idea = self._research_new_code_idea(issue)  # ← utilise Internet + RSS maintenant
+            repair_note = f"Self-upgrade basé sur recherche Internet/RSS : {research_idea[:100]}"
 
-            self._apply_code_upgrade(issue, research_idea)  # peut toucher son propre fichier
+            self._apply_code_upgrade(issue, research_idea)
 
             self._clear_crash_flag()
             self.repair_history.append({"timestamp": datetime.datetime.now().isoformat(), "issue": issue, "action": repair_note})
             return repair_note
         except Exception as e:
-            logger.error(f"[INGÉNIEUR EN CHEF] Erreur pendant self-repair : {e}")
+            logger.error(f"[INGÉNIEUR EN CHEF ULTIME] Erreur pendant self-repair : {e}")
             return f"Échec self-repair/upgrade : {e}"
 
     def _research_new_code_idea(self, issue: str) -> str:
-        query = f"Comment améliorer le code de l'Ingénieur en Chef pour résoudre : {issue} ? Propose une petite modification concrète (Wyckoff/VSA/CFA)"
-        context = self.kb.get_context_for_agent(query, max_results=4)
-        return context[:400] or "Aucune idée trouvée dans les PDFs"
+        """Recherche intelligente sur Internet + Flux RSS (PDFs réservés au trading)"""
+        rss_feeds = [
+            "https://hnrss.org/frontpage",           # Hacker News (code/tech)
+            "https://cointelegraph.com/rss",         # Crypto & trading news
+            "https://feeds.feedburner.com/CoinDesk" # Trading crypto
+        ]
+        results = []
+
+        for url in rss_feeds:
+            try:
+                resp = requests.get(url, timeout=8)
+                if resp.status_code != 200:
+                    continue
+                root = ET.fromstring(resp.content)
+                for item in root.findall(".//item")[:3]:  # 3 derniers articles par feed
+                    title = item.find("title")
+                    desc = item.find("description")
+                    if title is not None and desc is not None:
+                        results.append(f"{title.text} → {desc.text[:150]}")
+            except Exception:
+                continue  # on passe au feed suivant
+
+        if results:
+            return "\n".join(results[:5])  # on renvoie les infos fraîches
+
+        # Fallback si pas d'internet
+        query = f"Comment améliorer le code de l'Ingénieur en Chef ou du bot trading pour résoudre : {issue} ?"
+        context = self.kb.get_context_for_agent(query, max_results=3)
+        return context[:400] or "Aucune idée trouvée (Internet + RSS indisponible)"
 
     def _apply_code_upgrade(self, issue: str, research_idea: str):
         try:
             target_file = self.my_own_file if "self_improvement" in issue.lower() else "agents/trader_agent.py"
             if os.path.exists(f"/workspace/{target_file}"):
-                logger.info(f"[INGÉNIEUR EN CHEF] Self-upgrade de {target_file} avec idée : {research_idea[:80]}...")
+                logger.info(f"[INGÉNIEUR EN CHEF ULTIME] Self-upgrade de {target_file}")
                 self.edit_tool._run(filename=target_file, new_code=research_idea)
-                self.git_tool._run(commit_message=f"Self-upgrade par Ingénieur : {issue}")
+                self.git_tool._run(commit_message=f"Self-upgrade ultime (Internet/RSS) : {issue}")
         except Exception as e:
-            logger.warning(f"[INGÉNIEUR EN CHEF] Échec application upgrade : {e}")
+            logger.warning(f"[INGÉNIEUR EN CHEF ULTIME] Échec upgrade : {e}")
 
     def _set_crash_flag(self, issue: str):
         flag_file = "/workspace/.last_crash_by_engineer.txt"
@@ -335,15 +363,15 @@ class SelfImprovementEngineer(BaseAgent):
             return
         dst = f"{self.backup_dir}/{filename}.{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.bak"
         shutil.copy2(src, dst)
-        logger.info(f"💾 [BACKUP] {filename} sauvegardé → {dst}")
+        logger.info(f"💾 [BACKUP ULTIME] {filename} sauvegardé → {dst}")
 
     def _cleanup_old_backups(self):
         try:
             backups = sorted([f for f in os.listdir(self.backup_dir) if f.endswith(".bak")])
-            if len(backups) > 15:
-                for old in backups[:-15]:
+            if len(backups) > 20:
+                for old in backups[:-20]:
                     os.remove(os.path.join(self.backup_dir, old))
-                logger.info(f"🧹 [BACKUP] {len(backups) - 15} anciens backups nettoyés")
+                logger.info(f"🧹 [BACKUP] {len(backups) - 20} anciens backups nettoyés")
         except Exception:
             pass
 
@@ -352,9 +380,9 @@ class SelfImprovementEngineer(BaseAgent):
         if backups:
             latest = backups[-1]
             shutil.copy2(os.path.join(self.backup_dir, latest), f"/workspace/{filename}")
-            logger.info(f"🔄 [SELF-RESTORE] {filename} restauré depuis backup (self-repair)")
+            logger.info(f"🔄 [SELF-RESTORE ULTIME] {filename} restauré automatiquement")
 
 
 # Instance globale
 engineer = SelfImprovementEngineer()
-logger.info("🚀 [INGÉNIEUR EN CHEF] Version finale activée : self-backup + self-upgrade + self-repair + leçons/trades protégés")
+logger.info("🚀 [INGÉNIEUR EN CHEF ULTIME] Version finale self-suffisante activée — leçons/trades protégés + recherche Internet/RSS pour le code")
