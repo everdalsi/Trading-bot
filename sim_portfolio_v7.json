@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 6.469709047838764,
+    "cash": 215.30238616032696,
     "initial": 1000.0,
     "positions": {
       "MICRO_TONUSDT_13": {
@@ -523,17 +523,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 1.239,
-        "price_out": null,
+        "price_out": 1.236,
         "qty": 168.9584766282267,
         "amount_usd": 209.3395525423729,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=23 mom=-0.24% vol=6.1x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 67s",
         "time_in": "2026-03-27 10:54:13",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 10:55:20",
+        "pnl": -0.506875,
+        "pnl_pct": -0.242,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -1874,6 +1874,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 10:55"
+      },
+      {
+        "trade_id": 13,
+        "pnl": -0.506875,
+        "symbol": "TONUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 10:55"
       }
     ],
     "patterns_to_avoid": [
@@ -1957,7 +1968,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -1996,7 +2008,8 @@
       "SOLUSDT": -15,
       "APTUSDT": -3,
       "NEKO": 2,
-      "ARBUSDT": -6
+      "ARBUSDT": -6,
+      "TONUSDT": -3
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
