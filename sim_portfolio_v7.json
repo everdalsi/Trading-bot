@@ -10859,11 +10859,31 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 06:08"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -0.7276,
+        "symbol": "BTCUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 06:09"
+      },
+      {
+        "trade_id": -2,
+        "pnl": -3.1164,
+        "symbol": "BTCUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 06:09"
       }
     ],
     "patterns_to_avoid": [
-      "backtest_5m",
-      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -11146,6 +11166,8 @@
       "backtest_5m",
       "backtest_5m",
       "score=4",
+      "backtest_5m",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -18681,6 +18703,6 @@
         "status": "\u2705 Promos d\u00e9tect\u00e9es"
       }
     ],
-    "last_scan": 1774591375.4732728
+    "last_scan": 1774591754.11943
   }
 }
