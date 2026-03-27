@@ -14634,11 +14634,31 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 14:34"
+      },
+      {
+        "trade_id": -3,
+        "pnl": -1.7869,
+        "symbol": "BTCUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 14:34"
+      },
+      {
+        "trade_id": -4,
+        "pnl": -5.0627,
+        "symbol": "BTCUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 14:34"
       }
     ],
     "patterns_to_avoid": [
-      "memecoin",
-      "backtest_5m",
       "backtest_5m",
       "memecoin",
       "memecoin",
@@ -14905,6 +14925,8 @@
       "score=4",
       "score=4",
       "score=4",
+      "backtest_5m",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
