@@ -2,35 +2,7 @@
   "sim": {
     "cash": 1001.18784,
     "initial": 1000.0,
-    "positions": {
-      "MICRO_JUPUSDT_31": {
-        "id": 31,
-        "symbol": "JUPUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.1425,
-        "price_out": null,
-        "qty": 1484.8,
-        "amount_usd": 211.58399999999997,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=16 mom=-0.48% vol=6.8x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 11:04:59",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.1433,
-        "open_time": 1774609499.4869533,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_JUPUSDT_31"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
