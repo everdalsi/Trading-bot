@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 302.9586342735869,
+    "cash": 92.09942481917042,
     "initial": 1000.0,
     "positions": {
       "MICRO_IMXUSDT_60": {
@@ -29,6 +29,33 @@
         "open_time": 1774599746.835029,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_IMXUSDT_60"
+      },
+      "MICRO_BNBUSDT_61": {
+        "id": 61,
+        "symbol": "BNBUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 627.15,
+        "price_out": null,
+        "qty": 0.3362181447092665,
+        "amount_usd": 210.85920945441646,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=23 mom=-0.08% vol=2.7x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 08:22:35",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 627.15,
+        "open_time": 1774599755.2786424,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_BNBUSDT_61"
       }
     },
     "trades": [
@@ -1598,6 +1625,32 @@
         "leverage": 1,
         "peak_price": 0.1523,
         "open_time": 1774599746.835029,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 61,
+        "symbol": "BNBUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 627.15,
+        "price_out": null,
+        "qty": 0.3362181447092665,
+        "amount_usd": 210.85920945441646,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=23 mom=-0.08% vol=2.7x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 08:22:35",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 627.15,
+        "open_time": 1774599755.2786424,
         "kelly_pct": 0.48
       }
     ],
@@ -23236,6 +23289,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 08:22"
+      },
+      {
+        "trade_id": -4,
+        "pnl": -4.3415,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 08:22"
       }
     ],
     "patterns_to_avoid": [
@@ -23258,7 +23322,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -23514,6 +23577,7 @@
       "backtest_5m",
       "backtest_5m",
       "score=4",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -23848,7 +23912,7 @@
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -3,
+      "SOLUSDT": -6,
       "TARO": -3,
       "OPUSDT": -6,
       "PENDLEUSDT": -12,
