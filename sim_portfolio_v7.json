@@ -1,35 +1,8 @@
 {
   "sim": {
-    "cash": 917.8708305839355,
+    "cash": 982.3750549702077,
     "initial": 1000.0,
     "positions": {
-      "MICRO_ETHUSDT_100": {
-        "id": 100,
-        "symbol": "ETHUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 2037.98,
-        "price_out": null,
-        "qty": 0.10382044966093876,
-        "amount_usd": 211.58399999999997,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=10 mom=-0.34% vol=4.4x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 09:11:27",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 2041.66,
-        "open_time": 1774602687.6531415,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_ETHUSDT_100"
-      },
       "MICRO_SOLUSDT_101": {
         "id": 101,
         "symbol": "SOLUSDT",
@@ -52,7 +25,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 84.73,
+        "peak_price": 84.74,
         "open_time": 1774602687.9080408,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_SOLUSDT_101"
@@ -2701,17 +2674,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 84.5,
-        "price_out": null,
+        "price_out": 84.74,
         "qty": 0.7612016094674557,
         "amount_usd": 64.32153600000001,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=12 mom=-0.27% vol=3.3x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 68s",
         "time_in": "2026-03-27 09:11:27",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 09:12:41",
+        "pnl": 0.182688,
+        "pnl_pct": 0.284,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -29772,6 +29745,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 09:12"
+      },
+      {
+        "trade_id": 101,
+        "pnl": 0.182688,
+        "symbol": "SOLUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 09:12"
       }
     ],
     "patterns_to_avoid": [
@@ -30138,7 +30122,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "score=4",
       "score=4",
@@ -30375,16 +30358,17 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "score=4",
       "score=4",
       "score=4"
     ],
     "confidence_threshold": 82,
-    "total_wins": 252,
+    "total_wins": 253,
     "total_losses": 505,
     "symbol_scores": {
       "BTCUSDT": -11,
-      "ETHUSDT": -13,
-      "SOLUSDT": 2,
+      "ETHUSDT": -11,
+      "SOLUSDT": 4,
       "TARO": -3,
       "OPUSDT": -15,
       "PENDLEUSDT": -12,
@@ -30453,7 +30437,7 @@
       "LINKUSDT": 1,
       "INJUSDT": 1,
       "IMXUSDT": 1,
-      "ETHUSDT": 1,
+      "ETHUSDT": 0,
       "NEARUSDT": 0
     },
     "bad_setups": [
