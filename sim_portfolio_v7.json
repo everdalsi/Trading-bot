@@ -3,33 +3,6 @@
     "cash": 587.3964982957381,
     "initial": 1000.0,
     "positions": {
-      "MICRO_INJUSDT_57": {
-        "id": 57,
-        "symbol": "INJUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 2.974,
-        "price_out": null,
-        "qty": 32.01564611073542,
-        "amount_usd": 95.21453153332713,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=19 mom=-0.27% vol=3.9x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 08:16:40",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 2.974,
-        "open_time": 1774599400.9047887,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_INJUSDT_57"
-      },
       "MICRO_WIFUSDT_58": {
         "id": 58,
         "symbol": "WIFUSDT",
