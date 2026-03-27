@@ -2433,6 +2433,7 @@ def load_data():
 #  APPRENTISSAGE
 # ═══════════════════════════════════════════════════════════════
 def learn_from_trade(trade: dict, send_fn=None):
+    """Apprentissage à partir d'un trade terminé + limitation mémoire RAM"""
     if trade.get("pnl") is None:
         return
 
@@ -2488,17 +2489,19 @@ def learn_from_trade(trade: dict, send_fn=None):
         key = "patterns_that_work" if lesson_type == "succes" else "patterns_to_avoid"
         memory[key].append(pattern)
 
-        # === DÉBLOQUÉ : cap RAM beaucoup plus haut ===
+        # === LIMITATION MÉMOIRE INFINIE (protection RAM) ===
         MAX_RAM_LESSONS = 20000 if EXTREME_LEARNING_MODE else 5000
         if len(memory["lessons"]) > MAX_RAM_LESSONS:
             memory["lessons"] = memory["lessons"][-MAX_RAM_LESSONS:]
+            print(f"[MEMORY-SAFETY] Limite atteinte → {MAX_RAM_LESSONS} leçons conservées en RAM")
+
+        # Nettoyage des patterns
+        memory["patterns_that_work"] = memory["patterns_that_work"][-300:]
+        memory["patterns_to_avoid"] = memory["patterns_to_avoid"][-300:]
 
         if hasattr(orchestrator, 'learning'):
             lesson_count_db = orchestrator.learning.get_lesson_count()
             print(f"[LEARN] Leçons DB : {lesson_count_db}")
-
-        memory["patterns_that_work"] = memory["patterns_that_work"][-300:]
-        memory["patterns_to_avoid"] = memory["patterns_to_avoid"][-300:]
 
         update_symbol_score(trade["symbol"], pnl > 0)
         auto_adjust()
@@ -2517,7 +2520,7 @@ def learn_from_trade(trade: dict, send_fn=None):
             )
 
     except Exception as e:
-        print(f"[LEARN] {e}")
+        print(f"[LEARN] Erreur: {e}")
         
 def auto_adjust():
     wr  = db_win_rate(20)
