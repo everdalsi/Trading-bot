@@ -1,12 +1,7 @@
 """
-🎯 ORCHESTRATOR V3 — Multi-agents + Mémoire infinie + Bugs corrigés
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Corrections vs V2 :
-[BUG FIX] Injection des stats LearningAgent dans le contexte avant ask_all
-[BUG FIX] Injection desstats PerformanceTracker dans le contexte
-[BUG FIX] Supervisor reçoit toujours trader_decision et risk dans son contexte
-[AMÉLIORATION] Contexte enrichi transmis à tous les agents
-[AMÉLIORATION] Décision finale plus robuste (score composite)
+🎯 ORCHESTRATOR V3 — Multi-agents + Mémoire infinie + Bugs corrigés + Cerveau Collectif
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Ajout de la phase de collaboration : les agents discutent entre eux avant la décision finale
 """
 
 import asyncio
@@ -23,7 +18,7 @@ from agents.performance_tracker import PerformanceTracker
 from agents.research_agent import ResearchAgent
 from agents.knowledge_specialist_agent import KnowledgeSpecialistAgent
 from agents.self_improvement import SelfImprovementEngineer
-from agents.wallet_copier_agent import WalletCopierAgent   # ← AJOUT MINIMAL POUR CETTE ÉTAPE
+from agents.wallet_copier_agent import WalletCopierAgent
 
 class Orchestrator:
 
@@ -38,7 +33,7 @@ class Orchestrator:
         self.knowledge  = KnowledgeBase()
         self.knowledge_specialist = KnowledgeSpecialistAgent()
         self.self_improvement = SelfImprovementEngineer(orchestrator=self)
-        self.wallet_copier = WalletCopierAgent()   # ← AJOUT MINIMAL
+        self.wallet_copier = WalletCopierAgent()
 
     async def ask_all(
         self, question: str, context: dict
@@ -51,6 +46,7 @@ class Orchestrator:
 
         enriched_ctx = self._enrich_context(context)
 
+        # === PHASE 1 : Appel parallèle initial ===
         tasks = [
             self.analyst.respond(question, enriched_ctx),
             self.risk.respond(question, enriched_ctx),
@@ -58,14 +54,14 @@ class Orchestrator:
             self.learning.respond(question, enriched_ctx),
             self.research.respond(question, enriched_ctx),
             self.knowledge_specialist.respond(question, enriched_ctx),
+            self.wallet_copier.respond(question, enriched_ctx),
             self.self_improvement.respond(question, enriched_ctx),
-            self.wallet_copier.respond(question, enriched_ctx),   # ← AJOUT MINIMAL
         ]
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         responses = []
-        agent_names = ["analyst", "risk", "trader", "learning", "research", "knowledge_specialist", "self_improvement", "wallet_copier"]
+        agent_names = ["analyst", "risk", "trader", "learning", "research", "knowledge_specialist", "wallet_copier", "self_improvement"]
         for i, res in enumerate(results):
             if isinstance(res, Exception):
                 responses.append({
@@ -79,27 +75,57 @@ class Orchestrator:
             else:
                 responses.append(res)
 
-        trader_resp = next((r for r in responses if r.get("agent") == "trader"), {})
-        risk_resp   = next((r for r in responses if r.get("agent") == "risk"), {})
+        # === PHASE 2 : COLLABORATION COLLECTIVE (cerveau collectif) ===
+        # On donne à chaque agent la synthèse des autres pour qu'ils raffinent leur avis
+        collaboration_ctx = {
+            **enriched_ctx,
+            "agent_outputs": responses,
+            "previous_round": responses
+        }
+
+        collab_tasks = [
+            self.analyst.respond("Raffine ton analyse en tenant compte des autres agents", collaboration_ctx),
+            self.risk.respond("Raffine ton analyse en tenant compte des autres agents", collaboration_ctx),
+            self.trader.respond("Raffine ton analyse en tenant compte des autres agents", collaboration_ctx),
+            self.learning.respond("Raffine ton analyse en tenant compte des autres agents", collaboration_ctx),
+            self.research.respond("Raffine ton analyse en tenant compte des autres agents", collaboration_ctx),
+            self.knowledge_specialist.respond("Raffine ton analyse en tenant compte des autres agents", collaboration_ctx),
+            self.wallet_copier.respond("Raffine ton analyse en tenant compte des autres agents", collaboration_ctx),
+        ]
+
+        collab_results = await asyncio.gather(*collab_tasks, return_exceptions=True)
+
+        collab_responses = []
+        for i, res in enumerate(collab_results):
+            if isinstance(res, Exception):
+                collab_responses.append(responses[i])  # fallback sur le premier round
+            else:
+                collab_responses.append(res)
+
+        # On garde la dernière version des réponses pour le Supervisor
+        final_responses = collab_responses
+
+        trader_resp = next((r for r in final_responses if r.get("agent") == "trader"), {})
+        risk_resp   = next((r for r in final_responses if r.get("agent") == "risk"), {})
 
         supervisor_ctx = {
             **enriched_ctx,
-            "agent_outputs": responses,
+            "agent_outputs": final_responses,
             "trader_decision": trader_resp,
             "risk": risk_resp,
             "score": enriched_ctx.get("global_score", 0.5),
+            "collaboration_round": True
         }
 
-        final = await self.supervisor.respond(question, supervisor_ctx)
+        final = await self.supervisor.respond("Synthétise la discussion collective et donne la décision finale", supervisor_ctx)
 
         print(
-            f"[ORCHESTRATOR] ask_all terminé → {len(responses)} réponses | "
-            f"Final: {final.get('summary', '')[:80]}..."
+            f"[ORCHESTRATOR] ask_all terminé → {len(final_responses)} réponses (après discussion collective)"
         )
-        return responses, final
+        return final_responses, final
 
+    # Le reste du fichier (run, _enrich_context, _check_for_crash_flag) reste exactement comme avant
     async def run(self, market_data: dict, memory: dict) -> Dict[str, Any]:
-        # TON CODE ORIGINAL DE run() RESTE INTACT À 100 % (je ne le modifie pas)
         symbol = market_data.get("symbol", "UNKNOWN")
 
         context = {
@@ -195,7 +221,6 @@ class Orchestrator:
             return {"decision": "ERROR", "reason": str(e)[:100], "score": 0.0}
 
     def _enrich_context(self, context: dict) -> dict:
-        # TON CODE ORIGINAL RESTE INTACT
         enriched = dict(context)
         enriched["extreme_learning_mode"] = True         
         enriched["learning_mode"] = True
