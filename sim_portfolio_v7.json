@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 513.024775171696,
+    "cash": 263.07910470804575,
     "initial": 1000.0,
     "positions": {
       "MICRO_STXUSDT_9": {
@@ -29,6 +29,33 @@
         "open_time": 1774589708.768863,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_STXUSDT_9"
+      },
+      "MICRO_FLOKIUSDT_10": {
+        "id": 10,
+        "symbol": "FLOKIUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 2.887e-05,
+        "price_out": null,
+        "qty": 8657626.271688612,
+        "amount_usd": 249.94567046365023,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=22 mom=-0.07% vol=3.8x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 05:35:50",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 2.887e-05,
+        "open_time": 1774589750.3933773,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_FLOKIUSDT_10"
       }
     },
     "trades": [
@@ -265,6 +292,32 @@
         "leverage": 1,
         "peak_price": 0.2342,
         "open_time": 1774589708.768863,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 10,
+        "symbol": "FLOKIUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 2.887e-05,
+        "price_out": null,
+        "qty": 8657626.271688612,
+        "amount_usd": 249.94567046365023,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=22 mom=-0.07% vol=3.8x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 05:35:50",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 2.887e-05,
+        "open_time": 1774589750.3933773,
         "kelly_pct": 0.48
       }
     ],
@@ -7020,6 +7073,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 05:35"
+      },
+      {
+        "trade_id": -2,
+        "pnl": 5.0532,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 05:35"
       }
     ],
     "patterns_to_avoid": [
@@ -7495,6 +7559,7 @@
       "backtest_5m",
       "backtest_5m",
       "score=4",
+      "backtest_5m",
       "backtest_5m"
     ],
     "confidence_threshold": 82,
@@ -7503,7 +7568,7 @@
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": 2,
+      "SOLUSDT": 4,
       "TARO": -3,
       "OPUSDT": -6,
       "PENDLEUSDT": -6,
