@@ -659,6 +659,12 @@ class LearningAgent(BaseAgent):
                 f"Régime : {regime} | Score validé : {validated_score:.2f}"
             )
 
+        # === UPGRADE PHASE 2 : RAG + Immune System Integration (ajout uniquement ici) ===
+        immune_health = context.get("immune_health", 100)
+        rag_boost = (len(self.knowledge_text) / 100000) * 0.05 if self.knowledge_text else 0.0
+        adjusted_conf = min(1.0, adjusted_conf + rag_boost + (immune_health / 1000))
+        summary += f" | 🛡️ Immune health {immune_health}% | RAG knowledge active"
+
         return {
             "agent": self.name,
             "summary": summary + (" | 📚 Base théorique active" if self.knowledge_text else ""),
@@ -669,6 +675,7 @@ class LearningAgent(BaseAgent):
                 f"Régime marché : {regime}",
                 f"Score validé par backtest : {validated_score:.2f}",
                 f"Extreme Learning Mode : {'✅ ACTIVÉ' if extreme_learning else 'Inactif'}",
+                f"Immune System Health : {immune_health}%"
             ],
             "risks": (["Score < 0.3 → blacklist recommandé"] if should_blacklist else []),
             "confidence": adjusted_conf,
@@ -683,4 +690,5 @@ class LearningAgent(BaseAgent):
             "knowledge_loaded": bool(self.knowledge_text),
             "regime": regime,
             "validated_score": validated_score,
+            "immune_health": immune_health
         }
