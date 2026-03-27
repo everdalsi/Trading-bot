@@ -1,5 +1,5 @@
 """
-🛡️ RISK AGENT V3 — Gestion du risque complète + intégration mémoire
+🛡️ RISK AGENT V4 — Gestion du risque avancée + intégration ImmuneSystem + ultra-sélectivité 98%+
 """
 
 from agents.base_agent import BaseAgent
@@ -31,6 +31,11 @@ class RiskAgent(BaseAgent):
         streak_type   = context.get("streak_type", "neutral")
         streak_count  = context.get("streak_count", 0)
 
+        # UPGRADE PHASE FINALE : ImmuneSystem + confiance collective
+        immune_health = context.get("immune_health", 100)
+        final_confidence = context.get("final_confidence", 0.0)
+        debate_rounds    = context.get("debate_rounds", 0)
+
         risk_level    = "LOW"
         risks_list    = []
         kelly_adjust  = 1.0
@@ -51,6 +56,25 @@ class RiskAgent(BaseAgent):
                 "recommendation": recommendation,
                 "kelly_adjusted": kelly,
                 "risk_level": risk_level,
+            }
+
+        # VETO IMMUNE + COLLECTIVE CONFIDENCE
+        if immune_health < 70:
+            return {
+                "agent": self.name,
+                "summary": f"🛡️ VETO IMMUNE — Santé système {immune_health}%",
+                "decision": "NO TRADE",
+                "confidence": 1.0,
+                "recommendation": "Pause totale — réparation automatique en cours",
+            }
+
+        if final_confidence < 0.98 and debate_rounds >= 3:
+            return {
+                "agent": self.name,
+                "summary": f"⛔ Confiance collective insuffisante ({final_confidence:.1%}) — skip pour protéger le winrate",
+                "decision": "NO TRADE",
+                "confidence": 0.98,
+                "recommendation": "Attendre un consensus plus fort",
             }
 
         if drawdown <= -0.08:
@@ -114,12 +138,11 @@ class RiskAgent(BaseAgent):
             f"| DD: {drawdown*100:.1f}% | Sharpe: {sharpe:.2f}"
         )
 
-        # === UPGRADE GROK-LIKE : RAISONNEMENT NATUREL PROFESSIONNEL ===
         natural_summary = (
             f"Salut ! J’ai analysé le risque sur {symbol}. "
             f"Le drawdown est à {drawdown*100:.1f}%, le Sharpe à {sharpe:.2f}. "
-            f"Avec les leçons accumulées, je recommande {recommendation.lower()}. "
-            f"C’est prudent et aligné avec notre objectif de gains stables."
+            f"Avec les leçons accumulées et la santé immune à {immune_health}%, je recommande {recommendation.lower()}. "
+            f"C’est prudent et aligné avec notre objectif de gains stables et winrate proche de 100%."
         )
 
         return {
@@ -132,11 +155,15 @@ class RiskAgent(BaseAgent):
                 f"Profit Factor : {profit_factor:.2f}",
                 f"Kelly ajusté : {kelly_final*100:.1f}%",
                 f"Mode nuit : {'Actif' if is_night else 'Inactif'}",
+                f"Immune Health : {immune_health}%",
+                f"Confiance collective : {final_confidence:.1%}"
             ],
             "risks": risks_list,
             "confidence": 0.92,
             "recommendation": recommendation,
             "kelly_adjusted": kelly_final,
             "risk_level": risk_level,
-            "full_summary": natural_summary
+            "full_summary": natural_summary,
+            "immune_health": immune_health,
+            "final_confidence": final_confidence
         }
