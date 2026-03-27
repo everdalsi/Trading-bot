@@ -203,7 +203,7 @@ class ImmuneSystemAgent(BaseAgent):
         """Surveillance live de tous les agents (détection dérive, performance drop, incohérences)"""
         print("[IMMUNE SYSTEM] 🔍 Surveillance live de tous les agents...")
         issues = []
-        for agent_name in ["analyst", "risk", "trader", "learning", "research", "knowledge_specialist", "wallet_copier"]:
+        for agent_name in ["analyst", "risk", "trader", "learning", "research", "knowledge_specialist", "wallet_copier", "evolution"]:
             try:
                 agent = getattr(self.orchestrator, agent_name, None)
                 if agent and hasattr(agent, "get_health"):
@@ -223,10 +223,8 @@ class ImmuneSystemAgent(BaseAgent):
         print(f"[IMMUNE SYSTEM] 🛠️ Réparation de {len(issues)} agents défaillants...")
         for agent_name, issue in issues:
             try:
-                # Backup avant réparation
                 self._create_backup(agent_name)
-                # Reprogrammation intelligente via knowledge + leçons
-                repair_prompt = f"Répare l'agent {agent_name} qui a le problème : {issue}. Rends-le plus fort et aligné avec le but 100% winrate."
+                repair_prompt = f"Répare l'agent {agent_name} qui a le problème : {issue}. Rends-le plus fort et aligné avec le but quasi 100% winrate et être vivant."
                 repair_code = await self.knowledge_specialist.respond(repair_prompt, context)
                 if repair_code.get("code_snippet"):
                     await self.edit_tool._run(file_path=f"agents/{agent_name}_agent.py", new_content=repair_code["code_snippet"])
@@ -255,5 +253,5 @@ class ImmuneSystemAgent(BaseAgent):
         # Comportement par défaut (rétro-compatible)
         return {"agent": "immune_system", "summary": "Système immunitaire opérationnel — aucune anomalie détectée", "confidence": 1.0}
 
-# L'ancienne classe est conservée pour compatibilité
+# Compatibilité avec l'ancien nom
 SelfImprovementEngineer = ImmuneSystemAgent
