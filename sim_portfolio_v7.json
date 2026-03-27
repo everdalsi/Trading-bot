@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 14.913079731856428,
+    "cash": 374.60381708037323,
     "initial": 1000.0,
     "positions": {
       "MICRO_LTCUSDT_99": {
@@ -2749,17 +2749,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 53.78,
-        "price_out": null,
+        "price_out": 53.7,
         "qty": 6.698151533491933,
         "amount_usd": 360.2265894711961,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=16 mom=-0.31% vol=2.8x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 64s",
         "time_in": "2026-03-27 14:25:40",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 14:26:45",
+        "pnl": -0.535852,
+        "pnl_pct": -0.149,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -14157,6 +14157,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 14:26"
+      },
+      {
+        "trade_id": 99,
+        "pnl": -0.535852,
+        "symbol": "LTCUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 14:26"
       }
     ],
     "patterns_to_avoid": [
@@ -14180,7 +14191,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "score=4",
       "memecoin",
@@ -14459,7 +14469,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -14723,7 +14734,8 @@
       "UNIUSDT": -6,
       "LINKUSDT": 4,
       "FLOKIUSDT": 4,
-      "XRPUSDT": 4
+      "XRPUSDT": 4,
+      "LTCUSDT": -3
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
