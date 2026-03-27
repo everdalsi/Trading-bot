@@ -25,7 +25,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 0.00036,
+        "peak_price": 0.000361,
         "open_time": 1774601472.0253322,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_NOTUSDT_95"
@@ -27402,6 +27402,28 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 08:51"
+      },
+      {
+        "trade_id": -1,
+        "pnl": 2.9979,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 08:51"
+      },
+      {
+        "trade_id": -2,
+        "pnl": 5.0532,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 08:51"
       }
     ],
     "patterns_to_avoid": [
@@ -27729,8 +27751,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -28006,15 +28026,17 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "score=4"
+      "score=4",
+      "backtest_5m",
+      "backtest_5m"
     ],
     "confidence_threshold": 82,
-    "total_wins": 232,
+    "total_wins": 233,
     "total_losses": 468,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": 0,
+      "SOLUSDT": 4,
       "TARO": -3,
       "OPUSDT": -15,
       "PENDLEUSDT": -12,
@@ -28035,7 +28057,7 @@
       "SUIUSDT": -14,
       "PEPEUSDT": -15,
       "ONDOUSDT": 4,
-      "UNIUSDT": -13,
+      "UNIUSDT": -11,
       "APTUSDT": -8,
       "SEIUSDT": -12,
       "AVAXUSDT": -12,
@@ -28073,7 +28095,7 @@
       "SUIUSDT": 2,
       "PEPEUSDT": 5,
       "ONDOUSDT": 0,
-      "UNIUSDT": 4,
+      "UNIUSDT": 0,
       "APTUSDT": 1,
       "SEIUSDT": 2,
       "AVAXUSDT": 2,
