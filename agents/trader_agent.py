@@ -19,18 +19,17 @@ class TraderAgent(BaseAgent):
     def __init__(self):
         super().__init__(
             name="trader",
-            role="Décision trading (BUY / SELL / HOLD)"
+            role="Décision trading (BUY / SELL / HOLD) — ULTRA CONSERVATEUR : seulement si confiance ≥ 98 %"
         )
 
     async def respond(self, question: str, context: dict) -> Dict[str, Any]:
-        # === EXTREME LEARNING MODE (MAX TRADES) ===
         extreme_learning = context.get("extreme_learning_mode", False) or context.get("learning_mode", False)
         precision_mode   = context.get("precision_mode", False)
 
         if extreme_learning:
             composite = (context.get("symbol_score", 0.5) * 0.6 + 
                         context.get("global_score", 0.5) * 0.3 + 
-                        0.1)  # bonus pour forcer l'apprentissage
+                        0.1)
             return {
                 "agent": self.name,
                 "decision": "BUY",
@@ -53,61 +52,40 @@ class TraderAgent(BaseAgent):
         degraded       = context.get("degraded", False)
         streak_type    = context.get("streak_type", "neutral")
         streak_count   = context.get("streak_count", 0)
+        debate_rounds  = context.get("debate_rounds", 0)
+        final_confidence = context.get("final_confidence", 0.0)
 
-        # ─── VETO 1 : Dégradation de performance ───
         if degraded:
-            return self._hold(symbol, "Performance dégradée — pause prudente",
-                              symbol_score, global_score)
+            return self._hold(symbol, "Performance dégradée — pause prudente", symbol_score, global_score)
 
-        # ─── VETO 2 : Série de pertes ───
         if streak_type == "loss" and streak_count >= 5:
-            return self._hold(
-                symbol,
-                f"Série de {streak_count} pertes consécutives — attendre",
-                symbol_score, global_score
-            )
+            return self._hold(symbol, f"Série de {streak_count} pertes consécutives — attendre", symbol_score, global_score)
 
-        # ─── VETO 3 : Score symbole trop faible ───
         if symbol_score < 0.28 and lesson_count >= 20:
-            return self._hold(
-                symbol,
-                f"Score symbole insuffisant ({symbol_score:.1%}) — éviter",
-                symbol_score, global_score
-            )
+            return self._hold(symbol, f"Score symbole insuffisant ({symbol_score:.1%}) — éviter", symbol_score, global_score)
 
-        # ─── VETO 4 : Pattern blacklisté détecté ───
         current_patterns = context.get("patterns", [])
-        bad_pattern_names = {p.get("pattern", "") for p in worst_patterns
-                             if p.get("win_rate", 1.0) < 0.35}
+        bad_pattern_names = {p.get("pattern", "") for p in worst_patterns if p.get("win_rate", 1.0) < 0.35}
         for pat in current_patterns:
             pat_name = pat.get("name", "") if isinstance(pat, dict) else str(pat)
             if pat_name in bad_pattern_names:
-                return self._hold(
-                    symbol,
-                    f"Pattern blacklisté détecté : {pat_name}",
-                    symbol_score, global_score
-                )
+                return self._hold(symbol, f"Pattern blacklisté détecté : {pat_name}", symbol_score, global_score)
 
-        # ─── VETO 5 : Anti-overtrading renforcé ───
         memory = context.get("memory", {})
         recent_trades = (memory.get("trades", []) or [])[-15:]
         same_symbol = [t for t in recent_trades if t.get("symbol") == symbol]
-
         severe_losses = sum(1 for t in same_symbol if t.get("pnl_pct", 0) <= -90)
         if len(same_symbol) >= 4 or severe_losses >= 2:
-            return self._hold(
-                symbol,
-                f"Anti-spam : {len(same_symbol)} trades récents dont {severe_losses} SL sévères sur {symbol}",
-                symbol_score, global_score
-            )
+            return self._hold(symbol, f"Anti-spam : {len(same_symbol)} trades récents dont {severe_losses} SL sévères sur {symbol}", symbol_score, global_score)
 
-        # ─── Décision principale (optimisée) ───
+        if final_confidence < 0.98 and debate_rounds >= 3:
+            return self._hold(symbol, f"Confiance collective seulement {final_confidence:.1%} après {debate_rounds} rounds de débat — on skip pour protéger le winrate", symbol_score, global_score)
+
         decision = "HOLD"
-        reason   = "Pas de signal clair"
+        reason   = "Pas de signal clair à ≥ 98 % de confiance"
 
         composite = (symbol_score * 0.65 + global_score * 0.25)
 
-        # Bonus patterns très fort en mode précision
         if best_patterns:
             top_patterns = [p for p in best_patterns if p.get("win_rate", 0) >= 0.75]
             if top_patterns:
@@ -115,38 +93,29 @@ class TraderAgent(BaseAgent):
             elif any(p.get("win_rate", 0) >= 0.65 for p in best_patterns):
                 composite += 0.12
 
-        # BUY plus intelligent et sélectif
-        if (macro in ("bullish", "BULL") and composite >= 0.78) or composite >= 0.82:
-            if ("CRITICAL" not in str(risk.get("summary", "")) and
-                "STOP" not in str(risk.get("recommendation", ""))):
+        if (macro in ("bullish", "BULL") and composite >= 0.92) or composite >= 0.95:
+            if ("CRITICAL" not in str(risk.get("summary", "")) and "STOP" not in str(risk.get("recommendation", "")) and final_confidence >= 0.98):
                 decision = "BUY"
-                reason   = f"Macro haussier + composite optimisé={composite:.2f} + risque OK"
+                reason   = f"Signal ultra-fort + confiance collective {final_confidence:.1%} ≥ 98 %"
 
-        elif composite >= 0.78:
-            decision = "BUY"
-            reason   = f"Score composite très fort ({composite:.2f})"
-
-        # Boost via auto-règles
-        if decision == "HOLD" and auto_rules:
+        if decision == "HOLD" and auto_rules and final_confidence >= 0.98:
             buy_rules = [r for r in auto_rules if "Checkmark" in r]
-            if len(buy_rules) >= 2 and composite >= 0.65:
+            if len(buy_rules) >= 3 and composite >= 0.90:
                 decision = "BUY"
-                reason   = f"Règles automatiques actives ({len(buy_rules)}) + score {composite:.2f}"
+                reason   = f"Règles automatiques très solides ({len(buy_rules)}) + confiance {final_confidence:.1%}"
 
-        # Confiance finale dynamique
         if decision == "HOLD":
             confidence = round(max(0.20, composite * 0.65), 2)
         else:
-            confidence = round(max(0.55, min(0.96, composite * 1.25)), 2)
+            confidence = round(min(1.00, max(0.98, composite * 1.3)), 2)
 
-        # === UPGRADE GROK-LIKE : RAISONNEMENT NATUREL ET HUMAIN ===
         natural_summary = (
-            f"Salut ! J’ai tout regardé avec l’équipe. "
+            f"Salut ! J’ai tout regardé avec l’équipe après {debate_rounds} rounds de débat. "
             f"On est sur {symbol}. Après avoir analysé les leçons passées, "
-            f"les stats live et le risque actuel, je pense qu’on devrait "
+            f"les stats live, le risque et la confiance collective, je pense qu’on devrait "
             f"{decision.lower() if decision != 'HOLD' else 'rester en attente pour l’instant'}. "
             f"{reason}. "
-            f"On a déjà {lesson_count} leçons en mémoire, donc on sait vraiment ce qu’on fait."
+            f"On a déjà {lesson_count} leçons en mémoire, donc on sait vraiment ce qu’on fait. Objectif : 100 % winrate."
         )
 
         return {
@@ -157,29 +126,26 @@ class TraderAgent(BaseAgent):
             "symbol_score": round(symbol_score, 2),
             "global_score": round(global_score, 2),
             "composite":    round(composite, 2),
-            "summary":      natural_summary,   # ← Grok-like naturel
+            "summary":      natural_summary,
             "reason": reason,
             "macro":  macro,
-            "full_summary": natural_summary,   # même style humain partout
+            "full_summary": natural_summary,
+            "debate_rounds": debate_rounds
         }
 
-    def _hold(self, symbol: str, reason: str,
-              symbol_score: float, global_score: float) -> Dict[str, Any]:
+    def _hold(self, symbol: str, reason: str, symbol_score: float, global_score: float) -> Dict[str, Any]:
         natural_hold = (
-            f"Salut ! Après avoir tout vérifié, je préfère qu’on reste en attente sur {symbol}. "
+            f"Salut ! Après avoir tout vérifié avec l’équipe, je préfère qu’on reste en attente sur {symbol}. "
             f"{reason}. "
-            f"C’est plus prudent vu les leçons qu’on a accumulées."
+            f"C’est plus prudent vu les leçons qu’on a accumulées et notre objectif 100 % winrate."
         )
         return {
             "agent":        self.name,
             "symbol":       symbol,
             "decision":     "HOLD",
-            "confidence":   0.20,
+            "confidence":   0.25,
             "symbol_score": round(symbol_score, 2),
             "global_score": round(global_score, 2),
-            "composite":    round((symbol_score * 0.65 + global_score * 0.25), 2),
-            "summary":      natural_hold,   # ← Grok-like naturel
-            "reason":       reason,
-            "macro":        "neutral",
-            "full_summary": natural_hold,
+            "summary":      natural_hold,
+            "reason": reason,
         }
