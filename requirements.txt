@@ -2,42 +2,42 @@
 # REQUIREMENTS. TXT — Trading Bot v7.1
 # ================================================
 
+# === IA & Agents (installés en premier pour meilleur caching) ===
+chromadb
+sentence-transformers
+pypdf
+crewai>=1.11.0
+crewai-tools
+groq
+langchain-groq
+litellm
+
 # === Core Trading & Data ===
-ccxt                           # Bibliothèque principale pour Binance (spot + futures)
-pandas                         # Analyse de données et backtesting
-numpy                          # Calculs mathématiques rapides
-requests                       # Requêtes HTTP vers l'API Binance
-httpx                          # Requêtes HTTP asynchrones (utilisé par certains agents)
-feedparser                     # Parsing de flux RSS (news crypto / on-chain)
+ccxt
+pandas
+numpy
+requests
+httpx
+feedparser
 
 # === WebSocket & Temps réel ===
-websocket-client               # Gestion WebSocket Binance (15 symboles en live)
-
-# === IA & Agents ===
-groq                           # API Groq (llama-3.1 ultra rapide)
-langchain-groq                 # Intégration Groq avec LangChain
-crewai>=1.11.0                 # Framework multi-agents (EvolutionAgent, Orchestrator...)
-crewai-tools                   # Outils supplémentaires pour CrewAI
-litellm                        # Gestion unifiée des LLM (fallback Groq / HF)
-chromadb                       # Base vectorielle pour mémoire longue des agents
-pypdf
-sentence-transformers
+websocket-client
 
 # === Telegram Bot ===
-python-telegram-bot==21.10     # Interface Telegram complète (/start, /agent, /status...)
+python-telegram-bot==21.10
 
 # === Dashboard & Web ===
-flask                          # Serveur web pour le dashboard /office
-prometheus-client              # Métriques pour monitoring (optionnel mais déjà présent)
+flask
+prometheus-client
 
 # === Visualisation ===
-matplotlib>=3.8.0              # Graphiques equity curve pour les backtests (étape 4)
+matplotlib>=3.8.0
 
 # === Utilitaires & Persistance ===
-python-dotenv                  # Chargement des variables d'environnement (.env)
-gitpython                      # GitHub sync des leçons / trades
-pybit                          # Alternative Bitget / Bybit (si tu veux ajouter d'autres exchanges)
-praw                           # Reddit (pour sentiment analysis / memecoins)
+python-dotenv
+gitpython
+pybit
+praw
 
 # ================================================
 # Installation rapide :
