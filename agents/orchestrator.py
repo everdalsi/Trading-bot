@@ -19,7 +19,7 @@ from knowledge_base import KnowledgeBase
 from agents.supervisor_agent import SupervisorAgent
 from agents.learning_agent import LearningAgent
 from agents.performance_tracker import PerformanceTracker
-from agents.research_agent import ResearchAgent   # ← ajouté pour Twitter KOLs
+from agents.research_agent import ResearchAgent
 
 
 class Orchestrator:
@@ -31,8 +31,8 @@ class Orchestrator:
         self.supervisor = SupervisorAgent()
         self.learning   = LearningAgent()
         self.performance = PerformanceTracker()
-        self.research   = ResearchAgent()          
-                self.knowledge = KnowledgeBase()   
+        self.research   = ResearchAgent()
+        self.knowledge = KnowledgeBase()
 
     # ─────────────────────────────────────────────────────────────
     #  ask_all — Interroge tous les agents en parallèle
@@ -54,7 +54,7 @@ class Orchestrator:
             self.risk.respond(question, enriched_ctx),
             self.trader.respond(question, enriched_ctx),
             self.learning.respond(question, enriched_ctx),
-            self.research.respond(question, enriched_ctx),   # ← ajout ResearchAgent
+            self.research.respond(question, enriched_ctx),
         ]
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -257,6 +257,12 @@ class Orchestrator:
         except Exception as e:
             print(f"[ORCHESTRATOR] enrich perf error: {e}")
 
+        # === Knowledge Base RAG ===
+        enriched["knowledge"] = self.knowledge
+        enriched["knowledge_context"] = self.knowledge.get_context_for_agent(
+            f"Contexte trading sur {context.get('symbol', 'marché crypto')} - CFA, Wyckoff, VSA, Trading for a Living"
+        )
+
         return enriched
 
     # ─────────────────────────────────────────────────────────────
@@ -308,4 +314,4 @@ class Orchestrator:
                 print(f"[AUTO-EXEC] Ouverture forcée sur {best_symbol} (apprentissage extrême)")
                 # Ici tu peux appeler ta fonction open_trade si tu veux
         except:
-            pass       
+            pass
