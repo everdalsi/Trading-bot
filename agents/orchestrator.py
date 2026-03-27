@@ -20,7 +20,8 @@ from agents.supervisor_agent import SupervisorAgent
 from agents.learning_agent import LearningAgent
 from agents.performance_tracker import PerformanceTracker
 from agents.research_agent import ResearchAgent
-from agents.knowledge_specialist_agent import KnowledgeSpecialistAgent   # ← AJOUT MINIMAL
+from agents.knowledge_specialist_agent import KnowledgeSpecialistAgent   # déjà présent ou ajouté
+from agents.self_improvement import SelfImprovementEngineer   # ← AJOUT MINIMAL
 
 class Orchestrator:
 
@@ -33,7 +34,8 @@ class Orchestrator:
         self.performance = PerformanceTracker()
         self.research   = ResearchAgent()
         self.knowledge  = KnowledgeBase()
-        self.knowledge_specialist = KnowledgeSpecialistAgent()   # ← AJOUT MINIMAL
+        self.knowledge_specialist = KnowledgeSpecialistAgent()
+        self.self_improvement = SelfImprovementEngineer(orchestrator=self)   # ← CONNEXION FORTE
 
     # ─────────────────────────────────────────────────────────────
     #  ask_all — Interroge tous les agents en parallèle
@@ -51,13 +53,14 @@ class Orchestrator:
             self.trader.respond(question, enriched_ctx),
             self.learning.respond(question, enriched_ctx),
             self.research.respond(question, enriched_ctx),
-            self.knowledge_specialist.respond(question, enriched_ctx),   # ← AJOUT MINIMAL
+            self.knowledge_specialist.respond(question, enriched_ctx),
+            self.self_improvement.respond(question, enriched_ctx),   # ← APPELÉ À CHAQUE CYCLE
         ]
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         responses = []
-        agent_names = ["analyst", "risk", "trader", "learning", "research", "knowledge_specialist"]   # ← AJOUT MINIMAL
+        agent_names = ["analyst", "risk", "trader", "learning", "research", "knowledge_specialist", "self_improvement"]
         for i, res in enumerate(results):
             if isinstance(res, Exception):
                 responses.append({
