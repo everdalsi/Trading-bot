@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 979.714495751004,
+    "cash": 999.2544052685575,
     "initial": 1000.0,
     "positions": {
       "MICRO_XRPUSDT_49": {
@@ -1295,17 +1295,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 1.358,
-        "price_out": null,
+        "price_out": 1.3583,
         "qty": 14.385562480713787,
         "amount_usd": 19.535593848809324,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=17 mom=-0.11% vol=3.5x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 73s",
         "time_in": "2026-03-27 07:40:33",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 07:41:55",
+        "pnl": 0.004316,
+        "pnl_pct": 0.022,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -18924,6 +18924,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 07:41"
+      },
+      {
+        "trade_id": 49,
+        "pnl": 0.004316,
+        "symbol": "XRPUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 07:41"
       }
     ],
     "patterns_to_avoid": [
@@ -19248,7 +19259,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -19527,11 +19537,12 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "score=4",
       "score=4",
       "score=4"
     ],
     "confidence_threshold": 82,
-    "total_wins": 162,
+    "total_wins": 163,
     "total_losses": 323,
     "symbol_scores": {
       "BTCUSDT": -15,
@@ -19547,7 +19558,7 @@
       "STXUSDT": -2,
       "FLOKIUSDT": -2,
       "TRXUSDT": 4,
-      "BNBUSDT": -10,
+      "BNBUSDT": -8,
       "TURBOUSDT": -12,
       "ORDIUSDT": -2,
       "LTCUSDT": -8,
@@ -19560,7 +19571,8 @@
       "UNIUSDT": -6,
       "APTUSDT": -2,
       "SEIUSDT": -12,
-      "AVAXUSDT": -12
+      "AVAXUSDT": -12,
+      "XRPUSDT": 2
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
@@ -19574,7 +19586,7 @@
       "STXUSDT": 1,
       "FLOKIUSDT": 1,
       "TRXUSDT": 0,
-      "BNBUSDT": 2,
+      "BNBUSDT": 0,
       "TURBOUSDT": 2,
       "ORDIUSDT": 1,
       "LTCUSDT": 1,
