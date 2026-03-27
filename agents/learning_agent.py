@@ -83,8 +83,13 @@ class LearningAgent(BaseAgent):
         """Charge tous les PDFs du dossier knowledge/ ou racine (Fix Railway)"""
         knowledge = ""
         
-        # --- FIX LOGS & PATHS ---
-        search_paths = [KNOWLEDGE_DIR, "/workspace/knowledge", os.getcwd()]
+        # --- DÉTECTION DES CHEMINS ---
+        search_paths = [
+            os.path.join(os.getcwd(), KNOWLEDGE_DIR),
+            "/workspace/knowledge",
+            os.getcwd() 
+        ]
+        
         target_path = None
         for p in search_paths:
             if os.path.exists(p):
