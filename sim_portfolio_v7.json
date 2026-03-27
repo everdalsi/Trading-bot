@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 788.0028742658171,
+    "cash": 999.4760053903233,
     "initial": 1000.0,
     "positions": {
       "MICRO_ORDIUSDT_38": {
@@ -1009,17 +1009,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 2.297,
-        "price_out": null,
+        "price_out": 2.297,
         "qty": 92.06492430322426,
         "amount_usd": 211.47313112450612,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=21 mom=+0.00% vol=2.8x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 65s",
         "time_in": "2026-03-27 07:09:33",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 07:10:43",
+        "pnl": 0.0,
+        "pnl_pct": 0.0,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -15668,6 +15668,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 07:10"
+      },
+      {
+        "trade_id": 38,
+        "pnl": 0.0,
+        "symbol": "ORDIUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 07:10"
       }
     ],
     "patterns_to_avoid": [
@@ -15950,7 +15961,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -15970,6 +15980,7 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "score=4",
       "score=4"
     ],
     "patterns_that_work": [
@@ -16274,9 +16285,9 @@
       "backtest_5m",
       "backtest_5m"
     ],
-    "confidence_threshold": 80,
+    "confidence_threshold": 82,
     "total_wins": 137,
-    "total_losses": 266,
+    "total_losses": 267,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
@@ -16293,7 +16304,7 @@
       "TRXUSDT": 4,
       "BNBUSDT": -12,
       "TURBOUSDT": -12,
-      "ORDIUSDT": 4,
+      "ORDIUSDT": 1,
       "LTCUSDT": -2,
       "MEMEUSDT": 4,
       "FETUSDT": 4,
@@ -16302,7 +16313,7 @@
       "PEPEUSDT": 4,
       "ONDOUSDT": 4,
       "UNIUSDT": -6,
-      "APTUSDT": -3
+      "APTUSDT": -6
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
@@ -16325,7 +16336,8 @@
       "SUIUSDT": 1,
       "PEPEUSDT": 0,
       "ONDOUSDT": 0,
-      "UNIUSDT": 1
+      "UNIUSDT": 1,
+      "APTUSDT": 1
     },
     "bad_setups": [
       {
