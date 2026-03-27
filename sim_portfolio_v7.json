@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 92.43434613120368,
+    "cash": 787.9768451320202,
     "initial": 1000.0,
     "positions": {
       "MICRO_UNIUSDT_53": {
@@ -52,7 +52,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 0.182,
+        "peak_price": 0.183,
         "open_time": 1774599324.69813,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_WIFUSDT_54"
@@ -1426,17 +1426,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 3.506,
-        "price_out": null,
+        "price_out": 3.503,
         "qty": 198.5562372254686,
         "amount_usd": 696.1381677124929,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=18 mom=-0.23% vol=3.6x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 71s",
         "time_in": "2026-03-27 08:14:35",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 08:15:47",
+        "pnl": -0.595669,
+        "pnl_pct": -0.086,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -22326,6 +22326,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 08:15"
+      },
+      {
+        "trade_id": 53,
+        "pnl": -0.595669,
+        "symbol": "UNIUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 08:15"
       }
     ],
     "patterns_to_avoid": [
@@ -22367,7 +22378,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "score=4",
       "backtest_5m",
@@ -22628,7 +22638,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -22932,7 +22943,7 @@
       "backtest_5m",
       "backtest_5m"
     ],
-    "confidence_threshold": 8,
+    "confidence_threshold": 11,
     "total_wins": 193,
     "total_losses": 376,
     "symbol_scores": {
@@ -22959,7 +22970,7 @@
       "SUIUSDT": -6,
       "PEPEUSDT": 4,
       "ONDOUSDT": 4,
-      "UNIUSDT": -2,
+      "UNIUSDT": -5,
       "APTUSDT": -2,
       "SEIUSDT": -12,
       "AVAXUSDT": -12,
