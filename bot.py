@@ -327,7 +327,13 @@ data_handler.prefill_caches(WS_SYMBOLS_WATCH)
 # ═══════════════════════════════════════════════════════════════
 #  DATA HANDLER (nouveau module propre)
 # ═══════════════════════════════════════════════════════════════
-from data_handler import data_handler, get_prices_batch, get_klines_1m_cached, get_klines_5m_cached, get_volume_data
+from data_handler import (
+    data_handler,
+    get_prices_batch,
+    get_klines_1m_cached,
+    get_klines_5m_cached,
+    get_volume_data
+)
 
 # Remplacement des anciennes fonctions par le handler propre
 def get_current_price(symbol: str) -> float | None:
