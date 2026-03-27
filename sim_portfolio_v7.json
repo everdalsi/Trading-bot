@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 303.7669779735684,
+    "cash": 999.0716308622244,
     "initial": 1000.0,
     "positions": {
       "MICRO_SOLUSDT_45": {
@@ -1191,17 +1191,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 85.94,
-        "price_out": null,
+        "price_out": 85.92,
         "qty": 8.092465699355866,
         "amount_usd": 695.4665022026431,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=24 mom=-0.06% vol=3.2x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 73s",
         "time_in": "2026-03-27 07:38:45",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 07:39:59",
+        "pnl": -0.161849,
+        "pnl_pct": -0.023,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -18589,6 +18589,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 07:39"
+      },
+      {
+        "trade_id": 45,
+        "pnl": -0.161849,
+        "symbol": "SOLUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 07:39"
       }
     ],
     "patterns_to_avoid": [
@@ -18689,7 +18700,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -18891,7 +18901,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -19201,7 +19212,7 @@
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -2,
+      "SOLUSDT": -5,
       "TARO": -3,
       "OPUSDT": -6,
       "PENDLEUSDT": -12,
