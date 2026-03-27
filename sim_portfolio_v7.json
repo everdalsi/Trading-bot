@@ -25,7 +25,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 8.53,
+        "peak_price": 8.55,
         "open_time": 1774621414.5398908,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_LINKUSDT_92"
@@ -52,7 +52,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 1.662,
+        "peak_price": 1.668,
         "open_time": 1774621416.8174174,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_RENDERUSDT_93"
@@ -79,7 +79,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 2.777e-05,
+        "peak_price": 2.781e-05,
         "open_time": 1774621418.5792038,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_FLOKIUSDT_94"
@@ -106,7 +106,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 65915.15,
+        "peak_price": 66005.29,
         "open_time": 1774621437.9388,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_BTCUSDT_95"
@@ -133,7 +133,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 82.75,
+        "peak_price": 82.87,
         "open_time": 1774621438.6421194,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_SOLUSDT_96"
@@ -160,7 +160,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 1.335,
+        "peak_price": 1.3363,
         "open_time": 1774621439.336631,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_XRPUSDT_97"
@@ -13709,10 +13709,20 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 14:24"
+      },
+      {
+        "trade_id": -3,
+        "pnl": -4.3285,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 14:24"
       }
     ],
     "patterns_to_avoid": [
-      "backtest_5m",
       "memecoin",
       "memecoin",
       "backtest_5m",
@@ -14006,6 +14016,7 @@
       "score=4",
       "backtest_5m",
       "score=4",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
