@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 703.286663001946,
+    "cash": 231.2479202804285,
     "initial": 1000.0,
     "positions": {
       "MICRO_DOGEUSDT_89": {
@@ -83,6 +83,87 @@
         "open_time": 1774621364.5537593,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_APTUSDT_91"
+      },
+      "MICRO_LINKUSDT_92": {
+        "id": 92,
+        "symbol": "LINKUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 8.52,
+        "price_out": null,
+        "qty": 57.45158655508854,
+        "amount_usd": 489.48751744935436,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=23 mom=-0.23% vol=5.6x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 14:23:34",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 8.52,
+        "open_time": 1774621414.5398908,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_LINKUSDT_92"
+      },
+      "MICRO_RENDERUSDT_93": {
+        "id": 93,
+        "symbol": "RENDERUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 1.662,
+        "price_out": null,
+        "qty": 89.53321618808889,
+        "amount_usd": 148.80420530460373,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=14 mom=-0.60% vol=2.8x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 14:23:36",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 1.662,
+        "open_time": 1774621416.8174174,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_RENDERUSDT_93"
+      },
+      "MICRO_FLOKIUSDT_94": {
+        "id": 94,
+        "symbol": "FLOKIUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 2.776e-05,
+        "price_out": null,
+        "qty": 1629556.1387824048,
+        "amount_usd": 45.23647841259955,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=14 mom=-0.32% vol=2.8x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 14:23:38",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 2.776e-05,
+        "open_time": 1774621418.5792038,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_FLOKIUSDT_94"
       }
     },
     "trades": [
@@ -2435,17 +2516,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.08952,
-        "price_out": null,
+        "price_out": 0.08948,
         "qty": 2363.538873994638,
         "amount_usd": 211.58399999999997,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=18 mom=-0.23% vol=4.5x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 63s",
         "time_in": "2026-03-27 14:22:42",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 14:23:46",
+        "pnl": -0.094542,
+        "pnl_pct": -0.045,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -2504,6 +2585,84 @@
         "leverage": 1,
         "peak_price": 0.989,
         "open_time": 1774621364.5537593,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 92,
+        "symbol": "LINKUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 8.52,
+        "price_out": null,
+        "qty": 57.45158655508854,
+        "amount_usd": 489.48751744935436,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=23 mom=-0.23% vol=5.6x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 14:23:34",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 8.52,
+        "open_time": 1774621414.5398908,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 93,
+        "symbol": "RENDERUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 1.662,
+        "price_out": null,
+        "qty": 89.53321618808889,
+        "amount_usd": 148.80420530460373,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=14 mom=-0.60% vol=2.8x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 14:23:36",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 1.662,
+        "open_time": 1774621416.8174174,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 94,
+        "symbol": "FLOKIUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 2.776e-05,
+        "price_out": null,
+        "qty": 1629556.1387824048,
+        "amount_usd": 45.23647841259955,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=14 mom=-0.32% vol=2.8x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 14:23:38",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 2.776e-05,
+        "open_time": 1774621418.5792038,
         "kelly_pct": 0.48
       }
     ],
@@ -13340,10 +13499,20 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 14:23"
+      },
+      {
+        "trade_id": 89,
+        "pnl": -0.094542,
+        "symbol": "DOGEUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 14:23"
       }
     ],
     "patterns_to_avoid": [
-      "backtest_5m",
       "memecoin",
       "memecoin",
       "backtest_5m",
@@ -13642,6 +13811,7 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "score=4",
       "score=4"
     ],
     "patterns_that_work": [
@@ -13861,9 +14031,9 @@
       "backtest_5m",
       "backtest_5m"
     ],
-    "confidence_threshold": 68,
+    "confidence_threshold": 71,
     "total_wins": 16,
-    "total_losses": 301,
+    "total_losses": 302,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -15,
@@ -13891,7 +14061,8 @@
       "INJUSDT": -12,
       "TAOUSDT": 4,
       "STXUSDT": -6,
-      "RENDERUSDT": -3
+      "RENDERUSDT": -6,
+      "DOGEUSDT": -3
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
@@ -13914,7 +14085,8 @@
       "FETUSDT": 1,
       "INJUSDT": 2,
       "TAOUSDT": 0,
-      "STXUSDT": 1
+      "STXUSDT": 1,
+      "RENDERUSDT": 1
     },
     "bad_setups": [
       {
