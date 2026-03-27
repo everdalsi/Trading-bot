@@ -11,6 +11,7 @@ Corrections vs V2 :
 
 import asyncio
 from typing import Dict, Any, List, Tuple
+import os
 
 from agents.analyst_agent import AnalystAgent
 from agents.risk_agent import RiskAgent
@@ -20,8 +21,8 @@ from agents.supervisor_agent import SupervisorAgent
 from agents.learning_agent import LearningAgent
 from agents.performance_tracker import PerformanceTracker
 from agents.research_agent import ResearchAgent
-from agents.knowledge_specialist_agent import KnowledgeSpecialistAgent   # déjà présent ou ajouté
-from agents.self_improvement import SelfImprovementEngineer   # ← AJOUT MINIMAL
+from agents.knowledge_specialist_agent import KnowledgeSpecialistAgent
+from agents.self_improvement import SelfImprovementEngineer   # ← AJOUT ÉTAPE 2 (minimal)
 
 class Orchestrator:
 
@@ -35,7 +36,7 @@ class Orchestrator:
         self.research   = ResearchAgent()
         self.knowledge  = KnowledgeBase()
         self.knowledge_specialist = KnowledgeSpecialistAgent()
-        self.self_improvement = SelfImprovementEngineer(orchestrator=self)   # ← CONNEXION FORTE
+        self.self_improvement = SelfImprovementEngineer(orchestrator=self)   # ← CONNEXION FORTE + BACKUP
 
     # ─────────────────────────────────────────────────────────────
     #  ask_all — Interroge tous les agents en parallèle
@@ -44,6 +45,11 @@ class Orchestrator:
         self, question: str, context: dict
     ) -> Tuple[List[Dict], Dict]:
         print(f"[ORCHESTRATOR] ask_all → {question[:80]}...")
+
+        # Ajout minimal Étape 2 : détection restart après crash
+        restart_reason = self._check_for_crash_flag()
+        if restart_reason:
+            context["restart_reason"] = restart_reason
 
         enriched_ctx = self._enrich_context(context)
 
@@ -238,3 +244,18 @@ class Orchestrator:
             print(f"[ORCHESTRATOR] enrich performance error: {e}")
 
         return enriched
+
+    # ─────────────────────────────────────────────────────────────
+    #  Méthode ajoutée (minimal) pour détecter un crash précédent
+    # ─────────────────────────────────────────────────────────────
+    def _check_for_crash_flag(self) -> str:
+        flag_file = "/workspace/.last_crash_by_engineer.txt"
+        if os.path.exists(flag_file):
+            try:
+                with open(flag_file, "r") as f:
+                    reason = f.read().strip()
+                os.remove(flag_file)  # on consomme le flag une seule fois
+                return reason
+            except Exception:
+                return ""
+        return ""
