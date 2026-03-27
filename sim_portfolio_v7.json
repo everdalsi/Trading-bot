@@ -3,33 +3,6 @@
     "cash": 787.8773300522657,
     "initial": 1000.0,
     "positions": {
-      "MICRO_SEIUSDT_41": {
-        "id": 41,
-        "symbol": "SEIUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.0578,
-        "price_out": null,
-        "qty": 12051.70198766017,
-        "amount_usd": 696.5883748867578,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=18 mom=-0.17% vol=4.1x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 07:13:48",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0578,
-        "open_time": 1774595628.9085097,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_SEIUSDT_41"
-      },
       "MICRO_LTCUSDT_42": {
         "id": 42,
         "symbol": "LTCUSDT",
