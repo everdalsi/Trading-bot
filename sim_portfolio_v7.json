@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 500.06374662736073,
+    "cash": 649.405151229093,
     "initial": 1000.0,
     "positions": {
       "MICRO_RENDERUSDT_93": {
@@ -2593,17 +2593,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 1.662,
-        "price_out": null,
+        "price_out": 1.668,
         "qty": 89.53321618808889,
         "amount_usd": 148.80420530460373,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=14 mom=-0.60% vol=2.8x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 64s",
         "time_in": "2026-03-27 14:23:36",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 14:24:45",
+        "pnl": 0.537199,
+        "pnl_pct": 0.361,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -13726,6 +13726,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 14:24"
+      },
+      {
+        "trade_id": 93,
+        "pnl": 0.537199,
+        "symbol": "RENDERUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 14:24"
       }
     ],
     "patterns_to_avoid": [
@@ -14248,10 +14259,11 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "score=4",
       "score=4"
     ],
     "confidence_threshold": 82,
-    "total_wins": 16,
+    "total_wins": 17,
     "total_losses": 308,
     "symbol_scores": {
       "Deadwhale": -15,
@@ -14280,10 +14292,10 @@
       "INJUSDT": -12,
       "TAOUSDT": 4,
       "STXUSDT": -6,
-      "RENDERUSDT": -6,
+      "RENDERUSDT": -4,
       "DOGEUSDT": -6,
       "UNIUSDT": -6,
-      "LINKUSDT": 2
+      "LINKUSDT": 4
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
@@ -14309,7 +14321,8 @@
       "STXUSDT": 1,
       "RENDERUSDT": 1,
       "DOGEUSDT": 1,
-      "UNIUSDT": 1
+      "UNIUSDT": 1,
+      "LINKUSDT": 0
     },
     "bad_setups": [
       {
