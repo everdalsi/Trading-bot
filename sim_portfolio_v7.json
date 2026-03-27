@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 298.0180367931107,
+    "cash": 535.6021001278388,
     "initial": 1000.0,
     "positions": {
       "MICRO_AVAXUSDT_16": {
@@ -110,6 +110,87 @@
         "open_time": 1774608871.3281848,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_OPUSDT_19"
+      },
+      "MICRO_TONUSDT_20": {
+        "id": 20,
+        "symbol": "TONUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 1.236,
+        "price_out": null,
+        "qty": 167.81598188349923,
+        "amount_usd": 207.42055360800504,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=23 mom=-0.24% vol=3.2x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 10:55:32",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 1.236,
+        "open_time": 1774608932.0235868,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_TONUSDT_20"
+      },
+      "MICRO_MEMEUSDT_21": {
+        "id": 21,
+        "symbol": "MEMEUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.000541,
+        "price_out": null,
+        "qty": 116554.24823813961,
+        "amount_usd": 63.05584829683353,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=24 mom=-0.37% vol=3.1x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 10:55:34",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.000541,
+        "open_time": 1774608934.0279348,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_MEMEUSDT_21"
+      },
+      "MICRO_NOTUSDT_22": {
+        "id": 22,
+        "symbol": "NOTUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.000348,
+        "price_out": null,
+        "qty": 55083.26977654425,
+        "amount_usd": 19.1689778822374,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=27 mom=+0.00% vol=3.2x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 10:55:35",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.000348,
+        "open_time": 1774608935.2757454,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_NOTUSDT_22"
       }
     },
     "trades": [
@@ -520,17 +601,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 8.72,
-        "price_out": null,
+        "price_out": 8.72,
         "qty": 60.46209210112431,
         "amount_usd": 527.229443121804,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=26 mom=-0.34% vol=3.3x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 71s",
         "time_in": "2026-03-27 10:54:29",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 10:55:40",
+        "pnl": 0.0,
+        "pnl_pct": 0.0,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -615,6 +696,84 @@
         "leverage": 1,
         "peak_price": 0.1049,
         "open_time": 1774608871.3281848,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 20,
+        "symbol": "TONUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 1.236,
+        "price_out": null,
+        "qty": 167.81598188349923,
+        "amount_usd": 207.42055360800504,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=23 mom=-0.24% vol=3.2x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 10:55:32",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 1.236,
+        "open_time": 1774608932.0235868,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 21,
+        "symbol": "MEMEUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.000541,
+        "price_out": null,
+        "qty": 116554.24823813961,
+        "amount_usd": 63.05584829683353,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=24 mom=-0.37% vol=3.1x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 10:55:34",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.000541,
+        "open_time": 1774608934.0279348,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 22,
+        "symbol": "NOTUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.000348,
+        "price_out": null,
+        "qty": 55083.26977654425,
+        "amount_usd": 19.1689778822374,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=27 mom=+0.00% vol=3.2x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 10:55:35",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.000348,
+        "open_time": 1774608935.2757454,
         "kelly_pct": 0.48
       }
     ],
@@ -1826,6 +1985,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 10:55"
+      },
+      {
+        "trade_id": 16,
+        "pnl": 0.0,
+        "symbol": "AVAXUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 10:55"
       }
     ],
     "patterns_to_avoid": [
@@ -1912,6 +2082,7 @@
       "backtest_5m",
       "score=4",
       "score=4",
+      "score=4",
       "score=4"
     ],
     "patterns_that_work": [
@@ -1943,7 +2114,7 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 3,
-    "total_losses": 34,
+    "total_losses": 35,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -15,
@@ -1954,13 +2125,15 @@
       "ARBUSDT": -6,
       "TONUSDT": -6,
       "TRXUSDT": -6,
-      "ONDOUSDT": -3
+      "ONDOUSDT": -6,
+      "AVAXUSDT": -3
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
       "ARBUSDT": 1,
       "TONUSDT": 1,
-      "TRXUSDT": 1
+      "TRXUSDT": 1,
+      "ONDOUSDT": 1
     },
     "bad_setups": [
       {
