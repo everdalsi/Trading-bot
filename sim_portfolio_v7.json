@@ -3,33 +3,6 @@
     "cash": 788.416,
     "initial": 1000.0,
     "positions": {
-      "MICRO_WIFUSDT_30": {
-        "id": 30,
-        "symbol": "WIFUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.175,
-        "price_out": null,
-        "qty": 3977.1428571428573,
-        "amount_usd": 696.0,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=9 mom=-0.57% vol=9.8x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 11:04:13",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.176,
-        "open_time": 1774609453.71316,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_WIFUSDT_30"
-      },
       "MICRO_JUPUSDT_31": {
         "id": 31,
         "symbol": "JUPUSDT",
@@ -52,7 +25,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 0.1431,
+        "peak_price": 0.1433,
         "open_time": 1774609499.4869533,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_JUPUSDT_31"
@@ -3582,7 +3555,7 @@
     ],
     "confidence_threshold": 68,
     "total_wins": 8,
-    "total_losses": 70,
+    "total_losses": 72,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -15,
@@ -3599,7 +3572,7 @@
       "MEMEUSDT": 4,
       "NOTUSDT": -6,
       "ORDIUSDT": 1,
-      "WIFUSDT": -3
+      "WIFUSDT": -6
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
@@ -3612,7 +3585,8 @@
       "OPUSDT": 2,
       "MEMEUSDT": 0,
       "NOTUSDT": 1,
-      "ORDIUSDT": 0
+      "ORDIUSDT": 0,
+      "WIFUSDT": 1
     },
     "bad_setups": [
       {
