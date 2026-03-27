@@ -2,35 +2,7 @@
   "sim": {
     "cash": 1001.1383742248693,
     "initial": 1000.0,
-    "positions": {
-      "MICRO_TURBOUSDT_17": {
-        "id": 17,
-        "symbol": "TURBOUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.001036,
-        "price_out": null,
-        "qty": 256514.81389527876,
-        "amount_usd": 265.7493471955088,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=10 mom=+0.00% vol=15.7x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 05:43:04",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.001036,
-        "open_time": 1774590184.613853,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_TURBOUSDT_17"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
@@ -8724,7 +8696,7 @@
     ],
     "confidence_threshold": 32,
     "total_wins": 71,
-    "total_losses": 146,
+    "total_losses": 148,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
@@ -8740,7 +8712,7 @@
       "FLOKIUSDT": 4,
       "TRXUSDT": 4,
       "BNBUSDT": -6,
-      "TURBOUSDT": -9,
+      "TURBOUSDT": -12,
       "ORDIUSDT": 4,
       "LTCUSDT": -6
     },
@@ -8757,7 +8729,7 @@
       "FLOKIUSDT": 0,
       "TRXUSDT": 0,
       "BNBUSDT": 1,
-      "TURBOUSDT": 1,
+      "TURBOUSDT": 2,
       "ORDIUSDT": 0,
       "LTCUSDT": 1
     },
@@ -14197,6 +14169,48 @@
             "exit": 2050.53,
             "pnl": -1.8027,
             "pnl_pct": -0.91,
+            "exit_reason": "TIMEOUT"
+          }
+        ]
+      },
+      {
+        "symbol": "BTCUSDT",
+        "interval": "5m",
+        "days": 30,
+        "total_trades": 3,
+        "wins": 0,
+        "losses": 3,
+        "win_rate": 0.0,
+        "total_pnl": -5.63,
+        "total_pnl_pct": -0.56,
+        "sharpe": -30.41,
+        "max_drawdown": -0.56,
+        "profit_factor": 0.0,
+        "best_trade": -0.36,
+        "worst_trade": -1.56,
+        "final_equity": 994.37,
+        "sl_used": 0.025,
+        "tp_used": 0.04,
+        "trades": [
+          {
+            "entry": 71503.24375499999,
+            "exit": 71242.73,
+            "pnl": -0.7276,
+            "pnl_pct": -0.36,
+            "exit_reason": "TIMEOUT"
+          },
+          {
+            "entry": 70091.49823499999,
+            "exit": 68996.89,
+            "pnl": -3.1164,
+            "pnl_pct": -1.56,
+            "exit_reason": "TIMEOUT"
+          },
+          {
+            "entry": 69199.572495,
+            "exit": 68578.0,
+            "pnl": -1.7869,
+            "pnl_pct": -0.9,
             "exit_reason": "TIMEOUT"
           }
         ]
