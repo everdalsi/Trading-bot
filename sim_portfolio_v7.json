@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 957.2293886707796,
+    "cash": 916.2988398248681,
     "initial": 1000.0,
     "positions": {
       "MICRO_FETUSDT_74": {
@@ -29,6 +29,34 @@
         "open_time": 1774612392.2951205,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_FETUSDT_74"
+      },
+      "MEME_PIXEL_78": {
+        "id": 78,
+        "symbol": "PIXEL",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "PIXEL",
+        "price_in": 0.0008915,
+        "price_out": null,
+        "qty": 53686.44916829948,
+        "amount_usd": 47.861469433538986,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-27 11:58:23",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0008915,
+        "open_time": 1774612703.6956582,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_PIXEL_78"
       }
     },
     "trades": [
@@ -2081,6 +2109,33 @@
         "leverage": 1,
         "peak_price": 0.0008915,
         "open_time": 1774612659.3570192,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 78,
+        "symbol": "PIXEL",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "PIXEL",
+        "price_in": 0.0008915,
+        "price_out": 0.0001291,
+        "qty": 53686.44916829948,
+        "amount_usd": 47.861469433538986,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": "\ud83d\uded1 MEME SL (-85.5%)",
+        "time_in": "2026-03-27 11:58:23",
+        "time_out": "2026-03-27 11:58:24",
+        "pnl": -40.930549,
+        "pnl_pct": -85.52,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0008915,
+        "open_time": 1774612703.6956582,
         "kelly_pct": 0.05
       }
     ],
@@ -9958,6 +10013,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 11:57"
+      },
+      {
+        "trade_id": 78,
+        "pnl": -40.930549,
+        "symbol": "PIXEL",
+        "market": "MEME",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "memecoin",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 11:58"
       }
     ],
     "patterns_to_avoid": [
@@ -9966,7 +10032,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -10260,6 +10325,7 @@
       "memecoin",
       "backtest_5m",
       "backtest_5m",
+      "memecoin",
       "memecoin"
     ],
     "patterns_that_work": [
