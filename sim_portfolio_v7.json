@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 979.5494886725617,
+    "cash": 993.5141907757518,
     "initial": 1000.0,
     "positions": {
       "MICRO_PEPEUSDT_85": {
@@ -2231,17 +2231,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 3.37e-06,
-        "price_out": null,
+        "price_out": 3.37e-06,
         "qty": 4143828.517267085,
         "amount_usd": 13.964702103190076,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=27 mom=-0.29% vol=19.0x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 80s",
         "time_in": "2026-03-27 08:36:23",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 08:37:44",
+        "pnl": 0.0,
+        "pnl_pct": 0.0,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -25635,6 +25635,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 08:37"
+      },
+      {
+        "trade_id": 85,
+        "pnl": 0.0,
+        "symbol": "PEPEUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 08:37"
       }
     ],
     "patterns_to_avoid": [
@@ -25758,7 +25769,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -25936,6 +25946,7 @@
       "score=4",
       "backtest_5m",
       "backtest_5m",
+      "score=4",
       "score=4",
       "score=4"
     ],
@@ -26243,7 +26254,7 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 217,
-    "total_losses": 437,
+    "total_losses": 438,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
@@ -26265,8 +26276,8 @@
       "MEMEUSDT": 4,
       "FETUSDT": -2,
       "LEGACY": 9,
-      "SUIUSDT": -5,
-      "PEPEUSDT": -8,
+      "SUIUSDT": -8,
+      "PEPEUSDT": -11,
       "ONDOUSDT": 4,
       "UNIUSDT": -15,
       "APTUSDT": -8,
@@ -26297,7 +26308,7 @@
       "LTCUSDT": 1,
       "MEMEUSDT": 0,
       "FETUSDT": 1,
-      "SUIUSDT": 0,
+      "SUIUSDT": 1,
       "PEPEUSDT": 2,
       "ONDOUSDT": 0,
       "UNIUSDT": 4,
