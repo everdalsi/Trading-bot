@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 8.508400182605456,
+    "cash": 701.8748339685366,
     "initial": 1000.0,
     "positions": {
       "MICRO_OPUSDT_66": {
@@ -1818,17 +1818,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.1097,
-        "price_out": null,
+        "price_out": 0.1097,
         "qty": 6320.56913205042,
         "amount_usd": 693.3664337859311,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=21 mom=-0.18% vol=4.7x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 71s",
         "time_in": "2026-03-27 08:26:21",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 08:27:33",
+        "pnl": 0.0,
+        "pnl_pct": 0.0,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -24068,6 +24068,28 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 08:27"
+      },
+      {
+        "trade_id": -1,
+        "pnl": 2.9979,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 08:27"
+      },
+      {
+        "trade_id": 66,
+        "pnl": 0.0,
+        "symbol": "OPUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 08:27"
       }
     ],
     "patterns_to_avoid": [
@@ -24273,7 +24295,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -24370,7 +24391,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -24381,7 +24403,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -24667,6 +24688,7 @@
       "backtest_5m",
       "backtest_5m",
       "score=4",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -24680,9 +24702,9 @@
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -4,
+      "SOLUSDT": -2,
       "TARO": -3,
-      "OPUSDT": -6,
+      "OPUSDT": -9,
       "PENDLEUSDT": -12,
       "ARBUSDT": -6,
       "BONKUSDT": 4,
