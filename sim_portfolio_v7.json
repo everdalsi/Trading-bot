@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 320.8593287442711,
+    "cash": 1047.6838763144578,
     "initial": 1000.0,
     "positions": {
       "MICRO_ORDIUSDT_29": {
@@ -778,17 +778,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 2.205,
-        "price_out": null,
+        "price_out": 2.202,
         "qty": 330.0747264169785,
         "amount_usd": 727.8147717494376,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=27 mom=-0.31% vol=4.0x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 67s",
         "time_in": "2026-03-27 11:00:59",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 11:02:06",
+        "pnl": -0.990224,
+        "pnl_pct": -0.136,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -2941,6 +2941,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 11:02"
+      },
+      {
+        "trade_id": 29,
+        "pnl": -0.990224,
+        "symbol": "ORDIUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 11:02"
       }
     ],
     "patterns_to_avoid": [
@@ -3090,7 +3101,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "memecoin"
+      "memecoin",
+      "score=4"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -3143,7 +3155,7 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 7,
-    "total_losses": 61,
+    "total_losses": 62,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -15,
@@ -3158,7 +3170,8 @@
       "AVAXUSDT": -2,
       "OPUSDT": -12,
       "MEMEUSDT": 4,
-      "NOTUSDT": -6
+      "NOTUSDT": -6,
+      "ORDIUSDT": -3
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
