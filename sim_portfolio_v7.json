@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 239.54496092013426,
+    "cash": 450.008183668553,
     "initial": 1000.0,
     "positions": {
       "MICRO_WIFUSDT_54": {
@@ -1452,17 +1452,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.182,
-        "price_out": null,
+        "price_out": 0.181,
         "qty": 1162.780236179109,
         "amount_usd": 211.62600298459782,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=8 mom=+0.00% vol=9.0x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 68s",
         "time_in": "2026-03-27 08:15:24",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 08:16:33",
+        "pnl": -1.16278,
+        "pnl_pct": -0.549,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -22418,6 +22418,28 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 08:16"
+      },
+      {
+        "trade_id": -3,
+        "pnl": -1.8027,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 08:16"
+      },
+      {
+        "trade_id": 54,
+        "pnl": -1.16278,
+        "symbol": "WIFUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 08:16"
       }
     ],
     "patterns_to_avoid": [
@@ -22452,8 +22474,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
-      "backtest_5m",
       "score=4",
       "score=4",
       "backtest_5m",
@@ -22720,7 +22740,9 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "backtest_5m",
+      "score=4"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -23024,7 +23046,7 @@
       "backtest_5m",
       "backtest_5m"
     ],
-    "confidence_threshold": 26,
+    "confidence_threshold": 32,
     "total_wins": 193,
     "total_losses": 379,
     "symbol_scores": {
@@ -23055,7 +23077,8 @@
       "APTUSDT": -2,
       "SEIUSDT": -12,
       "AVAXUSDT": -12,
-      "XRPUSDT": 4
+      "XRPUSDT": 4,
+      "WIFUSDT": -3
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
