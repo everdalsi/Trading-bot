@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 321.66817417602874,
+    "cash": 1685.5436275378565,
     "initial": 1000.0,
     "positions": {
       "MICRO_IMXUSDT_71": {
@@ -1959,17 +1959,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.1468,
-        "price_out": null,
+        "price_out": 0.1464,
         "qty": 4682.6750514880905,
         "amount_usd": 687.4166975584517,
         "confidence": 88,
         "reason": "EMA\u2191 RSI7=60 mom=+0.14% vol=9.4x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 110s",
         "time_in": "2026-03-27 11:50:36",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 11:52:27",
+        "pnl": -1.87307,
+        "pnl_pct": -0.272,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -2037,8 +2037,8 @@
       1000.0
     ],
     "session": 1,
-    "peak_equity": 1095.3284081112213,
-    "daily_start_equity": 1095.3284081112213,
+    "peak_equity": 1721.8841316968483,
+    "daily_start_equity": 1721.8841316968483,
     "daily_start_date": "2026-03-27"
   },
   "memory": {
@@ -9621,6 +9621,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 11:51"
+      },
+      {
+        "trade_id": 71,
+        "pnl": -1.87307,
+        "symbol": "IMXUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 11:52"
       }
     ],
     "patterns_to_avoid": [
@@ -9633,7 +9644,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -9923,7 +9933,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "memecoin"
+      "memecoin",
+      "score=4"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -10118,7 +10129,8 @@
       "PIXEL": -15,
       "PIXELUSDT": -4,
       "NEARUSDT": -6,
-      "STRKUSDT": -6
+      "STRKUSDT": -6,
+      "IMXUSDT": -3
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
