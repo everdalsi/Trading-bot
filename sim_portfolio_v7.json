@@ -3,33 +3,6 @@
     "cash": 757.5135677037415,
     "initial": 1000.0,
     "positions": {
-      "MICRO_ARBUSDT_11": {
-        "id": 11,
-        "symbol": "ARBUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.0912,
-        "price_out": null,
-        "qty": 7631.578947368421,
-        "amount_usd": 696.0,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=25 mom=-0.22% vol=5.1x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 10:53:23",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0912,
-        "open_time": 1774608803.46819,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_ARBUSDT_11"
-      },
       "MICRO_TONUSDT_13": {
         "id": 13,
         "symbol": "TONUSDT",
