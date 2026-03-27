@@ -3,33 +3,6 @@
     "cash": 360.84718910152725,
     "initial": 1000.0,
     "positions": {
-      "MICRO_UNIUSDT_69": {
-        "id": 69,
-        "symbol": "UNIUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 3.489,
-        "price_out": null,
-        "qty": 5.58319240837123,
-        "amount_usd": 19.47975831280722,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=18 mom=-0.23% vol=8.1x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 08:27:21",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 3.492,
-        "open_time": 1774600041.900221,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_UNIUSDT_69"
-      },
       "MICRO_OPUSDT_70": {
         "id": 70,
         "symbol": "OPUSDT",
@@ -24194,6 +24167,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 08:28"
+      },
+      {
+        "trade_id": -3,
+        "pnl": -1.8027,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 08:28"
       }
     ],
     "patterns_to_avoid": [
@@ -24388,7 +24372,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -24496,7 +24479,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "score=4"
+      "score=4",
+      "backtest_5m"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -24801,8 +24785,8 @@
       "backtest_5m"
     ],
     "confidence_threshold": 82,
-    "total_wins": 206,
-    "total_losses": 411,
+    "total_wins": 207,
+    "total_losses": 412,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
@@ -24858,7 +24842,7 @@
       "SUIUSDT": 0,
       "PEPEUSDT": 1,
       "ONDOUSDT": 0,
-      "UNIUSDT": 2,
+      "UNIUSDT": 3,
       "APTUSDT": 0,
       "SEIUSDT": 2,
       "AVAXUSDT": 2,
