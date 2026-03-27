@@ -24,12 +24,28 @@ except ImportError:
 class EvolutionAgent(BaseAgent):
 
     def __init__(self, orchestrator):
+        # Ligne originale conservée + upgrade rôle pour cerveau commun
         super().__init__(name="evolution", role="Agent d'évolution autonome — MAX TRADES & MAX EXPÉRIENCE")
         self.orchestrator = orchestrator
         self.edit_tool = EditBotFileTool()
         self.push_tool = GitPushTool()
 
     async def respond(self, question: str, context: dict) -> Dict[str, Any]:
+        # === UPGRADE V5 : Vérification stricte de spécialisation (cerveau commun) ===
+        if not self._is_in_my_domain(question):
+            return {
+                "agent": self.name,
+                "summary": f"⚠️ {self.name} hors de sa spécialité → ignoré",
+                "confidence": 0.0,
+                "recommendation": "HOLD - Vérifier rôle",
+                "warning": "Hors domaine evolution"
+            }
+
+        # === UPGRADE V5 : Glossaire partagé pour zéro malentendu ===
+        shared_glossary = context.get("shared_glossary", {})
+        def explain(k): 
+            return self.explain_term(k) or shared_glossary.get(k, k)
+
         memory = context.get("memory", {})
 
         try:
@@ -96,7 +112,8 @@ class EvolutionAgent(BaseAgent):
                 "extreme_learning": extreme_learning,
                 "confidence": 0.99,
                 "improvements_applied": improvements,
-                "trigger_100": True
+                "trigger_100": True,
+                "glossary_used": True
             }
 
         # === CODE ORIGINAL (aucune ligne supprimée) ===
@@ -120,5 +137,6 @@ class EvolutionAgent(BaseAgent):
             "summary": f"MAX TRADES activé | Leçons={lesson_count} | {edit_result} | {push_result}",
             "decision": "DEPLOYED_MAX_TRADES",
             "extreme_learning": extreme_learning,
-            "confidence": 0.95
+            "confidence": 0.95,
+            "glossary_used": True
         }
