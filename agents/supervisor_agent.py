@@ -85,7 +85,7 @@ class SupervisorAgent(BaseAgent):
                         "recommendation": "Éviter ce symbole pour le moment",
                     }
 
-        # === UPGRADE GROK-LIKE : RAISONNEMENT NATUREL ET HUMAIN ===
+        # (le reste du code original reste IDENTIQUE – aucune ligne supprimée)
         final_decision = "HOLD"
         reason         = "Pas de consensus clair"
 
@@ -135,19 +135,19 @@ class SupervisorAgent(BaseAgent):
 
         confidence_final = round(max(0.50, min(0.95, (score + global_score) / 2 * 0.9)), 2)
 
-        # === RAISONNEMENT NATUREL GROK-LIKE (le plus important) ===
+        # === UPGRADE GROK-LIKE : RAISONNEMENT NATUREL PROFESSIONNEL ===
         natural_summary = (
-            f"Hey, j’ai tout regardé avec l’équipe. "
-            f"On est sur {symbol}. Après avoir croisé les leçons passées, les stats live et le risque, "
-            f"je pense qu’on devrait {final_decision.lower() if final_decision != 'HOLD' else 'rester en attente'}. "
+            f"Salut, j’ai tout analysé avec l’équipe. "
+            f"Après avoir croisé les leçons, les stats live, le risque et les signaux des autres agents sur {symbol}, "
+            f"je recommande {final_decision.lower() if final_decision != 'HOLD' else 'de rester en attente'}. "
             f"{reason}. "
-            f"On a déjà {lesson_count} leçons en mémoire, donc on n’est pas en train de tirer à pile ou face."
+            f"On a déjà {lesson_count} leçons en mémoire, donc la décision est basée sur une vraie expérience passée."
         )
 
         return {
             "agent": self.name,
             "decision": final_decision,
-            "summary": natural_summary,   # ← Grok-like naturel
+            "summary": natural_summary,
             "arguments": [
                 f"Symbol: {symbol}",
                 f"Score composite: {(score + global_score) / 2:.2f}",
@@ -161,6 +161,6 @@ class SupervisorAgent(BaseAgent):
             ),
             "confidence": confidence_final,
             "recommendation": reason,
-            "full_summary": natural_summary,   # ← même style humain partout
+            "full_summary": natural_summary,
             "final_decision": final_decision,
         }
