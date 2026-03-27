@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 144.0424475497666,
+    "cash": 1109.5947052080205,
     "initial": 1000.0,
     "positions": {
       "MICRO_DOTUSDT_100": {
@@ -25,7 +25,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 1.276,
+        "peak_price": 1.277,
         "open_time": 1774621556.3845534,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_DOTUSDT_100"
@@ -2802,17 +2802,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 1.276,
-        "price_out": 1.275,
+        "price_out": 1.277,
         "qty": 85.82200877683673,
         "amount_usd": 109.50888319924366,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=13 mom=-0.23% vol=3.1x",
-        "exit_reason": "\u23f1 TIMEOUT 68s",
+        "exit_reason": "\u23f1 TIMEOUT 265s",
         "time_in": "2026-03-27 14:25:56",
-        "time_out": "2026-03-27 14:27:04",
-        "pnl": -0.085822,
-        "pnl_pct": -0.078,
-        "duration_min": 1,
+        "time_out": "2026-03-27 14:30:21",
+        "pnl": 0.085822,
+        "pnl_pct": 0.078,
+        "duration_min": 4,
         "patterns": [
           "score=4"
         ],
@@ -2956,8 +2956,8 @@
       1000.0
     ],
     "session": 1,
-    "peak_equity": 1000.0,
-    "daily_start_equity": 1000.0,
+    "peak_equity": 1965.3993924345987,
+    "daily_start_equity": 1965.3993924345987,
     "daily_start_date": "2026-03-27"
   },
   "memory": {
@@ -14313,6 +14313,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 14:27"
+      },
+      {
+        "trade_id": 100,
+        "pnl": 0.085822,
+        "symbol": "DOTUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 14:30"
       }
     ],
     "patterns_to_avoid": [
@@ -14844,9 +14855,10 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
-    "confidence_threshold": 82,
+    "confidence_threshold": 80,
     "total_wins": 22,
     "total_losses": 316,
     "symbol_scores": {
@@ -14883,7 +14895,7 @@
       "FLOKIUSDT": 4,
       "XRPUSDT": 4,
       "LTCUSDT": -6,
-      "DOTUSDT": -3
+      "DOTUSDT": -1
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
