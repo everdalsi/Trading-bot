@@ -28,11 +28,12 @@ logger.addHandler(file_handler)
 
 # === PROTECTION ANTI-FUITE DES CLÉS API ===
 def sanitize_sensitive(record):
-    sensitive_pattern = r'(GROQ_API_KEY|BINANCE_(KEY|SECRET)|TELEGRAM_TOKEN|HF_KEY|GITHUB_TOKEN)=[^&\s]+'
+    sensitive_pattern = r'(GROQ_API_KEY|BINANCE_(KEY|SECRET)|TELEGRAM_TOKEN|HF_KEY|GITHUB_TOKEN|RAILWAY_TOKEN)=[^&\s]+'
     if isinstance(record.msg, str):
-        record.msg = re.sub(sensitive_pattern, r'\1=***REDACTED***', record.msg)
+        record.msg = re.sub(sensitive_pattern, r'\1=***REDACTED***', record.msg, flags=re.IGNORECASE)
     return True
 
 logger.addFilter(sanitize_sensitive)
 
 logger.info("🚀 Logging étendu activé - tous les agents vont logger ici")
+logger.info("🛡️ Protection anti-fuite clés API activée (version finale)")
