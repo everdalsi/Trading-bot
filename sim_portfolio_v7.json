@@ -29,34 +29,6 @@
         "open_time": 1774602892.6308005,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_SEIUSDT_1"
-      },
-      "MEME_Deadwhale_2": {
-        "id": 2,
-        "symbol": "Deadwhale",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "Deadwhale",
-        "price_in": 0.0007346,
-        "price_out": null,
-        "qty": 20691.532806969783,
-        "amount_usd": 15.200000000000001,
-        "confidence": 95,
-        "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-27 09:14:57",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0007346,
-        "open_time": 1774602897.462678,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_Deadwhale_2"
       }
     },
     "trades": [
