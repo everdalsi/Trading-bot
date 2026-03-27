@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 703.9451665711169,
+    "cash": 915.6063306849024,
     "initial": 1000.0,
     "positions": {
       "MICRO_LTCUSDT_34": {
@@ -959,17 +959,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 54.84,
-        "price_out": null,
+        "price_out": 54.86,
         "qty": 3.8582056892778986,
         "amount_usd": 211.58399999999997,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=25 mom=-0.04% vol=15.8x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 66s",
         "time_in": "2026-03-27 07:07:47",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 07:08:56",
+        "pnl": 0.077164,
+        "pnl_pct": 0.036,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -15384,11 +15384,42 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 07:08"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -0.7276,
+        "symbol": "BTCUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 07:08"
+      },
+      {
+        "trade_id": 34,
+        "pnl": 0.077164,
+        "symbol": "LTCUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 07:08"
+      },
+      {
+        "trade_id": -2,
+        "pnl": -3.1164,
+        "symbol": "BTCUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 07:08"
       }
     ],
     "patterns_to_avoid": [
-      "backtest_5m",
-      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -15686,7 +15717,9 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "score=4"
+      "score=4",
+      "backtest_5m",
+      "backtest_5m"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -15787,7 +15820,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -15988,11 +16020,12 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
-    "confidence_threshold": 11,
+    "confidence_threshold": 14,
     "total_wins": 134,
-    "total_losses": 260,
+    "total_losses": 261,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
@@ -16010,14 +16043,14 @@
       "BNBUSDT": -6,
       "TURBOUSDT": -12,
       "ORDIUSDT": 4,
-      "LTCUSDT": -6,
+      "LTCUSDT": -4,
       "MEMEUSDT": 4,
       "FETUSDT": 4,
       "LEGACY": 9,
       "SUIUSDT": -6,
       "PEPEUSDT": 4,
       "ONDOUSDT": 4,
-      "UNIUSDT": -3
+      "UNIUSDT": -6
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
@@ -16039,7 +16072,8 @@
       "FETUSDT": 0,
       "SUIUSDT": 1,
       "PEPEUSDT": 0,
-      "ONDOUSDT": 0
+      "ONDOUSDT": 0,
+      "UNIUSDT": 1
     },
     "bad_setups": [
       {
