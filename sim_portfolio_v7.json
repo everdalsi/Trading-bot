@@ -1,8 +1,37 @@
 {
   "sim": {
-    "cash": 956.288909130324,
+    "cash": 914.631442381024,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MEME_NEKO_82": {
+        "id": 82,
+        "symbol": "NEKO",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "NEKO",
+        "price_in": 0.0006535,
+        "price_out": null,
+        "qty": 73166.71072152442,
+        "amount_usd": 47.814445456516204,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-27 12:28:05",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0006535,
+        "open_time": 1774614485.413886,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_NEKO_82"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -2160,6 +2189,33 @@
         "leverage": 1,
         "peak_price": 0.0006535,
         "open_time": 1774614389.3761666,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 82,
+        "symbol": "NEKO",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "NEKO",
+        "price_in": 0.0006535,
+        "price_out": 8.415e-05,
+        "qty": 73166.71072152442,
+        "amount_usd": 47.814445456516204,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": "\ud83d\uded1 MEME SL (-87.1%)",
+        "time_in": "2026-03-27 12:28:05",
+        "time_out": "2026-03-27 12:28:06",
+        "pnl": -41.657467,
+        "pnl_pct": -87.12,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0006535,
+        "open_time": 1774614485.413886,
         "kelly_pct": 0.05
       }
     ],
@@ -10653,6 +10709,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 12:28"
+      },
+      {
+        "trade_id": 82,
+        "pnl": -41.657467,
+        "symbol": "NEKO",
+        "market": "MEME",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "memecoin",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 12:28"
       }
     ],
     "patterns_to_avoid": [
@@ -10690,7 +10757,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "memecoin",
@@ -10955,7 +11021,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "memecoin"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -11146,7 +11213,7 @@
       "ETHUSDT": -15,
       "SOLUSDT": -15,
       "APTUSDT": -5,
-      "NEKO": -4,
+      "NEKO": -7,
       "ARBUSDT": -12,
       "TONUSDT": -15,
       "TRXUSDT": -2,
