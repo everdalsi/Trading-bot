@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 8.485323594536506,
+    "cash": 698.4592601169327,
     "initial": 1000.0,
     "positions": {
       "MICRO_SUIUSDT_86": {
@@ -2338,17 +2338,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.9147,
-        "price_out": null,
+        "price_out": 0.9127,
         "qty": 755.970128763445,
         "amount_usd": 691.4858767799232,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=15 mom=-0.60% vol=3.5x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 65s",
         "time_in": "2026-03-27 08:37:52",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 08:38:58",
+        "pnl": -1.51194,
+        "pnl_pct": -0.219,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -25952,6 +25952,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 08:38"
+      },
+      {
+        "trade_id": 86,
+        "pnl": -1.51194,
+        "symbol": "SUIUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 08:38"
       }
     ],
     "patterns_to_avoid": [
@@ -26066,7 +26077,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -26254,7 +26264,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -26582,7 +26593,7 @@
       "MEMEUSDT": 4,
       "FETUSDT": -2,
       "LEGACY": 9,
-      "SUIUSDT": -8,
+      "SUIUSDT": -11,
       "PEPEUSDT": -14,
       "ONDOUSDT": 4,
       "UNIUSDT": -15,
