@@ -2,35 +2,7 @@
   "sim": {
     "cash": 1000.0,
     "initial": 1000.0,
-    "positions": {
-      "MICRO_STXUSDT_87": {
-        "id": 87,
-        "symbol": "STXUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.2248,
-        "price_out": null,
-        "qty": 3096.0854092526693,
-        "amount_usd": 696.0,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=24 mom=-0.22% vol=3.8x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 13:11:44",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.2248,
-        "open_time": 1774617104.4057915,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_STXUSDT_87"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
