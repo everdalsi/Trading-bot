@@ -17,10 +17,25 @@ class RiskAgent(BaseAgent):
     async def respond(self, question: str, context: dict) -> Dict[str, Any]:
         extreme_learning = context.get("extreme_learning_mode", False) or context.get("learning_mode", False)
 
+        # === UPGRADE : Vérification stricte de spécialisation (cerveau commun) ===
+        if not self._is_in_my_domain(question):
+            return {
+                "agent": self.name,
+                "summary": f"⚠️ {self.name} hors de sa spécialité → ignoré",
+                "confidence": 0.0,
+                "recommendation": "HOLD - Vérifier rôle",
+                "warning": "Hors domaine risk"
+            }
+
+        # === UPGRADE : Glossaire partagé pour zéro malentendu ===
+        shared_glossary = context.get("shared_glossary", {})
+        def explain(k): 
+            return self.explain_term(k) or shared_glossary.get(k, k)
+
         # === UPGRADE ÉTAPE 2 : STRICT VETO MODE ===
         strict_veto_mode = context.get("strict_veto_mode", False)
         if strict_veto_mode:
-            extreme_learning = False  # ← UPGRADE : on désactive complètement le force max trades quand on veut winrate parfait
+            extreme_learning = False
 
         kelly          = context.get("kelly", 0.22)
         drawdown       = context.get("drawdown", 0.0)
@@ -160,16 +175,12 @@ class RiskAgent(BaseAgent):
                 f"Streak : {streak_count}x {streak_type}",
                 f"Profit Factor : {profit_factor:.2f}",
                 f"Kelly ajusté : {kelly_final*100:.1f}%",
-                f"Mode nuit : {'Actif' if is_night else 'Inactif'}",
-                f"Immune Health : {immune_health}%",
-                f"Confiance collective : {final_confidence:.1%}"
+                f"Mode nuit : {'Actif' if is_night else 'Inactif'}"
             ],
             "risks": risks_list,
-            "confidence": 0.92,
+            "confidence": 0.98,
             "recommendation": recommendation,
             "kelly_adjusted": kelly_final,
             "risk_level": risk_level,
-            "full_summary": natural_summary,
-            "immune_health": immune_health,
-            "final_confidence": final_confidence
+            "glossary_used": True
         }
