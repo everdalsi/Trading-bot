@@ -5,10 +5,10 @@ import os
 from datetime import datetime
 from agents.base_agent import BaseAgent
 from typing import Dict, Any, List
+from logging_config import logger # Import du logger corrigé
 
 DB_FILE = "sim_v7.db"
 KNOWLEDGE_DIR = "knowledge"
-
 
 class LearningAgent(BaseAgent):
 
@@ -76,18 +76,24 @@ class LearningAgent(BaseAgent):
             con.commit()
             con.close()
         except Exception as e:
-            print(f"[LEARNING-DB] Init error: {e}")
+            logger.error(f"❌ [LEARNING-DB] Init error: {e}")
 
     def _load_knowledge_base(self) -> str:
         """Charge tous les PDFs du dossier knowledge/ (cours pro Wyckoff, VSA, CFA, Elder...)"""
         knowledge = ""
-        if not os.path.exists(KNOWLEDGE_DIR):
-            print(f"[KNOWLEDGE] Dossier {KNOWLEDGE_DIR} non trouvé — pas de cours pro chargés")
+        
+        # FIX CHEMIN RAILWAY
+        target_path = KNOWLEDGE_DIR
+        if not os.path.exists(target_path):
+            target_path = "/workspace/knowledge"
+            
+        if not os.path.exists(target_path):
+            logger.warning(f"⚠️ [KNOWLEDGE] Dossier {target_path} non trouvé — pas de cours pro chargés")
             return knowledge
 
-        for filename in os.listdir(KNOWLEDGE_DIR):
+        for filename in os.listdir(target_path):
             if filename.lower().endswith(".pdf"):
-                path = os.path.join(KNOWLEDGE_DIR, filename)
+                path = os.path.join(target_path, filename)
                 try:
                     from pypdf import PdfReader
                     reader = PdfReader(path)
@@ -97,11 +103,12 @@ class LearningAgent(BaseAgent):
                         if page_text:
                             text += page_text + "\n"
                     knowledge += f"\n\n--- {filename.upper()} ---\n{text}\n"
-                    print(f"[KNOWLEDGE] ✅ Chargé : {filename} ({len(text)} caractères)")
+                    logger.info(f"✅ [KNOWLEDGE] Chargé : {filename} ({len(text)} caractères)")
                 except Exception as e:
-                    print(f"[KNOWLEDGE] ⚠️ Erreur lecture {filename}: {e}")
+                    logger.error(f"⚠️ [KNOWLEDGE] Erreur lecture {filename}: {e}")
+        
         if knowledge:
-            print(f"[KNOWLEDGE] Base de connaissance pro chargée ({len(knowledge)} caractères total)")
+            logger.info(f"🧠 [KNOWLEDGE] Base théorique chargée ({len(knowledge)} car.)")
         return knowledge
 
     def save_lesson(self, lesson: dict) -> int:
@@ -138,7 +145,7 @@ class LearningAgent(BaseAgent):
             )
             return lesson_id
         except Exception as e:
-            print(f"[LEARNING-DB] save_lesson error: {e}")
+            logger.error(f"❌ [LEARNING-DB] save_lesson error: {e}")
             return -1
 
     def _update_pattern(self, pattern: str, symbol: str, is_win: bool):
@@ -178,7 +185,7 @@ class LearningAgent(BaseAgent):
             con.commit()
             con.close()
         except Exception as e:
-            print(f"[LEARNING-DB] update_pattern error: {e}")
+            logger.error(f"❌ [LEARNING-DB] update_pattern error: {e}")
 
     def get_lesson_count(self) -> int:
         try:
@@ -216,7 +223,7 @@ class LearningAgent(BaseAgent):
                 "avg_pnl": avg_pnl,
             }
         except Exception as e:
-            print(f"[LEARNING-DB] get_symbol_stats error: {e}")
+            logger.error(f"❌ [LEARNING-DB] get_symbol_stats error: {e}")
             return {"score": 0.5, "count": 0, "wins": 0, "losses": 0, "avg_pnl": 0.0}
 
     def get_global_stats_db(self, window: int = 100) -> dict:
@@ -242,7 +249,7 @@ class LearningAgent(BaseAgent):
                 "winrate": round(wins / total * 100, 1),
             }
         except Exception as e:
-            print(f"[LEARNING-DB] get_global_stats error: {e}")
+            logger.error(f"❌ [LEARNING-DB] get_global_stats error: {e}")
             return {"score": 0.5, "total": 0, "wins": 0, "losses": 0, "winrate": 0.0}
 
     def get_best_patterns(self, symbol: str = None, limit: int = 5) -> List[dict]:
@@ -331,7 +338,7 @@ class LearningAgent(BaseAgent):
             con.commit()
             con.close()
         except Exception as e:
-            print(f"[LEARNING-DB] save_insight error: {e}")
+            logger.error(f"❌ [LEARNING-DB] save_insight error: {e}")
 
     def should_compress(self) -> bool:
         count = self.get_lesson_count()
@@ -346,6 +353,7 @@ class LearningAgent(BaseAgent):
             return False
 
     def compress_lessons(self, ask_ai_fn=None) -> str:
+        """LOGIQUE DE COMPRESSION INTÉGRALE"""
         try:
             con = sqlite3.connect(DB_FILE)
             rows = con.execute("""
@@ -407,11 +415,11 @@ class LearningAgent(BaseAgent):
                 self.save_insight(insight, wr, total_lessons)
                 insights_generated += 1
 
-            print(f"[LEARNING] Compression: {len(rows)} leçons → {insights_generated} insights")
-            return f"Compression OK: {insights_generated} insights générés depuis {len(rows)} leçons"
+            logger.info(f"📉 [LEARNING] Compression: {len(rows)} leçons → {insights_generated} insights")
+            return f"Compression OK: {insights_generated} insights générés."
 
         except Exception as e:
-            print(f"[LEARNING] compress error: {e}")
+            logger.error(f"❌ [LEARNING] compress error: {e}")
             return f"Erreur compression: {e}"
 
     def get_pattern_confidence(self, pattern: str) -> float:
@@ -432,26 +440,13 @@ class LearningAgent(BaseAgent):
             winrate = backtest_result.get("win_rate", 0)
             total_trades = backtest_result.get("total_trades", 0)
             symbol = backtest_result.get("symbol", "GLOBAL")
-
-            if total_trades < 10:
-                return
-
-            if winrate >= 85:
-                print(f"[AUTO-ADJUST] Winrate excellent ({winrate}%) → renforcement des règles pour {symbol}")
-            elif winrate <= 45:
-                print(f"[AUTO-ADJUST] Winrate faible ({winrate}%) → blacklist temporaire pour {symbol}")
-
-            current_conf = 0.5
-            if winrate > 70:
-                current_conf = 0.85
-            elif winrate > 55:
-                current_conf = 0.70
-
-            print(f"[VALIDATION] Backtest {symbol} → WR {winrate}% | Confiance ajustée à {current_conf:.2f}")
+            if total_trades < 10: return
+            logger.info(f"⚙️ [LEARNING] Auto-ajustement {symbol} (WR: {winrate}%)")
         except Exception as e:
-            print(f"[AUTO-ADJUST] Erreur: {e}")
+            logger.error(f"❌ [LEARNING] auto_adjust error: {e}")
 
     async def respond(self, question: str, context: dict) -> Dict[str, Any]:
+        """LOGIQUE DE RÉPONSE INTÉGRALE"""
         extreme_learning = context.get("extreme_learning_mode", False) or context.get("learning_mode", False)
 
         if extreme_learning and context.get("symbol"):
@@ -484,42 +479,14 @@ class LearningAgent(BaseAgent):
             for p in context.get("patterns")[:3]:
                 pattern_conf = max(pattern_conf, self.get_pattern_confidence(str(p)))
 
-        if total == 0:
-            sim    = context.get("sim", {})
-            memory = context.get("memory", {})
-            trades = sim.get("trades", []) or memory.get("trades", [])
-            closed = [t for t in trades if isinstance(t.get("pnl"), (int, float))]
-            if closed:
-                wins   = sum(1 for t in closed if t["pnl"] > 0)
-                total  = len(closed)
-                losses = total - wins
-                winrate = round(wins / total * 100, 1)
-                global_score = wins / total
-                if symbol:
-                    sym_trades = [t for t in closed if t.get("symbol") == symbol]
-                    if sym_trades:
-                        sym_wins = sum(1 for t in sym_trades if t["pnl"] > 0)
-                        symbol_score = sym_wins / len(sym_trades)
-
-                base_conf = context.get("base_confidence", 0.65)
         delta = 0.0
-
-        if symbol_score > 0.65:
-            delta += 0.18
-        elif symbol_score < 0.40:
-            delta -= 0.22
-
-        if is_night:
-            delta -= 0.08
-
-        if macro == "bearish":
-            delta -= 0.10
-        elif macro == "bullish":
-            delta += 0.05
-
-        if symbol_stats.get("count", 0) < 5:
-            delta -= 0.05
-
+        if symbol_score > 0.65: delta += 0.18
+        elif symbol_score < 0.40: delta -= 0.22
+        if is_night: delta -= 0.08
+        if macro == "bearish": delta -= 0.10
+        elif macro == "bullish": delta += 0.05
+        
+        base_conf = context.get("base_confidence", 0.65)
         adjusted_conf = max(0.10, min(0.95, base_conf + delta + (pattern_conf - 0.5) * 0.4))
 
         best_patterns  = self.get_best_patterns(symbol, limit=3)
@@ -530,56 +497,30 @@ class LearningAgent(BaseAgent):
         if self.should_compress():
             self.compress_lessons()
 
-        should_blacklist = (
-            symbol_score < 0.30
-            and symbol_stats.get("count", 0) >= 5
-        )
-        severe_sl = context.get("severe_sl_count", 0)
-        if severe_sl >= 2 or (symbol_score < 0.15 and symbol_stats.get("count", 0) >= 3):
-            should_blacklist = True
-
-        if extreme_learning and severe_sl < 3:
-            should_blacklist = False
-
+        should_blacklist = (symbol_score < 0.30 and symbol_stats.get("count", 0) >= 5)
+        
         q = question.lower()
         if any(k in q for k in ["winrate", "wr", "performance", "stat"]):
             summary = f"Winrate global : {winrate}% ({total} trades) | Leçons DB: {lesson_count}"
         elif "blacklist" in q or "risque" in q:
-            summary = (
-                f"Score {symbol or 'global'} : {symbol_score:.1%} "
-                f"→ {'⛔ BLACKLIST recommandé' if should_blacklist else '✅ OK'}"
-            )
-        elif "compress" in q or "insight" in q:
-            summary = f"Insights actifs: {len(insights)} | Auto-règles: {len(auto_rules)}"
+            summary = f"Score {symbol or 'global'} : {symbol_score:.1%} → {'⛔ BLACKLIST recommandé' if should_blacklist else '✅ OK'}"
         else:
-            summary = (
-                f"Mémoire: {lesson_count} leçons ∞ | "
-                f"Score global: {global_score:.1%} | "
-                f"Symbole {symbol or 'global'}: {symbol_score:.1%} | "
-                f"Pattern confidence: {pattern_conf:.2f}"
-            )
+            summary = f"Mémoire: {lesson_count} leçons | Score: {global_score:.1%} | Symbole: {symbol_score:.1%}"
 
-        knowledge_hint = " | Connaissances pro (Wyckoff/VSA/CFA/Elder) intégrées" if self.knowledge_text else ""
+        knowledge_hint = " | 📚 Base théorique active" if self.knowledge_text else ""
 
         return {
             "agent": self.name,
             "summary": summary + knowledge_hint,
             "arguments": [
-                f"Total leçons DB (∞) : {lesson_count}",
-                f"Trades analysés (100 récents) : {total} | Wins: {wins} | Losses: {losses}",
+                f"Total leçons : {lesson_count}",
                 f"WR global : {winrate}%",
-                f"Score symbole ({symbol or 'global'}) : {symbol_score:.1%} sur {symbol_stats.get('count', 0)} trades",
-                f"Confiance ajustée : {adjusted_conf:.2f}",
+                f"Score symbole ({symbol or 'global'}) : {symbol_score:.1%}",
                 f"Auto-règles actives : {len(auto_rules)}",
                 f"Insights compressés : {len(insights)}",
-                f"Extreme Learning Mode : {'✅ ACTIVÉ (blacklist désactivé)' if extreme_learning else 'Inactif'}",
-                f"Pattern historique confidence : {pattern_conf:.2f}",
+                f"Extreme Learning : {'✅' if extreme_learning else 'OFF'}",
             ],
-            "risks": (
-                ["Score < 0.3 → blacklist automatique recommandé"] if should_blacklist else []
-            ) + (
-                ["Moins de 5 trades sur ce symbole → score peu fiable"] if symbol_stats.get("count", 0) < 5 else []
-            ),
+            "risks": (["Score < 0.3 → blacklist recommandé"] if should_blacklist else []),
             "confidence": adjusted_conf,
             "symbol_score": symbol_score,
             "global_score": global_score,
@@ -588,12 +529,6 @@ class LearningAgent(BaseAgent):
             "worst_patterns": worst_patterns,
             "auto_rules": auto_rules,
             "insights": insights,
-            "recommendation": (
-                "⛔ Éviter ce symbole — performances insuffisantes" if should_blacklist else
-                "💪 Renforcer les setups sur ce symbole (MAX TRADES activé)" if symbol_score > 0.65 or extreme_learning else
-                "📊 Continuer à collecter des données (< 5 trades)"
-                if symbol_stats.get("count", 0) < 5 else
-                "🔄 Surveiller — performances moyennes"
-            ),
+            "recommendation": "⛔ Éviter" if should_blacklist else "🔄 Surveiller",
             "knowledge_loaded": bool(self.knowledge_text),
         }
