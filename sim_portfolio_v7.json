@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 949.5408333333335,
+    "cash": 956.288909130324,
     "initial": 1000.0,
     "positions": {
       "MEME_NEKO_81": {
@@ -2172,17 +2172,17 @@
         "trade_type": "MEME",
         "meme_symbol": "NEKO",
         "price_in": 0.0006535,
-        "price_out": null,
+        "price_out": 8.824e-05,
         "qty": 76474.11374649325,
         "amount_usd": 49.97583333333334,
         "confidence": 95,
         "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
+        "exit_reason": "\ud83d\uded1 MEME SL (-86.5%)",
         "time_in": "2026-03-27 12:26:29",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 12:27:15",
+        "pnl": -43.227758,
+        "pnl_pct": -86.5,
+        "duration_min": 1,
         "patterns": [
           "memecoin"
         ],
@@ -10605,6 +10605,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 12:27"
+      },
+      {
+        "trade_id": 81,
+        "pnl": -43.227758,
+        "symbol": "NEKO",
+        "market": "MEME",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "memecoin",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 12:27"
       }
     ],
     "patterns_to_avoid": [
@@ -10649,7 +10660,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "memecoin",
@@ -10907,7 +10917,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "memecoin"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -11098,7 +11109,7 @@
       "ETHUSDT": -15,
       "SOLUSDT": -15,
       "APTUSDT": -5,
-      "NEKO": -1,
+      "NEKO": -4,
       "ARBUSDT": -12,
       "TONUSDT": -15,
       "TRXUSDT": -2,
