@@ -1,12 +1,10 @@
 from pathlib import Path
 from PyPDF2 import PdfReader
-
 class KnowledgeBase:
     def __init__(self, knowledge_dir=".", extensions=(".pdf",)):
         self.knowledge_dir = Path(knowledge_dir)
         self.extensions = extensions
         self.docs = self._load_pdfs()
-
     def _load_pdfs(self):
         """Charge le texte des PDF du dossier knowledge_dir."""
         pdf_texts = {}
@@ -18,7 +16,6 @@ class KnowledgeBase:
             except Exception as e:
                 print(f"Erreur lecture {pdf_file.name}: {e}")
         return pdf_texts
-
     def query(self, keyword):
         """Recherche un mot clé dans les documents du savoir."""
         results = {}
@@ -26,7 +23,6 @@ class KnowledgeBase:
             if keyword.lower() in text.lower():
                 results[name] = text[:500] + "..."  # Extrait les premières occurrences
         return results
-
 # Exemple d’utilisation
 if __name__ == "__main__":
     kb = KnowledgeBase(".")  # dossier courant
