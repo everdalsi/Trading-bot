@@ -21,6 +21,7 @@ crewai-tools                   # Outils supplémentaires pour CrewAI
 litellm                        # Gestion unifiée des LLM (fallback Groq / HF)
 chromadb                       # Base vectorielle pour mémoire longue des agents
 pypdf
+sentence-transformers
 
 # === Telegram Bot ===
 python-telegram-bot==21.10     # Interface Telegram complète (/start, /agent, /status...)
