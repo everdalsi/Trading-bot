@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 1047.6838763144578,
+    "cash": 1730.4553695607733,
     "initial": 1000.0,
     "positions": {
       "MICRO_ORDIUSDT_29": {
@@ -25,7 +25,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 2.206,
+        "peak_price": 2.213,
         "open_time": 1774609259.1410084,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_ORDIUSDT_29"
@@ -778,16 +778,16 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 2.205,
-        "price_out": 2.202,
+        "price_out": 2.213,
         "qty": 330.0747264169785,
         "amount_usd": 727.8147717494376,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=27 mom=-0.31% vol=4.0x",
-        "exit_reason": "\u23f1 TIMEOUT 67s",
+        "exit_reason": "\u23f1 TIMEOUT 101s",
         "time_in": "2026-03-27 11:00:59",
-        "time_out": "2026-03-27 11:02:06",
-        "pnl": -0.990224,
-        "pnl_pct": -0.136,
+        "time_out": "2026-03-27 11:02:40",
+        "pnl": 2.640598,
+        "pnl_pct": 0.363,
         "duration_min": 1,
         "patterns": [
           "score=4"
@@ -802,8 +802,8 @@
       1000.0
     ],
     "session": 1,
-    "peak_equity": 1050.0,
-    "daily_start_equity": 1050.0,
+    "peak_equity": 1727.8147717494376,
+    "daily_start_equity": 1727.8147717494376,
     "daily_start_date": "2026-03-27"
   },
   "memory": {
@@ -2952,6 +2952,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 11:02"
+      },
+      {
+        "trade_id": 29,
+        "pnl": 2.640598,
+        "symbol": "ORDIUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 11:02"
       }
     ],
     "patterns_to_avoid": [
@@ -3151,9 +3162,10 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
-    "confidence_threshold": 82,
+    "confidence_threshold": 80,
     "total_wins": 7,
     "total_losses": 62,
     "symbol_scores": {
@@ -3171,7 +3183,7 @@
       "OPUSDT": -12,
       "MEMEUSDT": 4,
       "NOTUSDT": -6,
-      "ORDIUSDT": -3
+      "ORDIUSDT": -1
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
