@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 517.5669388953968,
+    "cash": 530.8191582461378,
     "initial": 1000.0,
     "positions": {
       "MICRO_DOGEUSDT_98": {
@@ -29,6 +29,60 @@
         "open_time": 1774621493.4198697,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_DOGEUSDT_98"
+      },
+      "MICRO_LTCUSDT_99": {
+        "id": 99,
+        "symbol": "LTCUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 53.78,
+        "price_out": null,
+        "qty": 6.698151533491933,
+        "amount_usd": 360.2265894711961,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=16 mom=-0.31% vol=2.8x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 14:25:40",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 53.78,
+        "open_time": 1774621540.5716255,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_LTCUSDT_99"
+      },
+      "MICRO_DOTUSDT_100": {
+        "id": 100,
+        "symbol": "DOTUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 1.276,
+        "price_out": null,
+        "qty": 85.82200877683673,
+        "amount_usd": 109.50888319924366,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=13 mom=-0.23% vol=3.1x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 14:25:56",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 1.276,
+        "open_time": 1774621556.3845534,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_DOTUSDT_100"
       }
     },
     "trades": [
@@ -2615,13 +2669,39 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.08961,
-        "price_out": null,
+        "price_out": 0.08951,
         "qty": 5395.907630668984,
         "amount_usd": 483.52728278424763,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=18 mom=-0.23% vol=2.7x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 75s",
         "time_in": "2026-03-27 14:24:53",
+        "time_out": "2026-03-27 14:26:09",
+        "pnl": -0.539591,
+        "pnl_pct": -0.112,
+        "duration_min": 1,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.08961,
+        "open_time": 1774621493.4198697,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 99,
+        "symbol": "LTCUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 53.78,
+        "price_out": null,
+        "qty": 6.698151533491933,
+        "amount_usd": 360.2265894711961,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=16 mom=-0.31% vol=2.8x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 14:25:40",
         "time_out": null,
         "pnl": null,
         "pnl_pct": null,
@@ -2630,8 +2710,34 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 0.08961,
-        "open_time": 1774621493.4198697,
+        "peak_price": 53.78,
+        "open_time": 1774621540.5716255,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 100,
+        "symbol": "DOTUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 1.276,
+        "price_out": null,
+        "qty": 85.82200877683673,
+        "amount_usd": 109.50888319924366,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=13 mom=-0.23% vol=3.1x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 14:25:56",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 1.276,
+        "open_time": 1774621556.3845534,
         "kelly_pct": 0.48
       }
     ],
@@ -13820,12 +13926,32 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 14:25"
+      },
+      {
+        "trade_id": -5,
+        "pnl": -6.2028,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 14:25"
+      },
+      {
+        "trade_id": 98,
+        "pnl": -0.539591,
+        "symbol": "DOGEUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 14:26"
       }
     ],
     "patterns_to_avoid": [
       "backtest_5m",
-      "memecoin",
-      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -14122,7 +14248,9 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "backtest_5m",
+      "score=4"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -14358,7 +14486,7 @@
       "Deadwhale": -15,
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -13,
+      "SOLUSDT": -15,
       "APTUSDT": -11,
       "NEKO": -10,
       "ARBUSDT": -12,
@@ -14382,7 +14510,7 @@
       "TAOUSDT": 4,
       "STXUSDT": -6,
       "RENDERUSDT": -2,
-      "DOGEUSDT": -6,
+      "DOGEUSDT": -9,
       "UNIUSDT": -6,
       "LINKUSDT": 4,
       "FLOKIUSDT": 4,
