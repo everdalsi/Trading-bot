@@ -30,33 +30,6 @@
         "open_time": 1774610926.3149679,
         "kelly_pct": 0.05,
         "pos_key": "MEME_NEKO_48"
-      },
-      "MICRO_NEARUSDT_50": {
-        "id": 50,
-        "symbol": "NEARUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 1.187,
-        "price_out": null,
-        "qty": 779.150315419984,
-        "amount_usd": 924.8514244035212,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=26 mom=-0.08% vol=3.1x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 11:28:56",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 1.187,
-        "open_time": 1774610936.6642742,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_NEARUSDT_50"
       }
     },
     "trades": [
