@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 8.53278811787074,
+    "cash": 703.886643197979,
     "initial": 1000.0,
     "positions": {
       "MICRO_AVAXUSDT_46": {
@@ -52,7 +52,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 85.78,
+        "peak_price": 85.8,
         "open_time": 1774597233.4278646,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_SOLUSDT_47"
@@ -79,7 +79,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 628.16,
+        "peak_price": 628.33,
         "open_time": 1774597233.694756,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_BNBUSDT_48"
@@ -106,7 +106,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 1.358,
+        "peak_price": 1.3582,
         "open_time": 1774597233.95656,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_XRPUSDT_49"
@@ -1298,17 +1298,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 9.06,
-        "price_out": null,
+        "price_out": 9.06,
         "qty": 76.74987362915101,
         "amount_usd": 695.3538550801082,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=22 mom=-0.11% vol=4.6x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 68s",
         "time_in": "2026-03-27 07:40:05",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 07:41:14",
+        "pnl": 0.0,
+        "pnl_pct": 0.0,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -18906,6 +18906,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 07:40"
+      },
+      {
+        "trade_id": 46,
+        "pnl": 0.0,
+        "symbol": "AVAXUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 07:41"
       }
     ],
     "patterns_to_avoid": [
@@ -18997,7 +19008,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -19208,7 +19218,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -19542,7 +19553,7 @@
       "UNIUSDT": -6,
       "APTUSDT": -2,
       "SEIUSDT": -12,
-      "AVAXUSDT": -6
+      "AVAXUSDT": -9
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
