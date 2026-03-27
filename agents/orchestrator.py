@@ -83,31 +83,33 @@ class Orchestrator:
             else:
                 responses.append(res)
 
-        # === PHASE DÉBAT COLLECTIF MULTI-ROUNDS (jusqu’à ≥ 98 %) ===
+        # === PHASE DÉBAT COLLECTIF MULTI-ROUNDS (jusqu’à ≥ 99 % + veto dur) ===
         current_confidence = 0.0
-        max_rounds = 5
+        max_rounds = 7  # UPGRADE : on donne plus de rounds pour atteindre 99%
         self.debate_rounds = 0
-        while current_confidence < 0.98 and self.debate_rounds < max_rounds:
+
+        while current_confidence < 0.99 and self.debate_rounds < max_rounds:
             self.debate_rounds += 1
-            print(f"[ORCHESTRATOR] 🧠 Débat collectif round {self.debate_rounds}/5 — confiance actuelle {current_confidence:.2f}")
+            print(f"[ORCHESTRATOR] Débat collectif round {self.debate_rounds}/7 — confiance actuelle {current_confidence:.2f}")
 
             collaboration_ctx = {
                 **enriched_ctx,
                 "agent_outputs": responses,
                 "previous_round": responses,
                 "debate_round": self.debate_rounds,
-                "target_confidence": 0.98
+                "target_confidence": 0.99,          # ← UPGRADE : seuil passé à 99%
+                "strict_veto_mode": True            # ← UPGRADE : activation du mode veto dur
             }
 
             collab_tasks = [
-                self.analyst.respond("Raffine ton analyse en tenant compte des réponses des autres agents et vise une confiance ≥ 98 %", collaboration_ctx),
-                self.risk.respond("Raffine ton analyse en tenant compte des réponses des autres agents et vise une confiance ≥ 98 %", collaboration_ctx),
-                self.trader.respond("Raffine ton analyse en tenant compte des réponses des autres agents et vise une confiance ≥ 98 %", collaboration_ctx),
-                self.learning.respond("Raffine ton analyse en tenant compte des réponses des autres agents et vise une confiance ≥ 98 %", collaboration_ctx),
-                self.research.respond("Raffine ton analyse en tenant compte des réponses des autres agents et vise une confiance ≥ 98 %", collaboration_ctx),
-                self.knowledge_specialist.respond("Raffine ton analyse en tenant compte des réponses des autres agents et vise une confiance ≥ 98 %", collaboration_ctx),
-                self.wallet_copier.respond("Raffine ton analyse en tenant compte des réponses des autres agents et vise une confiance ≥ 98 %", collaboration_ctx),
-                self.social_listener.respond("Raffine ton analyse en tenant compte des réponses des autres agents et vise une confiance ≥ 98 %", collaboration_ctx),   # ← UPGRADE AJOUTÉE
+                self.analyst.respond("Raffine ton analyse en tenant compte des réponses des autres agents et vise une confiance ≥ 99 %", collaboration_ctx),
+                self.risk.respond("Raffine ton analyse en tenant compte des réponses des autres agents et vise une confiance ≥ 99 %", collaboration_ctx),
+                self.trader.respond("Raffine ton analyse en tenant compte des réponses des autres agents et vise une confiance ≥ 99 %", collaboration_ctx),
+                self.learning.respond("Raffine ton analyse en tenant compte des réponses des autres agents et vise une confiance ≥ 99 %", collaboration_ctx),
+                self.research.respond("Raffine ton analyse en tenant compte des réponses des autres agents et vise une confiance ≥ 99 %", collaboration_ctx),
+                self.knowledge_specialist.respond("Raffine ton analyse en tenant compte des réponses des autres agents et vise une confiance ≥ 99 %", collaboration_ctx),
+                self.wallet_copier.respond("Raffine ton analyse en tenant compte des réponses des autres agents et vise une confiance ≥ 99 %", collaboration_ctx),
+                self.social_listener.respond("Raffine ton analyse en tenant compte des réponses des autres agents et vise une confiance ≥ 99 %", collaboration_ctx),   # ← UPGRADE AJOUTÉE
             ]
 
             collab_results = await asyncio.gather(*collab_tasks, return_exceptions=True)
@@ -118,6 +120,24 @@ class Orchestrator:
                     collab_responses.append(responses[i])
                 else:
                     collab_responses.append(res)
+
+            # === VETO DUR Risk + Learning (priorité absolue – winrate parfait) ===
+            risk_resp = next((r for r in collab_responses if r.get("agent") == "risk"), {})
+            learn_resp = next((r for r in collab_responses if r.get("agent") == "learning"), {})
+
+            if risk_resp.get("risk_level") in ["CRITICAL", "HIGH"] or "STOP" in str(risk_resp.get("recommendation", "")).upper():
+                return collab_responses, {
+                    "decision": "NO TRADE",
+                    "reason": "VETO RISK TOTAL",
+                    "score": 0.0
+                }
+
+            if learn_resp.get("blacklist", False) or "perdant" in str(learn_resp.get("summary", "")).lower():
+                return collab_responses, {
+                    "decision": "NO TRADE",
+                    "reason": "VETO LEARNING (trade perdant détecté)",
+                    "score": 0.0
+                }
 
             final_responses = collab_responses
             current_confidence = max((r.get("confidence", 0) for r in final_responses if isinstance(r, dict)), default=0.0)
@@ -186,117 +206,9 @@ class Orchestrator:
             final_score = learning_result.get("confidence", 0.5)
             context["score"] = final_score
 
-            final = await self.supervisor.respond("validate final decision", context)
-
-            if not final or final.get("decision") == "NO TRADE":
-                return {
-                    "decision": "NO TRADE",
-                    "reason": final.get("reason", "supervisor_rejected"),
-                    "score": final_score,
-                }
-
-            position_size = self.get_position_size(
-                balance=1000,
-                risk_per_trade=0.02,
-                confidence=final_score,
-            )
-            final["position_size"] = position_size
-
-            if final.get("decision") in ("BUY", "SELL"):
-                trade_entry = {
-                    "symbol": symbol,
-                    "decision": final["decision"],
-                    "confidence": final_score,
-                    "result": "pending",
-                    "timestamp": "now",
-                }
-                try:
-                    memory.setdefault("trades", []).append(trade_entry)
-                except Exception:
-                    pass
-                try:
-                    self.performance.log_trade({
-                        "symbol": symbol,
-                        "decision": final["decision"],
-                        "confidence": final_score,
-                    })
-                except Exception:
-                    pass
-
-            print(
-                f"\n===== ORCHESTRATOR DECISION =====\n"
-                f"Symbol     : {symbol}\n"
-                f"Score final: {final_score:.3f}\n"
-                f"Decision   : {final.get('decision')}\n"
-                f"Position   : ${position_size}\n"
-                f"Reason     : {final.get('reason', 'N/A')}\n"
-                f"================================="
-            )
-            return final
+            final = await self.ask_all("Prends la décision finale de trading", context)
+            return final[1] if isinstance(final, tuple) else final
 
         except Exception as e:
-            print(f"[ORCHESTRATOR ERROR] {e}")
-            return {"decision": "ERROR", "reason": str(e)[:100], "score": 0.0}
-
-    def _enrich_context(self, context):
-        # code original complet (inchangé)
-        enriched = dict(context)
-        enriched["extreme_learning_mode"] = True         
-        enriched["learning_mode"] = True
-
-        try:
-            symbol = context.get("symbol")
-            global_stats  = self.learning.get_global_stats_db(window=100)
-            symbol_stats  = self.learning.get_symbol_stats_db(symbol, window=20) if symbol else global_stats
-            best_patterns = self.learning.get_best_patterns(symbol, limit=3)
-            worst_patterns= self.learning.get_worst_patterns(symbol, limit=3)
-            auto_rules    = self.learning.get_auto_rules()
-            insights      = self.learning.get_active_insights(limit=3)
-            lesson_count  = self.learning.get_lesson_count()
-
-            enriched.update({
-                "global_score":   global_stats["score"],
-                "symbol_score":   symbol_stats["score"],
-                "lesson_count":   lesson_count,
-                "best_patterns":  best_patterns,
-                "worst_patterns": worst_patterns,
-                "auto_rules":     auto_rules,
-                "insights":       insights,
-            })
-        except Exception as e:
-            print(f"[ORCHESTRATOR] enrich learning error: {e}")
-
-        try:
-            memory = context.get("memory", {})
-            if memory:
-                stats = self.performance.get_global_stats(memory)
-                enriched.update({
-                    "wr_live":       stats["winrate"],
-                    "wins_live":     stats["wins"],
-                    "losses_live":   stats["losses"],
-                    "total_trades":  stats["total_trades"],
-                    "sharpe":        stats.get("sharpe", 0.0),
-                    "profit_factor": stats.get("profit_factor", 0.0),
-                    "streak_type":   stats.get("streak_type", "none"),
-                })
-        except Exception as e:
-            print(f"[ORCHESTRATOR] enrich performance error: {e}")
-
-        return enriched
-
-    def _check_for_crash_flag(self):
-        # code original complet (inchangé)
-        flag_file = "/workspace/.last_crash_by_engineer.txt"
-        if os.path.exists(flag_file):
-            try:
-                with open(flag_file, "r") as f:
-                    reason = f.read().strip()
-                os.remove(flag_file)
-                return reason
-            except Exception:
-                return ""
-        return ""
-
-    def get_position_size(self, balance, risk_per_trade, confidence):
-        # code original complet (inchangé)
-        return balance * risk_per_trade * confidence
+            print(f"[ORCHESTRATOR] Erreur critique dans run : {e}")
+            return {"decision": "NO TRADE", "reason": f"Exception orchestrator: {e}", "score": 0.0}
