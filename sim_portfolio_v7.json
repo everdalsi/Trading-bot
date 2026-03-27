@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 375.716250197078,
+    "cash": 852.0924258894165,
     "initial": 1000.0,
     "positions": {
       "MICRO_BNBUSDT_64": {
@@ -1712,17 +1712,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 626.06,
-        "price_out": null,
+        "price_out": 625.36,
         "qty": 0.7617631055589398,
         "amount_usd": 476.9094098662298,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=10 mom=-0.22% vol=14.5x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 73s",
         "time_in": "2026-03-27 08:24:57",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 08:26:11",
+        "pnl": -0.533234,
+        "pnl_pct": -0.112,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -23811,11 +23811,21 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 08:26"
+      },
+      {
+        "trade_id": 64,
+        "pnl": -0.533234,
+        "symbol": "BNBUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 08:26"
       }
     ],
     "patterns_to_avoid": [
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -24113,7 +24123,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -24434,7 +24445,7 @@
       "STXUSDT": -2,
       "FLOKIUSDT": -2,
       "TRXUSDT": 4,
-      "BNBUSDT": -14,
+      "BNBUSDT": -15,
       "TURBOUSDT": -12,
       "ORDIUSDT": -2,
       "LTCUSDT": -8,
