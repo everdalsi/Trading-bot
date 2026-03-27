@@ -76,7 +76,7 @@ class Orchestrator:
                 responses.append(res)
 
         # === PHASE 2 : COLLABORATION COLLECTIVE (cerveau collectif) ===
-        # On donne à chaque agent la synthèse des autres pour qu'ils raffinent leur avis
+        # Les agents voient les réponses des autres et raffinent leur avis
         collaboration_ctx = {
             **enriched_ctx,
             "agent_outputs": responses,
@@ -84,13 +84,13 @@ class Orchestrator:
         }
 
         collab_tasks = [
-            self.analyst.respond("Raffine ton analyse en tenant compte des autres agents", collaboration_ctx),
-            self.risk.respond("Raffine ton analyse en tenant compte des autres agents", collaboration_ctx),
-            self.trader.respond("Raffine ton analyse en tenant compte des autres agents", collaboration_ctx),
-            self.learning.respond("Raffine ton analyse en tenant compte des autres agents", collaboration_ctx),
-            self.research.respond("Raffine ton analyse en tenant compte des autres agents", collaboration_ctx),
-            self.knowledge_specialist.respond("Raffine ton analyse en tenant compte des autres agents", collaboration_ctx),
-            self.wallet_copier.respond("Raffine ton analyse en tenant compte des autres agents", collaboration_ctx),
+            self.analyst.respond("Raffine ton analyse en tenant compte des réponses des autres agents", collaboration_ctx),
+            self.risk.respond("Raffine ton analyse en tenant compte des réponses des autres agents", collaboration_ctx),
+            self.trader.respond("Raffine ton analyse en tenant compte des réponses des autres agents", collaboration_ctx),
+            self.learning.respond("Raffine ton analyse en tenant compte des réponses des autres agents", collaboration_ctx),
+            self.research.respond("Raffine ton analyse en tenant compte des réponses des autres agents", collaboration_ctx),
+            self.knowledge_specialist.respond("Raffine ton analyse en tenant compte des réponses des autres agents", collaboration_ctx),
+            self.wallet_copier.respond("Raffine ton analyse en tenant compte des réponses des autres agents", collaboration_ctx),
         ]
 
         collab_results = await asyncio.gather(*collab_tasks, return_exceptions=True)
@@ -124,7 +124,6 @@ class Orchestrator:
         )
         return final_responses, final
 
-    # Le reste du fichier (run, _enrich_context, _check_for_crash_flag) reste exactement comme avant
     async def run(self, market_data: dict, memory: dict) -> Dict[str, Any]:
         symbol = market_data.get("symbol", "UNKNOWN")
 
