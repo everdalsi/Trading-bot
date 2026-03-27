@@ -1,36 +1,8 @@
 {
   "sim": {
-    "cash": 513.3837583025131,
+    "cash": 1002.8741557761945,
     "initial": 1000.0,
-    "positions": {
-      "MICRO_MEMEUSDT_19": {
-        "id": 19,
-        "symbol": "MEMEUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.000562,
-        "price_out": null,
-        "qty": 867890.7756625555,
-        "amount_usd": 487.7546159223562,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=24 mom=-0.18% vol=7.3x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 05:47:29",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.000564,
-        "open_time": 1774590449.434907,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_MEMEUSDT_19"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
@@ -508,17 +480,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.000562,
-        "price_out": null,
+        "price_out": 0.000564,
         "qty": 867890.7756625555,
         "amount_usd": 487.7546159223562,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=24 mom=-0.18% vol=7.3x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 65s",
         "time_in": "2026-03-27 05:47:29",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 05:48:34",
+        "pnl": 1.735782,
+        "pnl_pct": 0.356,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -8710,6 +8682,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 05:48"
+      },
+      {
+        "trade_id": 19,
+        "pnl": 1.735782,
+        "symbol": "MEMEUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 05:48"
       }
     ],
     "patterns_to_avoid": [
@@ -9221,10 +9204,11 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
     "confidence_threshold": 32,
-    "total_wins": 74,
+    "total_wins": 75,
     "total_losses": 156,
     "symbol_scores": {
       "BTCUSDT": -15,
@@ -9243,7 +9227,8 @@
       "BNBUSDT": -6,
       "TURBOUSDT": -12,
       "ORDIUSDT": 4,
-      "LTCUSDT": -6
+      "LTCUSDT": -6,
+      "MEMEUSDT": 2
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
