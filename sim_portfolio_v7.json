@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 92.09942481917042,
+    "cash": 787.5369547049869,
     "initial": 1000.0,
     "positions": {
       "MICRO_IMXUSDT_60": {
@@ -1608,17 +1608,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.1523,
-        "price_out": null,
+        "price_out": 0.1527,
         "qty": 4554.273280195262,
         "amount_usd": 693.6158205737383,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=24 mom=-0.33% vol=2.9x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 63s",
         "time_in": "2026-03-27 08:22:26",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 08:23:30",
+        "pnl": 1.821709,
+        "pnl_pct": 0.263,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -23333,6 +23333,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 08:23"
+      },
+      {
+        "trade_id": 60,
+        "pnl": 1.821709,
+        "symbol": "IMXUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 08:23"
       }
     ],
     "patterns_to_avoid": [
@@ -23657,7 +23668,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -23937,7 +23947,8 @@
       "score=4",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
     "confidence_threshold": 82,
     "total_wins": 200,
@@ -23973,7 +23984,8 @@
       "XRPUSDT": 4,
       "WIFUSDT": -12,
       "LINKUSDT": -2,
-      "INJUSDT": -6
+      "INJUSDT": -6,
+      "IMXUSDT": 2
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
