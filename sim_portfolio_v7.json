@@ -1,8 +1,36 @@
 {
   "sim": {
-    "cash": 1000.0,
+    "cash": 304.0,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MICRO_RENDERUSDT_88": {
+        "id": 88,
+        "symbol": "RENDERUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 1.665,
+        "price_out": null,
+        "qty": 418.018018018018,
+        "amount_usd": 696.0,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=14 mom=-0.60% vol=2.7x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 14:22:13",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 1.665,
+        "open_time": 1774621333.8548474,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_RENDERUSDT_88"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -2318,6 +2346,32 @@
         "leverage": 1,
         "peak_price": 0.2248,
         "open_time": 1774617104.4057915,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 88,
+        "symbol": "RENDERUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 1.665,
+        "price_out": null,
+        "qty": 418.018018018018,
+        "amount_usd": 696.0,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=14 mom=-0.60% vol=2.7x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 14:22:13",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 1.665,
+        "open_time": 1774621333.8548474,
         "kelly_pct": 0.48
       }
     ],
@@ -13532,7 +13586,7 @@
     ],
     "confidence_threshold": 65,
     "total_wins": 16,
-    "total_losses": 298,
+    "total_losses": 299,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -15,
@@ -20330,6 +20384,55 @@
             "pnl": -1.8027,
             "pnl_pct": -0.91,
             "exit_reason": "TIMEOUT"
+          }
+        ]
+      },
+      {
+        "symbol": "BTCUSDT",
+        "interval": "5m",
+        "days": 30,
+        "total_trades": 4,
+        "wins": 0,
+        "losses": 4,
+        "win_rate": 0.0,
+        "total_pnl": -10.69,
+        "total_pnl_pct": -1.07,
+        "sharpe": -26.1,
+        "max_drawdown": -1.07,
+        "profit_factor": 0.0,
+        "best_trade": -0.36,
+        "worst_trade": -2.55,
+        "final_equity": 989.31,
+        "sl_used": 0.025,
+        "tp_used": 0.04,
+        "trades": [
+          {
+            "entry": 71503.24375499999,
+            "exit": 71242.73,
+            "pnl": -0.7276,
+            "pnl_pct": -0.36,
+            "exit_reason": "TIMEOUT"
+          },
+          {
+            "entry": 70091.49823499999,
+            "exit": 68996.89,
+            "pnl": -3.1164,
+            "pnl_pct": -1.56,
+            "exit_reason": "TIMEOUT"
+          },
+          {
+            "entry": 69199.572495,
+            "exit": 68578.0,
+            "pnl": -1.7869,
+            "pnl_pct": -0.9,
+            "exit_reason": "TIMEOUT"
+          },
+          {
+            "entry": 67855.94101499999,
+            "exit": 66125.94,
+            "pnl": -5.0627,
+            "pnl_pct": -2.55,
+            "exit_reason": "SL"
           }
         ]
       }
