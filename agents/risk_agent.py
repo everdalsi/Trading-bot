@@ -15,7 +15,6 @@ class RiskAgent(BaseAgent):
         )
 
     async def respond(self, question: str, context: dict) -> Dict[str, Any]:
-        # === EXTREME LEARNING MODE (MAX TRADES) ===
         extreme_learning = context.get("extreme_learning_mode", False) or context.get("learning_mode", False)
 
         kelly          = context.get("kelly", 0.22)
@@ -115,9 +114,17 @@ class RiskAgent(BaseAgent):
             f"| DD: {drawdown*100:.1f}% | Sharpe: {sharpe:.2f}"
         )
 
+        # === UPGRADE GROK-LIKE : RAISONNEMENT NATUREL PROFESSIONNEL ===
+        natural_summary = (
+            f"Salut ! J’ai analysé le risque sur {symbol}. "
+            f"Le drawdown est à {drawdown*100:.1f}%, le Sharpe à {sharpe:.2f}. "
+            f"Avec les leçons accumulées, je recommande {recommendation.lower()}. "
+            f"C’est prudent et aligné avec notre objectif de gains stables."
+        )
+
         return {
             "agent": self.name,
-            "summary": summary,
+            "summary": natural_summary,
             "arguments": [
                 f"Positions ouvertes : {open_positions}/{max_positions}",
                 f"Daily PnL : {daily_pnl_pct*100:.1f}%",
@@ -131,4 +138,5 @@ class RiskAgent(BaseAgent):
             "recommendation": recommendation,
             "kelly_adjusted": kelly_final,
             "risk_level": risk_level,
+            "full_summary": natural_summary
         }
