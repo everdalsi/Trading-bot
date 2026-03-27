@@ -3,33 +3,6 @@
     "cash": 649.405151229093,
     "initial": 1000.0,
     "positions": {
-      "MICRO_RENDERUSDT_93": {
-        "id": 93,
-        "symbol": "RENDERUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 1.662,
-        "price_out": null,
-        "qty": 89.53321618808889,
-        "amount_usd": 148.80420530460373,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=14 mom=-0.60% vol=2.8x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 14:23:36",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 1.669,
-        "open_time": 1774621416.8174174,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_RENDERUSDT_93"
-      },
       "MICRO_FLOKIUSDT_94": {
         "id": 94,
         "symbol": "FLOKIUSDT",
