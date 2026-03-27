@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 1685.5436275378565,
+    "cash": 1688.1920168602364,
     "initial": 1000.0,
     "positions": {
       "MEME_NEKO_72": {
@@ -1986,16 +1986,16 @@
         "trade_type": "MEME",
         "meme_symbol": "PIXEL",
         "price_in": 0.0008084,
-        "price_out": 0.0001263,
+        "price_out": 0.0001275,
         "qty": 20771.680959842743,
         "amount_usd": 16.791826887936875,
         "confidence": 95,
         "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": "\ud83d\uded1 MEME SL (-84.4%)",
+        "exit_reason": "\ud83d\uded1 MEME SL (-84.2%)",
         "time_in": "2026-03-27 11:51:25",
-        "time_out": "2026-03-27 11:51:26",
-        "pnl": -14.168364,
-        "pnl_pct": -84.38,
+        "time_out": "2026-03-27 11:52:53",
+        "pnl": -14.143438,
+        "pnl_pct": -84.23,
         "duration_min": 1,
         "patterns": [
           "memecoin"
@@ -9605,6 +9605,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 11:52"
+      },
+      {
+        "trade_id": 73,
+        "pnl": -14.143438,
+        "symbol": "PIXEL",
+        "market": "MEME",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "memecoin",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 11:52"
       }
     ],
     "patterns_to_avoid": [
@@ -9616,7 +9627,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -9907,7 +9917,8 @@
       "backtest_5m",
       "backtest_5m",
       "memecoin",
-      "score=4"
+      "score=4",
+      "memecoin"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -10080,7 +10091,7 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 14,
-    "total_losses": 210,
+    "total_losses": 211,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -15,
@@ -10103,7 +10114,7 @@
       "PIXELUSDT": -4,
       "NEARUSDT": -6,
       "STRKUSDT": -6,
-      "IMXUSDT": -3
+      "IMXUSDT": -6
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
@@ -10121,7 +10132,8 @@
       "JUPUSDT": 0,
       "PIXELUSDT": 0,
       "NEARUSDT": 1,
-      "STRKUSDT": 1
+      "STRKUSDT": 1,
+      "IMXUSDT": 1
     },
     "bad_setups": [
       {
