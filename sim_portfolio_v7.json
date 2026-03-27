@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 787.5369547049869,
+    "cash": 239.41123423031604,
     "initial": 1000.0,
     "positions": {
       "MICRO_BNBUSDT_61": {
@@ -29,6 +29,33 @@
         "open_time": 1774599755.2786424,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_BNBUSDT_61"
+      },
+      "MICRO_SUIUSDT_62": {
+        "id": 62,
+        "symbol": "SUIUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.9196,
+        "price_out": null,
+        "qty": 596.0479778976412,
+        "amount_usd": 548.1257204746709,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=21 mom=-0.04% vol=3.2x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 08:23:38",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.9196,
+        "open_time": 1774599818.4726946,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_SUIUSDT_62"
       }
     },
     "trades": [
@@ -1624,6 +1651,32 @@
         "leverage": 1,
         "peak_price": 627.15,
         "open_time": 1774599755.2786424,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 62,
+        "symbol": "SUIUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.9196,
+        "price_out": null,
+        "qty": 596.0479778976412,
+        "amount_usd": 548.1257204746709,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=21 mom=-0.04% vol=3.2x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 08:23:38",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.9196,
+        "open_time": 1774599818.4726946,
         "kelly_pct": 0.48
       }
     ],
@@ -23350,6 +23403,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 08:23"
+      },
+      {
+        "trade_id": -3,
+        "pnl": -1.8027,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 08:23"
       }
     ],
     "patterns_to_avoid": [
@@ -23366,7 +23430,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -23622,6 +23685,7 @@
       "backtest_5m",
       "backtest_5m",
       "score=4",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
