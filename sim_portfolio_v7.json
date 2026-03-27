@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 966.7342992358494,
+    "cash": 1000.4383291179718,
     "initial": 1000.0,
     "positions": {
       "MICRO_BTCUSDT_8": {
@@ -25,7 +25,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 68563.92,
+        "peak_price": 68578.89,
         "open_time": 1774589629.0705976,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_BTCUSDT_8"
@@ -222,17 +222,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 68550.08,
-        "price_out": null,
+        "price_out": 68578.89,
         "qty": 0.0004914636250619143,
         "amount_usd": 33.68987081508423,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=20 mom=-0.03% vol=2.6x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 64s",
         "time_in": "2026-03-27 05:33:49",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 05:34:53",
+        "pnl": 0.014159,
+        "pnl_pct": 0.042,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -6906,6 +6906,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 05:34"
+      },
+      {
+        "trade_id": 8,
+        "pnl": 0.014159,
+        "symbol": "BTCUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 05:34"
       }
     ],
     "patterns_to_avoid": [
@@ -7379,13 +7390,14 @@
       "score=4",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
     "confidence_threshold": 82,
     "total_wins": 58,
     "total_losses": 126,
     "symbol_scores": {
-      "BTCUSDT": -15,
+      "BTCUSDT": -13,
       "ETHUSDT": -15,
       "SOLUSDT": 0,
       "TARO": -3,
