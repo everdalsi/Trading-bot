@@ -1,8 +1,36 @@
 {
   "sim": {
-    "cash": 996.6677294448074,
+    "cash": 302.9869897512215,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MICRO_UNIUSDT_94": {
+        "id": 94,
+        "symbol": "UNIUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 3.484,
+        "price_out": null,
+        "qty": 199.10468992353213,
+        "amount_usd": 693.6807396935859,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=18 mom=-0.23% vol=4.0x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 08:50:22",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 3.484,
+        "open_time": 1774601422.610424,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_UNIUSDT_94"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -2428,6 +2456,32 @@
         "leverage": 1,
         "peak_price": 0.1494,
         "open_time": 1774601338.613021,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 94,
+        "symbol": "UNIUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 3.484,
+        "price_out": null,
+        "qty": 199.10468992353213,
+        "amount_usd": 693.6807396935859,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=18 mom=-0.23% vol=4.0x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 08:50:22",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 3.484,
+        "open_time": 1774601422.610424,
         "kelly_pct": 0.48
       }
     ],
@@ -27190,6 +27244,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 08:50"
+      },
+      {
+        "trade_id": -1,
+        "pnl": 2.9979,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 08:50"
       }
     ],
     "patterns_to_avoid": [
@@ -27522,7 +27587,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -27794,7 +27858,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "score=4"
+      "score=4",
+      "backtest_5m"
     ],
     "confidence_threshold": 82,
     "total_wins": 231,
@@ -27802,7 +27867,7 @@
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": 0,
+      "SOLUSDT": 2,
       "TARO": -3,
       "OPUSDT": -15,
       "PENDLEUSDT": -12,
