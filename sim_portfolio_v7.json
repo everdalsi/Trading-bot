@@ -1,36 +1,8 @@
 {
   "sim": {
-    "cash": 744.0380062172969,
+    "cash": 995.0762752671641,
     "initial": 1000.0,
-    "positions": {
-      "MICRO_XRPUSDT_71": {
-        "id": 71,
-        "symbol": "XRPUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 1.353,
-        "price_out": null,
-        "qty": 185.6242746597657,
-        "amount_usd": 251.14964361466298,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=15 mom=-0.13% vol=3.2x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 08:28:41",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 1.353,
-        "open_time": 1774600121.8654528,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_XRPUSDT_71"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
@@ -1867,17 +1839,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 1.353,
-        "price_out": null,
+        "price_out": 1.3524,
         "qty": 185.6242746597657,
         "amount_usd": 251.14964361466298,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=15 mom=-0.13% vol=3.2x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 77s",
         "time_in": "2026-03-27 08:28:41",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 08:30:00",
+        "pnl": -0.111375,
+        "pnl_pct": -0.044,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -24391,6 +24363,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 08:29"
+      },
+      {
+        "trade_id": 71,
+        "pnl": -0.111375,
+        "symbol": "XRPUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 08:30"
       }
     ],
     "patterns_to_avoid": [
@@ -24573,7 +24556,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -24693,7 +24675,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
     "patterns_that_work": [
       "score=4",
@@ -25028,7 +25011,7 @@
       "APTUSDT": -2,
       "SEIUSDT": -12,
       "AVAXUSDT": -12,
-      "XRPUSDT": 4,
+      "XRPUSDT": 1,
       "WIFUSDT": -12,
       "LINKUSDT": -2,
       "INJUSDT": -6,
