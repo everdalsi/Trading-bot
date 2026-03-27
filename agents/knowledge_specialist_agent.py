@@ -57,9 +57,9 @@ class KnowledgeSpecialistAgent(BaseAgent):
 
         logger.info(f"📚 [KNOWLEDGE SPECIALIST] Query sur {symbol} → {len(theoretical_context)} chars de théorie")
 
-        # === UPGRADE GROK-LIKE : RAISONNEMENT NATUREL ===
+        # === UPGRADE GROK-LIKE : RAISONNEMENT NATUREL PROFESSIONNEL ===
         natural_summary = (
-            f"Salut ! J’ai plongé dans les livres classiques (Wyckoff, VSA, CFA) et je les ai croisés avec tes {lesson_count} leçons passées. "
+            f"Salut ! J’ai plongé dans les livres classiques (Wyckoff, VSA, CFA) et je les ai croisés avec tes {lesson_count} leçons passées et les analyses des autres agents. "
             f"Pour {symbol}, le setup ressemble à un pattern d’accumulation classique. "
             f"Donc je te recommande de {recommendation.lower()}. "
             f"C’est cohérent avec ce qu’on a déjà vu dans tes trades précédents."
