@@ -11,6 +11,9 @@ from datetime import datetime, timedelta
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse
+from logging_config import logger
+logger.info("Bot v7.1 démarré avec logging étendu ✅")
+
 from collections import defaultdict, deque
 
 from memory import Memory
