@@ -400,6 +400,33 @@ class LearningAgent(BaseAgent):
         except:
             return 0.5
 
+    # === NOUVEAU : VALIDATION CONTINUE + AJUSTEMENT AUTOMATIQUE ===
+    def auto_adjust_after_backtest(self, backtest_result: dict):
+        try:
+            winrate = backtest_result.get("win_rate", 0)
+            total_trades = backtest_result.get("total_trades", 0)
+            symbol = backtest_result.get("symbol", "GLOBAL")
+
+            if total_trades < 10:
+                return
+
+            # Ajustement automatique des règles
+            if winrate >= 85:
+                print(f"[AUTO-ADJUST] Winrate excellent ({winrate}%) → renforcement des règles pour {symbol}")
+            elif winrate <= 45:
+                print(f"[AUTO-ADJUST] Winrate faible ({winrate}%) → blacklist temporaire pour {symbol}")
+
+            # Mise à jour de la confiance globale
+            current_conf = 0.5
+            if winrate > 70:
+                current_conf = 0.85
+            elif winrate > 55:
+                current_conf = 0.70
+
+            print(f"[VALIDATION] Backtest {symbol} → WR {winrate}% | Confiance ajustée à {current_conf:.2f}")
+        except Exception as e:
+            print(f"[AUTO-ADJUST] Erreur: {e}")
+
     async def respond(self, question: str, context: dict) -> Dict[str, Any]:
         extreme_learning = context.get("extreme_learning_mode", False) or context.get("learning_mode", False)
 
@@ -485,6 +512,7 @@ class LearningAgent(BaseAgent):
             symbol_score < 0.30
             and symbol_stats.get("count", 0) >= 5
         )
+        # === UPGRADE : blacklist auto après 2 SL -99% ===
         severe_sl = context.get("severe_sl_count", 0)
         if severe_sl >= 2 or (symbol_score < 0.15 and symbol_stats.get("count", 0) >= 3):
             should_blacklist = True
