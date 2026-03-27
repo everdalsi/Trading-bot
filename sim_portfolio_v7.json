@@ -1,35 +1,8 @@
 {
   "sim": {
-    "cash": 278.77895396969933,
+    "cash": 298.0180367931107,
     "initial": 1000.0,
     "positions": {
-      "MICRO_TRXUSDT_14": {
-        "id": 14,
-        "symbol": "TRXUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.313,
-        "price_out": null,
-        "qty": 203.32020438620242,
-        "amount_usd": 63.63922397288136,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=23 mom=-0.16% vol=3.0x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 10:54:13",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.313,
-        "open_time": 1774608853.7122066,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_TRXUSDT_14"
-      },
       "MICRO_ONDOUSDT_15": {
         "id": 15,
         "symbol": "ONDOUSDT",
@@ -548,17 +521,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.2706,
-        "price_out": null,
+        "price_out": 0.2691,
         "qty": 71.49417622969673,
         "amount_usd": 19.34632408775594,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=23 mom=-0.33% vol=3.0x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 64s",
         "time_in": "2026-03-27 10:54:16",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 10:55:25",
+        "pnl": -0.107241,
+        "pnl_pct": -0.554,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -1869,6 +1842,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 10:55"
+      },
+      {
+        "trade_id": 15,
+        "pnl": -0.107241,
+        "symbol": "ONDOUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 10:55"
       }
     ],
     "patterns_to_avoid": [
@@ -1954,6 +1938,7 @@
       "backtest_5m",
       "backtest_5m",
       "score=4",
+      "score=4",
       "score=4"
     ],
     "patterns_that_work": [
@@ -1985,7 +1970,7 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 3,
-    "total_losses": 33,
+    "total_losses": 34,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -15,
@@ -1995,12 +1980,14 @@
       "NEKO": 2,
       "ARBUSDT": -6,
       "TONUSDT": -6,
-      "TRXUSDT": -3
+      "TRXUSDT": -6,
+      "ONDOUSDT": -3
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
       "ARBUSDT": 1,
-      "TONUSDT": 1
+      "TONUSDT": 1,
+      "TRXUSDT": 1
     },
     "bad_setups": [
       {
