@@ -336,6 +336,17 @@ from data_handler import (
     get_volume_data
 )
 
+# Symboles surveillés
+WS_SYMBOLS_WATCH = [
+    "btcusdt","ethusdt","solusdt","bnbusdt","xrpusdt",
+    "dogeusdt","avaxusdt","linkusdt","arbusdt","aptusdt",
+    "fetusdt","injusdt","nearusdt","suiusdt","opusdt",
+]
+
+# Démarrage des modules
+ws_manager.start(WS_SYMBOLS_WATCH)
+data_handler.prefill_caches(WS_SYMBOLS_WATCH)
+
 # Remplacement des anciennes fonctions par le handler propre
 def get_current_price(symbol: str) -> float | None:
     return data_handler.get_current_price(symbol)
