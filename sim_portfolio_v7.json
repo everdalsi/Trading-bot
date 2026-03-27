@@ -1,8 +1,36 @@
 {
   "sim": {
-    "cash": 1000.0,
+    "cash": 304.0,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MICRO_WIFUSDT_30": {
+        "id": 30,
+        "symbol": "WIFUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.175,
+        "price_out": null,
+        "qty": 3977.1428571428573,
+        "amount_usd": 696.0,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=9 mom=-0.57% vol=9.8x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 11:04:13",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.175,
+        "open_time": 1774609453.71316,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_WIFUSDT_30"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -767,6 +795,32 @@
         "leverage": 1,
         "peak_price": 2.205,
         "open_time": 1774609259.1410084,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 30,
+        "symbol": "WIFUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.175,
+        "price_out": null,
+        "qty": 3977.1428571428573,
+        "amount_usd": 696.0,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=9 mom=-0.57% vol=9.8x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 11:04:13",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.175,
+        "open_time": 1774609453.71316,
         "kelly_pct": 0.48
       }
     ],
@@ -3319,7 +3373,7 @@
     ],
     "confidence_threshold": 62,
     "total_wins": 8,
-    "total_losses": 67,
+    "total_losses": 68,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -15,
