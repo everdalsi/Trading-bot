@@ -41,20 +41,8 @@ COPY templates /workspace/templates
 RUN ls -la /workspace/knowledge/ 2>/dev/null || echo "⚠️ Dossier knowledge vide ou absent" \
     && echo "✅ Dossier knowledge vérifié (cours professionnels chargés)"
 
-# === 5. Vérification finale du build ===
+# === 5. Vérification finale du build (très utile pour Railway) ===
 RUN python -c "import matplotlib; print('✅ matplotlib OK')" \
     && python -c "import crewai, langchain_groq, chromadb; print('✅ Agents IA OK')" \
-    && python -c "
-import os
-if os.path.exists('/workspace/knowledge'):
-    pdfs = [f for f in os.listdir('/workspace/knowledge') if f.lower().endswith('.pdf')]
-    print(f'✅ {len(pdfs)} fichiers PDF pro trouvés dans knowledge/')
-else:
-    print('⚠️ Dossier knowledge non trouvé')
-" \
+    && python -c "import os; p='/workspace/knowledge'; print(f'✅ Knowledge: {len([f for f in os.listdir(p) if f.lower().endswith(\".pdf\")])} PDFs') if os.path.exists(p) else print('⚠️ Dossier knowledge absent')" \
     && echo "🎉 Build terminé avec succès — tout est chargé !"
-
-EXPOSE 8000
-
-# Démarrage du bot
-CMD ["python", "bot.py"]
