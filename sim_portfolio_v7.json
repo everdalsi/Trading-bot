@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 429.8782548113844,
+    "cash": 194.7397337664168,
     "initial": 1000.0,
     "positions": {
       "MICRO_NEARUSDT_74": {
@@ -25,7 +25,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 1.233,
+        "peak_price": 1.234,
         "open_time": 1774600309.8341684,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_NEARUSDT_74"
@@ -56,6 +56,33 @@
         "open_time": 1774600359.732313,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_NOTUSDT_75"
+      },
+      "MICRO_PEPEUSDT_76": {
+        "id": 76,
+        "symbol": "PEPEUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 3.39e-06,
+        "price_out": null,
+        "qty": 88258190.36835502,
+        "amount_usd": 299.1952653487235,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=27 mom=-0.29% vol=2.8x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 08:32:57",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 3.39e-06,
+        "open_time": 1774600377.835847,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_PEPEUSDT_76"
       }
     },
     "trades": [
@@ -1972,17 +1999,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 1.233,
-        "price_out": null,
+        "price_out": 1.234,
         "qty": 51.9098414130923,
         "amount_usd": 64.00483446234281,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=13 mom=-0.08% vol=3.6x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 75s",
         "time_in": "2026-03-27 08:31:49",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 08:33:05",
+        "pnl": 0.05191,
+        "pnl_pct": 0.081,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -2015,6 +2042,32 @@
         "leverage": 1,
         "peak_price": 0.00036,
         "open_time": 1774600359.732313,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 76,
+        "symbol": "PEPEUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 3.39e-06,
+        "price_out": null,
+        "qty": 88258190.36835502,
+        "amount_usd": 299.1952653487235,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=27 mom=-0.29% vol=2.8x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 08:32:57",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 3.39e-06,
+        "open_time": 1774600377.835847,
         "kelly_pct": 0.48
       }
     ],
@@ -24797,6 +24850,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 08:32"
+      },
+      {
+        "trade_id": 74,
+        "pnl": 0.05191,
+        "symbol": "NEARUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 08:33"
       }
     ],
     "patterns_to_avoid": [
@@ -25113,7 +25177,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
@@ -25401,15 +25464,16 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "score=4",
       "score=4"
     ],
     "confidence_threshold": 82,
-    "total_wins": 210,
+    "total_wins": 211,
     "total_losses": 421,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -2,
+      "SOLUSDT": 0,
       "TARO": -3,
       "OPUSDT": -15,
       "PENDLEUSDT": -12,
@@ -25438,7 +25502,8 @@
       "WIFUSDT": -12,
       "LINKUSDT": -2,
       "INJUSDT": -6,
-      "IMXUSDT": -8
+      "IMXUSDT": -8,
+      "NEARUSDT": 2
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
