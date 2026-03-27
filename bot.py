@@ -1019,7 +1019,7 @@ def analyze(opp: dict, fear_greed: str) -> dict:
     fg_context = ""
     if fg_value < 20:   fg_context = "⚠️ EXTREME FEAR → Opportunité"
     elif fg_value < 35: fg_context = "Fear élevé → potentielle opportunité"
-    ws_status = "WS✅" if _ws_connected else "REST"
+    ws_status = "WS✅" if ws_manager.connected else "REST"
     prompt = f"""{symbol} ${price:.4f} [{ws_status}]
 RSI:{ind.get('rsi','?')} MACD:{ind.get('macd_h','?')} mom5:{ind.get('mom5','?')}% trend:{ind.get('trend','?')}
 OB:{ob['pressure']} TFscore:{conf['score']}/9
@@ -2689,7 +2689,7 @@ def trading_loop(send_fn):
                             chg = (p-pos["price_in"])/pos["price_in"]*100*pos.get("leverage",1)
                             pos_lines += f"\n  {'📈' if chg>0 else '📉'} {pos['symbol'].replace('USDT',''):6s} {chg:+.2f}%"
                     stop_str = "🛑 STOP JOUR ACTIF" if bot_state.get("daily_stopped") else ""
-                    ws_str   = "📡 WS✅" if _ws_connected else "📡 REST"
+                    ws_str   = "📡 WS✅" if ws_manager.connected else "📡 REST"
                     send_fn(
                         f"📊 BILAN v7 — {datetime.now().strftime('%H:%M')}\n━━━━━━━━━━━━━━━━━━━\n"
                         f"💰 Capital  : ${equity:.2f} ({pnl/sim['initial']*100:+.1f}%)\n"
@@ -2841,7 +2841,7 @@ def generate_dashboard() -> str:
     daily_pnl   = equity - daily_start
     daily_pct2  = daily_pnl/daily_start*100 if daily_start > 0 else 0
     bl_list     = memory.get("symbol_blacklist",{})
-    ws_str      = "✅ WebSocket" if _ws_connected else "⚠️ REST"
+    ws_str      = "✅ WebSocket" if ws_manager.connected else "⚠️ REST"
 
     pos_html = ""
     for pk, pos in sim["positions"].items():
@@ -3184,7 +3184,7 @@ async def cmd_status(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     daily_start = sim.get("daily_start_equity", CAPITAL_INITIAL)
     daily_pnl   = equity - daily_start
     stop_str    = "\n🛑 STOP JOURNALIER ACTIF" if bot_state.get("daily_stopped") else ""
-    ws_str      = "📡 WS✅" if _ws_connected else "📡 REST"
+    ws_str      = "📡 WS✅" if ws_manager.connected else "📡 REST"
     pos_lines   = ""
     if sim["positions"]:
         prices = get_prices_batch()
@@ -3250,7 +3250,7 @@ async def cmd_macro(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         f"BTC Dom.  : {onchain.get('btc_dominance','N/A')}%\n"
         f"MCap 24h  : {onchain.get('mcap_change_24h',0):+.1f}%\n"
         f"{format_options(options)}\n"
-        f"📡 WS     : {'✅ Connecté' if _ws_connected else '⚠️ REST mode'}\n"
+        f"📡 WS     : {'✅ Connecté' if ws_manager.connected else '⚠️ REST mode'}\n"
         f"🌙 Mode nuit: {'Actif' if is_night_time() else 'Inactif'}"
     )
 
@@ -3420,7 +3420,7 @@ async def cmd_marches(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("📊 Récupération prix...")
     try:
         lines  = ["📊 MARCHÉS v7\n━━━━━━━━━━━━━"]; prices = get_prices_batch()
-        lines.append(f"📡 Source: {'WebSocket' if _ws_connected else 'REST'}")
+        lines.append(f"📡 Source: {'WebSocket' if ws_manager.connected else 'REST'}")
         lines.append("🪙 CRYPTO")
         for sym in ["BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT","XRPUSDT"]:
             p = prices.get(sym,0)
@@ -3566,7 +3566,7 @@ async def cmd_help(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         f"❓ Assistance\n"
         f"/help\n━━━━━━━━━━━━━\n"
         f"SL:{STOP_LOSS_PCT*100:.1f}% TP:{TAKE_PROFIT_PCT*100:.1f}% Kelly:{kelly*100:.1f}%\n"
-        f"📡 WS: {'✅ Connecté' if _ws_connected else '⚠️ REST'}"
+        f"📡 WS: {'✅ Connecté' if ws_manager.connected else '⚠️ REST'}"
     )
 
 last_summary = 0
@@ -3928,7 +3928,7 @@ def auto_start():
         "last_meme": 0, "last_epargne": 0, "daily_stopped": False
     })
     kelly = kelly_criterion()
-    send(f"🔄 Bot v7.1 redémarré\nKelly:{kelly*100:.1f}% | /stop pour arrêter\n📡 WS: {'✅' if _ws_connected else '⚠️ REST'}")
+    send(f"🔄 Bot v7.1 redémarré\nKelly:{kelly*100:.1f}% | /stop pour arrêter\n📡 WS: {'✅' if ws_manager.connected else '⚠️ REST'}")
     threading.Thread(target=trading_loop,  args=(send,), daemon=True).start()
     threading.Thread(target=watchdog,      args=(send,), daemon=True).start()
     threading.Thread(target=daily_summary, args=(send,), daemon=True).start()
