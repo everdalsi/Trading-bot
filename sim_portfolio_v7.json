@@ -2,35 +2,7 @@
   "sim": {
     "cash": 1000.1985168282944,
     "initial": 1000.0,
-    "positions": {
-      "MICRO_UNIUSDT_51": {
-        "id": 51,
-        "symbol": "UNIUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 3.506,
-        "price_out": null,
-        "qty": 198.51682829435256,
-        "amount_usd": 696.0,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=18 mom=-0.23% vol=5.7x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 08:09:24",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 3.507,
-        "open_time": 1774598964.547867,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_UNIUSDT_51"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
