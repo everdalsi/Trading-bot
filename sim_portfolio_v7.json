@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 263.07910470804575,
+    "cash": 750.9088956773329,
     "initial": 1000.0,
     "positions": {
       "MICRO_STXUSDT_9": {
@@ -275,17 +275,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.2342,
-        "price_out": null,
+        "price_out": 0.2344,
         "qty": 2081.185115056686,
         "amount_usd": 487.4135539462758,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=24 mom=-0.09% vol=13.8x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 61s",
         "time_in": "2026-03-27 05:35:08",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 05:36:10",
+        "pnl": 0.416237,
+        "pnl_pct": 0.085,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -7117,6 +7117,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 05:35"
+      },
+      {
+        "trade_id": 9,
+        "pnl": 0.416237,
+        "symbol": "STXUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 05:36"
       }
     ],
     "patterns_to_avoid": [
@@ -7594,7 +7605,8 @@
       "score=4",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
     "confidence_threshold": 82,
     "total_wins": 60,
@@ -7609,7 +7621,8 @@
       "ARBUSDT": -6,
       "BONKUSDT": 4,
       "JUPUSDT": -6,
-      "NOTUSDT": -6
+      "NOTUSDT": -6,
+      "STXUSDT": 2
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
