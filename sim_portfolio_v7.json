@@ -3,33 +3,6 @@
     "cash": 788.0028742658171,
     "initial": 1000.0,
     "positions": {
-      "MICRO_APTUSDT_37": {
-        "id": 37,
-        "symbol": "APTUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 1.016,
-        "price_out": null,
-        "qty": 684.6804131414026,
-        "amount_usd": 695.635299751665,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=10 mom=+0.00% vol=8.8x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 07:09:27",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 1.017,
-        "open_time": 1774595367.101412,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_APTUSDT_37"
-      },
       "MICRO_ORDIUSDT_38": {
         "id": 38,
         "symbol": "ORDIUSDT",
