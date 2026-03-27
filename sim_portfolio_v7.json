@@ -3,33 +3,6 @@
     "cash": 982.3750549702077,
     "initial": 1000.0,
     "positions": {
-      "MICRO_SOLUSDT_101": {
-        "id": 101,
-        "symbol": "SOLUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 84.5,
-        "price_out": null,
-        "qty": 0.7612016094674557,
-        "amount_usd": 64.32153600000001,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=12 mom=-0.27% vol=3.3x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 09:11:27",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 84.74,
-        "open_time": 1774602687.9080408,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_SOLUSDT_101"
-      },
       "MICRO_XRPUSDT_102": {
         "id": 102,
         "symbol": "XRPUSDT",
