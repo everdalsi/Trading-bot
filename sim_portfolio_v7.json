@@ -3,33 +3,6 @@
     "cash": 935.2952358996531,
     "initial": 1000.0,
     "positions": {
-      "MICRO_JUPUSDT_14": {
-        "id": 14,
-        "symbol": "JUPUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.1486,
-        "price_out": null,
-        "qty": 863.3069290904795,
-        "amount_usd": 128.28740966284525,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=23 mom=-0.07% vol=3.3x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 05:41:28",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.1486,
-        "open_time": 1774590088.0838273,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_JUPUSDT_14"
-      },
       "MICRO_ORDIUSDT_15": {
         "id": 15,
         "symbol": "ORDIUSDT",
@@ -52,7 +25,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 2.294,
+        "peak_price": 2.296,
         "open_time": 1774590104.5039146,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_ORDIUSDT_15"
@@ -8450,7 +8423,7 @@
     ],
     "confidence_threshold": 32,
     "total_wins": 68,
-    "total_losses": 141,
+    "total_losses": 143,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
@@ -8460,7 +8433,7 @@
       "PENDLEUSDT": -6,
       "ARBUSDT": -6,
       "BONKUSDT": 4,
-      "JUPUSDT": -9,
+      "JUPUSDT": -12,
       "NOTUSDT": -6,
       "STXUSDT": 4,
       "FLOKIUSDT": 4,
@@ -8474,7 +8447,7 @@
       "PENDLEUSDT": 1,
       "ARBUSDT": 1,
       "BONKUSDT": 0,
-      "JUPUSDT": 1,
+      "JUPUSDT": 2,
       "NOTUSDT": 1,
       "BTCUSDT": 0,
       "STXUSDT": 0,
@@ -13793,6 +13766,48 @@
             "exit": 68578.0,
             "pnl": -1.7869,
             "pnl_pct": -0.9,
+            "exit_reason": "TIMEOUT"
+          }
+        ]
+      },
+      {
+        "symbol": "ETHUSDT",
+        "interval": "5m",
+        "days": 30,
+        "total_trades": 3,
+        "wins": 0,
+        "losses": 3,
+        "win_rate": 0.0,
+        "total_pnl": -7.86,
+        "total_pnl_pct": -0.79,
+        "sharpe": -22.72,
+        "max_drawdown": -0.79,
+        "profit_factor": 0.0,
+        "best_trade": -0.45,
+        "worst_trade": -2.59,
+        "final_equity": 992.14,
+        "sl_used": 0.025,
+        "tp_used": 0.04,
+        "trades": [
+          {
+            "entry": 2182.97094,
+            "exit": 2173.23,
+            "pnl": -0.8911,
+            "pnl_pct": -0.45,
+            "exit_reason": "TIMEOUT"
+          },
+          {
+            "entry": 2122.92093,
+            "exit": 2067.95,
+            "pnl": -5.1664,
+            "pnl_pct": -2.59,
+            "exit_reason": "SL"
+          },
+          {
+            "entry": 2069.324145,
+            "exit": 2050.53,
+            "pnl": -1.8027,
+            "pnl_pct": -0.91,
             "exit_reason": "TIMEOUT"
           }
         ]
