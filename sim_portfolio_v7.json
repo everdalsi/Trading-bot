@@ -2,36 +2,7 @@
   "sim": {
     "cash": 1002.2255370813564,
     "initial": 1000.0,
-    "positions": {
-      "MEME_LEGACY_23": {
-        "id": 23,
-        "symbol": "LEGACY",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "LEGACY",
-        "price_in": 0.0008432,
-        "price_out": null,
-        "qty": 59474.67181056396,
-        "amount_usd": 50.14904327066753,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-27 05:54:12",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0009679,
-        "open_time": 1774590852.514253,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_LEGACY_23"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
