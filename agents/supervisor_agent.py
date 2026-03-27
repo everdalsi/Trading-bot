@@ -72,6 +72,19 @@ class SupervisorAgent(BaseAgent):
                 }
             }
 
+        # VETO TRÈS FORT sur les worst patterns (mode précision)
+        worst_patterns = context.get("worst_patterns", [])
+        if worst_patterns:
+            for p in worst_patterns:
+                if p.get("win_rate", 1.0) <= 0.35 and p.get("occurrences", 0) >= 5:
+                    return {
+                        "agent": self.name,
+                        "decision": "NO TRADE",
+                        "summary": f"⛔ VETO — Pattern perdant détecté ({p.get('pattern')})",
+                        "confidence": 0.98,
+                        "recommendation": "Éviter ce symbole pour le moment",
+                    }
+
         # (le reste du code original reste IDENTIQUE – aucune ligne supprimée)
         final_decision = "HOLD"
         reason         = "Pas de consensus clair"
