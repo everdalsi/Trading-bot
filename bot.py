@@ -325,8 +325,9 @@ ws_manager.start(WS_SYMBOLS_WATCH)
 data_handler.prefill_caches(WS_SYMBOLS_WATCH)
 
 # ═══════════════════════════════════════════════════════════════
-#  DATA HANDLER (nouveau module propre)
+#  MODULES PROPRES
 # ═══════════════════════════════════════════════════════════════
+from websocket_manager import ws_manager
 from data_handler import (
     data_handler,
     get_prices_batch,
