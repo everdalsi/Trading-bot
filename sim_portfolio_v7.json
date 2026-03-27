@@ -15385,6 +15385,28 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 07:09"
+      },
+      {
+        "trade_id": -1,
+        "pnl": -0.8911,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 07:09"
+      },
+      {
+        "trade_id": -2,
+        "pnl": -5.1664,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 07:09"
       }
     ],
     "patterns_to_avoid": [
@@ -15397,8 +15419,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -15687,7 +15707,9 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "score=4"
+      "score=4",
+      "backtest_5m",
+      "backtest_5m"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -15991,16 +16013,16 @@
       "backtest_5m",
       "score=4"
     ],
-    "confidence_threshold": 17,
+    "confidence_threshold": 23,
     "total_wins": 135,
-    "total_losses": 262,
+    "total_losses": 263,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
       "SOLUSDT": -2,
       "TARO": -3,
       "OPUSDT": -6,
-      "PENDLEUSDT": -9,
+      "PENDLEUSDT": -12,
       "ARBUSDT": -6,
       "BONKUSDT": 4,
       "JUPUSDT": -12,
@@ -16023,7 +16045,7 @@
     "symbol_blacklist": {},
     "consecutive_losses": {
       "OPUSDT": 1,
-      "PENDLEUSDT": 1,
+      "PENDLEUSDT": 2,
       "ARBUSDT": 1,
       "BONKUSDT": 0,
       "JUPUSDT": 2,
