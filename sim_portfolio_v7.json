@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 304.0,
+    "cash": 1000.0,
     "initial": 1000.0,
     "positions": {
       "MICRO_STXUSDT_87": {
@@ -2329,17 +2329,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.2248,
-        "price_out": null,
+        "price_out": 0.2248,
         "qty": 3096.0854092526693,
         "amount_usd": 696.0,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=24 mom=-0.22% vol=3.8x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 66s",
         "time_in": "2026-03-27 13:11:44",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 13:12:51",
+        "pnl": 0.0,
+        "pnl_pct": 0.0,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -12962,11 +12962,21 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 13:12"
+      },
+      {
+        "trade_id": 87,
+        "pnl": 0.0,
+        "symbol": "STXUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 13:12"
       }
     ],
     "patterns_to_avoid": [
       "memecoin",
-      "memecoin",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -13264,7 +13274,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -13481,7 +13492,7 @@
       "backtest_5m",
       "backtest_5m"
     ],
-    "confidence_threshold": 44,
+    "confidence_threshold": 47,
     "total_wins": 16,
     "total_losses": 295,
     "symbol_scores": {
@@ -13509,7 +13520,8 @@
       "IMXUSDT": -6,
       "FETUSDT": -9,
       "INJUSDT": -12,
-      "TAOUSDT": 4
+      "TAOUSDT": 4,
+      "STXUSDT": -3
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
