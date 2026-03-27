@@ -3,33 +3,6 @@
     "cash": 698.4592601169327,
     "initial": 1000.0,
     "positions": {
-      "MICRO_SUIUSDT_86": {
-        "id": 86,
-        "symbol": "SUIUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.9147,
-        "price_out": null,
-        "qty": 755.970128763445,
-        "amount_usd": 691.4858767799232,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=15 mom=-0.60% vol=3.5x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 08:37:52",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.9147,
-        "open_time": 1774600672.61,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_SUIUSDT_86"
-      },
       "MICRO_PEPEUSDT_87": {
         "id": 87,
         "symbol": "PEPEUSDT",
