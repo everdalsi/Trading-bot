@@ -31,7 +31,8 @@ class Orchestrator:
         self.supervisor = SupervisorAgent()
         self.learning   = LearningAgent()
         self.performance = PerformanceTracker()
-        self.research   = ResearchAgent()          # ← nouveau ResearchAgent
+        self.research   = ResearchAgent()          
+                self.knowledge = KnowledgeBase()   
 
     # ─────────────────────────────────────────────────────────────
     #  ask_all — Interroge tous les agents en parallèle
