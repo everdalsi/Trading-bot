@@ -34,10 +34,10 @@ RUN pip install --no-cache-dir --upgrade pip \
 # === 3. Copie du code complet du bot ===
 COPY . .
 
-# === 4. Copie explicite du dossier templates ===
+# === 4. Copie explicite du dossier templates (dashboard Claude Office) ===
 COPY templates /workspace/templates
 
-# === UPGRADE : Vérification du dossier knowledge ===
+# === UPGRADE : Vérification du dossier knowledge (cours pro Wyckoff, VSA, CFA, Elder...) ===
 RUN ls -la /workspace/knowledge/ 2>/dev/null || echo "⚠️ Dossier knowledge vide ou absent" \
     && echo "✅ Dossier knowledge vérifié (cours professionnels chargés)"
 
