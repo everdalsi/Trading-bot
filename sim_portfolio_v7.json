@@ -2,35 +2,7 @@
   "sim": {
     "cash": 995.826432562757,
     "initial": 1000.0,
-    "positions": {
-      "MICRO_IMXUSDT_98": {
-        "id": 98,
-        "symbol": "IMXUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.1514,
-        "price_out": null,
-        "qty": 4584.229750565369,
-        "amount_usd": 694.0523842355968,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=24 mom=-0.33% vol=2.9x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 08:54:39",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.1514,
-        "open_time": 1774601679.1780512,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_IMXUSDT_98"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
