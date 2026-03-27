@@ -2665,7 +2665,9 @@ def trading_loop(send_fn):
         # === UPGRADE ÉTAPE 5 : Wallet copier en live ===
         if LIVE_MODE and not TESTNET_MODE:
             try:
-                await wallet_copier.respond("copy latest whale trade", {"memory": memory})
+                def run_wallet_copier():
+                    asyncio.run(wallet_copier.respond("copy latest whale trade", {"memory": memory}))
+                threading.Thread(target=run_wallet_copier, daemon=True).start()
             except:
                 pass
 
@@ -4244,25 +4246,4 @@ if __name__ == "__main__":
     evolution_thread.start()
 
     # Dashboard server
-    threading.Thread(target=run_server, daemon=True).start()
-
-    # Self-ping
-    threading.Thread(target=self_ping, daemon=True).start()
-
-    # Auto-training
-    def _auto_training_loop():
-        time.sleep(30)
-        while True:
-            try:
-                auto_training()
-            except Exception as e:
-                print(f"[AUTO-TRAIN ERROR] {e}")
-            time.sleep(45)
-
-    threading.Thread(target=_auto_training_loop, daemon=True).start()
-
-    # Auto-start
-    threading.Thread(target=auto_start, daemon=True).start()
-
-    # Lancement Telegram (bloquant)
-    asyncio.run(run_telegram())
+    threading.Thread
