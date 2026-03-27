@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 304.0,
+    "cash": 1002.0591715976332,
     "initial": 1000.0,
     "positions": {
       "MICRO_PEPEUSDT_25": {
@@ -665,17 +665,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 3.38e-06,
-        "price_out": null,
+        "price_out": 3.39e-06,
         "qty": 205917159.76331362,
         "amount_usd": 696.0,
         "confidence": 88,
         "reason": "EMA\u2191 RSI7=54 mom=+0.00% vol=13.4x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 68s",
         "time_in": "2026-03-27 06:10:51",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 06:12:00",
+        "pnl": 2.059172,
+        "pnl_pct": 0.296,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -11276,6 +11276,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 06:11"
+      },
+      {
+        "trade_id": 25,
+        "pnl": 2.059172,
+        "symbol": "PEPEUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 06:12"
       }
     ],
     "patterns_to_avoid": [
@@ -11848,9 +11859,10 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
-    "confidence_threshold": 82,
+    "confidence_threshold": 80,
     "total_wins": 96,
     "total_losses": 198,
     "symbol_scores": {
@@ -11874,7 +11886,8 @@
       "MEMEUSDT": 4,
       "FETUSDT": 4,
       "LEGACY": -3,
-      "SUIUSDT": -6
+      "SUIUSDT": -6,
+      "PEPEUSDT": 2
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
