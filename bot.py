@@ -307,129 +307,17 @@ _fg_cache           = {"value": 50, "ts": 0}
 _macro_cache        = {"trend": "NEUTRAL", "ts": 0}
 
 # ═══════════════════════════════════════════════════════════════
-#  WEBSOCKET BINANCE — Données 1m/5m temps réel
+#  WEBSOCKET MANAGER (nouveau module propre)
 # ═══════════════════════════════════════════════════════════════
-_ws_klines_1m: dict = {}
-_ws_klines_5m: dict = {}
-_ws_connected: bool = False
-_ws_thread = None
-_ws_lock = threading.Lock()
+from websocket_manager import ws_manager
 
+# Démarrage du WebSocket (on garde tes symboles actuels)
 WS_SYMBOLS_WATCH = [
     "btcusdt","ethusdt","solusdt","bnbusdt","xrpusdt",
     "dogeusdt","avaxusdt","linkusdt","arbusdt","aptusdt",
     "fetusdt","injusdt","nearusdt","suiusdt","opusdt",
 ]
-
-def _ws_on_message(ws, message):
-    try:
-        data = json.loads(message)
-        if "stream" not in data:
-            return
-        stream = data["stream"]
-        kline  = data["data"]["k"]
-        symbol = kline["s"].upper()
-        close  = float(kline["c"])
-        is_closed = kline["x"]
-        with _ws_lock:
-            if "1m" in stream:
-                if symbol not in _ws_klines_1m:
-                    _ws_klines_1m[symbol] = deque(maxlen=60)
-                if is_closed or not _ws_klines_1m[symbol]:
-                    _ws_klines_1m[symbol].append(close)
-                elif _ws_klines_1m[symbol]:
-                    _ws_klines_1m[symbol][-1] = close
-            elif "5m" in stream:
-                if symbol not in _ws_klines_5m:
-                    _ws_klines_5m[symbol] = deque(maxlen=120)
-                if is_closed or not _ws_klines_5m[symbol]:
-                    _ws_klines_5m[symbol].append(close)
-                elif _ws_klines_5m[symbol]:
-                    _ws_klines_5m[symbol][-1] = close
-    except Exception as e:
-        print(f"[WS-MSG] {e}")
-
-def _ws_on_error(ws, error):
-    global _ws_connected
-    print(f"[WS] Erreur: {error}")
-    _ws_connected = False
-
-def _ws_on_close(ws, close_status_code, close_msg):
-    global _ws_connected
-    print(f"[WS] Fermé: {close_status_code}")
-    _ws_connected = False
-
-def _ws_on_open(ws):
-    global _ws_connected
-    _ws_connected = True
-    print("[WS] Connecté à Binance WebSocket ✅")
-
-def _build_ws_url() -> str:
-    streams = []
-    for sym in WS_SYMBOLS_WATCH:
-        streams.append(f"{sym}@kline_1m")
-        streams.append(f"{sym}@kline_5m")
-    return f"wss://stream.binance.com:9443/stream?streams={'/'.join(streams)}"
-
-def _ws_run_forever():
-    global _ws_connected
-    while True:
-        try:
-            ws = websocket.WebSocketApp(
-                _build_ws_url(),
-                on_message=_ws_on_message,
-                on_error=_ws_on_error,
-                on_close=_ws_on_close,
-                on_open=_ws_on_open,
-            )
-            ws.run_forever(ping_interval=30, ping_timeout=10)
-        except Exception as e:
-            print(f"[WS] Run error: {e}")
-        _ws_connected = False
-        print("[WS] Reconnexion dans 10s...")
-        time.sleep(10)
-
-def start_websocket():
-    global _ws_thread
-    if not WS_AVAILABLE:
-        print("[WS] Module websocket-client absent — utilise REST")
-        return
-    threading.Thread(target=_ws_prefill_from_rest, daemon=True).start()
-    _ws_thread = threading.Thread(target=_ws_run_forever, daemon=True)
-    _ws_thread.start()
-    print("[WS] Thread WebSocket démarré")
-
-def _ws_prefill_from_rest():
-    print("[WS] Pré-remplissage buffers depuis Binance REST...")
-    for sym_lower in WS_SYMBOLS_WATCH[:8]:
-        sym = sym_lower.upper()
-        try:
-            r1 = requests.get(
-                f"{BINANCE_BASE}/api/v3/klines",
-                params={"symbol": sym, "interval": "1m", "limit": 60},
-                timeout=8, headers={"User-Agent": "Mozilla/5.0"}
-            )
-            if r1.status_code == 200:
-                closes = [float(c[4]) for c in r1.json()]
-                with _ws_lock:
-                    _ws_klines_1m[sym] = deque(closes, maxlen=60)
-        except Exception:
-            pass
-        try:
-            r5 = requests.get(
-                f"{BINANCE_BASE}/api/v3/klines",
-                params={"symbol": sym, "interval": "5m", "limit": 120},
-                timeout=8, headers={"User-Agent": "Mozilla/5.0"}
-            )
-            if r5.status_code == 200:
-                closes = [float(c[4]) for c in r5.json()]
-                with _ws_lock:
-                    _ws_klines_5m[sym] = deque(closes, maxlen=120)
-        except Exception:
-            pass
-        time.sleep(0.3)
-    print("[WS] Pré-remplissage terminé ✅")
-
+ws_manager.start(WS_SYMBOLS_WATCH)
 # ═══════════════════════════════════════════════════════════════
 #  AI POOL — Optimisé avec cache 
 # ═══════════════════════════════════════════════════════════════
