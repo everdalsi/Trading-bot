@@ -1,12 +1,13 @@
 import sqlite3
 import json
 import time
+import os
 from datetime import datetime
 from agents.base_agent import BaseAgent
 from typing import Dict, Any, List
 
-
 DB_FILE = "sim_v7.db"
+KNOWLEDGE_DIR = "knowledge"
 
 
 class LearningAgent(BaseAgent):
@@ -17,6 +18,7 @@ class LearningAgent(BaseAgent):
             role="Mémoire infinie, scoring des patterns et ajustement de confiance"
         )
         self._ensure_tables()
+        self.knowledge_text = self._load_knowledge_base()
 
     def _ensure_tables(self):
         try:
@@ -75,6 +77,32 @@ class LearningAgent(BaseAgent):
             con.close()
         except Exception as e:
             print(f"[LEARNING-DB] Init error: {e}")
+
+    def _load_knowledge_base(self) -> str:
+        """Charge tous les PDFs du dossier knowledge/ (cours pro Wyckoff, VSA, CFA, Elder...)"""
+        knowledge = ""
+        if not os.path.exists(KNOWLEDGE_DIR):
+            print(f"[KNOWLEDGE] Dossier {KNOWLEDGE_DIR} non trouvé — pas de cours pro chargés")
+            return knowledge
+
+        for filename in os.listdir(KNOWLEDGE_DIR):
+            if filename.lower().endswith(".pdf"):
+                path = os.path.join(KNOWLEDGE_DIR, filename)
+                try:
+                    from pypdf import PdfReader
+                    reader = PdfReader(path)
+                    text = ""
+                    for page in reader.pages:
+                        page_text = page.extract_text()
+                        if page_text:
+                            text += page_text + "\n"
+                    knowledge += f"\n\n--- {filename.upper()} ---\n{text}\n"
+                    print(f"[KNOWLEDGE] ✅ Chargé : {filename} ({len(text)} caractères)")
+                except Exception as e:
+                    print(f"[KNOWLEDGE] ⚠️ Erreur lecture {filename}: {e}")
+        if knowledge:
+            print(f"[KNOWLEDGE] Base de connaissance pro chargée ({len(knowledge)} caractères total)")
+        return knowledge
 
     def save_lesson(self, lesson: dict) -> int:
         try:
@@ -386,7 +414,6 @@ class LearningAgent(BaseAgent):
             print(f"[LEARNING] compress error: {e}")
             return f"Erreur compression: {e}"
 
-    # === NOUVEAU : confidence_score puissant basé sur l’historique réel ===
     def get_pattern_confidence(self, pattern: str) -> float:
         try:
             con = sqlite3.connect(DB_FILE)
@@ -400,7 +427,6 @@ class LearningAgent(BaseAgent):
         except:
             return 0.5
 
-    # === NOUVEAU : VALIDATION CONTINUE + AJUSTEMENT AUTOMATIQUE ===
     def auto_adjust_after_backtest(self, backtest_result: dict):
         try:
             winrate = backtest_result.get("win_rate", 0)
@@ -410,13 +436,11 @@ class LearningAgent(BaseAgent):
             if total_trades < 10:
                 return
 
-            # Ajustement automatique des règles
             if winrate >= 85:
                 print(f"[AUTO-ADJUST] Winrate excellent ({winrate}%) → renforcement des règles pour {symbol}")
             elif winrate <= 45:
                 print(f"[AUTO-ADJUST] Winrate faible ({winrate}%) → blacklist temporaire pour {symbol}")
 
-            # Mise à jour de la confiance globale
             current_conf = 0.5
             if winrate > 70:
                 current_conf = 0.85
@@ -455,7 +479,6 @@ class LearningAgent(BaseAgent):
         winrate      = global_stats["winrate"]
         lesson_count = self.get_lesson_count()
 
-        # === NOUVEAU confidence_score basé sur historique réel ===
         pattern_conf = 0.5
         if context.get("patterns"):
             for p in context.get("patterns")[:3]:
@@ -497,7 +520,6 @@ class LearningAgent(BaseAgent):
         if symbol_stats.get("count", 0) < 5:
             delta -= 0.05
 
-        # Boost du pattern historique
         adjusted_conf = max(0.10, min(0.95, base_conf + delta + (pattern_conf - 0.5) * 0.4))
 
         best_patterns  = self.get_best_patterns(symbol, limit=3)
@@ -512,7 +534,6 @@ class LearningAgent(BaseAgent):
             symbol_score < 0.30
             and symbol_stats.get("count", 0) >= 5
         )
-        # === UPGRADE : blacklist auto après 2 SL -99% ===
         severe_sl = context.get("severe_sl_count", 0)
         if severe_sl >= 2 or (symbol_score < 0.15 and symbol_stats.get("count", 0) >= 3):
             should_blacklist = True
@@ -538,9 +559,11 @@ class LearningAgent(BaseAgent):
                 f"Pattern confidence: {pattern_conf:.2f}"
             )
 
+        knowledge_hint = " | Connaissances pro (Wyckoff/VSA/CFA/Elder) intégrées" if self.knowledge_text else ""
+
         return {
             "agent": self.name,
-            "summary": summary,
+            "summary": summary + knowledge_hint,
             "arguments": [
                 f"Total leçons DB (∞) : {lesson_count}",
                 f"Trades analysés (100 récents) : {total} | Wins: {wins} | Losses: {losses}",
@@ -572,4 +595,5 @@ class LearningAgent(BaseAgent):
                 if symbol_stats.get("count", 0) < 5 else
                 "🔄 Surveiller — performances moyennes"
             ),
+            "knowledge_loaded": bool(self.knowledge_text),
         }
