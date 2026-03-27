@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 302.04315375722547,
+    "cash": 994.3699134256481,
     "initial": 1000.0,
     "positions": {
       "MICRO_PIXELUSDT_37": {
@@ -990,17 +990,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.00857,
-        "price_out": null,
+        "price_out": 0.00858,
         "qty": 80690.76453011918,
         "amount_usd": 691.5198520231213,
         "confidence": 88,
         "reason": "EMA\u2191 RSI7=55 mom=+0.82% vol=4.1x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 65s",
         "time_in": "2026-03-27 11:14:00",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 11:15:06",
+        "pnl": 0.806908,
+        "pnl_pct": 0.117,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -4539,6 +4539,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 11:14"
+      },
+      {
+        "trade_id": 37,
+        "pnl": 0.806908,
+        "symbol": "PIXELUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 11:15"
       }
     ],
     "patterns_to_avoid": [
@@ -4863,7 +4874,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
     "confidence_threshold": 82,
     "total_wins": 9,
@@ -4887,7 +4899,7 @@
       "WIFUSDT": -6,
       "JUPUSDT": 4,
       "PIXEL": -3,
-      "PIXELUSDT": -6
+      "PIXELUSDT": -4
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
