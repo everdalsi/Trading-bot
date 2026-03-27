@@ -79,7 +79,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 628.15,
+        "peak_price": 628.16,
         "open_time": 1774597233.694756,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_BNBUSDT_48"
@@ -18884,6 +18884,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 07:40"
+      },
+      {
+        "trade_id": -4,
+        "pnl": -4.3415,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 07:40"
       }
     ],
     "patterns_to_avoid": [
@@ -18976,7 +18987,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -19180,6 +19190,7 @@
       "backtest_5m",
       "backtest_5m",
       "score=4",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -19496,7 +19507,7 @@
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -7,
+      "SOLUSDT": -10,
       "TARO": -3,
       "OPUSDT": -6,
       "PENDLEUSDT": -12,
