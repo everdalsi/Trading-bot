@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 302.7213661757735,
+    "cash": 996.5744548473252,
     "initial": 1000.0,
     "positions": {
       "MICRO_LINKUSDT_59": {
@@ -25,7 +25,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 8.88,
+        "peak_price": 8.89,
         "open_time": 1774599648.5903194,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_LINKUSDT_59"
@@ -1555,17 +1555,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 8.88,
-        "price_out": null,
+        "price_out": 8.89,
         "qty": 78.04871638600132,
         "amount_usd": 693.0726015076917,
         "confidence": 88,
         "reason": "EMA\u2191 RSI7=52 mom=+0.00% vol=3.2x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 69s",
         "time_in": "2026-03-27 08:20:48",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 08:21:58",
+        "pnl": 0.780487,
+        "pnl_pct": 0.113,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -23100,6 +23100,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 08:21"
+      },
+      {
+        "trade_id": 59,
+        "pnl": 0.780487,
+        "symbol": "LINKUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 08:21"
       }
     ],
     "patterns_to_avoid": [
@@ -23428,7 +23439,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -23704,7 +23714,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
     "confidence_threshold": 82,
     "total_wins": 198,
@@ -23739,7 +23750,7 @@
       "AVAXUSDT": -12,
       "XRPUSDT": 4,
       "WIFUSDT": -12,
-      "LINKUSDT": -6,
+      "LINKUSDT": -4,
       "INJUSDT": -6
     },
     "symbol_blacklist": {},
