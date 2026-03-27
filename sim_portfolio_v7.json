@@ -80,7 +80,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 317.9,
+        "peak_price": 318.6,
         "open_time": 1774614687.0712447,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_TAOUSDT_86"
@@ -11745,7 +11745,7 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 14,
-    "total_losses": 252,
+    "total_losses": 253,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -15,
