@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 587.3964982957381,
+    "cash": 995.7939676834652,
     "initial": 1000.0,
     "positions": {
       "MICRO_WIFUSDT_58": {
@@ -1529,17 +1529,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.182,
-        "price_out": null,
+        "price_out": 0.181,
         "qty": 2256.3396098769454,
         "amount_usd": 410.6538089976041,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=8 mom=+0.00% vol=2.8x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 72s",
         "time_in": "2026-03-27 08:17:43",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 08:18:56",
+        "pnl": -2.25634,
+        "pnl_pct": -0.549,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -22766,6 +22766,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 08:18"
+      },
+      {
+        "trade_id": 58,
+        "pnl": -2.25634,
+        "symbol": "WIFUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 08:18"
       }
     ],
     "patterns_to_avoid": [
@@ -22780,7 +22791,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "score=4",
       "backtest_5m",
@@ -23068,7 +23078,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -23404,7 +23415,7 @@
       "SEIUSDT": -12,
       "AVAXUSDT": -12,
       "XRPUSDT": 4,
-      "WIFUSDT": -6,
+      "WIFUSDT": -9,
       "LINKUSDT": -6,
       "INJUSDT": -6
     },
