@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 1627.3154767377137,
+    "cash": 1818.8808417678674,
     "initial": 1000.0,
     "positions": {
       "MICRO_TAOUSDT_86": {
@@ -25,7 +25,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 318.6,
+        "peak_price": 319.5,
         "open_time": 1774614687.0712447,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_TAOUSDT_86"
@@ -2303,17 +2303,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 317.7,
-        "price_out": null,
+        "price_out": 319.5,
         "qty": 0.5995786072931257,
         "amount_usd": 190.48612353702603,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=27 mom=-0.25% vol=4.9x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 1136s",
         "time_in": "2026-03-27 12:31:27",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 12:50:27",
+        "pnl": 1.079241,
+        "pnl_pct": 0.567,
+        "duration_min": 18,
         "patterns": [
           "score=4"
         ],
@@ -11275,6 +11275,17 @@
         "action_future": "Rejouer ce setup avec prudence",
         "type": "succes",
         "date": "2026-03-27 12:50"
+      },
+      {
+        "trade_id": 86,
+        "pnl": 1.079241,
+        "symbol": "TAOUSDT",
+        "market": "MICRO",
+        "lecon": "Trade gagnant exploitable",
+        "pattern": "score=4",
+        "action_future": "Rejouer ce setup avec prudence",
+        "type": "succes",
+        "date": "2026-03-27 12:50"
       }
     ],
     "patterns_to_avoid": [
@@ -11766,10 +11777,11 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "score=4",
       "score=4"
     ],
-    "confidence_threshold": 80,
-    "total_wins": 14,
+    "confidence_threshold": 78,
+    "total_wins": 15,
     "total_losses": 253,
     "symbol_scores": {
       "Deadwhale": -15,
@@ -11781,7 +11793,7 @@
       "ARBUSDT": -12,
       "TONUSDT": -15,
       "TRXUSDT": -2,
-      "ONDOUSDT": -4,
+      "ONDOUSDT": -2,
       "AVAXUSDT": -2,
       "OPUSDT": -12,
       "MEMEUSDT": 4,
@@ -11795,14 +11807,15 @@
       "STRKUSDT": -6,
       "IMXUSDT": -6,
       "FETUSDT": -9,
-      "INJUSDT": -12
+      "INJUSDT": -12,
+      "TAOUSDT": 2
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
       "ARBUSDT": 2,
       "TONUSDT": 3,
       "TRXUSDT": 0,
-      "ONDOUSDT": 1,
+      "ONDOUSDT": 0,
       "AVAXUSDT": 0,
       "APTUSDT": 0,
       "OPUSDT": 2,
