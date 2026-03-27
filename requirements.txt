@@ -18,3 +18,4 @@ langchain-groq
 litellm
 prometheus-client
 flask
+matplotlib>=3.8.0
