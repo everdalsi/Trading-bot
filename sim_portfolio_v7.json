@@ -2,35 +2,7 @@
   "sim": {
     "cash": 999.2445511908951,
     "initial": 1000.0,
-    "positions": {
-      "MICRO_NOTUSDT_95": {
-        "id": 95,
-        "symbol": "NOTUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.00036,
-        "price_out": null,
-        "qty": 585774.8468523615,
-        "amount_usd": 210.87894486685013,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=21 mom=-0.28% vol=4.5x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 08:51:12",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.000361,
-        "open_time": 1774601472.0253322,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_NOTUSDT_95"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
