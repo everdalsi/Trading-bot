@@ -463,12 +463,12 @@ Retourne UNIQUEMENT JSON valide :
         fb_str = f" | Flashbots: {data['flashbots_level']} ({data['flashbots_type']})" if data.get("flashbots_detected") else ""
         sandwich_str = f" | Sandwich: {data['sandwich_level']} ({data['sandwich_attacks']} attaques)" if data.get("sandwich_detected") else ""
 
-        # === UPGRADE GROK-LIKE : RAISONNEMENT NATUREL ET HUMAIN ===
+        # === UPGRADE GROK-LIKE : RAISONNEMENT NATUREL PROFESSIONNEL ===
         natural_summary = (
             f"Salut ! J’ai fait un tour complet sur {symbol} : KOLs, on-chain, order book, spoofing, wash trading, MEV, Flashbots et sandwich attacks. "
-            f"Globalement le sentiment est {data['sentiment']}, avec une force de {data['strength']}/10. "
-            f"Les gros whales accumulent, mais il y a un peu de spoofing et wash trading détecté. "
-            f"Avec tes leçons passées, je te dis simplement : il y a du potentiel haussier, mais reste prudent sur le timing."
+            f"Le sentiment global est {data['sentiment']}, avec une force de {data['strength']}/10. "
+            f"Les smart money accumulent, mais on voit du spoofing et du wash trading. "
+            f"Avec les leçons du LearningAgent et les analyses des autres agents, le signal est clair : potentiel haussier modéré, mais on reste vigilant sur le timing pour maximiser le gain."
         )
 
         return {
