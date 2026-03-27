@@ -167,7 +167,7 @@ def start_self_improvement_loop(orchestrator):
 
 
 # ─────────────────────────────────────────────────────────────
-#  === INGÉNIEUR EN CHEF ÉTAPE 3 (avec protection leçons/trades) ===
+#  === INGÉNIEUR EN CHEF ÉTAPE SUIVANTE : PROTECTION LEÇONS + MAIN LIBRE SUR .PY ===
 #  (tout le code ci-dessus est intact)
 # ─────────────────────────────────────────────────────────────
 
@@ -177,11 +177,11 @@ from agents.knowledge_specialist_agent import KnowledgeSpecialistAgent
 from logging_config import logger
 
 class SelfImprovementEngineer(BaseAgent):
-    """🛠️ INGÉNIEUR EN CHEF SURPUISSANT — Réparations auto + Backup (code + leçons + trades) + Anti-crash"""
+    """🛠️ INGÉNIEUR EN CHEF — Protège strictement les leçons/trades + main libre sur tous les .py"""
     def __init__(self, orchestrator=None):
         super().__init__(
             name="self_improvement_engineer",
-            role="Ingénieur en Chef : répare tout automatiquement, fait des backups (code + DB leçons/trades)"
+            role="Ingénieur en Chef : backup leçons/trades + réparation/upgrade automatique de tous les fichiers .py"
         )
         self.orchestrator = orchestrator
         self.log_file = "/workspace/trading_bot.log" if os.path.exists("/workspace/trading_bot.log") else "trading_bot.log"
@@ -201,7 +201,7 @@ class SelfImprovementEngineer(BaseAgent):
             return
         self.log_watcher_thread = threading.Thread(target=self._watch_logs, daemon=True)
         self.log_watcher_thread.start()
-        logger.info("📡 [INGÉNIEUR EN CHEF] Log watcher + backup leçons/trades activé")
+        logger.info("📡 [INGÉNIEUR EN CHEF] Surveillances logs + cycle réparation/upgrade activé")
 
     def _watch_logs(self):
         last_size = 0
@@ -235,7 +235,7 @@ class SelfImprovementEngineer(BaseAgent):
         restart_reason = context.get("restart_reason", "")
         if "crash caused by self_improvement" in restart_reason.lower():
             self.last_crash_reason = restart_reason
-            logger.warning(f"⚠️ [INGÉNIEUR EN CHEF] Redémarrage détecté suite à une erreur QUE J'AI CAUSÉE → je bloque toute réparation similaire ce cycle")
+            logger.warning(f"⚠️ [INGÉNIEUR EN CHEF] Redémarrage après erreur que j'ai causée → blocage anti-loop")
 
         agent_outputs = context.get("agent_outputs", [])
         issues = self._detect_issues_from_agents(agent_outputs, context)
@@ -250,11 +250,11 @@ class SelfImprovementEngineer(BaseAgent):
 
         return {
             "agent": "self_improvement_engineer",
-            "summary": f"Ingénieur en Chef — {len(issues)} problème(s) → {len(repairs)} réparation(s)/upgrade(s) automatiques",
+            "summary": f"Ingénieur en Chef — {len(issues)} problème(s) → {len(repairs)} réparation(s)/upgrade(s) automatiques sur .py",
             "arguments": [f"Agents analysés : {len(agent_outputs)}", f"Réparations : {repairs}"],
             "risks": [],
             "confidence": 0.98,
-            "recommendation": "Leçons/trades conservés + back-upés + réutilisés pour futurs trades",
+            "recommendation": "Leçons/trades protégés + tous les .py modifiables pour upgrades",
             "issues": issues,
             "repairs": repairs
         }
@@ -265,8 +265,8 @@ class SelfImprovementEngineer(BaseAgent):
             if isinstance(output, dict):
                 conf = output.get("confidence", 1.0)
                 agent_name = output.get("agent", "unknown")
-                if conf < 0.5:
-                    issues.append(f"Confiance trop basse chez {agent_name} ({conf})")
+                if conf < 0.6:
+                    issues.append(f"Confiance trop basse chez {agent_name} → upgrade prompt/code nécessaire")
                 if "erreur" in str(output).lower():
                     issues.append(f"Erreur rapportée par {agent_name}")
         if context.get("symbol_score", 1.0) < 0.45:
@@ -275,35 +275,57 @@ class SelfImprovementEngineer(BaseAgent):
 
     async def _auto_repair_and_upgrade(self, issue: str, context: dict) -> str | None:
         try:
-            logger.info(f"🔧 [INGÉNIEUR EN CHEF] Réparation auto pour : {issue}")
+            logger.info(f"🔧 [INGÉNIEUR EN CHEF] Cycle réparation/upgrade pour : {issue}")
             self._set_crash_flag(issue)
-            # BACKUP CODE + LEÇONS/TRADES
-            self._create_backup("orchestrator.py")
-            self._create_backup("bot.py")
-            self._create_backup("agents/trader_agent.py")
-            self._create_backup("sim_v7.db")          # ← LEÇONS + TRADES
-            self._create_backup("*.json")             # ← tous les JSON mémoire
 
-            repair_note = f"Auto-repair + upgrade appliqué : {issue} (code + sim_v7.db back-upés)"
+            # BACKUP STRICT DES LEÇONS/TRADES (jamais modifiés)
+            self._create_backup("sim_v7.db")
+            self._create_backup("*.json")
+
+            # Recherche de nouvelle idée via KnowledgeBase (cycle de recherche)
+            research_idea = self._research_new_code_idea(issue)
+
+            # Réparation/upgrade uniquement sur les fichiers .py
+            repair_note = f"Auto-repair/upgrade basé sur recherche : {research_idea}"
+            self._apply_code_upgrade(issue, research_idea)
 
             self._clear_crash_flag()
             self.repair_history.append({"timestamp": datetime.datetime.now().isoformat(), "issue": issue, "action": repair_note})
             return repair_note
         except Exception as e:
-            logger.error(f"[INGÉNIEUR EN CHEF] Erreur pendant repair : {e}")
+            logger.error(f"[INGÉNIEUR EN CHEF] Erreur pendant cycle : {e}")
             return f"Échec repair/upgrade : {e}"
+
+    def _research_new_code_idea(self, issue: str) -> str:
+        """Cycle de recherche : interroge les PDFs pour trouver une amélioration"""
+        query = f"Comment améliorer le code pour résoudre : {issue} ? Propose une petite modification concrète (Wyckoff/VSA/CFA)"
+        context = self.kb.get_context_for_agent(query, max_results=4)
+        return context[:400] or "Aucune idée trouvée dans les PDFs"
+
+    def _apply_code_upgrade(self, issue: str, research_idea: str):
+        """Applique l'upgrade uniquement sur les fichiers .py (main libre)"""
+        try:
+            # Exemple : on cible un fichier courant à upgrader
+            target_file = "agents/trader_agent.py"  # tu peux étendre à d'autres .py
+            if os.path.exists(f"/workspace/{target_file}"):
+                logger.info(f"[INGÉNIEUR EN CHEF] Mise à jour de {target_file} avec idée : {research_idea[:100]}...")
+                # Appel du tool d'édition (réel)
+                self.edit_tool._run(filename=target_file, new_code=research_idea)
+                self.git_tool._run(commit_message=f"Auto-upgrade par Ingénieur : {issue}")
+        except Exception as e:
+            logger.warning(f"[INGÉNIEUR EN CHEF] Échec application upgrade sur .py : {e}")
 
     def _set_crash_flag(self, issue: str):
         flag_file = "/workspace/.last_crash_by_engineer.txt"
         with open(flag_file, "w") as f:
             f.write(f"crash caused by self_improvement: {issue}")
-        logger.info(f"🚩 [CRASH FLAG] Flag créé pour protection anti-loop → {issue}")
+        logger.info(f"🚩 [CRASH FLAG] Créé → {issue}")
 
     def _clear_crash_flag(self):
         flag_file = "/workspace/.last_crash_by_engineer.txt"
         if os.path.exists(flag_file):
             os.remove(flag_file)
-            logger.info("✅ [CRASH FLAG] Flag supprimé (réparation réussie)")
+            logger.info("✅ [CRASH FLAG] Supprimé (réparation OK)")
 
     def _create_backup(self, filename: str):
         if filename == "*.json":
@@ -321,21 +343,14 @@ class SelfImprovementEngineer(BaseAgent):
     def _cleanup_old_backups(self):
         try:
             backups = sorted([f for f in os.listdir(self.backup_dir) if f.endswith(".bak")])
-            if len(backups) > 15:  # un peu plus pour garder les DB
+            if len(backups) > 15:
                 for old in backups[:-15]:
                     os.remove(os.path.join(self.backup_dir, old))
                 logger.info(f"🧹 [BACKUP] {len(backups) - 15} anciens backups nettoyés")
         except Exception:
             pass
 
-    def restore_last_backup(self, filename: str):
-        backups = sorted([f for f in os.listdir(self.backup_dir) if filename in f])
-        if backups:
-            latest = backups[-1]
-            shutil.copy2(os.path.join(self.backup_dir, latest), f"/workspace/{filename}")
-            logger.info(f"🔄 [RESTORE] {filename} restauré (leçons/trades inclus)")
-
 
 # Instance globale
 engineer = SelfImprovementEngineer()
-logger.info("🚀 [INGÉNIEUR EN CHEF] Étape 3 activée (leçons + trades back-upés et réutilisés)")
+logger.info("🚀 [INGÉNIEUR EN CHEF] Version finale activée : leçons/trades protégés + main libre sur tous les .py")
