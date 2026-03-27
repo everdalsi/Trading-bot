@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 430.5831263640683,
+    "cash": 497.2944027776047,
     "initial": 1000.0,
     "positions": {
       "MICRO_SOLUSDT_96": {
@@ -2617,17 +2617,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 82.75,
-        "price_out": null,
+        "price_out": 82.8,
         "qty": 0.8056917441248362,
         "amount_usd": 66.6709918263302,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=21 mom=-0.23% vol=3.8x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 72s",
         "time_in": "2026-03-27 14:23:58",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 14:25:15",
+        "pnl": 0.040285,
+        "pnl_pct": 0.06,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -13753,6 +13753,39 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 14:25"
+      },
+      {
+        "trade_id": -3,
+        "pnl": -1.7869,
+        "symbol": "BTCUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 14:25"
+      },
+      {
+        "trade_id": -4,
+        "pnl": -5.0627,
+        "symbol": "BTCUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 14:25"
+      },
+      {
+        "trade_id": 96,
+        "pnl": 0.040285,
+        "symbol": "SOLUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 14:25"
       }
     ],
     "patterns_to_avoid": [
@@ -13763,7 +13796,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
@@ -14046,6 +14078,7 @@
       "score=4",
       "backtest_5m",
       "score=4",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -14278,16 +14311,17 @@
       "score=4",
       "score=4",
       "score=4",
+      "score=4",
       "score=4"
     ],
     "confidence_threshold": 82,
-    "total_wins": 19,
+    "total_wins": 20,
     "total_losses": 309,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -13,
       "ETHUSDT": -15,
-      "SOLUSDT": -15,
+      "SOLUSDT": -13,
       "APTUSDT": -11,
       "NEKO": -10,
       "ARBUSDT": -12,
@@ -14342,7 +14376,8 @@
       "DOGEUSDT": 1,
       "UNIUSDT": 1,
       "LINKUSDT": 0,
-      "FLOKIUSDT": 0
+      "FLOKIUSDT": 0,
+      "BTCUSDT": 0
     },
     "bad_setups": [
       {
