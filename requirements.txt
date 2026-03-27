@@ -20,6 +20,7 @@ crewai>=1.11.0                 # Framework multi-agents (EvolutionAgent, Orchest
 crewai-tools                   # Outils supplémentaires pour CrewAI
 litellm                        # Gestion unifiée des LLM (fallback Groq / HF)
 chromadb                       # Base vectorielle pour mémoire longue des agents
+pypdf
 
 # === Telegram Bot ===
 python-telegram-bot==21.10     # Interface Telegram complète (/start, /agent, /status...)
