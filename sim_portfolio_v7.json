@@ -3,33 +3,6 @@
     "cash": 787.9768451320202,
     "initial": 1000.0,
     "positions": {
-      "MICRO_UNIUSDT_53": {
-        "id": 53,
-        "symbol": "UNIUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 3.506,
-        "price_out": null,
-        "qty": 198.5562372254686,
-        "amount_usd": 696.1381677124929,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=18 mom=-0.23% vol=3.6x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 08:14:35",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 3.506,
-        "open_time": 1774599275.4199448,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_UNIUSDT_53"
-      },
       "MICRO_WIFUSDT_54": {
         "id": 54,
         "symbol": "WIFUSDT",
