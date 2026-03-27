@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 91.52043660485555,
+    "cash": 779.5052855065635,
     "initial": 1000.0,
     "positions": {
       "MICRO_OPUSDT_90": {
@@ -2388,17 +2388,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.1085,
-        "price_out": null,
+        "price_out": 0.1083,
         "qty": 6352.584015712908,
         "amount_usd": 689.2553657048505,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=16 mom=-0.55% vol=2.6x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 71s",
         "time_in": "2026-03-27 08:39:28",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 08:40:40",
+        "pnl": -1.270517,
+        "pnl_pct": -0.184,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -26181,6 +26181,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 08:40"
+      },
+      {
+        "trade_id": 90,
+        "pnl": -1.270517,
+        "symbol": "OPUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 08:40"
       }
     ],
     "patterns_to_avoid": [
@@ -26278,7 +26289,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -26483,7 +26493,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
     "patterns_that_work": [
       "memecoin",
