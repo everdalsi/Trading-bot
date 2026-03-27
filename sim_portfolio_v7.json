@@ -3,33 +3,6 @@
     "cash": 979.9278666849025,
     "initial": 1000.0,
     "positions": {
-      "MICRO_PENDLEUSDT_35": {
-        "id": 35,
-        "symbol": "PENDLEUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 1.19,
-        "price_out": null,
-        "qty": 54.05171092436976,
-        "amount_usd": 64.32153600000001,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=18 mom=-0.08% vol=4.6x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 07:07:52",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 1.19,
-        "open_time": 1774595272.5353677,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_PENDLEUSDT_35"
-      },
       "MICRO_BNBUSDT_36": {
         "id": 36,
         "symbol": "BNBUSDT",
@@ -16020,7 +15993,7 @@
     ],
     "confidence_threshold": 17,
     "total_wins": 135,
-    "total_losses": 261,
+    "total_losses": 262,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
@@ -26042,6 +26015,48 @@
             "exit": 68578.0,
             "pnl": -1.7869,
             "pnl_pct": -0.9,
+            "exit_reason": "TIMEOUT"
+          }
+        ]
+      },
+      {
+        "symbol": "ETHUSDT",
+        "interval": "5m",
+        "days": 30,
+        "total_trades": 3,
+        "wins": 0,
+        "losses": 3,
+        "win_rate": 0.0,
+        "total_pnl": -7.86,
+        "total_pnl_pct": -0.79,
+        "sharpe": -22.72,
+        "max_drawdown": -0.79,
+        "profit_factor": 0.0,
+        "best_trade": -0.45,
+        "worst_trade": -2.59,
+        "final_equity": 992.14,
+        "sl_used": 0.025,
+        "tp_used": 0.04,
+        "trades": [
+          {
+            "entry": 2182.97094,
+            "exit": 2173.23,
+            "pnl": -0.8911,
+            "pnl_pct": -0.45,
+            "exit_reason": "TIMEOUT"
+          },
+          {
+            "entry": 2122.92093,
+            "exit": 2067.95,
+            "pnl": -5.1664,
+            "pnl_pct": -2.59,
+            "exit_reason": "SL"
+          },
+          {
+            "entry": 2069.324145,
+            "exit": 2050.53,
+            "pnl": -1.8027,
+            "pnl_pct": -0.91,
             "exit_reason": "TIMEOUT"
           }
         ]
