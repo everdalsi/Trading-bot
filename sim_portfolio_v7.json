@@ -3,34 +3,6 @@
     "cash": 320.8593287442711,
     "initial": 1000.0,
     "positions": {
-      "MEME_NEKO_28": {
-        "id": 28,
-        "symbol": "NEKO",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "NEKO",
-        "price_in": 0.0005343,
-        "price_out": null,
-        "qty": 6070.9312504965155,
-        "amount_usd": 3.2436985671402883,
-        "confidence": 95,
-        "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-27 10:56:46",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0006056,
-        "open_time": 1774609006.205308,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_NEKO_28"
-      },
       "MICRO_ORDIUSDT_29": {
         "id": 29,
         "symbol": "ORDIUSDT",
