@@ -3,33 +3,6 @@
     "cash": 970.8825084122786,
     "initial": 1000.0,
     "positions": {
-      "MICRO_NOTUSDT_88": {
-        "id": 88,
-        "symbol": "NOTUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.000358,
-        "price_out": null,
-        "qty": 178503.79549858498,
-        "amount_usd": 63.90435878849342,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=21 mom=-0.28% vol=3.7x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 08:37:56",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.000359,
-        "open_time": 1774600676.6883054,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_NOTUSDT_88"
-      },
       "MICRO_LINKUSDT_89": {
         "id": 89,
         "symbol": "LINKUSDT",
