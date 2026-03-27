@@ -3,33 +3,6 @@
     "cash": 716.961621770897,
     "initial": 1000.0,
     "positions": {
-      "MICRO_BNBUSDT_80": {
-        "id": 80,
-        "symbol": "BNBUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 624.1,
-        "price_out": null,
-        "qty": 0.26643987876097625,
-        "amount_usd": 166.28512833472527,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=13 mom=-0.31% vol=4.5x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 08:35:48",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 624.1,
-        "open_time": 1774600548.8501728,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_BNBUSDT_80"
-      },
       "MICRO_UNIUSDT_81": {
         "id": 81,
         "symbol": "UNIUSDT",
@@ -25649,6 +25622,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 08:37"
+      },
+      {
+        "trade_id": -2,
+        "pnl": -5.1664,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 08:37"
       }
     ],
     "patterns_to_avoid": [
@@ -25780,7 +25764,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -25951,7 +25934,8 @@
       "backtest_5m",
       "score=4",
       "backtest_5m",
-      "score=4"
+      "score=4",
+      "backtest_5m"
     ],
     "patterns_that_work": [
       "backtest_5m",
