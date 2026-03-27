@@ -2,35 +2,7 @@
   "sim": {
     "cash": 1818.8808417678674,
     "initial": 1000.0,
-    "positions": {
-      "MICRO_TAOUSDT_86": {
-        "id": 86,
-        "symbol": "TAOUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 317.7,
-        "price_out": null,
-        "qty": 0.5995786072931257,
-        "amount_usd": 190.48612353702603,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=27 mom=-0.25% vol=4.9x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 12:31:27",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 319.5,
-        "open_time": 1774614687.0712447,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_TAOUSDT_86"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
@@ -11781,8 +11753,8 @@
       "score=4"
     ],
     "confidence_threshold": 78,
-    "total_wins": 15,
-    "total_losses": 253,
+    "total_wins": 16,
+    "total_losses": 254,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -15,
@@ -11808,7 +11780,7 @@
       "IMXUSDT": -6,
       "FETUSDT": -9,
       "INJUSDT": -12,
-      "TAOUSDT": 2
+      "TAOUSDT": 4
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
@@ -11829,7 +11801,8 @@
       "STRKUSDT": 1,
       "IMXUSDT": 1,
       "FETUSDT": 1,
-      "INJUSDT": 2
+      "INJUSDT": 2,
+      "TAOUSDT": 0
     },
     "bad_setups": [
       {
@@ -17148,6 +17121,48 @@
             "exit": 2050.53,
             "pnl": -1.8027,
             "pnl_pct": -0.91,
+            "exit_reason": "TIMEOUT"
+          }
+        ]
+      },
+      {
+        "symbol": "BTCUSDT",
+        "interval": "5m",
+        "days": 30,
+        "total_trades": 3,
+        "wins": 0,
+        "losses": 3,
+        "win_rate": 0.0,
+        "total_pnl": -5.63,
+        "total_pnl_pct": -0.56,
+        "sharpe": -30.41,
+        "max_drawdown": -0.56,
+        "profit_factor": 0.0,
+        "best_trade": -0.36,
+        "worst_trade": -1.56,
+        "final_equity": 994.37,
+        "sl_used": 0.025,
+        "tp_used": 0.04,
+        "trades": [
+          {
+            "entry": 71503.24375499999,
+            "exit": 71242.73,
+            "pnl": -0.7276,
+            "pnl_pct": -0.36,
+            "exit_reason": "TIMEOUT"
+          },
+          {
+            "entry": 70091.49823499999,
+            "exit": 68996.89,
+            "pnl": -3.1164,
+            "pnl_pct": -1.56,
+            "exit_reason": "TIMEOUT"
+          },
+          {
+            "entry": 69199.572495,
+            "exit": 68578.0,
+            "pnl": -1.7869,
+            "pnl_pct": -0.9,
             "exit_reason": "TIMEOUT"
           }
         ]
