@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 194.7397337664168,
+    "cash": 697.6210955656662,
     "initial": 1000.0,
     "positions": {
       "MICRO_NOTUSDT_75": {
@@ -1998,17 +1998,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.00036,
-        "price_out": null,
+        "price_out": 0.000361,
         "qty": 1393023.1628788074,
         "amount_usd": 501.48833863637066,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=21 mom=-0.28% vol=119.5x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 73s",
         "time_in": "2026-03-27 08:32:39",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 08:33:53",
+        "pnl": 1.393023,
+        "pnl_pct": 0.278,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -24955,6 +24955,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 08:33"
+      },
+      {
+        "trade_id": 75,
+        "pnl": 1.393023,
+        "symbol": "NOTUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 08:33"
       }
     ],
     "patterns_to_avoid": [
@@ -25267,7 +25278,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
@@ -25559,7 +25569,8 @@
       "score=4",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
     "confidence_threshold": 82,
     "total_wins": 213,
@@ -25574,7 +25585,7 @@
       "ARBUSDT": -6,
       "BONKUSDT": 4,
       "JUPUSDT": -12,
-      "NOTUSDT": -15,
+      "NOTUSDT": -13,
       "STXUSDT": -2,
       "FLOKIUSDT": -2,
       "TRXUSDT": 4,
