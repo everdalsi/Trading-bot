@@ -29,34 +29,6 @@
         "open_time": 1774612392.2951205,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_FETUSDT_74"
-      },
-      "MEME_PIXEL_78": {
-        "id": 78,
-        "symbol": "PIXEL",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "PIXEL",
-        "price_in": 0.0008915,
-        "price_out": null,
-        "qty": 53686.44916829948,
-        "amount_usd": 47.861469433538986,
-        "confidence": 95,
-        "reason": "Score 7/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-27 11:58:23",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0008915,
-        "open_time": 1774612703.6956582,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_PIXEL_78"
       }
     },
     "trades": [
