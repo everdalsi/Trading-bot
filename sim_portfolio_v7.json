@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 315.1041280358164,
+    "cash": 8.852681581353643,
     "initial": 1000.0,
     "positions": {
       "MICRO_LINKUSDT_92": {
@@ -25,7 +25,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 8.52,
+        "peak_price": 8.53,
         "open_time": 1774621414.5398908,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_LINKUSDT_92"
@@ -79,10 +79,91 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 2.776e-05,
+        "peak_price": 2.777e-05,
         "open_time": 1774621418.5792038,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_FLOKIUSDT_94"
+      },
+      "MICRO_BTCUSDT_95": {
+        "id": 95,
+        "symbol": "BTCUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 65915.15,
+        "price_out": null,
+        "qty": 0.003327193719697645,
+        "amount_usd": 219.3124731129282,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=21 mom=-0.30% vol=2.7x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 14:23:57",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 65915.15,
+        "open_time": 1774621437.9388,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_BTCUSDT_95"
+      },
+      "MICRO_SOLUSDT_96": {
+        "id": 96,
+        "symbol": "SOLUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 82.75,
+        "price_out": null,
+        "qty": 0.8056917441248362,
+        "amount_usd": 66.6709918263302,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=21 mom=-0.23% vol=3.8x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 14:23:58",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 82.75,
+        "open_time": 1774621438.6421194,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_SOLUSDT_96"
+      },
+      "MICRO_XRPUSDT_97": {
+        "id": 97,
+        "symbol": "XRPUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 1.335,
+        "price_out": null,
+        "qty": 15.182008625621267,
+        "amount_usd": 20.26798151520439,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=23 mom=-0.23% vol=3.5x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 14:23:59",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 1.335,
+        "open_time": 1774621439.336631,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_XRPUSDT_97"
       }
     },
     "trades": [
@@ -2582,6 +2663,84 @@
         "leverage": 1,
         "peak_price": 2.776e-05,
         "open_time": 1774621418.5792038,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 95,
+        "symbol": "BTCUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 65915.15,
+        "price_out": null,
+        "qty": 0.003327193719697645,
+        "amount_usd": 219.3124731129282,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=21 mom=-0.30% vol=2.7x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 14:23:57",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 65915.15,
+        "open_time": 1774621437.9388,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 96,
+        "symbol": "SOLUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 82.75,
+        "price_out": null,
+        "qty": 0.8056917441248362,
+        "amount_usd": 66.6709918263302,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=21 mom=-0.23% vol=3.8x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 14:23:58",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 82.75,
+        "open_time": 1774621438.6421194,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 97,
+        "symbol": "XRPUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 1.335,
+        "price_out": null,
+        "qty": 15.182008625621267,
+        "amount_usd": 20.26798151520439,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=23 mom=-0.23% vol=3.5x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 14:23:59",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 1.335,
+        "open_time": 1774621439.336631,
         "kelly_pct": 0.48
       }
     ],
@@ -14018,13 +14177,13 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 16,
-    "total_losses": 305,
+    "total_losses": 307,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -15,
       "ETHUSDT": -15,
       "SOLUSDT": -15,
-      "APTUSDT": -8,
+      "APTUSDT": -11,
       "NEKO": -10,
       "ARBUSDT": -12,
       "TONUSDT": -15,
@@ -14057,7 +14216,7 @@
       "TRXUSDT": 0,
       "ONDOUSDT": 0,
       "AVAXUSDT": 0,
-      "APTUSDT": 0,
+      "APTUSDT": 1,
       "OPUSDT": 2,
       "MEMEUSDT": 0,
       "NOTUSDT": 1,
@@ -20962,6 +21121,48 @@
             "pnl": -5.0627,
             "pnl_pct": -2.55,
             "exit_reason": "SL"
+          }
+        ]
+      },
+      {
+        "symbol": "ETHUSDT",
+        "interval": "5m",
+        "days": 30,
+        "total_trades": 3,
+        "wins": 0,
+        "losses": 3,
+        "win_rate": 0.0,
+        "total_pnl": -7.86,
+        "total_pnl_pct": -0.79,
+        "sharpe": -22.72,
+        "max_drawdown": -0.79,
+        "profit_factor": 0.0,
+        "best_trade": -0.45,
+        "worst_trade": -2.59,
+        "final_equity": 992.14,
+        "sl_used": 0.025,
+        "tp_used": 0.04,
+        "trades": [
+          {
+            "entry": 2182.97094,
+            "exit": 2173.23,
+            "pnl": -0.8911,
+            "pnl_pct": -0.45,
+            "exit_reason": "TIMEOUT"
+          },
+          {
+            "entry": 2122.92093,
+            "exit": 2067.95,
+            "pnl": -5.1664,
+            "pnl_pct": -2.59,
+            "exit_reason": "SL"
+          },
+          {
+            "entry": 2069.324145,
+            "exit": 2050.53,
+            "pnl": -1.8027,
+            "pnl_pct": -0.91,
+            "exit_reason": "TIMEOUT"
           }
         ]
       }
