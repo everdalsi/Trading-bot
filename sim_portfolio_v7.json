@@ -3,34 +3,6 @@
     "cash": 1106.525009560804,
     "initial": 1000.0,
     "positions": {
-      "MEME_PIXEL_60": {
-        "id": 60,
-        "symbol": "PIXEL",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "PIXEL",
-        "price_in": 0.0007871,
-        "price_out": null,
-        "qty": 77214.92510606287,
-        "amount_usd": 60.775867550982085,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-27 11:41:09",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0007871,
-        "open_time": 1774611669.7385094,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_PIXEL_60"
-      },
       "MEME_Deadwhale_61": {
         "id": 61,
         "symbol": "Deadwhale",
@@ -8281,6 +8253,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 11:41"
+      },
+      {
+        "trade_id": -6,
+        "pnl": -6.2214,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 11:41"
       }
     ],
     "patterns_to_avoid": [
@@ -8302,7 +8285,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -8583,7 +8565,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "memecoin"
+      "memecoin",
+      "backtest_5m"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -8743,7 +8726,7 @@
       "Deadwhale": -15,
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": -13,
+      "SOLUSDT": -15,
       "APTUSDT": -5,
       "NEKO": 3,
       "ARBUSDT": -12,
