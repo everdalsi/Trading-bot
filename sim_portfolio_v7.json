@@ -25931,6 +25931,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 08:39"
+      },
+      {
+        "trade_id": -2,
+        "pnl": -5.1664,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 08:39"
       }
     ],
     "patterns_to_avoid": [
@@ -26038,7 +26049,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -26233,6 +26243,7 @@
       "backtest_5m",
       "backtest_5m",
       "score=4",
+      "backtest_5m",
       "backtest_5m"
     ],
     "patterns_that_work": [
@@ -26539,7 +26550,7 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 219,
-    "total_losses": 445,
+    "total_losses": 446,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
@@ -26570,7 +26581,7 @@
       "AVAXUSDT": -12,
       "XRPUSDT": -8,
       "WIFUSDT": -15,
-      "LINKUSDT": -5,
+      "LINKUSDT": -8,
       "INJUSDT": -6,
       "IMXUSDT": -8,
       "NEARUSDT": 4
@@ -26603,7 +26614,7 @@
       "SOLUSDT": 0,
       "XRPUSDT": 2,
       "WIFUSDT": 4,
-      "LINKUSDT": 0,
+      "LINKUSDT": 1,
       "INJUSDT": 1,
       "IMXUSDT": 2,
       "ETHUSDT": 1,
