@@ -1,5 +1,5 @@
 # ================================================
-# REQUIREMENTS.TXT — Trading Bot v7.1
+# REQUIREMENTS. TXT — Trading Bot v7.1
 # ================================================
 
 # === Core Trading & Data ===
