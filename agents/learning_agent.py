@@ -10,6 +10,7 @@ from logging_config import logger
 DB_FILE = "sim_v7.db"
 KNOWLEDGE_DIR = "knowledge"
 
+
 class LearningAgent(BaseAgent):
 
     def __init__(self):
@@ -23,7 +24,6 @@ class LearningAgent(BaseAgent):
     def _ensure_tables(self):
         try:
             con = sqlite3.connect(DB_FILE)
-            # Table des leçons
             con.execute("""
                 CREATE TABLE IF NOT EXISTS memory_lessons (
                     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -42,7 +42,6 @@ class LearningAgent(BaseAgent):
                     session_id  INTEGER DEFAULT 1
                 )
             """)
-            # Table des insights
             con.execute("""
                 CREATE TABLE IF NOT EXISTS memory_insights (
                     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -54,7 +53,6 @@ class LearningAgent(BaseAgent):
                     active      INTEGER DEFAULT 1
                 )
             """)
-            # Table des patterns
             con.execute("""
                 CREATE TABLE IF NOT EXISTS memory_patterns (
                     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -68,38 +66,38 @@ class LearningAgent(BaseAgent):
                     is_rule     INTEGER DEFAULT 0
                 )
             """)
-            con.execute("CREATE INDEX IF NOT EXISTS idx_lessons_symbol ON memory_lessons(symbol)")
-            con.execute("CREATE INDEX IF NOT EXISTS idx_lessons_type ON memory_lessons(lesson_type)")
+            con.execute("""
+                CREATE INDEX IF NOT EXISTS idx_lessons_symbol
+                ON memory_lessons(symbol)
+            """)
+            con.execute("""
+                CREATE INDEX IF NOT EXISTS idx_lessons_type
+                ON memory_lessons(lesson_type)
+            """)
             con.commit()
             con.close()
         except Exception as e:
-            logger.error(f"❌ [LEARNING-DB] Erreur initialisation SQL : {e}")
+            logger.error(f"❌ [LEARNING-DB] Init error: {e}")
 
     def _load_knowledge_base(self) -> str:
-        """Charge le texte des PDFs. Détecte le dossier 'knowledge' ou la racine '/' """
+        """Charge tous les PDFs du dossier knowledge/ ou racine (Fix Railway)"""
         knowledge = ""
         
-        # Test de plusieurs chemins pour Railway
-        paths_to_try = [
-            os.path.join(os.getcwd(), "knowledge"),
-            "/workspace/knowledge",
-            os.getcwd() # Racine du bot (là où sont tes PDFs d'après tes captures)
-        ]
-        
+        # --- FIX LOGS & PATHS ---
+        search_paths = [KNOWLEDGE_DIR, "/workspace/knowledge", os.getcwd()]
         target_path = None
-        for p in paths_to_try:
+        for p in search_paths:
             if os.path.exists(p):
-                # On vérifie s'il y a des PDFs à l'intérieur
                 pdfs = [f for f in os.listdir(p) if f.lower().endswith(".pdf")]
                 if pdfs:
                     target_path = p
                     break
         
         if not target_path:
-            logger.warning("⚠️ [KNOWLEDGE] Aucun PDF théorique trouvé (ni dans /knowledge ni à la racine)")
-            return ""
+            logger.warning(f"⚠️ [KNOWLEDGE] Aucun PDF trouvé dans {search_paths}")
+            return knowledge
 
-        logger.info(f"📖 [KNOWLEDGE] Chargement des cours depuis : {target_path}")
+        logger.info(f"📖 [KNOWLEDGE] Chargement depuis : {target_path}")
         for filename in os.listdir(target_path):
             if filename.lower().endswith(".pdf"):
                 path = os.path.join(target_path, filename)
@@ -111,11 +109,13 @@ class LearningAgent(BaseAgent):
                         page_text = page.extract_text()
                         if page_text:
                             text += page_text + "\n"
-                    knowledge += f"\n\n--- SOURCE: {filename.upper()} ---\n{text}\n"
-                    logger.info(f"✅ [KNOWLEDGE] '{filename}' ajouté au cerveau de l'agent.")
+                    knowledge += f"\n\n--- {filename.upper()} ---\n{text}\n"
+                    logger.info(f"✅ [KNOWLEDGE] Chargé : {filename} ({len(text)} caractères)")
                 except Exception as e:
                     logger.error(f"❌ [KNOWLEDGE] Erreur lecture {filename}: {e}")
         
+        if knowledge:
+            logger.info(f"🧠 [KNOWLEDGE] Base de connaissance pro chargée ({len(knowledge)} caractères total)")
         return knowledge
 
     def save_lesson(self, lesson: dict) -> int:
@@ -152,15 +152,18 @@ class LearningAgent(BaseAgent):
             )
             return lesson_id
         except Exception as e:
-            logger.error(f"❌ [LEARNING-DB] Erreur save_lesson : {e}")
+            logger.error(f"❌ [LEARNING-DB] save_lesson error: {e}")
             return -1
 
     def _update_pattern(self, pattern: str, symbol: str, is_win: bool):
-        if not pattern or pattern == "aucun_pattern":
+        if not pattern:
             return
         try:
             con = sqlite3.connect(DB_FILE)
-            row = con.execute("SELECT id, occurrences, wins, losses FROM memory_patterns WHERE pattern=?", (pattern,)).fetchone()
+            row = con.execute(
+                "SELECT id, occurrences, wins, losses FROM memory_patterns WHERE pattern=?",
+                (pattern,)
+            ).fetchone()
 
             if row:
                 occ  = row[1] + 1
@@ -170,18 +173,26 @@ class LearningAgent(BaseAgent):
                 is_rule = 1 if occ >= 3 else 0
                 con.execute("""
                     UPDATE memory_patterns
-                    SET occurrences=?, wins=?, losses=?, win_rate=?, last_seen=?, is_rule=?
+                    SET occurrences=?, wins=?, losses=?, win_rate=?,
+                        last_seen=?, is_rule=?
                     WHERE id=?
-                """, (occ, wins, loss, wr, datetime.now().strftime("%Y-%m-%d %H:%M"), is_rule, row[0]))
+                """, (occ, wins, loss, wr,
+                      datetime.now().strftime("%Y-%m-%d %H:%M"), is_rule,
+                      row[0]))
             else:
                 con.execute("""
-                    INSERT INTO memory_patterns (pattern, symbol, occurrences, wins, losses, win_rate, last_seen)
+                    INSERT INTO memory_patterns
+                        (pattern, symbol, occurrences, wins, losses, win_rate, last_seen)
                     VALUES (?,?,1,?,?,?,?)
-                """, (pattern, symbol, 1 if is_win else 0, 0 if is_win else 1, 1.0 if is_win else 0.0, datetime.now().strftime("%Y-%m-%d %H:%M")))
+                """, (pattern, symbol,
+                      1 if is_win else 0,
+                      0 if is_win else 1,
+                      1.0 if is_win else 0.0,
+                      datetime.now().strftime("%Y-%m-%d %H:%M")))
             con.commit()
             con.close()
         except Exception as e:
-            logger.error(f"❌ [LEARNING-DB] Erreur update_pattern : {e}")
+            logger.error(f"❌ [LEARNING-DB] update_pattern error: {e}")
 
     def get_lesson_count(self) -> int:
         try:
@@ -189,7 +200,8 @@ class LearningAgent(BaseAgent):
             count = con.execute("SELECT COUNT(*) FROM memory_lessons").fetchone()[0]
             con.close()
             return count
-        except: return 0
+        except Exception:
+            return 0
 
     def get_symbol_stats_db(self, symbol: str, window: int = 20) -> dict:
         try:
@@ -201,131 +213,271 @@ class LearningAgent(BaseAgent):
                 ORDER BY id DESC LIMIT ?
             """, (symbol, window)).fetchall()
             con.close()
-            if not rows: return {"score": 0.5, "count": 0, "wins": 0, "losses": 0, "avg_pnl": 0.0}
+
+            if not rows:
+                return {"score": 0.5, "count": 0, "wins": 0, "losses": 0, "avg_pnl": 0.0}
+
             wins = sum(1 for r in rows if r[2] == "succes")
+            losses = len(rows) - wins
+            score = round(wins / len(rows), 3)
             avg_pnl = round(sum(r[0] for r in rows if r[0] is not None) / len(rows), 4)
-            return {"score": round(wins / len(rows), 3), "count": len(rows), "wins": wins, "losses": len(rows)-wins, "avg_pnl": avg_pnl}
-        except: return {"score": 0.5, "count": 0}
+
+            return {
+                "score": score,
+                "count": len(rows),
+                "wins": wins,
+                "losses": losses,
+                "avg_pnl": avg_pnl,
+            }
+        except Exception as e:
+            logger.error(f"❌ [LEARNING-DB] get_symbol_stats error: {e}")
+            return {"score": 0.5, "count": 0, "wins": 0, "losses": 0, "avg_pnl": 0.0}
 
     def get_global_stats_db(self, window: int = 100) -> dict:
         try:
             con = sqlite3.connect(DB_FILE)
-            rows = con.execute("SELECT pnl, lesson_type FROM memory_lessons ORDER BY id DESC LIMIT ?", (window,)).fetchall()
+            rows = con.execute("""
+                SELECT pnl, lesson_type
+                FROM memory_lessons
+                ORDER BY id DESC LIMIT ?
+            """, (window,)).fetchall()
             con.close()
-            if not rows: return {"score": 0.5, "total": 0, "wins": 0, "losses": 0, "winrate": 0.0}
+
+            if not rows:
+                return {"score": 0.5, "total": 0, "wins": 0, "losses": 0, "winrate": 0.0}
+
             wins = sum(1 for r in rows if r[1] == "succes")
-            return {"score": round(wins / len(rows), 3), "total": len(rows), "winrate": round(wins / len(rows) * 100, 1)}
-        except: return {"score": 0.5, "total": 0}
+            total = len(rows)
+            return {
+                "score": round(wins / total, 3),
+                "total": total,
+                "wins": wins,
+                "losses": total - wins,
+                "winrate": round(wins / total * 100, 1),
+            }
+        except Exception as e:
+            logger.error(f"❌ [LEARNING-DB] get_global_stats error: {e}")
+            return {"score": 0.5, "total": 0, "wins": 0, "losses": 0, "winrate": 0.0}
 
     def get_best_patterns(self, symbol: str = None, limit: int = 5) -> List[dict]:
         try:
             con = sqlite3.connect(DB_FILE)
-            query = "SELECT pattern, win_rate, occurrences FROM memory_patterns WHERE occurrences >= 2"
-            if symbol: query += f" AND (symbol='{symbol}' OR symbol='GLOBAL')"
-            query += " ORDER BY win_rate DESC LIMIT ?"
-            rows = con.execute(query, (limit,)).fetchall()
+            if symbol:
+                rows = con.execute("""
+                    SELECT pattern, win_rate, occurrences
+                    FROM memory_patterns
+                    WHERE (symbol=? OR symbol='GLOBAL') AND occurrences >= 2
+                    ORDER BY win_rate DESC LIMIT ?
+                """, (symbol, limit)).fetchall()
+            else:
+                rows = con.execute("""
+                    SELECT pattern, win_rate, occurrences
+                    FROM memory_patterns
+                    WHERE occurrences >= 2
+                    ORDER BY win_rate DESC LIMIT ?
+                """, (limit,)).fetchall()
             con.close()
             return [{"pattern": r[0], "win_rate": r[1], "occurrences": r[2]} for r in rows]
-        except: return []
+        except Exception:
+            return []
 
     def get_worst_patterns(self, symbol: str = None, limit: int = 5) -> List[dict]:
         try:
             con = sqlite3.connect(DB_FILE)
-            query = "SELECT pattern, win_rate, occurrences FROM memory_patterns WHERE occurrences >= 2"
-            if symbol: query += f" AND (symbol='{symbol}' OR symbol='GLOBAL')"
-            query += " ORDER BY win_rate ASC LIMIT ?"
-            rows = con.execute(query, (limit,)).fetchall()
+            if symbol:
+                rows = con.execute("""
+                    SELECT pattern, win_rate, occurrences
+                    FROM memory_patterns
+                    WHERE (symbol=? OR symbol='GLOBAL') AND occurrences >= 2
+                    ORDER BY win_rate ASC LIMIT ?
+                """, (symbol, limit)).fetchall()
+            else:
+                rows = con.execute("""
+                    SELECT pattern, win_rate, occurrences
+                    FROM memory_patterns
+                    WHERE occurrences >= 2
+                    ORDER BY win_rate ASC LIMIT ?
+                """, (limit,)).fetchall()
             con.close()
             return [{"pattern": r[0], "win_rate": r[1], "occurrences": r[2]} for r in rows]
-        except: return []
+        except Exception:
+            return []
 
     def get_auto_rules(self) -> List[str]:
         try:
             con = sqlite3.connect(DB_FILE)
-            rows = con.execute("SELECT pattern, win_rate, occurrences FROM memory_patterns WHERE is_rule = 1 ORDER BY win_rate DESC LIMIT 10").fetchall()
+            rows = con.execute("""
+                SELECT pattern, win_rate, occurrences
+                FROM memory_patterns
+                WHERE is_rule = 1
+                ORDER BY win_rate DESC LIMIT 10
+            """).fetchall()
             con.close()
-            return [f"{'✅' if r[1]>=0.6 else '🚫'} {r[0]} (WR:{r[1]*100:.0f}%)" for r in rows]
-        except: return []
+            rules = []
+            for r in rows:
+                emoji = "✅" if r[1] >= 0.6 else "⚠️" if r[1] >= 0.4 else "🚫"
+                rules.append(f"{emoji} {r[0]} (WR:{r[1]*100:.0f}% sur {r[2]} trades)")
+            return rules
+        except Exception:
+            return []
 
     def get_active_insights(self, limit: int = 5) -> List[str]:
         try:
             con = sqlite3.connect(DB_FILE)
-            rows = con.execute("SELECT insight FROM memory_insights WHERE active = 1 ORDER BY score DESC LIMIT ?", (limit,)).fetchall()
+            rows = con.execute("""
+                SELECT insight FROM memory_insights
+                WHERE active = 1
+                ORDER BY score DESC LIMIT ?
+            """, (limit,)).fetchall()
             con.close()
             return [r[0] for r in rows]
-        except: return []
+        except Exception:
+            return []
 
     def save_insight(self, insight: str, score: float, source_count: int, symbol: str = "GLOBAL"):
         try:
             con = sqlite3.connect(DB_FILE)
-            con.execute("INSERT INTO memory_insights (insight, score, source_count, symbol, created_at) VALUES (?,?,?,?,?)",
-                        (insight, score, source_count, symbol, datetime.now().strftime("%Y-%m-%d %H:%M")))
-            con.commit(); con.close()
+            con.execute("""
+                INSERT INTO memory_insights (insight, score, source_count, symbol, created_at)
+                VALUES (?,?,?,?,?)
+            """, (insight, score, source_count, symbol,
+                  datetime.now().strftime("%Y-%m-%d %H:%M")))
+            con.commit()
+            con.close()
         except Exception as e:
-            logger.error(f"❌ [LEARNING] Erreur save_insight : {e}")
+            logger.error(f"❌ [LEARNING-DB] save_insight error: {e}")
 
     def should_compress(self) -> bool:
         count = self.get_lesson_count()
         try:
             con = sqlite3.connect(DB_FILE)
-            last = con.execute("SELECT MAX(source_count) FROM memory_insights").fetchone()[0] or 0
+            last = con.execute(
+                "SELECT MAX(source_count) FROM memory_insights"
+            ).fetchone()[0] or 0
             con.close()
             return count >= last + 500
-        except: return False
+        except Exception:
+            return False
 
     def compress_lessons(self, ask_ai_fn=None) -> str:
-        """LOGIQUE DE COMPRESSION INTÉGRALE - Analyse les 500 derniers trades"""
         try:
             con = sqlite3.connect(DB_FILE)
-            rows = con.execute("SELECT symbol, lesson_type, lecon, pattern, pnl_pct FROM memory_lessons ORDER BY id DESC LIMIT 500").fetchall()
+            rows = con.execute("""
+                SELECT symbol, lesson_type, lecon, pattern, pnl_pct
+                FROM memory_lessons
+                ORDER BY id DESC LIMIT 500
+            """).fetchall()
             con.close()
 
-            if not rows: return "Rien à compresser."
+            if not rows:
+                return "Aucune leçon à compresser"
 
             symbol_perf = {}
             pattern_count = {}
 
             for row in rows:
                 sym, ltype, lecon, pattern, pnl_pct = row
-                if sym not in symbol_perf: symbol_perf[sym] = {"wins": 0, "total": 0}
+                if sym not in symbol_perf:
+                    symbol_perf[sym] = {"wins": 0, "total": 0}
                 symbol_perf[sym]["total"] += 1
-                if ltype == "succes": symbol_perf[sym]["wins"] += 1
+                if ltype == "succes":
+                    symbol_perf[sym]["wins"] += 1
 
-                if pattern and pattern != "aucun_pattern":
-                    if pattern not in pattern_count: pattern_count[pattern] = {"wins": 0, "total": 0}
+                if pattern:
+                    if pattern not in pattern_count:
+                        pattern_count[pattern] = {"wins": 0, "total": 0}
                     pattern_count[pattern]["total"] += 1
-                    if ltype == "succes": pattern_count[pattern]["wins"] += 1
+                    if ltype == "succes":
+                        pattern_count[pattern]["wins"] += 1
 
             insights_generated = 0
             total_lessons = self.get_lesson_count()
 
-            # Génération d'insights par symbole
-            for sym, perf in sorted(symbol_perf.items(), key=lambda x: x[1]["wins"]/max(x[1]["total"],1), reverse=True)[:10]:
+            for sym, perf in sorted(
+                symbol_perf.items(),
+                key=lambda x: x[1]["wins"] / max(x[1]["total"], 1),
+                reverse=True
+            )[:10]:
                 wr = perf["wins"] / max(perf["total"], 1)
-                insight = f"{sym}: WR={wr*100:.0f}% sur {perf['total']} trades récents → {'Renforcer' if wr > 0.6 else 'Méfiance' if wr < 0.4 else 'Stable'}"
+                insight = (
+                    f"{sym}: WR={wr*100:.0f}% sur {perf['total']} trades récents"
+                    f" → {'Renforcer' if wr > 0.6 else 'Éviter' if wr < 0.4 else 'Surveiller'}"
+                )
                 self.save_insight(insight, wr, total_lessons, sym)
                 insights_generated += 1
 
-            logger.info(f"📉 [LEARNING] Compression terminée : {insights_generated} insights générés.")
-            return f"OK: {insights_generated} insights."
+            for pat, perf in sorted(
+                pattern_count.items(),
+                key=lambda x: x[1]["total"],
+                reverse=True
+            )[:5]:
+                if perf["total"] < 3:
+                    continue
+                wr = perf["wins"] / perf["total"]
+                insight = (
+                    f"Pattern '{pat}': WR={wr*100:.0f}% sur {perf['total']} occurrences"
+                    f" → {'Fiable' if wr > 0.6 else 'Risqué' if wr < 0.4 else 'Neutre'}"
+                )
+                self.save_insight(insight, wr, total_lessons)
+                insights_generated += 1
+
+            logger.info(f"📉 [LEARNING] Compression: {len(rows)} leçons → {insights_generated} insights")
+            return f"Compression OK: {insights_generated} insights générés depuis {len(rows)} leçons"
+
         except Exception as e:
-            logger.error(f"❌ [LEARNING] Erreur compression : {e}")
-            return str(e)
+            logger.error(f"❌ [LEARNING] compress error: {e}")
+            return f"Erreur compression: {e}"
 
     def get_pattern_confidence(self, pattern: str) -> float:
         try:
             con = sqlite3.connect(DB_FILE)
-            row = con.execute("SELECT wins, occurrences FROM memory_patterns WHERE pattern=?", (pattern,)).fetchone()
+            row = con.execute("""
+                SELECT wins, occurrences FROM memory_patterns WHERE pattern=?
+            """, (pattern,)).fetchone()
             con.close()
             if row and row[1] >= 5:
                 return round(row[0] / row[1], 3)
             return 0.5
-        except: return 0.5
+        except:
+            return 0.5
+
+    def auto_adjust_after_backtest(self, backtest_result: dict):
+        try:
+            winrate = backtest_result.get("win_rate", 0)
+            total_trades = backtest_result.get("total_trades", 0)
+            symbol = backtest_result.get("symbol", "GLOBAL")
+
+            if total_trades < 10:
+                return
+
+            if winrate >= 85:
+                logger.info(f"[AUTO-ADJUST] Winrate excellent ({winrate}%) pour {symbol}")
+            elif winrate <= 45:
+                logger.info(f"[AUTO-ADJUST] Winrate faible ({winrate}%) pour {symbol}")
+
+            current_conf = 0.5
+            if winrate > 70:
+                current_conf = 0.85
+            elif winrate > 55:
+                current_conf = 0.70
+
+            logger.info(f"[VALIDATION] Backtest {symbol} → WR {winrate}% | Confiance ajustée à {current_conf:.2f}")
+        except Exception as e:
+            logger.error(f"❌ [AUTO-ADJUST] Erreur: {e}")
 
     async def respond(self, question: str, context: dict) -> Dict[str, Any]:
-        """LOGIQUE DE RÉPONSE INTÉGRALE AVEC SCORE COMPLEXE (DELTA RSI/MACRO)"""
         extreme_learning = context.get("extreme_learning_mode", False) or context.get("learning_mode", False)
-        
+
+        if extreme_learning and context.get("symbol"):
+            fake_lesson = {
+                "symbol": context["symbol"],
+                "type": "succes" if context.get("score", 0.5) > 0.5 else "erreur",
+                "lecon": "Micro-trade forcé en apprentissage extrême",
+                "pattern": "aggressive_entry",
+                "confidence": 0.85,
+            }
+            self.save_lesson(fake_lesson)
+
         symbol   = context.get("symbol")
         is_night = context.get("is_night", False)
         macro    = context.get("macro", "neutral")
@@ -335,51 +487,101 @@ class LearningAgent(BaseAgent):
 
         global_score = global_stats["score"]
         symbol_score = symbol_stats["score"]
+        total        = global_stats["total"]
+        wins         = global_stats["wins"]
+        losses       = global_stats["losses"]
+        winrate      = global_stats["winrate"]
         lesson_count = self.get_lesson_count()
 
-        # Calcul de la confiance pattern
         pattern_conf = 0.5
         if context.get("patterns"):
             for p in context.get("patterns")[:3]:
                 pattern_conf = max(pattern_conf, self.get_pattern_confidence(str(p)))
 
-        # Logique de calcul du Delta (Ajustement fin de la confiance)
+        if total == 0:
+            sim    = context.get("sim", {})
+            memory = context.get("memory", {})
+            trades = sim.get("trades", []) or memory.get("trades", [])
+            closed = [t for t in trades if isinstance(t.get("pnl"), (int, float))]
+            if closed:
+                wins   = sum(1 for t in closed if t["pnl"] > 0)
+                total  = len(closed)
+                losses = total - wins
+                winrate = round(wins / total * 100, 1)
+                global_score = wins / total
+                if symbol:
+                    sym_trades = [t for t in closed if t.get("symbol") == symbol]
+                    if sym_trades:
+                        sym_wins = sum(1 for t in sym_trades if t["pnl"] > 0)
+                        symbol_score = sym_wins / len(sym_trades)
+
+                base_conf = context.get("base_confidence", 0.65)
         delta = 0.0
-        if symbol_score > 0.65: delta += 0.18
-        elif symbol_score < 0.40: delta -= 0.22
-        if is_night: delta -= 0.08
-        if macro == "bearish": delta -= 0.10
-        elif macro == "bullish": delta += 0.05
-        
-        base_conf = context.get("base_confidence", 0.65)
-        adjusted_conf = max(0.10, min(0.95, base_conf + delta + (pattern_conf - 0.5) * 0.4))
+
+        if symbol_score > 0.65:
+            delta += 0.18
+        elif symbol_score < 0.40:
+            delta -= 0.22
+
+        if is_night:
+            delta -= 0.08
+
+        if macro == "bearish":
+            delta -= 0.10
+        elif macro == "bullish":
+            delta += 0.05
+
+        if symbol_stats.get("count", 0) < 5:
+            delta -= 0.05
+
+        adjusted_conf = max(0.10, min(0.95, context.get("base_confidence", 0.65) + delta + (pattern_conf - 0.5) * 0.4))
+
+        best_patterns  = self.get_best_patterns(symbol, limit=3)
+        worst_patterns = self.get_worst_patterns(symbol, limit=3)
+        auto_rules     = self.get_auto_rules()
+        insights       = self.get_active_insights(limit=3)
 
         if self.should_compress():
             self.compress_lessons()
 
-        should_blacklist = (symbol_score < 0.30 and symbol_stats.get("count", 0) >= 5)
-        
-        summary = f"WR Global: {global_stats['winrate']}% | Leçons: {lesson_count}"
-        if self.knowledge_text: summary += " | 📚 Base théorique ACTIVE"
+        should_blacklist = (
+            symbol_score < 0.30
+            and symbol_stats.get("count", 0) >= 5
+        )
+
+        q = question.lower()
+        if any(k in q for k in ["winrate", "wr", "performance", "stat"]):
+            summary = f"Winrate global : {winrate}% ({total} trades) | Leçons DB: {lesson_count}"
+        elif "blacklist" in q or "risque" in q:
+            summary = (
+                f"Score {symbol or 'global'} : {symbol_score:.1%} "
+                f"→ {'⛔ BLACKLIST recommandé' if should_blacklist else '✅ OK'}"
+            )
+        else:
+            summary = (
+                f"Mémoire: {lesson_count} leçons ∞ | "
+                f"Score global: {global_score:.1%} | "
+                f"Symbole {symbol or 'global'}: {symbol_score:.1%}"
+            )
 
         return {
             "agent": self.name,
-            "summary": summary,
+            "summary": summary + (" | 📚 Base théorique active" if self.knowledge_text else ""),
             "arguments": [
-                f"Total leçons : {lesson_count}",
-                f"WR global : {global_stats['winrate']}%",
+                f"Total leçons DB (∞) : {lesson_count}",
+                f"WR global : {winrate}%",
                 f"Score symbole ({symbol or 'global'}) : {symbol_score:.1%}",
-                f"Auto-règles : {len(self.get_auto_rules())}",
-                f"Extreme Learning : {'OUI' if extreme_learning else 'NON'}"
+                f"Extreme Learning Mode : {'✅ ACTIVÉ' if extreme_learning else 'Inactif'}",
             ],
+            "risks": (["Score < 0.3 → blacklist recommandé"] if should_blacklist else []),
             "confidence": adjusted_conf,
             "symbol_score": symbol_score,
             "global_score": global_score,
             "lesson_count": lesson_count,
-            "best_patterns": self.get_best_patterns(symbol),
-            "worst_patterns": self.get_worst_patterns(symbol),
-            "auto_rules": self.get_auto_rules(),
-            "insights": self.get_active_insights(),
-            "recommendation": "⛔ BLACKLIST recommandé" if should_blacklist else "✅ OK",
-            "knowledge_loaded": bool(self.knowledge_text)
+            "best_patterns": best_patterns,
+            "worst_patterns": worst_patterns,
+            "auto_rules": auto_rules,
+            "insights": insights,
+            "recommendation": "⛔ Éviter" if should_blacklist else "🔄 Surveiller",
+            "knowledge_loaded": bool(self.knowledge_text),
         }
