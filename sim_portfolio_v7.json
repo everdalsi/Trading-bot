@@ -2,35 +2,7 @@
   "sim": {
     "cash": 1002.4361218060903,
     "initial": 1000.0,
-    "positions": {
-      "MICRO_ONDOUSDT_32": {
-        "id": 32,
-        "symbol": "ONDOUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.2857,
-        "price_out": null,
-        "qty": 2436.1218060903043,
-        "amount_usd": 696.0,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=28 mom=-0.42% vol=3.0x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 07:00:24",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.2867,
-        "open_time": 1774594824.5564284,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_ONDOUSDT_32"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
@@ -15217,8 +15189,8 @@
       "score=4"
     ],
     "confidence_threshold": 8,
-    "total_wins": 128,
-    "total_losses": 249,
+    "total_wins": 129,
+    "total_losses": 250,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
@@ -15242,7 +15214,7 @@
       "LEGACY": 9,
       "SUIUSDT": -6,
       "PEPEUSDT": 4,
-      "ONDOUSDT": 2
+      "ONDOUSDT": 4
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
@@ -15263,7 +15235,8 @@
       "MEMEUSDT": 0,
       "FETUSDT": 0,
       "SUIUSDT": 1,
-      "PEPEUSDT": 0
+      "PEPEUSDT": 0,
+      "ONDOUSDT": 0
     },
     "bad_setups": [
       {
@@ -24775,6 +24748,48 @@
             "exit": 2050.53,
             "pnl": -1.8027,
             "pnl_pct": -0.91,
+            "exit_reason": "TIMEOUT"
+          }
+        ]
+      },
+      {
+        "symbol": "BTCUSDT",
+        "interval": "5m",
+        "days": 30,
+        "total_trades": 3,
+        "wins": 0,
+        "losses": 3,
+        "win_rate": 0.0,
+        "total_pnl": -5.63,
+        "total_pnl_pct": -0.56,
+        "sharpe": -30.41,
+        "max_drawdown": -0.56,
+        "profit_factor": 0.0,
+        "best_trade": -0.36,
+        "worst_trade": -1.56,
+        "final_equity": 994.37,
+        "sl_used": 0.025,
+        "tp_used": 0.04,
+        "trades": [
+          {
+            "entry": 71503.24375499999,
+            "exit": 71242.73,
+            "pnl": -0.7276,
+            "pnl_pct": -0.36,
+            "exit_reason": "TIMEOUT"
+          },
+          {
+            "entry": 70091.49823499999,
+            "exit": 68996.89,
+            "pnl": -3.1164,
+            "pnl_pct": -1.56,
+            "exit_reason": "TIMEOUT"
+          },
+          {
+            "entry": 69199.572495,
+            "exit": 68578.0,
+            "pnl": -1.7869,
+            "pnl_pct": -0.9,
             "exit_reason": "TIMEOUT"
           }
         ]
