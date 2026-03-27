@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 213.4012215223873,
+    "cash": 124.80267532073714,
     "initial": 1000.0,
     "positions": {
       "MICRO_MEMEUSDT_21": {
@@ -164,6 +164,61 @@
         "open_time": 1774608955.8420188,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_TRXUSDT_26"
+      },
+      "MICRO_TONUSDT_27": {
+        "id": 27,
+        "symbol": "TONUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 1.233,
+        "price_out": null,
+        "qty": 120.46005691774657,
+        "amount_usd": 148.52725017958153,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=23 mom=-0.24% vol=3.9x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 10:56:41",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 1.233,
+        "open_time": 1774609001.0282612,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_TONUSDT_27"
+      },
+      "MEME_NEKO_28": {
+        "id": 28,
+        "symbol": "NEKO",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "NEKO",
+        "price_in": 0.0005343,
+        "price_out": null,
+        "qty": 6070.9312504965155,
+        "amount_usd": 3.2436985671402883,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-27 10:56:46",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0005826,
+        "open_time": 1774609006.205308,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_NEKO_28"
       }
     },
     "trades": [
@@ -704,17 +759,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.000541,
-        "price_out": null,
+        "price_out": 0.000542,
         "qty": 116554.24823813961,
         "amount_usd": 63.05584829683353,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=24 mom=-0.37% vol=3.1x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 75s",
         "time_in": "2026-03-27 10:55:34",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 10:56:50",
+        "pnl": 0.116554,
+        "pnl_pct": 0.185,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -852,6 +907,59 @@
         "peak_price": 0.312,
         "open_time": 1774608955.8420188,
         "kelly_pct": 0.48
+      },
+      {
+        "id": 27,
+        "symbol": "TONUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 1.233,
+        "price_out": null,
+        "qty": 120.46005691774657,
+        "amount_usd": 148.52725017958153,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=23 mom=-0.24% vol=3.9x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 10:56:41",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 1.233,
+        "open_time": 1774609001.0282612,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 28,
+        "symbol": "NEKO",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "NEKO",
+        "price_in": 0.0005343,
+        "price_out": null,
+        "qty": 6070.9312504965155,
+        "amount_usd": 3.2436985671402883,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-27 10:56:46",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0005343,
+        "open_time": 1774609006.205308,
+        "kelly_pct": 0.05
       }
     ],
     "equity_history": [
@@ -2249,6 +2357,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 10:56"
+      },
+      {
+        "trade_id": 21,
+        "pnl": 0.116554,
+        "symbol": "MEMEUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 10:56"
       }
     ],
     "patterns_to_avoid": [
@@ -2379,11 +2498,12 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
     "confidence_threshold": 82,
     "total_wins": 3,
-    "total_losses": 42,
+    "total_losses": 43,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -15,
@@ -2392,16 +2512,17 @@
       "APTUSDT": -9,
       "NEKO": 2,
       "ARBUSDT": -12,
-      "TONUSDT": -9,
+      "TONUSDT": -12,
       "TRXUSDT": -6,
       "ONDOUSDT": -6,
       "AVAXUSDT": -6,
-      "OPUSDT": -6
+      "OPUSDT": -6,
+      "MEMEUSDT": 2
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
       "ARBUSDT": 2,
-      "TONUSDT": 1,
+      "TONUSDT": 2,
       "TRXUSDT": 1,
       "ONDOUSDT": 1,
       "AVAXUSDT": 1,
