@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 968.5128895886893,
+    "cash": 300.775219170076,
     "initial": 1000.0,
     "positions": {
       "MEME_NEKO_3": {
@@ -30,6 +30,61 @@
         "open_time": 1774608559.0249715,
         "kelly_pct": 0.05,
         "pos_key": "MEME_NEKO_3"
+      },
+      "MICRO_ARBUSDT_11": {
+        "id": 11,
+        "symbol": "ARBUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.0912,
+        "price_out": null,
+        "qty": 7631.578947368421,
+        "amount_usd": 696.0,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=25 mom=-0.22% vol=5.1x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 10:53:23",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0912,
+        "open_time": 1774608803.46819,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_ARBUSDT_11"
+      },
+      "MEME_Deadwhale_12": {
+        "id": 12,
+        "symbol": "Deadwhale",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "Deadwhale",
+        "price_in": 0.0008555,
+        "price_out": null,
+        "qty": 17767.38749269433,
+        "amount_usd": 15.200000000000001,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-27 10:53:40",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0008555,
+        "open_time": 1774608820.1225958,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_Deadwhale_12"
       }
     },
     "trades": [
@@ -300,6 +355,59 @@
         "leverage": 1,
         "peak_price": 0.0008555,
         "open_time": 1774608784.8084571,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 11,
+        "symbol": "ARBUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.0912,
+        "price_out": null,
+        "qty": 7631.578947368421,
+        "amount_usd": 696.0,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=25 mom=-0.22% vol=5.1x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 10:53:23",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0912,
+        "open_time": 1774608803.46819,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 12,
+        "symbol": "Deadwhale",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "Deadwhale",
+        "price_in": 0.0008555,
+        "price_out": 0.000674,
+        "qty": 17767.38749269433,
+        "amount_usd": 15.200000000000001,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": "\ud83d\uded1 MEME SL (-21.2%)",
+        "time_in": "2026-03-27 10:53:40",
+        "time_out": "2026-03-27 10:53:42",
+        "pnl": -3.224781,
+        "pnl_pct": -21.22,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0008555,
+        "open_time": 1774608820.1225958,
         "kelly_pct": 0.05
       }
     ],
@@ -1181,6 +1289,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 10:53"
+      },
+      {
+        "trade_id": 12,
+        "pnl": -3.224781,
+        "symbol": "Deadwhale",
+        "market": "MEME",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "memecoin",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 10:53"
       }
     ],
     "patterns_to_avoid": [
@@ -1244,7 +1363,8 @@
       "memecoin",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "memecoin"
     ],
     "patterns_that_work": [
       "backtest_5m",
