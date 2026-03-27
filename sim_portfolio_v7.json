@@ -3,33 +3,6 @@
     "cash": 522.6601103324614,
     "initial": 1000.0,
     "positions": {
-      "MICRO_ARBUSDT_4": {
-        "id": 4,
-        "symbol": "ARBUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.0937,
-        "price_out": null,
-        "qty": 5199.57310565635,
-        "amount_usd": 487.2,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=20 mom=-0.11% vol=5.7x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 05:32:52",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0937,
-        "open_time": 1774589572.848626,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_ARBUSDT_4"
-      },
       "MICRO_BONKUSDT_5": {
         "id": 5,
         "symbol": "BONKUSDT",
