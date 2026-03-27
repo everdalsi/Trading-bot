@@ -3,33 +3,6 @@
     "cash": 933.7382454591461,
     "initial": 1000.0,
     "positions": {
-      "MICRO_WIFUSDT_83": {
-        "id": 83,
-        "symbol": "WIFUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.181,
-        "price_out": null,
-        "qty": 834.845159862662,
-        "amount_usd": 151.1069739351418,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=8 mom=+0.00% vol=3.3x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 08:36:10",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.181,
-        "open_time": 1774600570.404866,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_WIFUSDT_83"
-      },
       "MICRO_SUIUSDT_84": {
         "id": 84,
         "symbol": "SUIUSDT",
