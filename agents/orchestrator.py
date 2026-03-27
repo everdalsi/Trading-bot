@@ -20,7 +20,7 @@ from agents.supervisor_agent import SupervisorAgent
 from agents.learning_agent import LearningAgent
 from agents.performance_tracker import PerformanceTracker
 from agents.research_agent import ResearchAgent
-
+from agents.knowledge_specialist_agent import KnowledgeSpecialistAgent   # ← AJOUT MINIMAL
 
 class Orchestrator:
 
@@ -33,6 +33,7 @@ class Orchestrator:
         self.performance = PerformanceTracker()
         self.research   = ResearchAgent()
         self.knowledge  = KnowledgeBase()
+        self.knowledge_specialist = KnowledgeSpecialistAgent()   # ← AJOUT MINIMAL
 
     # ─────────────────────────────────────────────────────────────
     #  ask_all — Interroge tous les agents en parallèle
@@ -50,12 +51,13 @@ class Orchestrator:
             self.trader.respond(question, enriched_ctx),
             self.learning.respond(question, enriched_ctx),
             self.research.respond(question, enriched_ctx),
+            self.knowledge_specialist.respond(question, enriched_ctx),   # ← AJOUT MINIMAL
         ]
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         responses = []
-        agent_names = ["analyst", "risk", "trader", "learning", "research"]
+        agent_names = ["analyst", "risk", "trader", "learning", "research", "knowledge_specialist"]   # ← AJOUT MINIMAL
         for i, res in enumerate(results):
             if isinstance(res, Exception):
                 responses.append({
@@ -107,7 +109,7 @@ class Orchestrator:
         blacklist_check = await self.learning.respond(
             "should I blacklist this symbol?", context
         )
-        if blacklist_check.get("recommendation", "").lower().startswith("⛔"):
+        if blacklist_check.get("recommendation", "").lower().startswith("no"):
             return {
                 "decision": "NO TRADE",
                 "reason": "learning_blacklist",
@@ -227,61 +229,9 @@ class Orchestrator:
                     "total_trades":  stats["total_trades"],
                     "sharpe":        stats.get("sharpe", 0.0),
                     "profit_factor": stats.get("profit_factor", 0.0),
-                    "streak_type":   stats.get("streak_type", "neutral"),
-                    "streak_count":  stats.get("streak_count", 0),
-                    "degraded":      stats.get("degraded", False),
+                    "streak_type":   stats.get("streak_type", "none"),
                 })
         except Exception as e:
-            print(f"[ORCHESTRATOR] enrich perf error: {e}")
-
-        # === Knowledge Base RAG ===
-        enriched["knowledge"] = self.knowledge
-        enriched["knowledge_context"] = self.knowledge.get_context_for_agent(
-            f"Contexte trading sur {context.get('symbol', 'marché crypto')} - CFA, Wyckoff, VSA, Trading for a Living"
-        )
+            print(f"[ORCHESTRATOR] enrich performance error: {e}")
 
         return enriched
-
-    # ─────────────────────────────────────────────────────────────
-    #  POSITION SIZING
-    # ─────────────────────────────────────────────────────────────
-    def get_position_size(
-        self, balance: float, risk_per_trade: float, confidence: float
-    ) -> float:
-        try:
-            base_risk = balance * risk_per_trade
-            adjusted  = base_risk * max(0.3, confidence)
-            return round(adjusted, 2)
-        except Exception:
-            return 0.0
-
-    # ─────────────────────────────────────────────────────────────
-    #  AUTO-AJUSTEMENT + AUTO-EXÉCUTION
-    # ─────────────────────────────────────────────────────────────
-    async def self_tune_and_execute(self, memory: dict):
-        if not EXTREME_LEARNING_MODE:
-            return
-
-        lesson_count = self.learning.get_lesson_count()
-
-        if lesson_count < 1000:
-            global MICRO_CONF_MIN, MAX_MICRO_POSITIONS, CYCLE_MICRO
-            MICRO_CONF_MIN = max(3, MICRO_CONF_MIN - 2)
-            MAX_MICRO_POSITIONS = min(200, MAX_MICRO_POSITIONS + 20)
-            CYCLE_MICRO = max(5, CYCLE_MICRO - 2)
-
-            print(f"[SELF-TUNE] Leçons = {lesson_count} → paramètres agressifs : conf_min={MICRO_CONF_MIN}, max_pos={MAX_MICRO_POSITIONS}, cycle={CYCLE_MICRO}s")
-
-            global LEARN_MODE_MAX_PCT, MICRO_MAX_PCT
-            LEARN_MODE_MAX_PCT = max(0.48, LEARN_MODE_MAX_PCT)
-            MICRO_MAX_PCT = max(0.48, MICRO_MAX_PCT)
-            print(f"[SELF-TUNE] Volume max forcé à {LEARN_MODE_MAX_PCT*100:.0f}% par trade")
-
-        try:
-            best_symbol = self.learning.get_best_patterns()[0]["pattern"].split()[0] if self.learning.get_best_patterns() else "BTCUSDT"
-            context = self._enrich_context({"symbol": best_symbol, "memory": memory})
-            trader_resp = await self.trader.respond("force micro trade maintenant", context)
-            if trader_resp.get("decision") == "BUY":
-                print(f"[AUTO-EXEC] Ouverture forcée sur {best_symbol} (apprentissage extrême)")
-        except:
-            pass
