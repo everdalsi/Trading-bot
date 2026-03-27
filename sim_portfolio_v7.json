@@ -8654,8 +8654,8 @@
       "score=4"
     ],
     "confidence_threshold": 32,
-    "total_wins": 70,
-    "total_losses": 145,
+    "total_wins": 71,
+    "total_losses": 146,
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
@@ -8673,7 +8673,7 @@
       "BNBUSDT": -6,
       "TURBOUSDT": -6,
       "ORDIUSDT": 4,
-      "LTCUSDT": -3
+      "LTCUSDT": -6
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
@@ -8689,7 +8689,8 @@
       "TRXUSDT": 0,
       "BNBUSDT": 1,
       "TURBOUSDT": 1,
-      "ORDIUSDT": 0
+      "ORDIUSDT": 0,
+      "LTCUSDT": 1
     },
     "bad_setups": [
       {
