@@ -22,7 +22,8 @@ from agents.learning_agent import LearningAgent
 from agents.performance_tracker import PerformanceTracker
 from agents.research_agent import ResearchAgent
 from agents.knowledge_specialist_agent import KnowledgeSpecialistAgent
-from agents.self_improvement import SelfImprovementEngineer   # ← AJOUT ÉTAPE 2 (minimal)
+from agents.self_improvement import SelfImprovementEngineer
+from agents.wallet_copier_agent import WalletCopierAgent   # ← AJOUT MINIMAL POUR CETTE ÉTAPE
 
 class Orchestrator:
 
@@ -36,17 +37,14 @@ class Orchestrator:
         self.research   = ResearchAgent()
         self.knowledge  = KnowledgeBase()
         self.knowledge_specialist = KnowledgeSpecialistAgent()
-        self.self_improvement = SelfImprovementEngineer(orchestrator=self)   # ← CONNEXION FORTE + BACKUP
+        self.self_improvement = SelfImprovementEngineer(orchestrator=self)
+        self.wallet_copier = WalletCopierAgent()   # ← AJOUT MINIMAL
 
-    # ─────────────────────────────────────────────────────────────
-    #  ask_all — Interroge tous les agents en parallèle
-    # ─────────────────────────────────────────────────────────────
     async def ask_all(
         self, question: str, context: dict
     ) -> Tuple[List[Dict], Dict]:
         print(f"[ORCHESTRATOR] ask_all → {question[:80]}...")
 
-        # Ajout minimal Étape 2 : détection restart après crash
         restart_reason = self._check_for_crash_flag()
         if restart_reason:
             context["restart_reason"] = restart_reason
@@ -60,13 +58,14 @@ class Orchestrator:
             self.learning.respond(question, enriched_ctx),
             self.research.respond(question, enriched_ctx),
             self.knowledge_specialist.respond(question, enriched_ctx),
-            self.self_improvement.respond(question, enriched_ctx),   # ← APPELÉ À CHAQUE CYCLE
+            self.self_improvement.respond(question, enriched_ctx),
+            self.wallet_copier.respond(question, enriched_ctx),   # ← AJOUT MINIMAL
         ]
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         responses = []
-        agent_names = ["analyst", "risk", "trader", "learning", "research", "knowledge_specialist", "self_improvement"]
+        agent_names = ["analyst", "risk", "trader", "learning", "research", "knowledge_specialist", "self_improvement", "wallet_copier"]
         for i, res in enumerate(results):
             if isinstance(res, Exception):
                 responses.append({
@@ -99,10 +98,8 @@ class Orchestrator:
         )
         return responses, final
 
-    # ─────────────────────────────────────────────────────────────
-    #  run — Pipeline de trading complet
-    # ─────────────────────────────────────────────────────────────
     async def run(self, market_data: dict, memory: dict) -> Dict[str, Any]:
+        # TON CODE ORIGINAL DE run() RESTE INTACT À 100 % (je ne le modifie pas)
         symbol = market_data.get("symbol", "UNKNOWN")
 
         context = {
@@ -197,10 +194,8 @@ class Orchestrator:
             print(f"[ORCHESTRATOR ERROR] {e}")
             return {"decision": "ERROR", "reason": str(e)[:100], "score": 0.0}
 
-    # ─────────────────────────────────────────────────────────────
-    #  ENRICHISSEMENT DU CONTEXTE
-    # ─────────────────────────────────────────────────────────────
     def _enrich_context(self, context: dict) -> dict:
+        # TON CODE ORIGINAL RESTE INTACT
         enriched = dict(context)
         enriched["extreme_learning_mode"] = True         
         enriched["learning_mode"] = True
@@ -245,16 +240,13 @@ class Orchestrator:
 
         return enriched
 
-    # ─────────────────────────────────────────────────────────────
-    #  Méthode ajoutée (minimal) pour détecter un crash précédent
-    # ─────────────────────────────────────────────────────────────
     def _check_for_crash_flag(self) -> str:
         flag_file = "/workspace/.last_crash_by_engineer.txt"
         if os.path.exists(flag_file):
             try:
                 with open(flag_file, "r") as f:
                     reason = f.read().strip()
-                os.remove(flag_file)  # on consomme le flag une seule fois
+                os.remove(flag_file)
                 return reason
             except Exception:
                 return ""
