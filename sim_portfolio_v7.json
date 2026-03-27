@@ -3,33 +3,6 @@
     "cash": 703.886643197979,
     "initial": 1000.0,
     "positions": {
-      "MICRO_AVAXUSDT_46": {
-        "id": 46,
-        "symbol": "AVAXUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 9.06,
-        "price_out": null,
-        "qty": 76.74987362915101,
-        "amount_usd": 695.3538550801082,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=22 mom=-0.11% vol=4.6x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 07:40:05",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 9.06,
-        "open_time": 1774597205.5401416,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_AVAXUSDT_46"
-      },
       "MICRO_SOLUSDT_47": {
         "id": 47,
         "symbol": "SOLUSDT",
