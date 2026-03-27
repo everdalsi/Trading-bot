@@ -97132,7 +97132,7 @@
       "backtest_5m"
     ],
     "confidence_threshold": 82,
-    "total_wins": 1086,
+    "total_wins": 1087,
     "total_losses": 2065,
     "symbol_scores": {
       "BTCUSDT": -15,
