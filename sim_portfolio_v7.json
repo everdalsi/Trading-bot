@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 279.7131880990495,
+    "cash": 735.3890270293605,
     "initial": 1000.0,
     "positions": {
       "MICRO_LTCUSDT_16": {
@@ -457,17 +457,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 54.9,
-        "price_out": null,
+        "price_out": 54.9,
         "qty": 8.300106355743369,
         "amount_usd": 455.67583893031093,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=12 mom=-0.07% vol=4.1x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 70s",
         "time_in": "2026-03-27 05:42:41",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 05:43:52",
+        "pnl": 0.0,
+        "pnl_pct": 0.0,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -8146,6 +8146,28 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 05:43"
+      },
+      {
+        "trade_id": -2,
+        "pnl": -5.1664,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 05:43"
+      },
+      {
+        "trade_id": 16,
+        "pnl": 0.0,
+        "symbol": "LTCUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 05:43"
       }
     ],
     "patterns_to_avoid": [
@@ -8324,7 +8346,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -8448,7 +8469,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -8666,7 +8688,8 @@
       "TRXUSDT": 4,
       "BNBUSDT": -6,
       "TURBOUSDT": -6,
-      "ORDIUSDT": 4
+      "ORDIUSDT": 4,
+      "LTCUSDT": -3
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
