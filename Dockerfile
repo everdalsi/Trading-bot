@@ -13,7 +13,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 WORKDIR /workspace
 
-# === 1. Installation des dépendances système (obligatoires pour matplotlib, crewai, gcc, git, etc.) ===
+# === 1. Installation des dépendances système ===
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     g++ \
@@ -25,10 +25,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && git --version && echo "✅ git installé avec succès" \
     && echo "✅ Dépendances système prêtes pour matplotlib + agents"
 
-# === 2. Copie des dépendances Python en premier (optimisation des layers Docker) ===
+# === 2. Copie des dépendances Python + installation ultra-rapide ===
 COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r requirements.txt \
+    && pip install --no-cache-dir --only-binary=:all: -r requirements.txt \
     && echo "✅ Toutes les dépendances Python installées (matplotlib, crewai, chromadb, flask, etc.)"
 
 # === 3. Copie du code complet du bot ===
@@ -37,7 +37,7 @@ COPY . .
 # === 4. Copie explicite du dossier templates (dashboard Claude Office) ===
 COPY templates /workspace/templates
 
-# === 5. Vérification finale du build (très utile pour Railway) ===
+# === 5. Vérification finale du build ===
 RUN python -c "import matplotlib; print('✅ matplotlib OK')" \
     && python -c "import crewai, langchain_groq, chromadb; print('✅ Agents IA OK')" \
     && echo "🎉 Build terminé avec succès — tout est chargé !"
