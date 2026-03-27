@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 1238.2075050279566,
+    "cash": 1250.908873681542,
     "initial": 1000.0,
     "positions": {
       "MEME_NEKO_48": {
@@ -30,6 +30,34 @@
         "open_time": 1774610926.3149679,
         "kelly_pct": 0.05,
         "pos_key": "MEME_NEKO_48"
+      },
+      "MEME_Deadwhale_54": {
+        "id": 54,
+        "symbol": "Deadwhale",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "Deadwhale",
+        "price_in": 0.0009335,
+        "price_out": null,
+        "qty": 66320.70192972451,
+        "amount_usd": 61.91037525139783,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-27 11:34:28",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0009335,
+        "open_time": 1774611268.2976015,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_Deadwhale_54"
       }
     },
     "trades": [
@@ -1286,17 +1314,17 @@
         "trade_type": "MEME",
         "meme_symbol": "NEKO",
         "price_in": 0.0004878,
-        "price_out": null,
+        "price_out": 0.0004989,
         "qty": 149552.5033172644,
         "amount_usd": 72.95171111816157,
         "confidence": 85,
         "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT",
         "time_in": "2026-03-27 11:28:46",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 11:34:28",
+        "pnl": 1.660033,
+        "pnl_pct": 2.28,
+        "duration_min": 5,
         "patterns": [
           "memecoin"
         ],
@@ -1437,6 +1465,33 @@
         "leverage": 1,
         "peak_price": 0.0009335,
         "open_time": 1774611219.4664242,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 54,
+        "symbol": "Deadwhale",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "Deadwhale",
+        "price_in": 0.0009335,
+        "price_out": null,
+        "qty": 66320.70192972451,
+        "amount_usd": 61.91037525139783,
+        "confidence": 95,
+        "reason": "Score 7/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-27 11:34:28",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0009335,
+        "open_time": 1774611268.2976015,
         "kelly_pct": 0.05
       }
     ],
@@ -7169,6 +7224,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 11:33"
+      },
+      {
+        "trade_id": 48,
+        "pnl": 1.660033,
+        "symbol": "NEKO",
+        "market": "MEME",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "memecoin",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 11:34"
       }
     ],
     "patterns_to_avoid": [
@@ -7603,18 +7669,19 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "memecoin"
     ],
     "confidence_threshold": 82,
     "total_wins": 12,
-    "total_losses": 155,
+    "total_losses": 156,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -15,
       "ETHUSDT": -15,
       "SOLUSDT": -15,
       "APTUSDT": -5,
-      "NEKO": 1,
+      "NEKO": 3,
       "ARBUSDT": -12,
       "TONUSDT": -15,
       "TRXUSDT": -2,
