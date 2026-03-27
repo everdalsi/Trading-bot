@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 697.6210955656662,
+    "cash": 996.8163609143897,
     "initial": 1000.0,
     "positions": {
       "MICRO_PEPEUSDT_76": {
@@ -1997,17 +1997,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 3.39e-06,
-        "price_out": null,
+        "price_out": 3.39e-06,
         "qty": 88258190.36835502,
         "amount_usd": 299.1952653487235,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=27 mom=-0.29% vol=2.8x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 72s",
         "time_in": "2026-03-27 08:32:57",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 08:34:10",
+        "pnl": 0.0,
+        "pnl_pct": 0.0,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -24939,6 +24939,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 08:33"
+      },
+      {
+        "trade_id": 76,
+        "pnl": 0.0,
+        "symbol": "PEPEUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 08:34"
       }
     ],
     "patterns_to_avoid": [
@@ -25095,7 +25106,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -25241,7 +25251,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -25546,7 +25557,7 @@
       "score=4"
     ],
     "confidence_threshold": 82,
-    "total_wins": 213,
+    "total_wins": 214,
     "total_losses": 423,
     "symbol_scores": {
       "BTCUSDT": -15,
@@ -25558,7 +25569,7 @@
       "ARBUSDT": -6,
       "BONKUSDT": 4,
       "JUPUSDT": -12,
-      "NOTUSDT": -13,
+      "NOTUSDT": -11,
       "STXUSDT": -2,
       "FLOKIUSDT": -2,
       "TRXUSDT": 4,
@@ -25570,7 +25581,7 @@
       "FETUSDT": -2,
       "LEGACY": 9,
       "SUIUSDT": -2,
-      "PEPEUSDT": -2,
+      "PEPEUSDT": -5,
       "ONDOUSDT": 4,
       "UNIUSDT": -15,
       "APTUSDT": -2,
@@ -25590,7 +25601,7 @@
       "ARBUSDT": 1,
       "BONKUSDT": 0,
       "JUPUSDT": 2,
-      "NOTUSDT": 4,
+      "NOTUSDT": 0,
       "BTCUSDT": 0,
       "STXUSDT": 1,
       "FLOKIUSDT": 1,
