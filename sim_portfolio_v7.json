@@ -3,33 +3,6 @@
     "cash": 535.6021001278388,
     "initial": 1000.0,
     "positions": {
-      "MICRO_AVAXUSDT_16": {
-        "id": 16,
-        "symbol": "AVAXUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 8.72,
-        "price_out": null,
-        "qty": 60.46209210112431,
-        "amount_usd": 527.229443121804,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=26 mom=-0.34% vol=3.3x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 10:54:29",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 8.74,
-        "open_time": 1774608869.3002312,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_AVAXUSDT_16"
-      },
       "MICRO_APTUSDT_17": {
         "id": 17,
         "symbol": "APTUSDT",
