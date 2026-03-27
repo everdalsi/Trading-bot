@@ -25,7 +25,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 0.00856,
+        "peak_price": 0.00858,
         "open_time": 1774610206.4980638,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_PIXELUSDT_39"
@@ -5222,7 +5222,7 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 10,
-    "total_losses": 105,
+    "total_losses": 106,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -15,
