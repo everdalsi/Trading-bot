@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 388.39069288817734,
+    "cash": 1277.6009634479515,
     "initial": 1000.0,
     "positions": {
       "MICRO_STRKUSDT_56": {
@@ -1499,17 +1499,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.0342,
-        "price_out": null,
+        "price_out": 0.0342,
         "qty": 26000.300308765323,
         "amount_usd": 889.2102705597741,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=24 mom=-0.58% vol=15.5x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 63s",
         "time_in": "2026-03-27 11:35:50",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 11:36:54",
+        "pnl": 0.0,
+        "pnl_pct": 0.0,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -7545,6 +7545,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 11:36"
+      },
+      {
+        "trade_id": 56,
+        "pnl": 0.0,
+        "symbol": "STRKUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 11:36"
       }
     ],
     "patterns_to_avoid": [
@@ -7583,7 +7594,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "score=4",
       "backtest_5m",
@@ -7847,7 +7857,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -8011,7 +8022,8 @@
       "JUPUSDT": 4,
       "PIXEL": -15,
       "PIXELUSDT": -4,
-      "NEARUSDT": -6
+      "NEARUSDT": -6,
+      "STRKUSDT": -3
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
