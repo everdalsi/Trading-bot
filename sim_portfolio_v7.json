@@ -1,8 +1,65 @@
 {
   "sim": {
-    "cash": 1628.5376601661376,
+    "cash": 1483.7496755218476,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MEME_NEKO_44": {
+        "id": 44,
+        "symbol": "NEKO",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "NEKO",
+        "price_in": 0.0004103,
+        "price_out": null,
+        "qty": 198456.94128273675,
+        "amount_usd": 81.42688300830689,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-27 11:26:16",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0004182,
+        "open_time": 1774610776.354918,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_NEKO_44"
+      },
+      "MEME_PIXEL_45": {
+        "id": 45,
+        "symbol": "PIXEL",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "PIXEL",
+        "price_in": 0.0006611,
+        "price_out": null,
+        "qty": 117010.34466478828,
+        "amount_usd": 77.35553885789153,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-27 11:26:16",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0006611,
+        "open_time": 1774610776.4170682,
+        "kelly_pct": 0.05,
+        "pos_key": "MEME_PIXEL_45"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -1139,6 +1196,60 @@
         "leverage": 1,
         "peak_price": 0.0009118,
         "open_time": 1774610396.5991828,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 44,
+        "symbol": "NEKO",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "NEKO",
+        "price_in": 0.0004103,
+        "price_out": null,
+        "qty": 198456.94128273675,
+        "amount_usd": 81.42688300830689,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": null,
+        "time_in": "2026-03-27 11:26:16",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0004103,
+        "open_time": 1774610776.354918,
+        "kelly_pct": 0.05
+      },
+      {
+        "id": 45,
+        "symbol": "PIXEL",
+        "market": "MEME",
+        "side": "LONG",
+        "trade_type": "MEME",
+        "meme_symbol": "PIXEL",
+        "price_in": 0.0006611,
+        "price_out": 0.0001196,
+        "qty": 117010.34466478828,
+        "amount_usd": 77.35553885789153,
+        "confidence": 85,
+        "reason": "Score 5/10 | @DexScreener",
+        "exit_reason": "\ud83d\uded1 MEME SL (-81.9%)",
+        "time_in": "2026-03-27 11:26:16",
+        "time_out": "2026-03-27 11:26:16",
+        "pnl": -63.361102,
+        "pnl_pct": -81.91,
+        "duration_min": 1,
+        "patterns": [
+          "memecoin"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0006611,
+        "open_time": 1774610776.4170682,
         "kelly_pct": 0.05
       }
     ],
@@ -5980,10 +6091,20 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 11:26"
+      },
+      {
+        "trade_id": 45,
+        "pnl": -63.361102,
+        "symbol": "PIXEL",
+        "market": "MEME",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "memecoin",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 11:26"
       }
     ],
     "patterns_to_avoid": [
-      "memecoin",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -6282,7 +6403,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "memecoin"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -6418,7 +6540,7 @@
       "ORDIUSDT": 1,
       "WIFUSDT": -6,
       "JUPUSDT": 4,
-      "PIXEL": -3,
+      "PIXEL": -6,
       "PIXELUSDT": -4
     },
     "symbol_blacklist": {},
