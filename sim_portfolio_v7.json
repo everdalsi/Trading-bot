@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 304.0,
+    "cash": 999.2457737321197,
     "initial": 1000.0,
     "positions": {
       "MICRO_SUIUSDT_24": {
@@ -639,17 +639,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.9228,
-        "price_out": null,
+        "price_out": 0.9218,
         "qty": 754.2262678803642,
         "amount_usd": 696.0,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=21 mom=-0.03% vol=60.9x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 69s",
         "time_in": "2026-03-27 06:04:50",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 06:06:00",
+        "pnl": -0.754226,
+        "pnl_pct": -0.108,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -10634,10 +10634,20 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 06:05"
+      },
+      {
+        "trade_id": 24,
+        "pnl": -0.754226,
+        "symbol": "SUIUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 06:06"
       }
     ],
     "patterns_to_avoid": [
-      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
@@ -10936,7 +10946,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -11193,7 +11204,7 @@
       "backtest_5m",
       "backtest_5m"
     ],
-    "confidence_threshold": 32,
+    "confidence_threshold": 35,
     "total_wins": 91,
     "total_losses": 187,
     "symbol_scores": {
@@ -11216,7 +11227,8 @@
       "LTCUSDT": -6,
       "MEMEUSDT": 4,
       "FETUSDT": 4,
-      "LEGACY": -3
+      "LEGACY": -3,
+      "SUIUSDT": -3
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
