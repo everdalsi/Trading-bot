@@ -3,33 +3,6 @@
     "cash": 759.2004064199193,
     "initial": 1000.0,
     "positions": {
-      "MICRO_OPUSDT_19": {
-        "id": 19,
-        "symbol": "OPUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.1049,
-        "price_out": null,
-        "qty": 141.20332325572537,
-        "amount_usd": 14.812228609525588,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=22 mom=-0.28% vol=6.9x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 10:54:31",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.1051,
-        "open_time": 1774608871.3281848,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_OPUSDT_19"
-      },
       "MICRO_TONUSDT_20": {
         "id": 20,
         "symbol": "TONUSDT",
