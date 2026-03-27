@@ -3,33 +3,6 @@
     "cash": 979.714495751004,
     "initial": 1000.0,
     "positions": {
-      "MICRO_BNBUSDT_48": {
-        "id": 48,
-        "symbol": "BNBUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 628.15,
-        "price_out": null,
-        "qty": 0.10230330632983091,
-        "amount_usd": 64.26182187108328,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=21 mom=-0.15% vol=3.4x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 07:40:33",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 628.69,
-        "open_time": 1774597233.694756,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_BNBUSDT_48"
-      },
       "MICRO_XRPUSDT_49": {
         "id": 49,
         "symbol": "XRPUSDT",
@@ -18929,6 +18902,28 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 07:41"
+      },
+      {
+        "trade_id": -2,
+        "pnl": -5.1664,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 07:41"
+      },
+      {
+        "trade_id": -3,
+        "pnl": -1.8027,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 07:41"
       }
     ],
     "patterns_to_avoid": [
@@ -19014,8 +19009,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -19228,6 +19221,8 @@
       "backtest_5m",
       "backtest_5m",
       "score=4",
+      "backtest_5m",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
