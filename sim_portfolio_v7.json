@@ -2,35 +2,7 @@
   "sim": {
     "cash": 990.2094956259458,
     "initial": 1000.0,
-    "positions": {
-      "MICRO_WIFUSDT_91": {
-        "id": 91,
-        "symbol": "WIFUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.179,
-        "price_out": null,
-        "qty": 1170.5789451076794,
-        "amount_usd": 209.5336311742746,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=8 mom=+0.00% vol=2.9x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 08:39:31",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.18,
-        "open_time": 1774600771.3140426,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_WIFUSDT_91"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
@@ -26187,6 +26159,28 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 08:40"
+      },
+      {
+        "trade_id": -2,
+        "pnl": 5.0532,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "backtest_5m",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 08:40"
+      },
+      {
+        "trade_id": -3,
+        "pnl": -1.6021,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 08:40"
       }
     ],
     "patterns_to_avoid": [
@@ -26283,7 +26277,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -26489,11 +26482,11 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "score=4"
+      "score=4",
+      "backtest_5m"
     ],
     "patterns_that_work": [
       "backtest_5m",
-      "backtest_5m",
       "memecoin",
       "backtest_5m",
       "backtest_5m",
@@ -26791,7 +26784,8 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "score=4"
+      "score=4",
+      "backtest_5m"
     ],
     "confidence_threshold": 82,
     "total_wins": 221,
@@ -26799,7 +26793,7 @@
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": 2,
+      "SOLUSDT": 1,
       "TARO": -3,
       "OPUSDT": -15,
       "PENDLEUSDT": -12,
