@@ -1,5 +1,5 @@
 """
-🔍 KNOWLEDGE BASE V1.3 — Version Intégrale Stable
+🔍 KNOWLEDGE BASE V1.3 — Version Intégrale Stable + AUTO-LOAD
 """
 
 import os
@@ -21,6 +21,20 @@ class KnowledgeBase:
                 metadata={"hnsw:space": "cosine"}
             )
             logger.info("✅ [KNOWLEDGE-BASE] ChromaDB initialisée")
+            
+            # === AUTO-LOAD PDFs (ce que tu as demandé) ===
+            # Chargement automatique si la base est vide (premier démarrage)
+            # Pour les redémarrages suivants, ça saute automatiquement car ChromaDB est persistante
+            try:
+                if self.collection and self.collection.count() == 0:
+                    logger.info("🔄 [KNOWLEDGE-BASE] Collection vide → Chargement automatique des PDFs depuis la racine...")
+                    self.load_pdfs_from_root()
+                else:
+                    count = self.collection.count() if self.collection else 0
+                    logger.info(f"📚 [KNOWLEDGE-BASE] {count} fragments déjà présents dans ChromaDB (auto-load skipped)")
+            except Exception as e:
+                logger.warning(f"[KNOWLEDGE-BASE] Auto-load check failed: {e}")
+                
         except Exception as e:
             logger.error(f"❌ [KNOWLEDGE-BASE] Erreur initialisation : {e}")
             self.collection = None
