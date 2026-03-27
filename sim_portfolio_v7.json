@@ -1,8 +1,36 @@
 {
   "sim": {
-    "cash": 1001.1383742248693,
+    "cash": 513.3837583025131,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MICRO_MEMEUSDT_19": {
+        "id": 19,
+        "symbol": "MEMEUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.000562,
+        "price_out": null,
+        "qty": 867890.7756625555,
+        "amount_usd": 487.7546159223562,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=24 mom=-0.18% vol=7.3x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 05:47:29",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.000562,
+        "open_time": 1774590449.434907,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_MEMEUSDT_19"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -471,6 +499,32 @@
         "leverage": 1,
         "peak_price": 0.000361,
         "open_time": 1774590377.697319,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 19,
+        "symbol": "MEMEUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.000562,
+        "price_out": null,
+        "qty": 867890.7756625555,
+        "amount_usd": 487.7546159223562,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=24 mom=-0.18% vol=7.3x",
+        "exit_reason": null,
+        "time_in": "2026-03-27 05:47:29",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.000562,
+        "open_time": 1774590449.434907,
         "kelly_pct": 0.48
       }
     ],
@@ -8557,6 +8611,28 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 05:47"
+      },
+      {
+        "trade_id": -3,
+        "pnl": -1.6021,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 05:47"
+      },
+      {
+        "trade_id": -4,
+        "pnl": -4.3415,
+        "symbol": "SOLUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 05:47"
       }
     ],
     "patterns_to_avoid": [
@@ -8705,8 +8781,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -8857,6 +8931,8 @@
       "backtest_5m",
       "backtest_5m",
       "score=4",
+      "backtest_5m",
+      "backtest_5m",
       "backtest_5m",
       "backtest_5m",
       "backtest_5m"
@@ -9075,7 +9151,7 @@
     "symbol_scores": {
       "BTCUSDT": -15,
       "ETHUSDT": -15,
-      "SOLUSDT": 4,
+      "SOLUSDT": -2,
       "TARO": -3,
       "OPUSDT": -6,
       "PENDLEUSDT": -6,
