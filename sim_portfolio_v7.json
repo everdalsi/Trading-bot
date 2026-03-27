@@ -3,33 +3,6 @@
     "cash": 500.06374662736073,
     "initial": 1000.0,
     "positions": {
-      "MICRO_LINKUSDT_92": {
-        "id": 92,
-        "symbol": "LINKUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 8.52,
-        "price_out": null,
-        "qty": 57.45158655508854,
-        "amount_usd": 489.48751744935436,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=23 mom=-0.23% vol=5.6x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 14:23:34",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 8.55,
-        "open_time": 1774621414.5398908,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_LINKUSDT_92"
-      },
       "MICRO_RENDERUSDT_93": {
         "id": 93,
         "symbol": "RENDERUSDT",
