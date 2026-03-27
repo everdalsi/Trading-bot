@@ -2,35 +2,7 @@
   "sim": {
     "cash": 1002.9808654133506,
     "initial": 1000.0,
-    "positions": {
-      "MICRO_FLOKIUSDT_22": {
-        "id": 22,
-        "symbol": "FLOKIUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 2.887e-05,
-        "price_out": null,
-        "qty": 16925953.502922907,
-        "amount_usd": 488.6522776293843,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=22 mom=-0.07% vol=3.8x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 05:51:41",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 2.887e-05,
-        "open_time": 1774590701.878261,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_FLOKIUSDT_22"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
