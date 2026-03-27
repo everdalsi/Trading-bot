@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 772.9204403833951,
+    "cash": 901.036423231395,
     "initial": 1000.0,
     "positions": {
       "MICRO_JUPUSDT_6": {
@@ -224,17 +224,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.1486,
-        "price_out": null,
+        "price_out": 0.1486,
         "qty": 862.1533166083444,
         "amount_usd": 128.115982848,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=23 mom=-0.07% vol=2.5x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 63s",
         "time_in": "2026-03-27 05:33:27",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 05:34:34",
+        "pnl": 0.0,
+        "pnl_pct": 0.0,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -6861,6 +6861,39 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-27 05:34"
+      },
+      {
+        "trade_id": -2,
+        "pnl": -5.1664,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 05:34"
+      },
+      {
+        "trade_id": -3,
+        "pnl": -1.8027,
+        "symbol": "ETHUSDT",
+        "market": "BACKTEST",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "backtest_5m",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 05:34"
+      },
+      {
+        "trade_id": 6,
+        "pnl": 0.0,
+        "symbol": "JUPUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-27 05:34"
       }
     ],
     "patterns_to_avoid": [
@@ -7106,9 +7139,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
-      "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -7163,7 +7193,10 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "backtest_5m",
+      "backtest_5m",
+      "score=4"
     ],
     "patterns_that_work": [
       "backtest_5m",
@@ -7334,7 +7367,7 @@
       "score=4"
     ],
     "confidence_threshold": 82,
-    "total_wins": 56,
+    "total_wins": 57,
     "total_losses": 124,
     "symbol_scores": {
       "BTCUSDT": -15,
@@ -7344,13 +7377,15 @@
       "OPUSDT": -6,
       "PENDLEUSDT": -6,
       "ARBUSDT": -6,
-      "BONKUSDT": 2
+      "BONKUSDT": 4,
+      "JUPUSDT": -3
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
       "OPUSDT": 1,
       "PENDLEUSDT": 1,
-      "ARBUSDT": 1
+      "ARBUSDT": 1,
+      "BONKUSDT": 0
     },
     "bad_setups": [
       {
