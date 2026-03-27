@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 304.0,
+    "cash": 1000.1985168282944,
     "initial": 1000.0,
     "positions": {
       "MICRO_UNIUSDT_51": {
@@ -1347,17 +1347,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 3.506,
-        "price_out": null,
+        "price_out": 3.507,
         "qty": 198.51682829435256,
         "amount_usd": 696.0,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=18 mom=-0.23% vol=5.7x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 61s",
         "time_in": "2026-03-27 08:09:24",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 08:10:25",
+        "pnl": 0.198517,
+        "pnl_pct": 0.029,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -21715,6 +21715,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 08:10"
+      },
+      {
+        "trade_id": 51,
+        "pnl": 0.198517,
+        "symbol": "UNIUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 08:10"
       }
     ],
     "patterns_to_avoid": [
@@ -22071,7 +22082,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -22319,9 +22329,10 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
-    "confidence_threshold": 40,
+    "confidence_threshold": 38,
     "total_wins": 188,
     "total_losses": 367,
     "symbol_scores": {
@@ -22348,7 +22359,7 @@
       "SUIUSDT": -6,
       "PEPEUSDT": 4,
       "ONDOUSDT": 4,
-      "UNIUSDT": -6,
+      "UNIUSDT": -4,
       "APTUSDT": -2,
       "SEIUSDT": -12,
       "AVAXUSDT": -12,
