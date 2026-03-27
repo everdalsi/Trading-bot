@@ -104,29 +104,31 @@ class TraderAgent(BaseAgent):
         decision = "HOLD"
         reason   = "Pas de signal clair"
 
-        composite = (symbol_score * 0.6 + global_score * 0.3)
+        composite = (symbol_score * 0.65 + global_score * 0.25)
 
-        # Bonus patterns
+        # Bonus patterns très fort en mode précision
         if best_patterns:
-            top_patterns = [p for p in best_patterns if p.get("win_rate", 0) >= 0.65]
+            top_patterns = [p for p in best_patterns if p.get("win_rate", 0) >= 0.75]
             if top_patterns:
-                composite += 0.12   # gros boost si pattern connu et rentable
+                composite += 0.18
+            elif any(p.get("win_rate", 0) >= 0.65 for p in best_patterns):
+                composite += 0.12
 
-        # BUY plus intelligent
-        if (macro in ("bullish", "BULL") and composite >= 0.48) or composite >= 0.55:
+        # BUY plus intelligent et sélectif
+        if (macro in ("bullish", "BULL") and composite >= 0.78) or composite >= 0.82:
             if ("CRITICAL" not in str(risk.get("summary", "")) and
                 "STOP" not in str(risk.get("recommendation", ""))):
                 decision = "BUY"
                 reason   = f"Macro haussier + composite optimisé={composite:.2f} + risque OK"
 
-        elif composite >= 0.72:
+        elif composite >= 0.78:
             decision = "BUY"
             reason   = f"Score composite très fort ({composite:.2f})"
 
         # Boost via auto-règles
         if decision == "HOLD" and auto_rules:
             buy_rules = [r for r in auto_rules if "✅" in r]
-            if len(buy_rules) >= 2 and composite >= 0.50:
+            if len(buy_rules) >= 2 and composite >= 0.65:
                 decision = "BUY"
                 reason   = f"Règles automatiques actives ({len(buy_rules)}) + score {composite:.2f}"
 
@@ -134,7 +136,7 @@ class TraderAgent(BaseAgent):
         if decision == "HOLD":
             confidence = round(max(0.20, composite * 0.65), 2)
         else:
-            confidence = round(max(0.45, min(0.96, composite * 1.15)), 2)
+            confidence = round(max(0.55, min(0.96, composite * 1.25)), 2)
 
         return {
             "agent":        self.name,
@@ -162,7 +164,7 @@ class TraderAgent(BaseAgent):
             "confidence":   0.20,
             "symbol_score": round(symbol_score, 2),
             "global_score": round(global_score, 2),
-            "composite":    round((symbol_score * 0.6 + global_score * 0.3), 2),
+            "composite":    round((symbol_score * 0.65 + global_score * 0.25), 2),
             "summary":      f"{symbol} → HOLD | {reason[:80]}",
             "reason":       reason,
             "macro":        "neutral",
