@@ -1,35 +1,8 @@
 {
   "sim": {
-    "cash": 649.405151229093,
+    "cash": 694.7231074486317,
     "initial": 1000.0,
     "positions": {
-      "MICRO_FLOKIUSDT_94": {
-        "id": 94,
-        "symbol": "FLOKIUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 2.776e-05,
-        "price_out": null,
-        "qty": 1629556.1387824048,
-        "amount_usd": 45.23647841259955,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=14 mom=-0.32% vol=2.8x",
-        "exit_reason": null,
-        "time_in": "2026-03-27 14:23:38",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 2.782e-05,
-        "open_time": 1774621418.5792038,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_FLOKIUSDT_94"
-      },
       "MICRO_BTCUSDT_95": {
         "id": 95,
         "symbol": "BTCUSDT",
@@ -2592,17 +2565,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 2.776e-05,
-        "price_out": null,
+        "price_out": 2.781e-05,
         "qty": 1629556.1387824048,
         "amount_usd": 45.23647841259955,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=14 mom=-0.32% vol=2.8x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 63s",
         "time_in": "2026-03-27 14:23:38",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-27 14:24:48",
+        "pnl": 0.081478,
+        "pnl_pct": 0.18,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -13710,6 +13683,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-27 14:24"
+      },
+      {
+        "trade_id": 94,
+        "pnl": 0.081478,
+        "symbol": "FLOKIUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-27 14:24"
       }
     ],
     "patterns_to_avoid": [
@@ -14233,10 +14217,11 @@
       "backtest_5m",
       "backtest_5m",
       "score=4",
+      "score=4",
       "score=4"
     ],
     "confidence_threshold": 82,
-    "total_wins": 17,
+    "total_wins": 18,
     "total_losses": 308,
     "symbol_scores": {
       "Deadwhale": -15,
@@ -14265,10 +14250,11 @@
       "INJUSDT": -12,
       "TAOUSDT": 4,
       "STXUSDT": -6,
-      "RENDERUSDT": -4,
+      "RENDERUSDT": -2,
       "DOGEUSDT": -6,
       "UNIUSDT": -6,
-      "LINKUSDT": 4
+      "LINKUSDT": 4,
+      "FLOKIUSDT": 2
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
@@ -14292,7 +14278,7 @@
       "INJUSDT": 2,
       "TAOUSDT": 0,
       "STXUSDT": 1,
-      "RENDERUSDT": 1,
+      "RENDERUSDT": 0,
       "DOGEUSDT": 1,
       "UNIUSDT": 1,
       "LINKUSDT": 0
