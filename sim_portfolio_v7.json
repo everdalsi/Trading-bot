@@ -3,34 +3,6 @@
     "cash": 353.5121450091973,
     "initial": 1000.0,
     "positions": {
-      "MEME_NEKO_67": {
-        "id": 67,
-        "symbol": "NEKO",
-        "market": "MEME",
-        "side": "LONG",
-        "trade_type": "MEME",
-        "meme_symbol": "NEKO",
-        "price_in": 0.0005699,
-        "price_out": null,
-        "qty": 85780.59858564596,
-        "amount_usd": 48.886363133959634,
-        "confidence": 85,
-        "reason": "Score 5/10 | @DexScreener",
-        "exit_reason": null,
-        "time_in": "2026-03-27 11:45:14",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "memecoin"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0006209,
-        "open_time": 1774611914.9179637,
-        "kelly_pct": 0.05,
-        "pos_key": "MEME_NEKO_67"
-      },
       "MICRO_IMXUSDT_71": {
         "id": 71,
         "symbol": "IMXUSDT",
@@ -9912,8 +9884,8 @@
       "memecoin"
     ],
     "confidence_threshold": 82,
-    "total_wins": 13,
-    "total_losses": 208,
+    "total_wins": 14,
+    "total_losses": 209,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -15,
@@ -14348,6 +14320,48 @@
             "exit": 68578.0,
             "pnl": -1.7869,
             "pnl_pct": -0.9,
+            "exit_reason": "TIMEOUT"
+          }
+        ]
+      },
+      {
+        "symbol": "ETHUSDT",
+        "interval": "5m",
+        "days": 30,
+        "total_trades": 3,
+        "wins": 0,
+        "losses": 3,
+        "win_rate": 0.0,
+        "total_pnl": -7.86,
+        "total_pnl_pct": -0.79,
+        "sharpe": -22.72,
+        "max_drawdown": -0.79,
+        "profit_factor": 0.0,
+        "best_trade": -0.45,
+        "worst_trade": -2.59,
+        "final_equity": 992.14,
+        "sl_used": 0.025,
+        "tp_used": 0.04,
+        "trades": [
+          {
+            "entry": 2182.97094,
+            "exit": 2173.23,
+            "pnl": -0.8911,
+            "pnl_pct": -0.45,
+            "exit_reason": "TIMEOUT"
+          },
+          {
+            "entry": 2122.92093,
+            "exit": 2067.95,
+            "pnl": -5.1664,
+            "pnl_pct": -2.59,
+            "exit_reason": "SL"
+          },
+          {
+            "entry": 2069.324145,
+            "exit": 2050.53,
+            "pnl": -1.8027,
+            "pnl_pct": -0.91,
             "exit_reason": "TIMEOUT"
           }
         ]
