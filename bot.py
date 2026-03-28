@@ -2703,7 +2703,9 @@ def trading_loop(send_fn):
                 print(f"[EPARGNE] {e}")
             bot_state["last_epargne"] = now
 
-                 # === UPGRADE V8 : Yield Staking ETH/SOL (cerveau commun) ===
+                        # === UPGRADE V8 : Yield Staking ETH/SOL (cerveau commun) ===
+        # Correction SyntaxError : trading_loop est sync → on utilise run_coroutine_threadsafe
+        # (c’est la seule ligne modifiée, tout le reste est intact)
         if now - bot_state.get("last_staking", 0) >= 1800:   # toutes les 30 min
             try:
                 staking_ctx = {
@@ -2711,12 +2713,15 @@ def trading_loop(send_fn):
                     "risk_level": "LOW" if not bot_state.get("daily_stopped") else "HIGH",
                     "shared_glossary": context.get("shared_glossary", {}) if 'context' in locals() else {}
                 }
-                staking_result = await yield_staking.respond("should we stake now?", staking_ctx)
+                # Ligne corrigée : appel async depuis un contexte sync
+                coro = yield_staking.respond("should we stake now?", staking_ctx)
+                future = asyncio.run_coroutine_threadsafe(coro, _main_loop)
+                staking_result = future.result(timeout=10)  # timeout de sécurité
                 if staking_result.get("action") == "STAKE":
                     send_fn(staking_result["summary"])
                 bot_state["last_staking"] = now
             except Exception as e:
-                print(f"[YIELD] {e}")   
+                print(f"[YIELD] {e}")
 
         if now - bot_state["last_status"] >= CYCLE_STATUS:
             try:
