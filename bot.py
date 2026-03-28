@@ -3985,6 +3985,7 @@ async def run_telegram():
         ("stake_sol",      cmd_stake_sol),
         ("regime",         cmd_regime),
         ("execute",        cmd_execute),
+        ("test_brain",     cmd_test_brain),
     ]:
         _app.add_handler(CommandHandler(cmd, fn))
 
