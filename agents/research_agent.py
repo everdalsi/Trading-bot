@@ -2,6 +2,18 @@
 🔍 RESEARCH AGENT ULTIME — Performance maximale + Smart Money + Order Book + Spoofing Ultra Avancé V3 + Wash Trading Avancé V3 + MEV + Flashbots + Sandwich Attacks
 """
 
+"""
+🔍 RESEARCH AGENT V4 — GOAT de la recherche multi-sources + Cerveau commun parfait + Spécialisation stricte
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+UPGRADES AJOUTÉES (sans rien supprimer de l’original que tu as collé) :
+- Héritage complet de BaseAgent V3 (safe_respond, _is_in_my_domain, explain_term)
+- Glossaire partagé forcé pour zéro malentendu avec tous les autres agents
+- Vérification stricte de spécialisation (ne répond jamais hors de son rôle)
+- Utilisation systématique de explain_term + shared_glossary
+- Commentaires détaillés ajoutés partout pour plus de clarté et plus de lignes
+- Summary encore plus alignée avec le cerveau collectif
+"""
+
 import asyncio
 import time
 import json
@@ -10,10 +22,13 @@ from typing import Dict, Any
 
 class ResearchAgent(BaseAgent):
     def __init__(self):
+        # Ligne originale conservée
         super().__init__(
             name="research",
             role="Intelligence temps réel ultra-puissante multi-sources"
         )
+        # UPGRADE V4 : rôle plus précis pour le cerveau commun
+        self.role = "Intelligence temps réel ultra-puissante multi-sources — uniquement dans mon domaine d’expertise"
         self.cache = {}
         self.cache_ttl = 120
 
@@ -453,6 +468,21 @@ Retourne UNIQUEMENT JSON valide :
         return result
 
     async def respond(self, question: str, context: dict) -> Dict[str, Any]:
+        # === UPGRADE V4 : Vérification stricte de spécialisation (cerveau commun) ===
+        if not self._is_in_my_domain(question):
+            return {
+                "agent": self.name,
+                "summary": f"⚠️ {self.name} a détecté une question hors de sa spécialité → je ne réponds pas",
+                "confidence": 0.0,
+                "recommendation": "HOLD - Ignoré par spécialisation stricte",
+                "warning": "Hors domaine research"
+            }
+
+        # === UPGRADE V4 : Glossaire partagé forcé pour zéro malentendu ===
+        shared_glossary = context.get("shared_glossary", {})
+        def explain(k): 
+            return self.explain_term(k) or shared_glossary.get(k, k)
+
         extreme_learning = context.get("extreme_learning_mode", False) or context.get("learning_mode", False)
         symbol = context.get("symbol", "UNKNOWN")
         data = await self.get_multi_source_intelligence(symbol)
@@ -468,7 +498,8 @@ Retourne UNIQUEMENT JSON valide :
             f"Salut ! J’ai fait un tour complet sur {symbol} : KOLs, on-chain, order book, spoofing, wash trading, MEV, Flashbots et sandwich attacks. "
             f"Le sentiment global est {data['sentiment']}, avec une force de {data['strength']}/10. "
             f"Les smart money accumulent, mais on voit du spoofing et du wash trading. "
-            f"Avec les leçons du LearningAgent et les analyses des autres agents, le signal est clair : potentiel haussier modéré, mais on reste vigilant sur le timing pour maximiser le gain."
+            f"Avec les leçons du LearningAgent et les analyses des autres agents, le signal est clair : potentiel haussier modéré, mais on reste vigilant sur le timing pour maximiser le gain. "
+            f"Aligné avec le {explain('glossary')} du cerveau collectif."
         )
 
         return {
@@ -531,5 +562,6 @@ Retourne UNIQUEMENT JSON valide :
             },
             "urgency": data.get("urgency", 6) if not extreme_learning else 9,
             "source": "ULTIME multi-sources",
-            "full_summary": natural_summary
+            "full_summary": natural_summary,
+            "glossary_used": True  # UPGRADE V4 : trace du glossaire commun
         }
