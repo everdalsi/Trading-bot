@@ -138,3 +138,84 @@ class Memory:
 
     def log_trade(self, trade_data: dict):
         self.add_trade(trade_data)
+
+# =================================================================
+# === UPGRADES PHASE 1 AJOUTÉES (sans rien supprimer) ============
+# =================================================================
+import sqlite3
+import redis
+import pickle
+from datetime import datetime
+import logging
+
+logger = logging.getLogger(__name__)
+
+    def __init__(self):  # on garde l’ancien __init__ intact, on ajoute juste après
+        super().__init__()  # compatibilité
+        self.conn = sqlite3.connect("trading_memory.db", check_same_thread=False)
+        self._init_db()
+        try:
+            self.redis = redis.Redis(host="localhost", port=6379, db=0, decode_responses=True)
+            self.redis.ping()
+            self.use_redis = True
+        except:
+            self.use_redis = False
+            logger.warning("Redis non dispo → SQLite only")
+
+    def _init_db(self):
+        self.conn.execute('''
+            CREATE TABLE IF NOT EXISTS lessons (
+                id INTEGER PRIMARY KEY,
+                timestamp TEXT,
+                symbol TEXT,
+                action TEXT,
+                outcome TEXT,
+                pnl REAL,
+                confidence REAL,
+                lesson_text TEXT
+            )
+        ''')
+        self.conn.execute('''
+            CREATE TABLE IF NOT EXISTS positions (
+                symbol TEXT PRIMARY KEY,
+                side TEXT,
+                amount REAL,
+                entry_price REAL,
+                timestamp TEXT
+            )
+        ''')
+        self.conn.commit()
+
+    def save_lesson(self, symbol: str, action: str, outcome: str, pnl: float, confidence: float, lesson: str):
+        self.conn.execute(
+            "INSERT INTO lessons (timestamp, symbol, action, outcome, pnl, confidence, lesson_text) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (datetime.utcnow().isoformat(), symbol, action, outcome, pnl, confidence, lesson)
+        )
+        self.conn.commit()
+
+    def get_recent_lessons(self, limit: int = 50) -> List[Dict]:
+        cursor = self.conn.execute("SELECT * FROM lessons ORDER BY timestamp DESC LIMIT ?", (limit,))
+        cols = [col[0] for col in cursor.description]
+        return [dict(zip(cols, row)) for row in cursor.fetchall()]
+
+    def save_position(self, symbol: str, side: str, amount: float, entry_price: float):
+        self.conn.execute(
+            "REPLACE INTO positions (symbol, side, amount, entry_price, timestamp) VALUES (?, ?, ?, ?, ?)",
+            (symbol, side, amount, entry_price, datetime.utcnow().isoformat())
+        )
+        self.conn.commit()
+
+    def get_positions(self) -> Dict:
+        cursor = self.conn.execute("SELECT * FROM positions")
+        cols = ['symbol','side','amount','entry_price','timestamp']
+        return {row[0]: dict(zip(cols, row)) for row in cursor.fetchall()}
+
+    def cache_set(self, key: str, value: Any, expire: int = 300):
+        if self.use_redis:
+            self.redis.setex(key, expire, pickle.dumps(value))
+
+    def cache_get(self, key: str) -> Any:
+        if self.use_redis:
+            data = self.redis.get(key)
+            return pickle.loads(data) if data else None
+        return None
