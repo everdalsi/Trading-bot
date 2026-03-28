@@ -3,33 +3,6 @@
     "cash": 972.9220198390632,
     "initial": 1000.0,
     "positions": {
-      "MICRO_BTCUSDT_131": {
-        "id": 131,
-        "symbol": "BTCUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 65936.3,
-        "price_out": null,
-        "qty": 0.000510438954059752,
-        "amount_usd": 33.656456006570025,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=17 mom=-0.16% vol=12.0x",
-        "exit_reason": null,
-        "time_in": "2026-03-28 02:30:45",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 66001.0,
-        "open_time": 1774665045.1486511,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_BTCUSDT_131"
-      },
       "MICRO_ETHUSDT_132": {
         "id": 132,
         "symbol": "ETHUSDT",
