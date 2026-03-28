@@ -1,8 +1,36 @@
 {
   "sim": {
-    "cash": 998.7523066156032,
+    "cash": 998.2401043800419,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MICRO_APTUSDT_143": {
+        "id": 143,
+        "symbol": "APTUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.95,
+        "price_out": null,
+        "qty": 512.2022355611809,
+        "amount_usd": 486.59212378312185,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=26 mom=-0.32% vol=32.9x",
+        "exit_reason": null,
+        "time_in": "2026-03-28 03:14:46",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.95,
+        "open_time": 1774667686.6481848,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_APTUSDT_143"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -3748,6 +3776,32 @@
         "leverage": 1,
         "peak_price": 0.951,
         "open_time": 1774667576.8887916,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 143,
+        "symbol": "APTUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.95,
+        "price_out": 0.949,
+        "qty": 512.2022355611809,
+        "amount_usd": 486.59212378312185,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=26 mom=-0.32% vol=32.9x",
+        "exit_reason": "\u23f1 TIMEOUT 69s",
+        "time_in": "2026-03-28 03:14:46",
+        "time_out": "2026-03-28 03:15:56",
+        "pnl": -0.512202,
+        "pnl_pct": -0.105,
+        "duration_min": 1,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.95,
+        "open_time": 1774667686.6481848,
         "kelly_pct": 0.48
       }
     ],
@@ -18038,6 +18092,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-28 03:14"
+      },
+      {
+        "trade_id": 143,
+        "pnl": -0.512202,
+        "symbol": "APTUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-28 03:15"
       }
     ],
     "patterns_to_avoid": [
@@ -18069,7 +18134,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -18315,6 +18379,7 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "score=4",
       "score=4",
       "score=4",
       "score=4",
@@ -18622,7 +18687,7 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 35,
-    "total_losses": 401,
+    "total_losses": 402,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -11,
@@ -18675,7 +18740,7 @@
       "TRXUSDT": 0,
       "ONDOUSDT": 0,
       "AVAXUSDT": 0,
-      "APTUSDT": 3,
+      "APTUSDT": 4,
       "OPUSDT": 5,
       "MEMEUSDT": 1,
       "NOTUSDT": 1,
