@@ -2,35 +2,7 @@
   "sim": {
     "cash": 1001.8709677419355,
     "initial": 1000.0,
-    "positions": {
-      "MICRO_PYTHUSDT_176": {
-        "id": 176,
-        "symbol": "PYTHUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.0372,
-        "price_out": null,
-        "qty": 18709.67741935484,
-        "amount_usd": 696.0,
-        "confidence": 88,
-        "reason": "EMA\u2191 RSI7=23 mom=-0.27% vol=143.6x",
-        "exit_reason": null,
-        "time_in": "2026-03-28 06:36:29",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0373,
-        "open_time": 1774679789.378824,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_PYTHUSDT_176"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
