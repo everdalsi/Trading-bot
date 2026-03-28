@@ -17912,7 +17912,7 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 28,
-    "total_losses": 389,
+    "total_losses": 390,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -15,
@@ -17950,7 +17950,7 @@
       "DOTUSDT": 1,
       "BONKUSDT": 4,
       "PYTHUSDT": -12,
-      "ENAUSDT": -5
+      "ENAUSDT": -8
     },
     "symbol_blacklist": {
       "OPUSDT": {
@@ -17992,7 +17992,7 @@
       "DOTUSDT": 0,
       "BONKUSDT": 0,
       "PYTHUSDT": 2,
-      "ENAUSDT": 0,
+      "ENAUSDT": 1,
       "ETHUSDT": 1
     },
     "bad_setups": [
@@ -26892,6 +26892,6 @@
         "status": "\u2705 Promos d\u00e9tect\u00e9es"
       }
     ],
-    "last_scan": 1774660959.3405495
+    "last_scan": 1774664576.4473915
   }
 }
