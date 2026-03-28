@@ -2749,7 +2749,9 @@ def trading_loop(send_fn):
                     "mcap_change_24h": get_onchain_data().get("mcap_change_24h", 0),
                     "shared_glossary": context.get("shared_glossary", {}) if 'context' in locals() else {}
                 }
-                regime_result = await quant_ml.respond("detect current market regime", quant_ctx)
+                coro = quant_ml.respond("detect current market regime", quant_ctx)
+                future = asyncio.run_coroutine_threadsafe(coro, _main_loop)
+                regime_result = future.result(timeout=10)
                 bot_state["market_regime"] = regime_result["regime"]
                 bot_state["last_quant_ml"] = now
                 if regime_result["confidence"] > 0.8:
@@ -2768,7 +2770,9 @@ def trading_loop(send_fn):
                     "market_regime": bot_state.get("market_regime", "NEUTRAL"),
                     "shared_glossary": context.get("shared_glossary", {}) if 'context' in locals() else {}
                 }
-                exec_result = await execution_engine.respond("execute this trade now", exec_ctx)
+                coro = execution_engine.respond("execute this trade now", exec_ctx)
+                future = asyncio.run_coroutine_threadsafe(coro, _main_loop)
+                exec_result = future.result(timeout=10)
                 if exec_result.get("confidence", 0) > 0.85:
                     send_fn(exec_result["summary"])
                 bot_state["last_execution"] = now
