@@ -1,8 +1,36 @@
 {
   "sim": {
-    "cash": 999.5160434335702,
+    "cash": 998.9658013811851,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MICRO_ENAUSDT_123": {
+        "id": 123,
+        "symbol": "ENAUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.0885,
+        "price_out": null,
+        "qty": 5502.420523851247,
+        "amount_usd": 486.96421636083534,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=13 mom=+0.00% vol=3.7x",
+        "exit_reason": null,
+        "time_in": "2026-03-28 02:20:40",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0885,
+        "open_time": 1774664440.276517,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_ENAUSDT_123"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -3228,6 +3256,32 @@
         "leverage": 1,
         "peak_price": 1988.0,
         "open_time": 1774664248.118841,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 123,
+        "symbol": "ENAUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.0885,
+        "price_out": 0.0884,
+        "qty": 5502.420523851247,
+        "amount_usd": 486.96421636083534,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=13 mom=+0.00% vol=3.7x",
+        "exit_reason": "\u23f1 TIMEOUT 71s",
+        "time_in": "2026-03-28 02:20:40",
+        "time_out": "2026-03-28 02:21:51",
+        "pnl": -0.550242,
+        "pnl_pct": -0.113,
+        "duration_min": 1,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0885,
+        "open_time": 1774664440.276517,
         "kelly_pct": 0.48
       }
     ],
@@ -17298,6 +17352,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-28 02:18"
+      },
+      {
+        "trade_id": 123,
+        "pnl": -0.550242,
+        "symbol": "ENAUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-28 02:21"
       }
     ],
     "patterns_to_avoid": [
@@ -17342,7 +17407,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -17588,6 +17652,7 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "score=4",
       "score=4",
       "score=4",
       "score=4",
@@ -17875,11 +17940,11 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 28,
-    "total_losses": 388,
+    "total_losses": 389,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -15,
-      "ETHUSDT": -14,
+      "ETHUSDT": -15,
       "SOLUSDT": -15,
       "APTUSDT": -15,
       "NEKO": -10,
@@ -17913,7 +17978,7 @@
       "DOTUSDT": 1,
       "BONKUSDT": 4,
       "PYTHUSDT": -12,
-      "ENAUSDT": -2
+      "ENAUSDT": -5
     },
     "symbol_blacklist": {
       "OPUSDT": {
@@ -17956,7 +18021,7 @@
       "BONKUSDT": 0,
       "PYTHUSDT": 2,
       "ENAUSDT": 0,
-      "ETHUSDT": 0
+      "ETHUSDT": 1
     },
     "bad_setups": [
       {
