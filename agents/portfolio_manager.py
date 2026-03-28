@@ -34,10 +34,9 @@ class PortfolioManager(BaseAgent):
 
         # === VÉRIFICATION CALCULS + CONVERSIONS SAFE ===
         if "verify" in question.lower() or "conversion" in question.lower():
-            # Exemple vérification prix + conversion
             price = context.get("price", 0)
             amount = context.get("amount", 0)
-            safe_amount = round(max(0, amount), 8)  # 8 décimales max pour crypto
+            safe_amount = round(max(0, amount), 8)
             conversion = round(safe_amount * price, 2) if price > 0 else 0
             return {
                 "agent": self.name,
