@@ -3,33 +3,6 @@
     "cash": 750.4238516797382,
     "initial": 1000.0,
     "positions": {
-      "MICRO_DOGEUSDT_149": {
-        "id": 149,
-        "symbol": "DOGEUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.08984,
-        "price_out": null,
-        "qty": 5423.677572950368,
-        "amount_usd": 487.26319315386104,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=18 mom=-0.10% vol=2.6x",
-        "exit_reason": null,
-        "time_in": "2026-03-28 03:49:24",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.08987,
-        "open_time": 1774669764.3600032,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_DOGEUSDT_149"
-      },
       "MICRO_INJUSDT_150": {
         "id": 150,
         "symbol": "INJUSDT",
