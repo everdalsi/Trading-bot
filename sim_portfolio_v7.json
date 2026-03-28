@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 620.5912111810558,
+    "cash": 869.9322165628986,
     "initial": 1000.0,
     "positions": {
       "MICRO_SUIUSDT_156": {
@@ -4150,17 +4150,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.875,
-        "price_out": null,
+        "price_out": 0.8749,
         "qty": 284.99371971864537,
         "amount_usd": 249.3695047538147,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=27 mom=-0.17% vol=39.5x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 71s",
         "time_in": "2026-03-28 04:08:11",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-28 04:09:23",
+        "pnl": -0.028499,
+        "pnl_pct": -0.011,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -18626,6 +18626,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-28 04:09"
+      },
+      {
+        "trade_id": 156,
+        "pnl": -0.028499,
+        "symbol": "SUIUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-28 04:09"
       }
     ],
     "patterns_to_avoid": [
@@ -18650,7 +18661,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -18896,6 +18906,7 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "score=4",
       "score=4",
       "score=4",
       "score=4",
@@ -19216,12 +19227,12 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 41,
-    "total_losses": 408,
+    "total_losses": 409,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -11,
       "ETHUSDT": -7,
-      "SOLUSDT": -14,
+      "SOLUSDT": -15,
       "APTUSDT": -15,
       "NEKO": -10,
       "ARBUSDT": -11,
@@ -19254,7 +19265,8 @@
       "DOTUSDT": 1,
       "BONKUSDT": 4,
       "PYTHUSDT": -12,
-      "ENAUSDT": -10
+      "ENAUSDT": -10,
+      "SUIUSDT": -3
     },
     "symbol_blacklist": {
       "OPUSDT": {
@@ -19295,7 +19307,7 @@
       "LINKUSDT": 1,
       "FLOKIUSDT": 0,
       "BTCUSDT": 0,
-      "SOLUSDT": 0,
+      "SOLUSDT": 1,
       "XRPUSDT": 1,
       "LTCUSDT": 1,
       "DOTUSDT": 0,
