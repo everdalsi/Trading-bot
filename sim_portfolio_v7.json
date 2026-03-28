@@ -1,8 +1,63 @@
 {
   "sim": {
-    "cash": 999.7681329251801,
+    "cash": 788.4931758446514,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MICRO_BTCUSDT_114": {
+        "id": 114,
+        "symbol": "BTCUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 66108.85,
+        "price_out": null,
+        "qty": 0.010525650053146065,
+        "amount_usd": 695.8386205159253,
+        "confidence": 88,
+        "reason": "EMA\u2191 RSI7=55 mom=+0.07% vol=2.8x",
+        "exit_reason": null,
+        "time_in": "2026-03-28 01:55:19",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 66133.55,
+        "open_time": 1774662919.214877,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_BTCUSDT_114"
+      },
+      "MICRO_ENAUSDT_115": {
+        "id": 115,
+        "symbol": "ENAUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.0885,
+        "price_out": null,
+        "qty": 2390.2253179304107,
+        "amount_usd": 211.53494063684136,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=13 mom=+0.00% vol=3.9x",
+        "exit_reason": null,
+        "time_in": "2026-03-28 01:55:29",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0886,
+        "open_time": 1774662929.518273,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_ENAUSDT_115"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -2994,6 +3049,58 @@
         "leverage": 1,
         "peak_price": 1985.35,
         "open_time": 1774661853.423075,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 114,
+        "symbol": "BTCUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 66108.85,
+        "price_out": 66133.55,
+        "qty": 0.010525650053146065,
+        "amount_usd": 695.8386205159253,
+        "confidence": 88,
+        "reason": "EMA\u2191 RSI7=55 mom=+0.07% vol=2.8x",
+        "exit_reason": "\u23f1 TIMEOUT 70s",
+        "time_in": "2026-03-28 01:55:19",
+        "time_out": "2026-03-28 01:56:30",
+        "pnl": 0.259984,
+        "pnl_pct": 0.037,
+        "duration_min": 1,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 66108.85,
+        "open_time": 1774662919.214877,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 115,
+        "symbol": "ENAUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.0885,
+        "price_out": null,
+        "qty": 2390.2253179304107,
+        "amount_usd": 211.53494063684136,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=13 mom=+0.00% vol=3.9x",
+        "exit_reason": null,
+        "time_in": "2026-03-28 01:55:29",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0885,
+        "open_time": 1774662929.518273,
         "kelly_pct": 0.48
       }
     ],
@@ -16965,6 +17072,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-28 01:38"
+      },
+      {
+        "trade_id": 114,
+        "pnl": 0.259984,
+        "symbol": "BTCUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-28 01:56"
       }
     ],
     "patterns_to_avoid": [
@@ -17536,15 +17654,16 @@
       "backtest_5m",
       "backtest_5m",
       "score=4",
+      "score=4",
       "score=4"
     ],
     "confidence_threshold": 82,
-    "total_wins": 25,
+    "total_wins": 26,
     "total_losses": 382,
     "symbol_scores": {
       "Deadwhale": -15,
-      "BTCUSDT": -15,
-      "ETHUSDT": -13,
+      "BTCUSDT": -13,
+      "ETHUSDT": -11,
       "SOLUSDT": -15,
       "APTUSDT": -15,
       "NEKO": -10,
@@ -17614,7 +17733,8 @@
       "DOTUSDT": 0,
       "BONKUSDT": 0,
       "PYTHUSDT": 2,
-      "ENAUSDT": 1
+      "ENAUSDT": 1,
+      "ETHUSDT": 0
     },
     "bad_setups": [
       {
