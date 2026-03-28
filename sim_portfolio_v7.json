@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 746.8349661158765,
+    "cash": 995.5612538381189,
     "initial": 1000.0,
     "positions": {
       "MICRO_XRPUSDT_165": {
@@ -25,7 +25,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 1.3272,
+        "peak_price": 1.3276,
         "open_time": 1774672558.5174606,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_XRPUSDT_165"
@@ -4357,17 +4357,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 1.327,
-        "price_out": null,
+        "price_out": 1.3276,
         "qty": 187.3503221770431,
         "amount_usd": 248.6138775289362,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=20 mom=-0.17% vol=6.0x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 74s",
         "time_in": "2026-03-28 04:35:58",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-28 04:37:13",
+        "pnl": 0.11241,
+        "pnl_pct": 0.045,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -18906,6 +18906,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-28 04:36"
+      },
+      {
+        "trade_id": 165,
+        "pnl": 0.11241,
+        "symbol": "XRPUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-28 04:37"
       }
     ],
     "patterns_to_avoid": [
@@ -19495,10 +19506,11 @@
       "score=4",
       "score=4",
       "score=4",
+      "score=4",
       "score=4"
     ],
     "confidence_threshold": 82,
-    "total_wins": 43,
+    "total_wins": 44,
     "total_losses": 415,
     "symbol_scores": {
       "Deadwhale": -15,
@@ -19524,7 +19536,7 @@
       "STRKUSDT": -6,
       "IMXUSDT": -6,
       "FETUSDT": -15,
-      "INJUSDT": -6,
+      "INJUSDT": -4,
       "TAOUSDT": 4,
       "STXUSDT": -6,
       "RENDERUSDT": -2,
@@ -19532,7 +19544,7 @@
       "UNIUSDT": -6,
       "LINKUSDT": -2,
       "FLOKIUSDT": 4,
-      "XRPUSDT": -2,
+      "XRPUSDT": 0,
       "LTCUSDT": -6,
       "DOTUSDT": 1,
       "BONKUSDT": 4,
