@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 749.2552535423856,
+    "cash": 999.0081645400896,
     "initial": 1000.0,
     "positions": {
       "MICRO_ETHUSDT_126": {
@@ -25,7 +25,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 1985.2,
+        "peak_price": 1985.5,
         "open_time": 1774664911.698689,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_ETHUSDT_126"
@@ -3343,17 +3343,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 1985.2,
-        "price_out": null,
+        "price_out": 1985.5,
         "qty": 0.12578842155512668,
         "amount_usd": 249.71517447123748,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=20 mom=-0.04% vol=13.4x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 72s",
         "time_in": "2026-03-28 02:28:31",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-28 02:29:44",
+        "pnl": 0.037737,
+        "pnl_pct": 0.015,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -17463,6 +17463,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-28 02:28"
+      },
+      {
+        "trade_id": 126,
+        "pnl": 0.037737,
+        "symbol": "ETHUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-28 02:29"
       }
     ],
     "patterns_to_avoid": [
@@ -18037,15 +18048,16 @@
       "score=4",
       "score=4",
       "score=4",
+      "score=4",
       "score=4"
     ],
     "confidence_threshold": 82,
     "total_wins": 29,
-    "total_losses": 390,
+    "total_losses": 391,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -15,
-      "ETHUSDT": -15,
+      "ETHUSDT": -13,
       "SOLUSDT": -15,
       "APTUSDT": -15,
       "NEKO": -10,
@@ -18089,7 +18101,7 @@
       }
     },
     "consecutive_losses": {
-      "ARBUSDT": 2,
+      "ARBUSDT": 3,
       "TONUSDT": 3,
       "TRXUSDT": 0,
       "ONDOUSDT": 0,
