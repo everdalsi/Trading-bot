@@ -4338,6 +4338,30 @@ async def cmd_execute(update, ctx):
         "shared_glossary": {}
     })
     await update.message.reply_text(result["full_summary"])
+async def cmd_test_brain(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    if not _auth(update): return
+    await update.message.reply_text("🧪 Test cerveau collectif lancé sur BTCUSDT...")
+
+    market_data = {
+        "symbol": "BTCUSDT",
+        "price": get_price("BTCUSDT"),
+        "rsi": compute_indicators(get_klines("BTCUSDT", "15", 50)).get("rsi", 50),
+        "market_regime": bot_state.get("market_regime", "NEUTRAL")
+    }
+
+    result = await orchestrator.run(market_data, memory)
+    
+    msg = "🧠 **TEST Cerveau Collectif V5**\n"
+    msg += f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+    msg += f"**Décision finale : {result['final_decision'].get('decision', 'NO TRADE')}**\n"
+    msg += f"Raison : {result['final_decision'].get('reason', '—')}\n"
+    msg += f"Confiance : {result['final_decision'].get('final_confidence', 0):.0f}%\n"
+    msg += f"Debate rounds : {result.get('debate_rounds', 0)}\n\n"
+    msg += "**Qui a parlé :**\n"
+    for r in result["responses"][:8]:
+        msg += f"• {r.get('agent', '—')} → {r.get('summary', '')[:80]}...\n"
+    
+    await update.message.reply_text(msg)    
 
 
 if __name__ == "__main__":
