@@ -29,7 +29,9 @@ from agents.orchestrator import Orchestrator
 from agents.performance_tracker import PerformanceTracker
 from agents.wallet_copier_agent import WalletCopierAgent
 from agents.quant_ml_agent import QuantMLAgent   # ← AJOUT V8.3 QuantML
-quant_ml = QuantMLAgent()                        # ← AJOUT V8.3 QuantML
+quant_ml = QuantMLAgent()      # ← AJOUT V8.3 QuantML
+from agents.execution_engine_agent import ExecutionEngineAgent   # ← AJOUT V8.4 Execution
+execution_engine = ExecutionEngineAgent()                        # ← AJOUT V8.4 Execution
 from agents.yield_staking_agent import YieldStakingAgent   # ← AJOUT V8 staking
 yield_staking = YieldStakingAgent()                        # ← AJOUT V8 staking
 from agents.base_agent import BaseAgent  # ← UPGRADE V8 : import pour cerveau commun
@@ -3966,6 +3968,7 @@ async def run_telegram():
         ("stake_eth",      cmd_stake_eth),
         ("stake_sol",      cmd_stake_sol),
         ("regime",         cmd_regime),
+        ("execute",        cmd_execute),
     ]:
         _app.add_handler(CommandHandler(cmd, fn))
 
@@ -4307,6 +4310,18 @@ async def cmd_regime(update, ctx):
         "shared_glossary": {}
     })
     await update.message.reply_text(result["full_summary"])    
+    
+async def cmd_execute(update, ctx):
+    if not _auth(update): return
+    result = await execution_engine.respond("simulate smart execution", {
+        "symbol": "BTCUSDT",
+        "side": "BUY",
+        "amount_usd": 200.0,
+        "price": get_price("BTCUSDT"),
+        "market_regime": bot_state.get("market_regime", "NEUTRAL"),
+        "shared_glossary": {}
+    })
+    await update.message.reply_text(result["full_summary"])
 
 
 if __name__ == "__main__":
