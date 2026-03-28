@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 750.4238516797382,
+    "cash": 1000.3803371028064,
     "initial": 1000.0,
     "positions": {
       "MICRO_INJUSDT_150": {
@@ -3967,17 +3967,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 2.842,
-        "price_out": null,
+        "price_out": 2.843,
         "qty": 87.9199737682266,
         "amount_usd": 249.86856544929998,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=10 mom=-0.14% vol=3.9x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 67s",
         "time_in": "2026-03-28 03:49:27",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-28 03:50:38",
+        "pnl": 0.08792,
+        "pnl_pct": 0.035,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -18351,6 +18351,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-28 03:50"
+      },
+      {
+        "trade_id": 150,
+        "pnl": 0.08792,
+        "symbol": "INJUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-28 03:50"
       }
     ],
     "patterns_to_avoid": [
@@ -18934,10 +18945,11 @@
       "score=4",
       "score=4",
       "score=4",
+      "score=4",
       "score=4"
     ],
     "confidence_threshold": 82,
-    "total_wins": 37,
+    "total_wins": 38,
     "total_losses": 406,
     "symbol_scores": {
       "Deadwhale": -15,
@@ -18963,11 +18975,11 @@
       "STRKUSDT": -6,
       "IMXUSDT": -6,
       "FETUSDT": -11,
-      "INJUSDT": -12,
+      "INJUSDT": -10,
       "TAOUSDT": 4,
       "STXUSDT": -6,
       "RENDERUSDT": -2,
-      "DOGEUSDT": -13,
+      "DOGEUSDT": -11,
       "UNIUSDT": -6,
       "LINKUSDT": -2,
       "FLOKIUSDT": 4,
@@ -19012,7 +19024,7 @@
       "TAOUSDT": 0,
       "STXUSDT": 1,
       "RENDERUSDT": 0,
-      "DOGEUSDT": 3,
+      "DOGEUSDT": 0,
       "UNIUSDT": 1,
       "LINKUSDT": 1,
       "FLOKIUSDT": 0,
