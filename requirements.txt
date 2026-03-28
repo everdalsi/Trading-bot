@@ -34,3 +34,14 @@ python-dotenv
 gitpython
 praw
 matplotlib
+
+# =================================================================
+# === UPGRADES PHASE 1 AJOUTÉES (sans rien supprimer) ============
+# =================================================================
+vectorbt>=0.26.0          # Backtester vectorisé ultra-rapide
+backtrader                # Backtester classique de secours
+pyfolio                   # Analyse performance pro (VaR, drawdown)
+pandas_ta                 # TA-Lib sans compilation
+redis                     # Cache hot data + positions
+ccxt>=4.3.0               # Version plus récente pour OCO / reduce-only
+aiohttp                   # Async pour WS & execution pro
