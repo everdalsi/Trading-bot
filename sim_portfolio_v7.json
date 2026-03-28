@@ -2,35 +2,7 @@
   "sim": {
     "cash": 995.1085755691115,
     "initial": 1000.0,
-    "positions": {
-      "MICRO_MEMEUSDT_161": {
-        "id": 161,
-        "symbol": "MEMEUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.000511,
-        "price_out": null,
-        "qty": 948761.0528713721,
-        "amount_usd": 484.8168980172711,
-        "confidence": 88,
-        "reason": "EMA\u2191 RSI7=59 mom=+0.19% vol=8.3x",
-        "exit_reason": null,
-        "time_in": "2026-03-28 04:20:54",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.000511,
-        "open_time": 1774671654.3299391,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_MEMEUSDT_161"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
