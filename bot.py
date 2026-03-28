@@ -63,6 +63,14 @@ orchestrator = Orchestrator()
 performance_tracker = PerformanceTracker()
 wallet_copier = WalletCopierAgent()
 
+def safe_get(var_name, default=None):
+    """Évite les NameError sur variables non définies"""
+    try:
+        return globals()[var_name]
+    except KeyError:
+        print(f"[SAFETY] Variable manquante {var_name} → valeur par défaut")
+        return default
+
 def get_total_lessons():
     """Retourne le vrai nombre total de leçons (DB = source de vérité)"""
     try:
