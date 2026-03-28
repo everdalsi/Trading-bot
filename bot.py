@@ -2653,190 +2653,124 @@ def test_strategy_variation(send_fn):
 #  BOUCLE PRINCIPALE
 # ═══════════════════════════════════════════════════════════════
 def trading_loop(send_fn):
-    """Boucle principale du bot avec mode secrétaire propre + LIVE PROGRESSIVE
-    + UPGRADE V8.3 QuantMLAgent + V8.4 ExecutionEngineAgent (Wall Street)"""
+    """Boucle principale autonome V8 — Le cerveau collectif décide et agit tout seul"""
+    global _main_loop
+    _main_loop = asyncio.get_running_loop()
+
     in_secretary_mode = TELEGRAM_CHAT_ID in AGENT_CHAT_SESSIONS
+    last_micro = last_meme = last_epargne = last_status = last_regime = last_staking = 0
 
-    kelly_init = kelly_criterion()
-    gh_status  = "✅" if GITHUB_TOKEN else "❌ Non configuré"
-    ws_status  = "✅ WebSocket" if WS_AVAILABLE else "⚠️ REST fallback"
-
-    hf_enabled = any(p["name"] == "huggingface" for p in AI_PROVIDERS)
-    hf_status  = "✅" if hf_enabled and HF_KEY else "❌ Désactivé"
-
-    equity     = get_equity_safe()
-    sim["peak_equity"]        = equity
-    sim["daily_start_equity"] = equity
-    sim["daily_start_date"]   = datetime.utcnow().strftime("%Y-%m-%d")
-
-    # === UPGRADE ÉTAPE 5 : Message de démarrage avec infos live ===
-    send_fn(
-        f"BOT v8 DÉMARRÉ — LIVE PROGRESSIVE + Staking + QuantML + Execution\n"
-        f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"Mode live     : {'TESTNET' if TESTNET_MODE else 'RÉEL LIVE'}\n"
-        f"Trading mode  : {TRADING_MODE}\n"
-        f"Max positions : {MODE_CONFIG[TRADING_MODE]['max_positions']}\n"
-        f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"Capital     : ${CAPITAL_INITIAL:,.2f}\n"
-        f"Kelly init  : {kelly_init*100:.1f}%\n"
-        f"Testnet     : {'✅ ACTIVÉ' if TESTNET_MODE else '❌ DÉSACTIVÉ'}\n"
-        f"Agents actifs : YieldStaking + QuantML + ExecutionEngine"
-    )
+    logger.info("🚀 Trading Loop autonome V8 démarré — Agents décident seuls")
 
     while bot_state["running"]:
         now = time.time()
-        check_daily_reset()
+        equity = get_equity_safe()
 
-        # === UPGRADE ÉTAPE 5 : Export auto du dashboard ===
-        if now - bot_state.get("last_dashboard_export", 0) >= 300:
-            performance_tracker.export_to_json(memory, "dashboard_performance.json")
-            performance_tracker.export_to_pdf(memory, "performance_report.pdf")
-            bot_state["last_dashboard_export"] = now
-            logger.info("📊 Dashboard auto-exporté (JSON + PDF)")
+        # === 1. MICRO HIGH FREQ CYCLE (toutes les 45s) ===
+        if now - last_micro >= CYCLE_MICRO:
+            last_micro = now
+            performance_tracker.update_trade_results()
+            micro_ctx = {
+                "symbol": "BTCUSDT",
+                "shared_glossary": shared_glossary,
+                "equity": equity,
+                "market_regime": bot_state.get("market_regime", "NEUTRAL"),
+                "confidence_threshold": memory.get("confidence_threshold", CONFIDENCE_BASE)
+            }
 
-        # === UPGRADE ÉTAPE 5 : Wallet copier en live ===
-        if LIVE_MODE and not TESTNET_MODE:
+            # Cerveau collectif décide tout seul
             try:
-                def run_wallet_copier():
-                    asyncio.run(wallet_copier.respond("copy latest whale trade", {"memory": memory}))
-                threading.Thread(target=run_wallet_copier, daemon=True).start()
+                future = asyncio.run_coroutine_threadsafe(
+                    orchestrator.ask_all("analyse micro et donne TRADE ou NO TRADE", micro_ctx),
+                    _main_loop
+                )
+                results, decision = future.result(timeout=15)
+
+                if decision.get("decision") == "TRADE" and decision.get("confidence", 0) >= 0.85:
+                    exec_ctx = {**micro_ctx, "side": decision.get("side", "BUY"), "amount_usd": decision.get("amount_usd", 150)}
+                    exec_future = asyncio.run_coroutine_threadsafe(
+                        execution_engine.respond("execute this trade now", exec_ctx), _main_loop
+                    )
+                    exec_result = exec_future.result(timeout=10)
+                    logger.info(f"🚀 AUTO TRADE exécuté par le cerveau : {exec_result.get('summary')}")
+            except Exception as e:
+                logger.warning(f"Micro cycle error: {e}")
+
+        # === 2. MEME CYCLE (toutes les 180s) ===
+        if now - last_meme >= CYCLE_MEME:
+            last_meme = now
+            meme_ctx = {"shared_glossary": shared_glossary, "equity": equity}
+            try:
+                future = asyncio.run_coroutine_threadsafe(
+                    orchestrator.ask_all("détecte memecoins et donne décision", meme_ctx), _main_loop
+                )
+                _, decision = future.result(timeout=12)
+                if decision.get("decision") == "TRADE":
+                    # Execution auto
+                    exec_future = asyncio.run_coroutine_threadsafe(
+                        execution_engine.respond("execute meme trade", {**meme_ctx, **decision}), _main_loop
+                    )
+                    exec_future.result(timeout=10)
             except:
                 pass
 
-        # === MODE TRADING SELON CONFIG ===
-        current_mode_config = MODE_CONFIG.get(TRADING_MODE, MODE_CONFIG["REGULAR"])
-
-        if now - bot_state.get("last_micro",0) >= CYCLE_MICRO and TRADING_MODE in ["MICRO_HIGH_FREQ", "MIX"]:
+        # === 3. ÉPARGNE + STAKING AUTO (toutes les 900s) ===
+        if now - last_epargne >= CYCLE_EPARGNE:
+            last_epargne = now
+            staking_ctx = {"equity": equity, "shared_glossary": shared_glossary}
             try:
-                monitor_micro_positions(send_fn)
-                run_micro_cycle(send_fn)
+                # YieldStaking décide + transfert auto vers savings
+                future = asyncio.run_coroutine_threadsafe(
+                    yield_staking.respond("check staking and transfer to savings", staking_ctx), _main_loop
+                )
+                staking_result = future.result(timeout=15)
+                if "transféré" in staking_result.get("summary", ""):
+                    logger.info(f"💰 Staking auto + transfert savings : {staking_result['summary']}")
             except Exception as e:
-                print(f"[MICRO] {e}")
-            bot_state["last_micro"] = now
+                logger.warning(f"Staking auto error: {e}")
 
-        if now - bot_state.get("last_epargne",0) >= CYCLE_EPARGNE:
+        # === 4. RÉGIME MARCHÉ + HEDGING (toutes les 300s) ===
+        if now - last_regime >= 300:
+            last_regime = now
+            regime_ctx = {"shared_glossary": shared_glossary}
             try:
-                run_epargne_scan(send_fn)
-            except Exception as e:
-                print(f"[EPARGNE] {e}")
-            bot_state["last_epargne"] = now
+                future = asyncio.run_coroutine_threadsafe(
+                    quant_ml.respond("detect current market regime", regime_ctx), _main_loop
+                )
+                regime = future.result(timeout=10)
+                bot_state["market_regime"] = regime.get("regime", "NEUTRAL")
+                # Hedging auto si besoin
+                hedge_future = asyncio.run_coroutine_threadsafe(
+                    orchestrator.hedging.respond("check hedging needed", regime_ctx), _main_loop
+                )
+                hedge_future.result(timeout=8)
+            except:
+                pass
 
-        # === UPGRADE V8 : Yield Staking ETH/SOL (cerveau commun) ===
-        if now - bot_state.get("last_staking", 0) >= 1800:
+        # === 5. STATUS + DASHBOARD AUTO (toutes les 60s) ===
+        if now - last_status >= 60:
+            last_status = now
             try:
-                staking_ctx = {
-                    "equity": get_equity_safe(),
-                    "risk_level": "LOW" if not bot_state.get("daily_stopped") else "HIGH",
-                    "shared_glossary": context.get("shared_glossary", {}) if 'context' in locals() else {}
-                }
-                coro = yield_staking.respond("should we stake now?", staking_ctx)
-                future = asyncio.run_coroutine_threadsafe(coro, _main_loop)
-                staking_result = future.result(timeout=10)
-                if staking_result.get("action") == "STAKE":
-                    send_fn(staking_result["summary"])
-                bot_state["last_staking"] = now
-            except Exception as e:
-                print(f"[YIELD] {e}")
+                send_fn(generate_dashboard())
+                performance_tracker.export_dashboard()
+            except:
+                pass
 
-        # === UPGRADE V8.3 : QuantMLAgent — Détection régime de marché ===
-        if now - bot_state.get("last_quant_ml", 0) >= 900:
-            try:
-                quant_ctx = {
-                    "fg_value": get_fear_greed_value(),
-                    "macro_trend": get_macro_trend(),
-                    "rsi": compute_indicators(get_klines("BTCUSDT", "15", 50)).get("rsi", 50),
-                    "volatility": get_volume_profile("BTCUSDT").get("vol", 0.0),
-                    "mcap_change_24h": get_onchain_data().get("mcap_change_24h", 0),
-                    "shared_glossary": context.get("shared_glossary", {}) if 'context' in locals() else {}
-                }
-                coro = quant_ml.respond("detect current market regime", quant_ctx)
-                future = asyncio.run_coroutine_threadsafe(coro, _main_loop)
-                regime_result = future.result(timeout=10)
-                bot_state["market_regime"] = regime_result["regime"]
-                bot_state["last_quant_ml"] = now
-                if regime_result["confidence"] > 0.8:
-                    send_fn(regime_result["summary"])
-            except Exception as e:
-                print(f"[QuantML] {e}")
+        # === 6. EXTREME LEARNING MODE — leçons auto ===
+        if bot_state.get("extreme_learning_mode"):
+            memory["lessons"].append({
+                "type": "auto",
+                "pnl": equity - sim.get("daily_start_equity", CAPITAL_INITIAL),
+                "lecon": f"Auto decision from collective brain at {time.strftime('%H:%M')}",
+                "action_future": "Continue autonomy",
+                "date": time.strftime("%Y-%m-%d %H:%M")
+            })
+            if len(memory["lessons"]) > MAX_LESSONS:
+                memory["lessons"] = memory["lessons"][-MAX_LESSONS:]
 
-        # === UPGRADE V8.4 : ExecutionEngineAgent — Exécution intelligente ===
-        if now - bot_state.get("last_execution", 0) >= 300:
-            try:
-                exec_ctx = {
-                    "symbol": "BTCUSDT",
-                    "side": "BUY",
-                    "amount_usd": 150.0,
-                    "price": get_price("BTCUSDT"),
-                    "market_regime": bot_state.get("market_regime", "NEUTRAL"),
-                    "shared_glossary": context.get("shared_glossary", {}) if 'context' in locals() else {}
-                }
-                coro = execution_engine.respond("execute this trade now", exec_ctx)
-                future = asyncio.run_coroutine_threadsafe(coro, _main_loop)
-                exec_result = future.result(timeout=10)
-                if exec_result.get("confidence", 0) > 0.85:
-                    send_fn(exec_result["summary"])
-                bot_state["last_execution"] = now
-            except Exception as e:
-                print(f"[Execution] {e}")
+        await asyncio.sleep(1)  # petite pause pour ne pas surcharger
 
-        if now - bot_state["last_status"] >= CYCLE_STATUS:
-            try:
-                equity = get_equity_safe()
-                pnl = equity - sim["initial"]
-                stats  = get_stats()
-                kelly = kelly_criterion()
-                sym_s  = db_symbol_stats()
-                sym_str = " | ".join(f"{s['s']}:{s['wr']:.0f}%WR" for s in sym_s) or "Aucun"
-                micro_c = bot_state.get("micro_count",0)
-                wr_db = db_win_rate(30)
-                fg_val  = get_fear_greed_value()
-                macro = get_macro_trend()
-                daily_start = sim.get("daily_start_equity", CAPITAL_INITIAL)
-                daily_pnl   = equity - daily_start
-                daily_pct   = daily_pnl/daily_start*100 if daily_start>0 else 0
-                bl_count    = len(memory.get("symbol_blacklist",{}))
-                macro_e     = "🐂" if macro == "BULL" else "🐻" if macro == "BEAR" else "➡️"
-
-                if not in_secretary_mode:
-                    pos_lines = ""
-                    if sim["positions"]:
-                        prices = get_prices_batch()
-                        for pos in sim["positions"].values():
-                            p   = prices.get(pos["symbol"], pos["price_in"])
-                            chg = (p-pos["price_in"])/pos["price_in"]*100*pos.get("leverage",1)
-                            pos_lines += f"\n  {'📈' if chg>0 else '📉'} {pos['symbol'].replace('USDT',''):6s} {chg:+.2f}%"
-                    stop_str = "🛑 STOP JOUR ACTIF" if bot_state.get("daily_stopped") else ""
-                    ws_str   = "📡 WS✅" if ws_manager.connected else "📡 REST"
-                    send_fn(
-                        f"📊 BILAN v8 — {datetime.now().strftime('%H:%M')}\n━━━━━━━━━━━━━━━━━━━\n"
-                        f"💰 Capital  : ${equity:.2f} ({pnl/sim['initial']*100:+.1f}%)\n"
-                        f"📅 Auj.     : ${daily_pnl:+.2f} ({daily_pct:+.1f}%)\n"
-                        f"📍 Positions: {len(sim['positions'])}/{MAX_POSITIONS}{pos_lines}\n"
-                        f"━━━━━━━━━━━━━━━━━━━\n"
-                        f"🏆 WR       : {stats['win_rate']}% ({stats['wins']}✅/{stats['losses']}❌)\n"
-                        f"📐 Kelly    : {kelly*100:.1f}%\n"
-                        f"📊 Régime   : {bot_state.get('market_regime', 'NEUTRAL')}\n"
-                        f"⚡ Micro    : {micro_c} trades\n"
-                        f"📊 WR DB(30): {wr_db}%\n"
-                        f"🧠 AI Pool  : {_pool_stats['last_provider']} ({_pool_stats['total_calls']} appels | cache:{_pool_stats['cache_hits']})\n"
-                        f"📊 Macro    : {macro_e} {macro} | F&G:{fg_val}/100\n"
-                        f"🚫 Blacklist: {bl_count} symbols\n"
-                        f"🥇 Top      : {sym_str}\n"
-                        f"📚 Leçons   : {len(memory['lessons'])}/{MAX_LESSONS}\n"
-                        f"{ws_str}\n"
-                        f"━━━━━━━━━━━━━━━━━━━\n"
-                        f"{stop_str}"
-                    )
-                db_save_equity(equity, sim["cash"], len(sim["positions"]), pnl)
-            except Exception as e:
-                print(f"[STATUS] {e}")
-            bot_state["last_status"] = now
-
-        bot_state["last_heartbeat"] = datetime.now()
-        time.sleep(3)
-
-    # Fin de la boucle
-    send_fn("Bot arrêté proprement.")
+    logger.info("🛑 Trading Loop autonome arrêté")
 # ═══════════════════════════════════════════════════════════════
 #  WATCHDOG + RÉSUMÉ JOURNALIER
 # ═══════════════════════════════════════════════════════════════
