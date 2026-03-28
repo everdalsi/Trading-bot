@@ -3,33 +3,6 @@
     "cash": 873.6095324596794,
     "initial": 1000.0,
     "positions": {
-      "MICRO_FETUSDT_129": {
-        "id": 129,
-        "symbol": "FETUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.2271,
-        "price_out": null,
-        "qty": 563.579537090401,
-        "amount_usd": 127.98891287323008,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=27 mom=+0.00% vol=3.5x",
-        "exit_reason": null,
-        "time_in": "2026-03-28 02:30:35",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.2271,
-        "open_time": 1774665035.5493207,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_FETUSDT_129"
-      },
       "MICRO_ENAUSDT_130": {
         "id": 130,
         "symbol": "ENAUSDT",
