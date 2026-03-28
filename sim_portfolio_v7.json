@@ -1,8 +1,36 @@
 {
   "sim": {
-    "cash": 1000.0,
+    "cash": 304.0,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MICRO_PYTHUSDT_176": {
+        "id": 176,
+        "symbol": "PYTHUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.0372,
+        "price_out": null,
+        "qty": 18709.67741935484,
+        "amount_usd": 696.0,
+        "confidence": 88,
+        "reason": "EMA\u2191 RSI7=23 mom=-0.27% vol=143.6x",
+        "exit_reason": null,
+        "time_in": "2026-03-28 06:36:29",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0372,
+        "open_time": 1774679789.378824,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_PYTHUSDT_176"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -4606,6 +4634,32 @@
         "leverage": 1,
         "peak_price": 0.00858,
         "open_time": 1774678245.256621,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 176,
+        "symbol": "PYTHUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.0372,
+        "price_out": null,
+        "qty": 18709.67741935484,
+        "amount_usd": 696.0,
+        "confidence": 88,
+        "reason": "EMA\u2191 RSI7=23 mom=-0.27% vol=143.6x",
+        "exit_reason": null,
+        "time_in": "2026-03-28 06:36:29",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0372,
+        "open_time": 1774679789.378824,
         "kelly_pct": 0.48
       }
     ],
@@ -28854,6 +28908,6 @@
         "status": "\u2705 Promos d\u00e9tect\u00e9es"
       }
     ],
-    "last_scan": 1774679389.0213532
+    "last_scan": 1774679794.2710075
   }
 }
