@@ -30,22 +30,34 @@ from agents.execution_engine_agent import ExecutionEngineAgent   # ← AJOUT V8.
 from agents.yield_staking_agent import YieldStakingAgent   # ← AJOUT V8 staking
 yield_staking = YieldStakingAgent()                        # ← AJOUT V8 staking
 from agents.base_agent import BaseAgent  # ← UPGRADE V8 : import pour cerveau commun
-
-memory = Memory()# === UPGRADE PHASE 1 : ExecutionEngine avec chargement sécurisé des clés ===
 from dotenv import load_dotenv
 import os
 
-load_dotenv()  # Charge le .env si présent
+load_dotenv()
 
-BINANCE_KEY = os.getenv("BINANCE_API_KEY") or os.getenv("BINANCE_KEY")
-BINANCE_SECRET = os.getenv("BINANCE_API_SECRET") or os.getenv("BINANCE_SECRET")
+BINANCE_KEY = os.getenv("BINANCE_API_KEY") or os.getenv("BINANCE_KEY", "")
+BINANCE_SECRET = os.getenv("BINANCE_API_SECRET") or os.getenv("BINANCE_SECRET", "")
 TESTNET_MODE = os.getenv("TESTNET_MODE", "True").lower() in ("true", "1", "yes")
+LIVE_MODE = os.getenv("LIVE_MODE", "False").lower() in ("true", "1", "yes")
 
+# Shared glossary (manquant !)
+shared_glossary = {
+    "wyckoff": "Accumulation / Distribution / Markup / Markdown",
+    "vsa": "Volume Spread Analysis - effort vs result",
+    "orderflow": "Delta, footprint, absorption",
+    "kelly": "Position sizing optimal",
+    "risk": "Never risk more than 1-2% per trade in live"
+}
+
+# Instance ExecutionEngine
 execution = ExecutionEngine(
     api_key=BINANCE_KEY,
     api_secret=BINANCE_SECRET,
     testnet=TESTNET_MODE
 )
+
+# Nettoyage des doublons
+memory = Memory()   # une seule fois
 
 orchestrator = Orchestrator()
 performance_tracker = PerformanceTracker()
