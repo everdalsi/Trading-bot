@@ -28,6 +28,8 @@ from memory import Memory
 from agents.orchestrator import Orchestrator
 from agents.performance_tracker import PerformanceTracker
 from agents.wallet_copier_agent import WalletCopierAgent
+from agents.quant_ml_agent import QuantMLAgent   # ← AJOUT V8.3 QuantML
+quant_ml = QuantMLAgent()                        # ← AJOUT V8.3 QuantML
 from agents.yield_staking_agent import YieldStakingAgent   # ← AJOUT V8 staking
 yield_staking = YieldStakingAgent()                        # ← AJOUT V8 staking
 from agents.base_agent import BaseAgent  # ← UPGRADE V8 : import pour cerveau commun
