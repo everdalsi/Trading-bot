@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 510.2916775518404,
+    "cash": 996.0610645632515,
     "initial": 1000.0,
     "positions": {
       "MICRO_MEMEUSDT_162": {
@@ -25,7 +25,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 0.000509,
+        "peak_price": 0.00051,
         "open_time": 1774671774.3829546,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_MEMEUSDT_162"
@@ -4279,17 +4279,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.000509,
-        "price_out": null,
+        "price_out": 0.00051,
         "qty": 952488.9941400219,
         "amount_usd": 484.8168980172711,
         "confidence": 88,
         "reason": "EMA\u2191 RSI7=59 mom=+0.19% vol=6.5x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 70s",
         "time_in": "2026-03-28 04:22:54",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-28 04:24:05",
+        "pnl": 0.952489,
+        "pnl_pct": 0.196,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -18795,6 +18795,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-28 04:21"
+      },
+      {
+        "trade_id": 162,
+        "pnl": 0.952489,
+        "symbol": "MEMEUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-28 04:24"
       }
     ],
     "patterns_to_avoid": [
@@ -19382,6 +19393,7 @@
       "score=4",
       "score=4",
       "score=4",
+      "score=4",
       "score=4"
     ],
     "confidence_threshold": 82,
@@ -19400,7 +19412,7 @@
       "ONDOUSDT": -2,
       "AVAXUSDT": 2,
       "OPUSDT": -15,
-      "MEMEUSDT": -15,
+      "MEMEUSDT": -13,
       "NOTUSDT": -6,
       "ORDIUSDT": 1,
       "WIFUSDT": -6,
