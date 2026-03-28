@@ -1,8 +1,36 @@
 {
   "sim": {
-    "cash": 992.4246884862516,
+    "cash": 992.5118001460753,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MICRO_BNBUSDT_174": {
+        "id": 174,
+        "symbol": "BNBUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 610.55,
+        "price_out": null,
+        "qty": 0.7919241802153824,
+        "amount_usd": 483.5093082305017,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=25 mom=-0.03% vol=2.8x",
+        "exit_reason": null,
+        "time_in": "2026-03-28 05:04:59",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 610.66,
+        "open_time": 1774674299.7128046,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_BNBUSDT_174"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -4554,6 +4582,32 @@
         "leverage": 1,
         "peak_price": 0.000504,
         "open_time": 1774674168.7936761,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 174,
+        "symbol": "BNBUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 610.55,
+        "price_out": 610.66,
+        "qty": 0.7919241802153824,
+        "amount_usd": 483.5093082305017,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=25 mom=-0.03% vol=2.8x",
+        "exit_reason": "\u23f1 TIMEOUT 69s",
+        "time_in": "2026-03-28 05:04:59",
+        "time_out": "2026-03-28 05:06:09",
+        "pnl": 0.087112,
+        "pnl_pct": 0.018,
+        "duration_min": 1,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 610.55,
+        "open_time": 1774674299.7128046,
         "kelly_pct": 0.48
       }
     ],
@@ -19185,6 +19239,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-28 05:03"
+      },
+      {
+        "trade_id": 174,
+        "pnl": 0.087112,
+        "symbol": "BNBUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-28 05:06"
       }
     ],
     "patterns_to_avoid": [
@@ -19777,11 +19842,12 @@
       "score=4",
       "score=4",
       "score=4",
+      "score=4",
       "score=4"
     ],
     "confidence_threshold": 82,
     "total_wins": 47,
-    "total_losses": 420,
+    "total_losses": 421,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -11,
@@ -19820,7 +19886,8 @@
       "BONKUSDT": 4,
       "PYTHUSDT": -12,
       "ENAUSDT": -10,
-      "SUIUSDT": -6
+      "SUIUSDT": -6,
+      "BNBUSDT": 2
     },
     "symbol_blacklist": {
       "OPUSDT": {
@@ -19839,9 +19906,9 @@
         "losses": 5
       },
       "MEMEUSDT": {
-        "ts": 1774674131.5000854,
+        "ts": 1774674241.1777773,
         "reason": "5 pertes cons\u00e9cutives",
-        "losses": 5
+        "losses": 6
       }
     },
     "consecutive_losses": {
@@ -19852,7 +19919,7 @@
       "AVAXUSDT": 0,
       "APTUSDT": 0,
       "OPUSDT": 5,
-      "MEMEUSDT": 5,
+      "MEMEUSDT": 6,
       "NOTUSDT": 1,
       "ORDIUSDT": 0,
       "WIFUSDT": 1,
