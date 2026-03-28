@@ -1,8 +1,36 @@
 {
   "sim": {
-    "cash": 997.5337801158756,
+    "cash": 997.5878941853191,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MICRO_DOGEUSDT_153": {
+        "id": 153,
+        "symbol": "DOGEUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.08981,
+        "price_out": null,
+        "qty": 5411.406944354243,
+        "amount_usd": 485.99845767245455,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=26 mom=-0.10% vol=5.7x",
+        "exit_reason": null,
+        "time_in": "2026-03-28 04:01:49",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.08983,
+        "open_time": 1774670509.8314369,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_DOGEUSDT_153"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -4008,6 +4036,32 @@
         "leverage": 1,
         "peak_price": 0.000513,
         "open_time": 1774670331.760422,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 153,
+        "symbol": "DOGEUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.08981,
+        "price_out": 0.08982,
+        "qty": 5411.406944354243,
+        "amount_usd": 485.99845767245455,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=26 mom=-0.10% vol=5.7x",
+        "exit_reason": "\u23f1 TIMEOUT 70s",
+        "time_in": "2026-03-28 04:01:49",
+        "time_out": "2026-03-28 04:03:00",
+        "pnl": 0.054114,
+        "pnl_pct": 0.011,
+        "duration_min": 1,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.08981,
+        "open_time": 1774670509.8314369,
         "kelly_pct": 0.48
       }
     ],
@@ -18408,6 +18462,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-28 03:59"
+      },
+      {
+        "trade_id": 153,
+        "pnl": 0.054114,
+        "symbol": "DOGEUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-28 04:03"
       }
     ],
     "patterns_to_avoid": [
@@ -18992,11 +19057,12 @@
       "score=4",
       "score=4",
       "score=4",
+      "score=4",
       "score=4"
     ],
     "confidence_threshold": 82,
     "total_wins": 39,
-    "total_losses": 407,
+    "total_losses": 408,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -11,
@@ -19025,7 +19091,7 @@
       "TAOUSDT": 4,
       "STXUSDT": -6,
       "RENDERUSDT": -2,
-      "DOGEUSDT": -11,
+      "DOGEUSDT": -9,
       "UNIUSDT": -6,
       "LINKUSDT": -2,
       "FLOKIUSDT": 4,
@@ -19056,7 +19122,7 @@
       "AVAXUSDT": 0,
       "APTUSDT": 5,
       "OPUSDT": 5,
-      "MEMEUSDT": 2,
+      "MEMEUSDT": 3,
       "NOTUSDT": 1,
       "ORDIUSDT": 0,
       "WIFUSDT": 1,
