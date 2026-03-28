@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 788.4931758446514,
+    "cash": 1000.2671390132858,
     "initial": 1000.0,
     "positions": {
       "MICRO_ENAUSDT_115": {
@@ -3057,17 +3057,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.0885,
-        "price_out": null,
+        "price_out": 0.0886,
         "qty": 2390.2253179304107,
         "amount_usd": 211.53494063684136,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=13 mom=+0.00% vol=3.9x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 60s",
         "time_in": "2026-03-28 01:55:29",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-28 01:56:34",
+        "pnl": 0.239023,
+        "pnl_pct": 0.113,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -17056,6 +17056,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-28 01:56"
+      },
+      {
+        "trade_id": 115,
+        "pnl": 0.239023,
+        "symbol": "ENAUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-28 01:56"
       }
     ],
     "patterns_to_avoid": [
@@ -17628,14 +17639,15 @@
       "backtest_5m",
       "score=4",
       "score=4",
+      "score=4",
       "score=4"
     ],
     "confidence_threshold": 82,
-    "total_wins": 26,
+    "total_wins": 27,
     "total_losses": 382,
     "symbol_scores": {
       "Deadwhale": -15,
-      "BTCUSDT": -13,
+      "BTCUSDT": -11,
       "ETHUSDT": -11,
       "SOLUSDT": -15,
       "APTUSDT": -15,
@@ -17670,7 +17682,7 @@
       "DOTUSDT": 1,
       "BONKUSDT": 4,
       "PYTHUSDT": -12,
-      "ENAUSDT": -6
+      "ENAUSDT": -4
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
@@ -17699,7 +17711,7 @@
       "UNIUSDT": 1,
       "LINKUSDT": 1,
       "FLOKIUSDT": 0,
-      "BTCUSDT": 1,
+      "BTCUSDT": 0,
       "SOLUSDT": 0,
       "XRPUSDT": 0,
       "LTCUSDT": 1,
