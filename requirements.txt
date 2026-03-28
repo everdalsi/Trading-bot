@@ -36,15 +36,15 @@ praw
 matplotlib
 
 # =================================================================
-# === UPGRADES PHASE 1 (version build-stable & légère) ============
+# === UPGRADES PHASE 1 (version finale build-stable) ==============
 # =================================================================
-vectorbt>=0.26.0          # Backtester vectorisé ultra-rapide (inclut la plupart des indicateurs TA dont tu as besoin)
+vectorbt>=0.26.0          # Backtester vectorisé ultra-rapide (SMA, RSI, etc. intégrés)
 backtrader                # Backtester classique de secours
-pyfolio-reloaded          # Version maintenue et compatible de pyfolio (analyse perf + VaR)
+pyfolio-reloaded          # Analyse performance (VaR, drawdown) – version maintenue
+quantstats                # Alternative légère et moderne à pyfolio (très stable en 3.12)
 redis                     # Cache hot data + positions
-ccxt>=4.3.0               # Version plus récente pour OCO / reduce-only / post-only
+ccxt>=4.3.0               # Version plus récente pour OCO / reduce-only
 aiohttp                   # Async pour WS & execution pro
 
-# Note : pandas-ta supprimé pour éviter les conflits de wheels.
-# VectorBT suffit largement pour tes backtests (SMA, RSI, Bollinger, etc.).
-# Si tu veux plus d'indicateurs plus tard, on ajoutera TA-Lib manuellement.
+# Note : pandas_ta supprimé définitivement car il cause des conflits de wheels dans Docker slim.
+# VectorBT + quantstats couvrent largement tes besoins en backtest et analyse perf.
