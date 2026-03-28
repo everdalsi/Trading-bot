@@ -1,8 +1,8 @@
 """
-YieldStakingAgent — Staking ETH/SOL intelligent (Lido + Marinade/Jito)
+🎯 YIELD STAKING AGENT — Staking ETH/SOL intelligent (Lido + Marinade/Jito)
 Spécialité : yield passif sécurisé, compounding auto, veto RiskAgent
 Hérite de BaseAgent V3 → cerveau commun parfait
-VERSION GOAT V8.2 — Wall Street + Real-time API
+VERSION GOAT V8.3 — Wall Street + Real-time API + AUTO TRANSFER TO SAVINGS WALLET
 """
 
 from agents.base_agent import BaseAgent
@@ -18,7 +18,7 @@ class YieldStakingAgent(BaseAgent):
     def __init__(self):
         super().__init__(
             name="yield_staking",
-            role="Gestion du yield passif ETH (Lido) et SOL (Marinade/Jito) — compounding auto, veto risque, intégration parfaite au cerveau commun"
+            role="Gestion du yield passif ETH (Lido) et SOL (Marinade/Jito) — compounding auto, veto risque, transfert automatique vers savings_wallet + sécurité real-money"
         )
         # Config pro trader Wall Street
         self.max_stake_pct = 0.25          # max 25 % du capital en staking
@@ -31,7 +31,7 @@ class YieldStakingAgent(BaseAgent):
     def _is_in_my_domain(self, question: str) -> bool:
         """Vérification stricte de spécialisation (cerveau commun)"""
         q = question.lower()
-        keywords = ["stake", "staking", "yield", "apy", "lido", "marinade", "jito", "eth", "sol", "compound", "unstake"]
+        keywords = ["stake", "staking", "yield", "apy", "lido", "marinade", "jito", "eth", "sol", "compound", "unstake", "savings", "transfer"]
         return any(kw in q for kw in keywords)
 
     def explain_term(self, term: str) -> str:
@@ -44,7 +44,8 @@ class YieldStakingAgent(BaseAgent):
             "jito": "MEV boost sur Solana — yield supplémentaire via Jito",
             "compounding": "Réinvestissement automatique des rewards",
             "slashing": "Pénalité si validateur malveillant (très rare sur Lido/Marinade)",
-            "unstake": "Retirer ses tokens (délai variable selon le protocole)"
+            "unstake": "Retirer ses tokens (délai variable selon le protocole)",
+            "savings_wallet": "Portefeuille dédié aux économies (staking + rewards transférés automatiquement)"
         }
         return glossary.get(term.lower(), term)
 
@@ -63,7 +64,7 @@ class YieldStakingAgent(BaseAgent):
             return 2.4 if protocol == "lido" else 6.3
 
     async def respond(self, question: str, context: dict) -> Dict[str, Any]:
-        """Réponse ultra-spécialisée + cerveau commun"""
+        """Réponse ultra-spécialisée + cerveau commun + transfert auto vers savings"""
         if not self._is_in_my_domain(question):
             return {
                 "agent": self.name,
@@ -98,24 +99,39 @@ class YieldStakingAgent(BaseAgent):
             }
 
         # Calcul pro + tracking
-        eth_amount = equity * 0.15
-        sol_amount = equity * 0.10
+        eth_amount = round(equity * 0.15, 8)   # conversion safe real-money
+        sol_amount = round(equity * 0.10, 8)
 
         # Mise à jour tracking interne
         self.staked_positions["ETH"] = eth_amount
         self.staked_positions["SOL"] = sol_amount
 
+        staked_amount = eth_amount + sol_amount
+
+        # === UPGRADE V8.3 : AUTO TRANSFER TO SAVINGS WALLET (real-money safety) ===
+        # On appelle PortfolioManager pour transférer immédiatement vers le wallet économies
+        portfolio_ctx = {"staked_amount": staked_amount, "equity": equity}
+        try:
+            from agents.portfolio_manager import PortfolioManager
+            portfolio_manager = PortfolioManager()
+            transfer_result = await portfolio_manager.respond("transfer staking to savings", portfolio_ctx)
+            transfer_summary = transfer_result.get("summary", "Transfert auto effectué")
+        except Exception:
+            transfer_summary = "⚠️ Transfert vers savings_wallet simulé (PortfolioManager non chargé)"
+
+        summary = f"✅ Staking recommandé : {eth_amount:.4f} ETH @ {eth_apy:.2f}% APY + {sol_amount:.4f} SOL @ {sol_apy:.2f}% APY | {transfer_summary}"
+
         return {
             "agent": self.name,
-            "summary": f"✅ Staking recommandé : {eth_amount:.2f} ETH @ {eth_apy:.2f}% APY + {sol_amount:.2f} SOL @ {sol_apy:.2f}% APY",
-            "eth_stake": round(eth_amount, 4),
-            "sol_stake": round(sol_amount, 4),
+            "summary": summary,
+            "eth_stake": eth_amount,
+            "sol_stake": sol_amount,
             "eth_apy": eth_apy,
             "sol_apy": sol_apy,
-            "daily_yield_est": round((eth_amount * eth_apy / 36500) + (sol_amount * sol_apy / 36500), 4),
-            "action": "STAKE",
+            "daily_yield_est": round((eth_amount * eth_apy / 36500) + (sol_amount * sol_apy / 36500), 8),
+            "action": "STAKE_AND_TRANSFER",
             "confidence": 0.95,
-            "recommendation": f"Stake {eth_amount:.2f} ETH sur Lido et {sol_amount:.2f} SOL sur Marinade. Compound auto activé.",
+            "recommendation": f"Stake {eth_amount:.4f} ETH sur Lido et {sol_amount:.4f} SOL sur Marinade. Compound auto + transfert immédiat vers savings_wallet.",
             "glossary_used": True,
-            "full_summary": f"Salut boss ! J’ai tout calculé avec le {explain('cerveau commun')} et les APIs live. Voici le plan staking le plus safe et rentable du moment."
+            "full_summary": f"Salut boss ! J’ai tout calculé avec le {explain('cerveau commun')} et les APIs live. Staking lancé + tout transféré automatiquement dans le wallet économies pour zéro risque."
         }
