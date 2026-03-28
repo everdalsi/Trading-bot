@@ -1,9 +1,15 @@
 from typing import Dict, Any, List
+import sqlite3
+import redis
+import pickle
+from datetime import datetime
+import logging
+
+logger = logging.getLogger(__name__)
 
 class Memory:
     def __init__(self):
-        # Initialisation de la structure de données interne
-        # pour éviter les erreurs de clés manquantes dans bot.py
+        # === Code original ===
         self.data: Dict[str, Any] = {
             "lessons": [],
             "trades": [],
@@ -14,6 +20,17 @@ class Memory:
             "total_losses": 0,
             "confidence_threshold": 65
         }
+
+        # === UPGRADE PHASE 1 : SQLite + Redis ===
+        self.conn = sqlite3.connect("trading_memory.db", check_same_thread=False)
+        self._init_db()
+        try:
+            self.redis = redis.Redis(host="localhost", port=6379, db=0, decode_responses=True)
+            self.redis.ping()
+            self.use_redis = True
+        except Exception as e:
+            self.use_redis = False
+            logger.warning(f"Redis non disponible → fallback SQLite only. Error: {e}")
 
     # --- MÉTHODES DE COMPATIBILITÉ DICTIONNAIRE (OBLIGATOIRE POUR BOT.PY) ---
     def get(self, key: str, default=None):
@@ -37,7 +54,7 @@ class Memory:
     def update(self, other_dict):
         self.data.update(other_dict)
 
-    # --- TES FONCTIONS ORIGINALES (CONSERVÉES ET ADAPTÉES) ---
+    # --- TES FONCTIONS ORIGINALES ---
     def _init_symbol(self, symbol: str):
         if symbol not in self.data:
             self.data[symbol] = {
@@ -138,45 +155,9 @@ class Memory:
     def log_trade(self, trade_data: dict):
         self.add_trade(trade_data)
 
-# =================================================================
-# === UPGRADES PHASE 1 AJOUTÉES (SQLite + Redis) ==================
-# =================================================================
-import sqlite3
-import redis
-import pickle
-from datetime import datetime
-import logging
-
-logger = logging.getLogger(__name__)
-
-    # Extension de la classe Memory avec les nouvelles fonctionnalités
-    # (le code ci-dessous est ajouté à l'intérieur de la classe Memory)
-
-    def __init__(self):
-        # Appel à l'ancien __init__ pour conserver tout le comportement original
-        # (on simule super().__init__() car c'est la même classe)
-        self.data: Dict[str, Any] = {
-            "lessons": [],
-            "trades": [],
-            "symbol_scores": {},
-            "symbol_blacklist": {},
-            "consecutive_losses": {},
-            "total_wins": 0,
-            "total_losses": 0,
-            "confidence_threshold": 65
-        }
-
-        # === UPGRADE SQLite + Redis ===
-        self.conn = sqlite3.connect("trading_memory.db", check_same_thread=False)
-        self._init_db()
-        try:
-            self.redis = redis.Redis(host="localhost", port=6379, db=0, decode_responses=True)
-            self.redis.ping()
-            self.use_redis = True
-        except:
-            self.use_redis = False
-            logger.warning("Redis non disponible → fallback SQLite only")
-
+    # =================================================================
+    # === UPGRADE PHASE 1 : Méthodes SQLite + Redis ===================
+    # =================================================================
     def _init_db(self):
         self.conn.execute('''
             CREATE TABLE IF NOT EXISTS lessons (
@@ -222,15 +203,15 @@ logger = logging.getLogger(__name__)
 
     def get_positions(self) -> Dict:
         cursor = self.conn.execute("SELECT * FROM positions")
-        cols = ['symbol','side','amount','entry_price','timestamp']
+        cols = ['symbol', 'side', 'amount', 'entry_price', 'timestamp']
         return {row[0]: dict(zip(cols, row)) for row in cursor.fetchall()}
 
     def cache_set(self, key: str, value: Any, expire: int = 300):
-        if self.use_redis:
+        if hasattr(self, 'use_redis') and self.use_redis:
             self.redis.setex(key, expire, pickle.dumps(value))
 
     def cache_get(self, key: str) -> Any:
-        if self.use_redis:
+        if hasattr(self, 'use_redis') and self.use_redis:
             data = self.redis.get(key)
             return pickle.loads(data) if data else None
         return None
