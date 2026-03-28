@@ -36,19 +36,15 @@ praw
 matplotlib
 
 # =================================================================
-# === UPGRADES PHASE 1 AJOUTÉES (corrigées pour build Docker) =====
+# === UPGRADES PHASE 1 (version build-stable) =====================
 # =================================================================
-vectorbt>=0.26.0          # Backtester vectorisé ultra-rapide (inclut beaucoup d'indicateurs TA)
+vectorbt>=0.26.0          # Backtester vectorisé ultra-rapide (inclut SMA, RSI, etc.)
 backtrader                # Backtester classique de secours
-pyfolio>=0.9.2            # Analyse performance pro (VaR, drawdown) - version pinned
+pyfolio-reloaded          # Version maintenue et compatible Python 3.12 (remplace pyfolio)
 redis                     # Cache hot data + positions
-ccxt>=4.3.0               # Version plus récente pour OCO / reduce-only / post-only
+ccxt>=4.3.0               # Version plus récente pour OCO / reduce-only
 aiohttp                   # Async pour WS & execution pro
 
-# Remplacement de pandas_ta (incompatible Python 3.11 / build slim)
-# pandas-ta officiel nécessite Python >=3.12 et pose des problèmes de wheel
-pandas-ta-remake          # Fork actif et compatible avec pandas + vectorbt
-# pandas-ta-classic       # Alternative si tu veux l'ancien pandas-ta (décommente si besoin)
-
-# Optionnel : pour encore plus de TA si tu installes TA-Lib manuellement plus tard
-# ta-lib                  # Nécessite compilation supplémentaire
+# TA indicators : on utilise vectorbt qui est très complet
+# pandas-ta supprimé car il cause des conflits de wheels dans Docker slim
+# Si tu as besoin d'indicateurs spécifiques plus tard, on ajoutera TA-Lib manuellement
