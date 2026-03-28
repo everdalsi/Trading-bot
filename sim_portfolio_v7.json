@@ -3,33 +3,6 @@
     "cash": 973.3883752995273,
     "initial": 1000.0,
     "positions": {
-      "MICRO_FETUSDT_120": {
-        "id": 120,
-        "symbol": "FETUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.2283,
-        "price_out": null,
-        "qty": 147.60784360022552,
-        "amount_usd": 33.69887069393149,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=23 mom=-0.17% vol=4.7x",
-        "exit_reason": null,
-        "time_in": "2026-03-28 02:17:18",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.2283,
-        "open_time": 1774664238.3694582,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_FETUSDT_120"
-      },
       "MICRO_BTCUSDT_121": {
         "id": 121,
         "symbol": "BTCUSDT",
