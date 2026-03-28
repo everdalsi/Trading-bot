@@ -2,35 +2,7 @@
   "sim": {
     "cash": 1000.3803371028064,
     "initial": 1000.0,
-    "positions": {
-      "MICRO_INJUSDT_150": {
-        "id": 150,
-        "symbol": "INJUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 2.842,
-        "price_out": null,
-        "qty": 87.9199737682266,
-        "amount_usd": 249.86856544929998,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=10 mom=-0.14% vol=3.9x",
-        "exit_reason": null,
-        "time_in": "2026-03-28 03:49:27",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 2.844,
-        "open_time": 1774669767.022575,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_INJUSDT_150"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
