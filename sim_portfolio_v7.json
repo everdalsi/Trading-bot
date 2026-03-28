@@ -3,33 +3,6 @@
     "cash": 110.08370524768247,
     "initial": 1000.0,
     "positions": {
-      "MICRO_PYTHUSDT_109": {
-        "id": 109,
-        "symbol": "PYTHUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.0368,
-        "price_out": null,
-        "qty": 531.351819130435,
-        "amount_usd": 19.55374694400001,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=26 mom=+0.00% vol=3.7x",
-        "exit_reason": null,
-        "time_in": "2026-03-28 01:35:33",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0368,
-        "open_time": 1774661733.1770358,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_PYTHUSDT_109"
-      },
       "MICRO_LINKUSDT_110": {
         "id": 110,
         "symbol": "LINKUSDT",
