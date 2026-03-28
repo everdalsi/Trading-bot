@@ -3,33 +3,6 @@
     "cash": 869.9322165628986,
     "initial": 1000.0,
     "positions": {
-      "MICRO_SUIUSDT_156": {
-        "id": 156,
-        "symbol": "SUIUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.875,
-        "price_out": null,
-        "qty": 284.99371971864537,
-        "amount_usd": 249.3695047538147,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=27 mom=-0.17% vol=39.5x",
-        "exit_reason": null,
-        "time_in": "2026-03-28 04:08:11",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.8751,
-        "open_time": 1774670891.4643788,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_SUIUSDT_156"
-      },
       "MICRO_NEARUSDT_157": {
         "id": 157,
         "symbol": "NEARUSDT",
