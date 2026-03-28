@@ -2,35 +2,7 @@
   "sim": {
     "cash": 994.1569973979283,
     "initial": 1000.0,
-    "positions": {
-      "MICRO_FETUSDT_159": {
-        "id": 159,
-        "symbol": "FETUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.2263,
-        "price_out": null,
-        "qty": 2148.17717807441,
-        "amount_usd": 486.13249539823903,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=15 mom=-0.13% vol=8.4x",
-        "exit_reason": null,
-        "time_in": "2026-03-28 04:12:06",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.2263,
-        "open_time": 1774671126.5662653,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_FETUSDT_159"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
