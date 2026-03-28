@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 976.4635117695286,
+    "cash": 999.7681329251801,
     "initial": 1000.0,
     "positions": {
       "MICRO_ETHUSDT_113": {
@@ -3005,17 +3005,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 1985.35,
-        "price_out": null,
+        "price_out": 1986.43,
         "qty": 0.011731911598018315,
         "amount_usd": 23.29195069112566,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=21 mom=-0.22% vol=19.4x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 77s",
         "time_in": "2026-03-28 01:37:33",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-28 01:38:51",
+        "pnl": 0.01267,
+        "pnl_pct": 0.054,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -16982,6 +16982,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-28 01:38"
+      },
+      {
+        "trade_id": 113,
+        "pnl": 0.01267,
+        "symbol": "ETHUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-28 01:38"
       }
     ],
     "patterns_to_avoid": [
@@ -17552,15 +17563,16 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "score=4",
       "score=4"
     ],
     "confidence_threshold": 82,
-    "total_wins": 24,
+    "total_wins": 25,
     "total_losses": 382,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -15,
-      "ETHUSDT": -15,
+      "ETHUSDT": -13,
       "SOLUSDT": -15,
       "APTUSDT": -15,
       "NEKO": -10,
@@ -17568,7 +17580,7 @@
       "TONUSDT": -15,
       "TRXUSDT": -2,
       "ONDOUSDT": -2,
-      "AVAXUSDT": 0,
+      "AVAXUSDT": 2,
       "OPUSDT": -15,
       "MEMEUSDT": 4,
       "NOTUSDT": -6,
