@@ -20,6 +20,7 @@ from agents.performance_tracker import PerformanceTracker
 from agents.research_agent import ResearchAgent
 from agents.knowledge_specialist_agent import KnowledgeSpecialistAgent
 from agents.evolution_agent import EvolutionAgent as SelfImprovementEngineer
+self.hedging = HedgingAgent()   # ← juste après self.yield_staking
 from agents.wallet_copier_agent import WalletCopierAgent
 from agents.social_listener_agent import SocialListenerAgent
 
