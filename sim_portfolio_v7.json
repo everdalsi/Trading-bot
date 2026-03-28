@@ -2,7 +2,35 @@
   "sim": {
     "cash": 999.0450057405174,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MICRO_MEMEUSDT_135": {
+        "id": 135,
+        "symbol": "MEMEUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.000518,
+        "price_out": null,
+        "qty": 939642.3297235135,
+        "amount_usd": 486.73472679677997,
+        "confidence": 88,
+        "reason": "EMA\u2191 RSI7=59 mom=+0.19% vol=2.7x",
+        "exit_reason": null,
+        "time_in": "2026-03-28 02:42:48",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.000518,
+        "open_time": 1774665768.6366594,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_MEMEUSDT_135"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -3540,6 +3568,32 @@
         "leverage": 1,
         "peak_price": 0.000519,
         "open_time": 1774665308.9165425,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 135,
+        "symbol": "MEMEUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.000518,
+        "price_out": 0.000518,
+        "qty": 939642.3297235135,
+        "amount_usd": 486.73472679677997,
+        "confidence": 88,
+        "reason": "EMA\u2191 RSI7=59 mom=+0.19% vol=2.7x",
+        "exit_reason": "\u23f1 TIMEOUT 65s",
+        "time_in": "2026-03-28 02:42:48",
+        "time_out": "2026-03-28 02:43:54",
+        "pnl": 0.0,
+        "pnl_pct": 0.0,
+        "duration_min": 1,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.000518,
+        "open_time": 1774665768.6366594,
         "kelly_pct": 0.48
       }
     ],
@@ -17742,6 +17796,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-28 02:36"
+      },
+      {
+        "trade_id": 135,
+        "pnl": 0.0,
+        "symbol": "MEMEUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-28 02:43"
       }
     ],
     "patterns_to_avoid": [
@@ -17779,7 +17844,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -18025,6 +18089,7 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "score=4",
       "score=4",
       "score=4",
       "score=4",
@@ -18324,7 +18389,7 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 33,
-    "total_losses": 395,
+    "total_losses": 396,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -11,
@@ -18338,7 +18403,7 @@
       "ONDOUSDT": -2,
       "AVAXUSDT": 2,
       "OPUSDT": -15,
-      "MEMEUSDT": -5,
+      "MEMEUSDT": -11,
       "NOTUSDT": -6,
       "ORDIUSDT": 1,
       "WIFUSDT": -6,
@@ -18379,7 +18444,7 @@
       "AVAXUSDT": 0,
       "APTUSDT": 2,
       "OPUSDT": 5,
-      "MEMEUSDT": 1,
+      "MEMEUSDT": 2,
       "NOTUSDT": 1,
       "ORDIUSDT": 0,
       "WIFUSDT": 1,
