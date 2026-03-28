@@ -2635,7 +2635,7 @@ def test_strategy_variation(send_fn):
         send_fn(f"🧬 ÉVOLUTION: {best_strat['name']}\nWR:{best_wr:.0f}% vs {current_wr:.0f}%")
 
 # ═══════════════════════════════════════════════════════════════
-#  BOUCLE PRINCIPALE UPGRADE PHASE 1 — VERSION CORRIGÉE
+#  BOUCLE PRINCIPALE UPGRADE PHASE 1 — VERSION FINALE CORRIGÉE
 # ═══════════════════════════════════════════════════════════════
 def trading_loop(send_fn):
     """Boucle principale autonome V8 — Le cerveau collectif décide et agit tout seul
@@ -2668,12 +2668,10 @@ def trading_loop(send_fn):
         if now - last_backtest >= 21600:  # 6 heures
             last_backtest = now
             try:
-                # Correction : on utilise run_coroutine_threadsafe comme pour tes agents
                 future = asyncio.run_coroutine_threadsafe(
                     run_backtest("BTCUSDT", "5m"), 
                     _main_loop
                 )
-                # On ne bloque pas la boucle principale (timeout court)
                 backtest_stats = future.result(timeout=20)
                 logger.info(f"[BACKTEST PHASE 1] Return: {backtest_stats.get('total_return', 0):.2%} | "
                            f"Max DD: {backtest_stats.get('max_drawdown', 0):.2%} | "
@@ -2684,9 +2682,12 @@ def trading_loop(send_fn):
         # === UPGRADE PHASE 1 : Risk check périodique ===
         if now - last_risk_check >= 300:  # toutes les 5 min
             last_risk_check = now
-            positions = memory.get_positions()
-            if positions:
-                logger.info(f"[RISK] Positions actives : {len(positions)} | Equity : ${equity:,.2f}")
+            try:
+                positions = memory.get_positions()
+                if positions:
+                    logger.info(f"[RISK] Positions actives : {len(positions)} | Equity : ${equity:,.2f}")
+            except Exception as risk_e:
+                logger.warning(f"Risk check error: {risk_e}")
 
         # === 1. MICRO HIGH FREQ CYCLE (toutes les 45s) ===
         if now - last_micro >= CYCLE_MICRO:
@@ -2695,7 +2696,7 @@ def trading_loop(send_fn):
 
             micro_ctx = {
                 "symbol": "BTCUSDT",
-                "shared_glossary": shared_glossary,
+                "shared_glossary": shared_glossary if 'shared_glossary' in globals() else {},
                 "equity": equity,
                 "market_regime": bot_state.get("market_regime", "NEUTRAL"),
                 "confidence_threshold": memory.get("confidence_threshold", CONFIDENCE_BASE)
@@ -2725,6 +2726,7 @@ def trading_loop(send_fn):
                         exec_result = exec_future.result(timeout=10)
                         logger.info(f"🚀 AUTO TRADE exécuté via ExecutionEngine : {exec_result}")
                         
+                        # Sauvegarde persistante
                         memory.save_lesson(
                             symbol="BTCUSDT",
                             action=decision.get("side", "BUY"),
@@ -2733,8 +2735,12 @@ def trading_loop(send_fn):
                             confidence=decision.get("confidence", 0.85),
                             lesson="Micro trade exécuté par orchestreur collectif"
                         )
-                        memory.save_position("BTCUSDT", decision.get("side", "BUY").lower(), 
-                                           decision.get("amount_usd", 150) / current_price if current_price > 0 else 0, current_price)
+                        memory.save_position(
+                            "BTCUSDT", 
+                            decision.get("side", "BUY").lower(), 
+                            decision.get("amount_usd", 150) / current_price if current_price > 0 else 0, 
+                            current_price
+                        )
                     except Exception as exec_e:
                         logger.warning(f"ExecutionEngine error: {exec_e}")
             except Exception as e:
@@ -2743,7 +2749,10 @@ def trading_loop(send_fn):
         # === 2. MEME CYCLE (toutes les 180s) ===
         if now - last_meme >= CYCLE_MEME:
             last_meme = now
-            meme_ctx = {"shared_glossary": shared_glossary, "equity": equity}
+            meme_ctx = {
+                "shared_glossary": shared_glossary if 'shared_glossary' in globals() else {}, 
+                "equity": equity
+            }
             try:
                 future = asyncio.run_coroutine_threadsafe(
                     orchestrator.ask_all("détecte memecoins et donne décision", meme_ctx), _main_loop
@@ -2751,7 +2760,6 @@ def trading_loop(send_fn):
                 _, decision = future.result(timeout=12)
                 if decision.get("decision") == "TRADE":
                     try:
-                        # ExecutionEngine pour meme trades
                         exec_future = asyncio.run_coroutine_threadsafe(
                             execution_engine.place_order(
                                 symbol=decision.get("symbol", "BTCUSDT"),
@@ -2769,7 +2777,7 @@ def trading_loop(send_fn):
         # === 3. ÉPARGNE + STAKING AUTO (toutes les 900s) ===
         if now - last_epargne >= CYCLE_EPARGNE:
             last_epargne = now
-            staking_ctx = {"equity": equity, "shared_glossary": shared_glossary}
+            staking_ctx = {"equity": equity, "shared_glossary": shared_glossary if 'shared_glossary' in globals() else {}}
             try:
                 future = asyncio.run_coroutine_threadsafe(
                     yield_staking.respond("check staking and transfer to savings", staking_ctx), _main_loop
@@ -2784,7 +2792,7 @@ def trading_loop(send_fn):
         # === 4. RÉGIME MARCHÉ + HEDGING (toutes les 300s) ===
         if now - last_regime >= 300:
             last_regime = now
-            regime_ctx = {"shared_glossary": shared_glossary}
+            regime_ctx = {"shared_glossary": shared_glossary if 'shared_glossary' in globals() else {}}
             try:
                 future = asyncio.run_coroutine_threadsafe(
                     quant_ml.respond("detect current market regime", regime_ctx), _main_loop
@@ -2806,8 +2814,8 @@ def trading_loop(send_fn):
                 performance_tracker.export_dashboard()
                 memory.cache_set("last_equity", equity)
                 memory.cache_set("last_price_BTC", current_price)
-            except:
-                pass
+            except Exception as e:
+                logger.warning(f"Dashboard error: {e}")
 
         # === 6. EXTREME LEARNING MODE — leçons auto ===
         if bot_state.get("extreme_learning_mode"):
@@ -2830,8 +2838,8 @@ def trading_loop(send_fn):
                     confidence=0.80,
                     lesson=f"Extreme learning mode - Equity: ${equity:,.2f}"
                 )
-            except:
-                pass
+            except Exception as e:
+                logger.warning(f"Save lesson error: {e}")
 
         time.sleep(0.1)  # petite pause pour ne pas surcharger
 
