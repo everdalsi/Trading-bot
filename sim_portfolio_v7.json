@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 972.9220198390632,
+    "cash": 990.1870553457304,
     "initial": 1000.0,
     "positions": {
       "MICRO_ETHUSDT_132": {
@@ -3526,17 +3526,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 1983.18,
-        "price_out": null,
+        "price_out": 1983.87,
         "qty": 0.008702705069720908,
         "amount_usd": 17.25903064016911,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=12 mom=-0.11% vol=3.6x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 73s",
         "time_in": "2026-03-28 02:30:45",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-28 02:32:06",
+        "pnl": 0.006005,
+        "pnl_pct": 0.035,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -17738,6 +17738,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-28 02:32"
+      },
+      {
+        "trade_id": 132,
+        "pnl": 0.006005,
+        "symbol": "ETHUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-28 02:32"
       }
     ],
     "patterns_to_avoid": [
@@ -18314,15 +18325,16 @@
       "score=4",
       "score=4",
       "score=4",
+      "score=4",
       "score=4"
     ],
     "confidence_threshold": 82,
-    "total_wins": 30,
+    "total_wins": 31,
     "total_losses": 395,
     "symbol_scores": {
       "Deadwhale": -15,
-      "BTCUSDT": -13,
-      "ETHUSDT": -11,
+      "BTCUSDT": -11,
+      "ETHUSDT": -9,
       "SOLUSDT": -15,
       "APTUSDT": -15,
       "NEKO": -10,
@@ -18391,7 +18403,7 @@
       "UNIUSDT": 1,
       "LINKUSDT": 1,
       "FLOKIUSDT": 0,
-      "BTCUSDT": 1,
+      "BTCUSDT": 0,
       "SOLUSDT": 1,
       "XRPUSDT": 1,
       "LTCUSDT": 1,
