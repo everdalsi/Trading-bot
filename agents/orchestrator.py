@@ -2,14 +2,14 @@
 🎯 ORCHESTRATOR V5 — Cerveau Collectif Parfait + Zéro Malentendu + Spécialisation Forcée
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Upgrade BaseAgent V3 + glossaire partagé + safe_respond partout + vérif rôle stricte
-+ Intégration QuantML / ExecutionEngine / YieldStaking dans le débat collectif
++ Intégration QuantML / ExecutionEngine / YieldStaking / Hedging dans le débat collectif
 """
 
 import asyncio
 from typing import Dict, Any, List, Tuple
 import os
 
-from agents.base_agent import BaseAgent
+from agents.base_agent import BaseAgent  # ← UPGRADE : base commune avec safe_respond
 from agents.analyst_agent import AnalystAgent
 from agents.risk_agent import RiskAgent
 from agents.trader_agent import TraderAgent
@@ -20,46 +20,49 @@ from agents.performance_tracker import PerformanceTracker
 from agents.research_agent import ResearchAgent
 from agents.knowledge_specialist_agent import KnowledgeSpecialistAgent
 from agents.evolution_agent import EvolutionAgent as SelfImprovementEngineer
-self.hedging = HedgingAgent()   # ← juste après self.yield_staking
 from agents.wallet_copier_agent import WalletCopierAgent
 from agents.social_listener_agent import SocialListenerAgent
 
-# ← NOUVEAUX AGENTS V8 (intégrés au cerveau collectif)
+# === UPGRADE V5 : NOUVEAUX AGENTS INTÉGRÉS AU CERVEAU COLLECTIF ===
 from agents.quant_ml_agent import QuantMLAgent
 from agents.execution_engine_agent import ExecutionEngineAgent
 from agents.yield_staking_agent import YieldStakingAgent
+from agents.hedging_agent import HedgingAgent   # ← AJOUTÉ ICI (ligne obligatoire)
 
 class Orchestrator:
 
     def __init__(self):
-        self.kb = KnowledgeBase()
+        self.kb = KnowledgeBase()  # ← UPGRADE : glossaire partagé accessible par TOUT le cerveau
 
-        self.analyst            = AnalystAgent()
-        self.risk               = RiskAgent()
-        self.trader             = TraderAgent()
-        self.supervisor         = SupervisorAgent()
-        self.learning           = LearningAgent()
-        self.performance        = PerformanceTracker()
-        self.research           = ResearchAgent()
+        self.analyst    = AnalystAgent()
+        self.risk       = RiskAgent()
+        self.trader     = TraderAgent()
+        self.supervisor = SupervisorAgent()
+        self.learning   = LearningAgent()
+        self.performance = PerformanceTracker()
+        self.research   = ResearchAgent()
         self.knowledge_specialist = KnowledgeSpecialistAgent()
-        self.self_improvement   = SelfImprovementEngineer(orchestrator=self)
-        self.wallet_copier      = WalletCopierAgent()
-        self.social_listener    = SocialListenerAgent()
+        self.self_improvement = SelfImprovementEngineer(orchestrator=self)
+        self.wallet_copier = WalletCopierAgent()
+        self.social_listener = SocialListenerAgent()
 
         # === UPGRADE V5 : nouveaux agents intégrés au cerveau collectif ===
         self.quant_ml           = QuantMLAgent()
         self.execution_engine   = ExecutionEngineAgent()
         self.yield_staking      = YieldStakingAgent()
+        self.hedging            = HedgingAgent()   # ← juste après self.yield_staking (comme demandé)
 
         self.debate_rounds = 0
 
-    async def ask_all(self, question: str, context: dict) -> Tuple[List[Dict], Dict]:
+    async def ask_all(
+        self, question: str, context: dict
+    ) -> Tuple[List[Dict], Dict]:
         print(f"[ORCHESTRATOR V5] 🚀 Démarrage analyse collective → {question[:80]}...")
 
-        # === Glossaire commun forcé pour zéro malentendu ===
+        # === UPGRADE : Glossaire commun forcé pour zéro malentendu ===
         context["shared_glossary"] = self.kb.get_glossary()
 
-        # === Vérification santé du système ===
+        # === UPGRADE : Vérification santé du système avec safe_respond ===
         immune_status = await self.self_improvement.safe_respond("monitor health", context)
         context["immune_health"] = immune_status.get("score", 100)
 
@@ -69,7 +72,7 @@ class Orchestrator:
 
         enriched_ctx = self._enrich_context(context)
 
-        # === PHASE 1 : Appel parallèle de TOUS les agents (spécialisation stricte) ===
+        # === PHASE 1 : Appel parallèle avec safe_respond (spécialisation stricte) ===
         tasks = [
             self.analyst.safe_respond(question, enriched_ctx),
             self.risk.safe_respond(question, enriched_ctx),
@@ -80,10 +83,11 @@ class Orchestrator:
             self.wallet_copier.safe_respond(question, enriched_ctx),
             self.social_listener.safe_respond(question, enriched_ctx),
             self.self_improvement.safe_respond(question, enriched_ctx),
-            # === UPGRADE V5 : nouveaux agents participent au débat ===
+            # === UPGRADE V5 : tous les nouveaux agents participent ===
             self.quant_ml.safe_respond(question, enriched_ctx),
             self.execution_engine.safe_respond(question, enriched_ctx),
             self.yield_staking.safe_respond(question, enriched_ctx),
+            self.hedging.safe_respond(question, enriched_ctx),   # ← Hedging ajouté au débat
         ]
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -92,9 +96,9 @@ class Orchestrator:
         agent_names = [
             "analyst", "risk", "trader", "learning", "research",
             "knowledge_specialist", "wallet_copier", "social_listener",
-            "self_improvement", "quant_ml", "execution_engine", "yield_staking"
+            "self_improvement", "quant_ml", "execution_engine",
+            "yield_staking", "hedging"
         ]
-
         for i, res in enumerate(results):
             if isinstance(res, Exception) or "error" in str(res):
                 responses.append({
@@ -108,9 +112,8 @@ class Orchestrator:
                     print(f"[ORCHESTRATOR V5] ⚠️ {res['agent']} hors domaine → ignoré")
                     continue
                 responses.append(res)
-                print(f"[ORCHESTRATOR V5] ✅ {res['agent']} a apporté : {res.get('summary','')[:60]}...")
 
-        # === PHASE DÉBAT COLLECTIF (jusqu’à ≥ 99 % + glossaire forcé) ===
+        # === PHASE DÉBAT COLLECTIF (jusqu’à ≥ 99 % + glossaire forcé à chaque round) ===
         current_confidence = 0.0
         max_rounds = 7
         self.debate_rounds = 0
@@ -126,26 +129,28 @@ class Orchestrator:
                 "debate_round": self.debate_rounds,
                 "target_confidence": 0.99,
                 "strict_veto_mode": True,
-                "shared_glossary": self.kb.get_glossary(),
+                "shared_glossary": self.kb.get_glossary(),  # ← glossaire forcé
             }
 
             collab_tasks = [
-                self.analyst.safe_respond(f"Raffine ton analyse avec tous les agents (glossaire commun) et vise ≥ 99 %", collaboration_ctx),
-                self.risk.safe_respond(f"Raffine ton analyse avec tous les agents (glossaire commun) et vise ≥ 99 %", collaboration_ctx),
-                self.trader.safe_respond(f"Raffine ton analyse avec tous les agents (glossaire commun) et vise ≥ 99 %", collaboration_ctx),
-                self.learning.safe_respond(f"Raffine ton analyse avec tous les agents (glossaire commun) et vise ≥ 99 %", collaboration_ctx),
-                self.research.safe_respond(f"Raffine ton analyse avec tous les agents (glossaire commun) et vise ≥ 99 %", collaboration_ctx),
-                self.knowledge_specialist.safe_respond(f"Raffine ton analyse avec tous les agents (glossaire commun) et vise ≥ 99 %", collaboration_ctx),
-                self.wallet_copier.safe_respond(f"Raffine ton analyse avec tous les agents (glossaire commun) et vise ≥ 99 %", collaboration_ctx),
-                self.social_listener.safe_respond(f"Raffine ton analyse avec tous les agents (glossaire commun) et vise ≥ 99 %", collaboration_ctx),
-                self.self_improvement.safe_respond(f"Raffine ton analyse avec tous les agents (glossaire commun) et vise ≥ 99 %", collaboration_ctx),
-                self.quant_ml.safe_respond(f"Raffine ton analyse avec tous les agents (glossaire commun) et vise ≥ 99 %", collaboration_ctx),
-                self.execution_engine.safe_respond(f"Raffine ton analyse avec tous les agents (glossaire commun) et vise ≥ 99 %", collaboration_ctx),
-                self.yield_staking.safe_respond(f"Raffine ton analyse avec tous les agents (glossaire commun) et vise ≥ 99 %", collaboration_ctx),
+                self.analyst.safe_respond(f"Raffine ton analyse en tenant compte des autres agents (utilise le glossaire commun) et vise ≥ 99 %", collaboration_ctx),
+                self.risk.safe_respond(f"Raffine ton analyse en tenant compte des autres agents (utilise le glossaire commun) et vise ≥ 99 %", collaboration_ctx),
+                self.trader.safe_respond(f"Raffine ton analyse en tenant compte des autres agents (utilise le glossaire commun) et vise ≥ 99 %", collaboration_ctx),
+                self.learning.safe_respond(f"Raffine ton analyse en tenant compte des autres agents (utilise le glossaire commun) et vise ≥ 99 %", collaboration_ctx),
+                self.research.safe_respond(f"Raffine ton analyse en tenant compte des autres agents (utilise le glossaire commun) et vise ≥ 99 %", collaboration_ctx),
+                self.knowledge_specialist.safe_respond(f"Raffine ton analyse en tenant compte des autres agents (utilise le glossaire commun) et vise ≥ 99 %", collaboration_ctx),
+                self.wallet_copier.safe_respond(f"Raffine ton analyse en tenant compte des autres agents (utilise le glossaire commun) et vise ≥ 99 %", collaboration_ctx),
+                self.social_listener.safe_respond(f"Raffine ton analyse en tenant compte des autres agents (utilise le glossaire commun) et vise ≥ 99 %", collaboration_ctx),
+                self.self_improvement.safe_respond(f"Raffine ton analyse en tenant compte des autres agents (utilise le glossaire commun) et vise ≥ 99 %", collaboration_ctx),
+                self.quant_ml.safe_respond(f"Raffine ton analyse en tenant compte des autres agents (utilise le glossaire commun) et vise ≥ 99 %", collaboration_ctx),
+                self.execution_engine.safe_respond(f"Raffine ton analyse en tenant compte des autres agents (utilise le glossaire commun) et vise ≥ 99 %", collaboration_ctx),
+                self.yield_staking.safe_respond(f"Raffine ton analyse en tenant compte des autres agents (utilise le glossaire commun) et vise ≥ 99 %", collaboration_ctx),
+                self.hedging.safe_respond(f"Raffine ton analyse en tenant compte des autres agents (utilise le glossaire commun) et vise ≥ 99 %", collaboration_ctx),
             ]
 
             collab_results = await asyncio.gather(*collab_tasks, return_exceptions=True)
 
+            # Veto dur
             risk_resp = next((r for r in collab_results if isinstance(r, dict) and r.get("agent") == "risk"), {})
             learn_resp = next((r for r in collab_results if isinstance(r, dict) and r.get("agent") == "learning"), {})
 
@@ -158,18 +163,15 @@ class Orchestrator:
             final_responses = [r for r in collab_results if not isinstance(r, Exception)]
             current_confidence = max((r.get("confidence", 0) for r in final_responses), default=0.0)
 
-        # === DÉCISION FINALE via Supervisor (claire : TRADE ou NO TRADE) ===
-        final = await self.supervisor.respond(
-            "Synthétise tout avec le glossaire commun et donne décision finale claire : TRADE ou NO TRADE",
-            {
-                **enriched_ctx,
-                "agent_outputs": final_responses,
-                "final_confidence": current_confidence,
-                "debate_rounds": self.debate_rounds
-            }
-        )
+        # Décision finale via Supervisor
+        final = await self.supervisor.respond("Synthétise tout avec le glossaire commun et donne décision finale claire : TRADE ou NO TRADE", {
+            **enriched_ctx,
+            "agent_outputs": final_responses,
+            "final_confidence": current_confidence,
+            "debate_rounds": self.debate_rounds
+        })
 
-        print(f"[ORCHESTRATOR V5] ✅ Terminé après {self.debate_rounds} rounds → confiance {current_confidence:.2f}")
+        print(f"[ORCHESTRATOR V5] Terminé après {self.debate_rounds} rounds → confiance {current_confidence:.2f}")
         return final_responses, final
 
     def _enrich_context(self, context: dict) -> dict:
@@ -177,6 +179,7 @@ class Orchestrator:
         return {**context, "shared_glossary": self.kb.get_glossary()}
 
     def _check_for_crash_flag(self):
+        """Méthode originale conservée"""
         return None
 
     async def run(self, market_data: dict, memory: dict) -> Dict[str, Any]:
