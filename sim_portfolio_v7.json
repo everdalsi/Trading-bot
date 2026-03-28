@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 704.540717056,
+    "cash": 915.918092056,
     "initial": 1000.0,
     "positions": {
       "MICRO_OPUSDT_107": {
@@ -2903,17 +2903,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.1024,
-        "price_out": null,
+        "price_out": 0.1023,
         "qty": 2066.2499999999995,
         "amount_usd": 211.58399999999997,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=11 mom=-0.39% vol=6.5x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 66s",
         "time_in": "2026-03-28 01:35:26",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-28 01:36:36",
+        "pnl": -0.206625,
+        "pnl_pct": -0.098,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -16866,6 +16866,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-28 01:36"
+      },
+      {
+        "trade_id": 107,
+        "pnl": -0.206625,
+        "symbol": "OPUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-28 01:36"
       }
     ],
     "patterns_to_avoid": [
@@ -16922,7 +16933,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -17168,6 +17178,7 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "score=4",
       "score=4"
     ],
     "patterns_that_work": [
@@ -17439,13 +17450,13 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 24,
-    "total_losses": 376,
+    "total_losses": 377,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -15,
       "ETHUSDT": -15,
       "SOLUSDT": -15,
-      "APTUSDT": -14,
+      "APTUSDT": -15,
       "NEKO": -10,
       "ARBUSDT": -12,
       "TONUSDT": -15,
@@ -17485,7 +17496,7 @@
       "TRXUSDT": 0,
       "ONDOUSDT": 0,
       "AVAXUSDT": 0,
-      "APTUSDT": 1,
+      "APTUSDT": 2,
       "OPUSDT": 3,
       "MEMEUSDT": 0,
       "NOTUSDT": 1,
