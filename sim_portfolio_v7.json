@@ -3,33 +3,6 @@
     "cash": 743.3709028947745,
     "initial": 1000.0,
     "positions": {
-      "MICRO_MEMEUSDT_171": {
-        "id": 171,
-        "symbol": "MEMEUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.000507,
-        "price_out": null,
-        "qty": 955918.657250176,
-        "amount_usd": 484.6507592258392,
-        "confidence": 88,
-        "reason": "EMA\u2191 RSI7=59 mom=+0.19% vol=2.7x",
-        "exit_reason": null,
-        "time_in": "2026-03-28 05:01:04",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.000507,
-        "open_time": 1774674064.7197986,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_MEMEUSDT_171"
-      },
       "MICRO_APTUSDT_172": {
         "id": 172,
         "symbol": "APTUSDT",
