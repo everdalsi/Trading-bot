@@ -1,5 +1,5 @@
 """
-Trading Bot v8 — GOAT ducerveau collectif + Cerveau commun parfait + Spécialisation stricte
+Trading Botv8 — GOAT ducerveau collectif + Cerveau commun parfait + Spécialisation stricte
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 UPGRADES AJOUTÉES (sans riensupprimer de l’original 4200 lignes que tu as collé) :
 - safe_pnl renforcé + télégram handlers mis à jour avec le nouveau cerveau commun
