@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 990.6619922305131,
+    "cash": 999.5160434335702,
     "initial": 1000.0,
     "positions": {
       "MICRO_ETHUSDT_122": {
@@ -3239,17 +3239,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 1988.0,
-        "price_out": null,
+        "price_out": 1986.31,
         "qty": 0.004457537445341899,
         "amount_usd": 8.861584441339694,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=26 mom=-0.13% vol=5.7x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 87s",
         "time_in": "2026-03-28 02:17:28",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-28 02:18:59",
+        "pnl": -0.007533,
+        "pnl_pct": -0.085,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -17315,6 +17315,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-28 02:18"
+      },
+      {
+        "trade_id": 122,
+        "pnl": -0.007533,
+        "symbol": "ETHUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-28 02:18"
       }
     ],
     "patterns_to_avoid": [
@@ -17360,7 +17371,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -17606,6 +17616,7 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "score=4",
       "score=4",
       "score=4",
       "score=4",
@@ -17892,11 +17903,11 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 28,
-    "total_losses": 387,
+    "total_losses": 388,
     "symbol_scores": {
       "Deadwhale": -15,
-      "BTCUSDT": -14,
-      "ETHUSDT": -11,
+      "BTCUSDT": -15,
+      "ETHUSDT": -14,
       "SOLUSDT": -15,
       "APTUSDT": -15,
       "NEKO": -10,
@@ -17965,7 +17976,7 @@
       "UNIUSDT": 1,
       "LINKUSDT": 1,
       "FLOKIUSDT": 0,
-      "BTCUSDT": 0,
+      "BTCUSDT": 1,
       "SOLUSDT": 1,
       "XRPUSDT": 1,
       "LTCUSDT": 1,
