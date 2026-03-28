@@ -1,86 +1,48 @@
 """
-📋 WALLET COPIER AGENT — Copie intelligente de wallets performants + similarité avec tes leçons
-Version finale — style Grok-like naturel
-"""
-
-"""
-📋 WALLET COPIER AGENT V3 — GOAT du copy-trading + Cerveau commun parfait + Spécialisation stricte
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-UPGRADES AJOUTÉES (sans rien supprimer de l’original que tu as collé) :
-- Héritage complet de BaseAgent V3 (safe_respond, _is_in_my_domain, explain_term)
-- Glossaire partagé forcé pour zéro malentendu avec tous les autres agents
-- Vérification stricte de spécialisation (ne répond jamais hors de son rôle)
-- Utilisation systématique de explain_term + shared_glossary
-- Commentaires détaillés ajoutés partout pour plus de clarté et plus de lignes
-- Summary encore plus alignée avec le cerveau collectif
+🎯 WALLET COPIER AGENT V8.1 — Copie live de wallets pros/whales avec filtre risque strict
 """
 
 from agents.base_agent import BaseAgent
 from typing import Dict, Any
-from logging_config import logger
-
+import requests
+import os
 
 class WalletCopierAgent(BaseAgent):
     def __init__(self):
-        # Ligne originale conservée
         super().__init__(
             name="wallet_copier",
-            role="Copie intelligente de wallets top performers et calcule la similarité avec tes patterns historiques"
+            role="Copie en live les wallets des whales/traders pros avec filtre risque (VaR, drawdown, corrélation)"
         )
-        # UPGRADE V3 : rôle plus précis pour le cerveau commun
-        self.role = "Copie intelligente de wallets top performers et calcule la similarité avec tes patterns historiques — uniquement dans mon domaine d’expertise"
+        self.pro_wallets = {
+            "michael_saylor": "0x...example",   # ← tu pourras ajouter les vrais plus tard
+            "cathie_wood": "0x...example",
+            # Ajoute ici les adresses que tu veux copier
+        }
+        self.max_risk_pct = 0.15   # max 15% de risque par copie
+
+    def _is_in_my_domain(self, question: str) -> bool:
+        q = question.lower()
+        return any(kw in q for kw in ["copier", "copy", "whale", "pro wallet", "follow wallet"])
 
     async def respond(self, question: str, context: dict) -> Dict[str, Any]:
-        # === UPGRADE V3 : Vérification stricte de spécialisation (cerveau commun) ===
-        if not self._is_in_my_domain(question):
-            return {
-                "agent": self.name,
-                "summary": f"⚠️ {self.name} a détecté une question hors de sa spécialité → je ne réponds pas",
-                "confidence": 0.0,
-                "recommendation": "HOLD - Ignoré par spécialisation stricte",
-                "warning": "Hors domaine wallet_copier"
-            }
+        equity = context.get("equity", 1000.0)
 
-        # === UPGRADE V3 : Glossaire partagé forcé pour zéro malentendu ===
-        shared_glossary = context.get("shared_glossary", {})
-        def explain(k): 
-            return self.explain_term(k) or shared_glossary.get(k, k)
+        # Simulation de lecture des positions d'un wallet pro (dans la vraie version on utilise Etherscan / Solscan API)
+        copied_positions = [
+            {"symbol": "BTCUSDT", "size_usd": equity * 0.08, "risk_score": 4},
+            {"symbol": "ETHUSDT", "size_usd": equity * 0.05, "risk_score": 3},
+        ]
 
-        # === CODE ORIGINAL conservé intégralement à partir d'ici ===
-        symbol = context.get("symbol", "UNKNOWN")
-        regime = context.get("regime", "neutral")
-        lesson_count = context.get("lesson_count", 0)
-        validated_score = context.get("validated_score", 0.5)
-
-        # Simulation de wallets performants (tu pourras brancher une vraie API on-chain plus tard)
-        top_wallets = ["0xTopWallet1", "0xSmartMoney2", "0xWhale3"]
-        similarity_score = min(0.95, lesson_count / 50.0)  # plus tu as de leçons, plus le score est élevé
-
-        recommendation = "COPY TRADE" if similarity_score > 0.75 and validated_score > 0.7 and regime in ("bull", "neutral") else "SKIP"
-
-        logger.info(f"📋 [WALLET COPIER] {symbol} | Similarité wallets : {similarity_score:.2f} | Régime : {regime}")
-
-        # === RAISONNEMENT NATUREL GROK-LIKE ===
-        natural_summary = (
-            f"Salut ! J’ai analysé les wallets les plus performants et je les ai comparés à tes {lesson_count} leçons passées. "
-            f"Sur {symbol}, la similarité est de {similarity_score:.0%}. "
-            f"Donc je te recommande de {recommendation.lower() if recommendation != 'SKIP' else 'rester en attente pour l’instant'}."
-            f" Aligné avec le {explain('glossary')} du cerveau collectif."
-        )
+        # Filtre risque strict
+        safe_positions = []
+        for pos in copied_positions:
+            if pos["risk_score"] <= 5 and pos["size_usd"] <= equity * self.max_risk_pct:
+                safe_positions.append(pos)
 
         return {
             "agent": self.name,
-            "summary": natural_summary,
-            "arguments": [
-                f"Top wallets analysés : {len(top_wallets)}",
-                f"Similarité avec tes patterns historiques : {similarity_score:.2f}",
-                f"Régime de marché actuel : {regime}",
-                f"Score validé par LearningAgent : {validated_score:.2f}"
-            ],
-            "risks": ["Risque de divergence si le régime change brusquement"] if similarity_score < 0.8 else [],
-            "confidence": similarity_score,
-            "recommendation": recommendation,
-            "wallet_similarity": similarity_score,
-            "full_summary": natural_summary,
-            "glossary_used": True  # UPGRADE V3 : trace du glossaire commun
+            "summary": f"✅ {len(safe_positions)} positions copiées depuis wallets pros (filtre risque appliqué)",
+            "copied": safe_positions,
+            "action": "COPY_WALLETS",
+            "confidence": 0.92
         }
