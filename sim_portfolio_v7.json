@@ -3,33 +3,6 @@
     "cash": 915.918092056,
     "initial": 1000.0,
     "positions": {
-      "MICRO_OPUSDT_107": {
-        "id": 107,
-        "symbol": "OPUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.1024,
-        "price_out": null,
-        "qty": 2066.2499999999995,
-        "amount_usd": 211.58399999999997,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=11 mom=-0.39% vol=6.5x",
-        "exit_reason": null,
-        "time_in": "2026-03-28 01:35:26",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.1024,
-        "open_time": 1774661726.310501,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_OPUSDT_107"
-      },
       "MICRO_ENAUSDT_108": {
         "id": 108,
         "symbol": "ENAUSDT",
