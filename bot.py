@@ -2655,7 +2655,14 @@ def test_strategy_variation(send_fn):
 def trading_loop(send_fn):
     """Boucle principale autonome V8 — Le cerveau collectif décide et agit tout seul"""
     global _main_loop
-    _main_loop = asyncio.get_running_loop()
+
+    # FIX CRITICAL : on récupère le loop principal de manière sûre (thread-safe)
+    try:
+        _main_loop = asyncio.get_event_loop()
+    except RuntimeError:
+        # Si on est dans un thread sans loop, on en crée un dédié
+        _main_loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(_main_loop)
 
     in_secretary_mode = TELEGRAM_CHAT_ID in AGENT_CHAT_SESSIONS
     last_micro = last_meme = last_epargne = last_status = last_regime = last_staking = 0
@@ -2678,6 +2685,7 @@ def trading_loop(send_fn):
                 "confidence_threshold": memory.get("confidence_threshold", CONFIDENCE_BASE)
             }
 
+            # Cerveau collectif décide tout seul
             try:
                 future = asyncio.run_coroutine_threadsafe(
                     orchestrator.ask_all("analyse micro et donne TRADE ou NO TRADE", micro_ctx),
@@ -2764,7 +2772,7 @@ def trading_loop(send_fn):
             if len(memory["lessons"]) > MAX_LESSONS:
                 memory["lessons"] = memory["lessons"][-MAX_LESSONS:]
 
-        time.sleep(0.1)  # ← FIX : time.sleep au lieu de await
+        time.sleep(0.1)  # petite pause pour ne pas surcharger
 
     logger.info("🛑 Trading Loop autonome arrêté")
 # ═══════════════════════════════════════════════════════════════
