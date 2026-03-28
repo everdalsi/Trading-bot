@@ -1,8 +1,63 @@
 {
   "sim": {
-    "cash": 994.6064557222332,
+    "cash": 746.1177981133806,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MICRO_MEMEUSDT_167": {
+        "id": 167,
+        "symbol": "MEMEUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.000508,
+        "price_out": null,
+        "qty": 953882.4118658897,
+        "amount_usd": 484.5722652278719,
+        "confidence": 88,
+        "reason": "EMA\u2191 RSI7=59 mom=+0.19% vol=2.7x",
+        "exit_reason": null,
+        "time_in": "2026-03-28 04:50:17",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.000508,
+        "open_time": 1774673417.53059,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_MEMEUSDT_167"
+      },
+      "MICRO_ARBUSDT_168": {
+        "id": 168,
+        "symbol": "ARBUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.0892,
+        "price_out": null,
+        "qty": 2785.747282610457,
+        "amount_usd": 248.48865760885278,
+        "confidence": 88,
+        "reason": "EMA\u2191 RSI7=55 mom=+0.00% vol=4.1x",
+        "exit_reason": null,
+        "time_in": "2026-03-28 04:50:28",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0893,
+        "open_time": 1774673428.8870008,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_ARBUSDT_168"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -4372,6 +4427,58 @@
         "leverage": 1,
         "peak_price": 0.000508,
         "open_time": 1774672849.273186,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 167,
+        "symbol": "MEMEUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.000508,
+        "price_out": 0.000508,
+        "qty": 953882.4118658897,
+        "amount_usd": 484.5722652278719,
+        "confidence": 88,
+        "reason": "EMA\u2191 RSI7=59 mom=+0.19% vol=2.7x",
+        "exit_reason": "\u23f1 TIMEOUT 64s",
+        "time_in": "2026-03-28 04:50:17",
+        "time_out": "2026-03-28 04:51:22",
+        "pnl": 0.0,
+        "pnl_pct": 0.0,
+        "duration_min": 1,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.000508,
+        "open_time": 1774673417.53059,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 168,
+        "symbol": "ARBUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.0892,
+        "price_out": null,
+        "qty": 2785.747282610457,
+        "amount_usd": 248.48865760885278,
+        "confidence": 88,
+        "reason": "EMA\u2191 RSI7=55 mom=+0.00% vol=4.1x",
+        "exit_reason": null,
+        "time_in": "2026-03-28 04:50:28",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0892,
+        "open_time": 1774673428.8870008,
         "kelly_pct": 0.48
       }
     ],
@@ -18926,6 +19033,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-28 04:41"
+      },
+      {
+        "trade_id": 167,
+        "pnl": 0.0,
+        "symbol": "MEMEUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-28 04:51"
       }
     ],
     "patterns_to_avoid": [
@@ -18943,7 +19061,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -19189,6 +19306,7 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "score=4",
       "score=4",
       "score=4",
       "score=4",
@@ -19520,7 +19638,7 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 45,
-    "total_losses": 415,
+    "total_losses": 416,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -11,
@@ -19586,7 +19704,7 @@
       "AVAXUSDT": 0,
       "APTUSDT": 5,
       "OPUSDT": 5,
-      "MEMEUSDT": 1,
+      "MEMEUSDT": 2,
       "NOTUSDT": 1,
       "ORDIUSDT": 0,
       "WIFUSDT": 1,
