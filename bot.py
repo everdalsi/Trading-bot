@@ -2654,7 +2654,7 @@ def test_strategy_variation(send_fn):
 # ═══════════════════════════════════════════════════════════════
 def trading_loop(send_fn):
     """Boucle principale du bot avec mode secrétaire propre + LIVE PROGRESSIVE
-    + UPGRADE V8.3 QuantMLAgent (détection régime marché)"""
+    + UPGRADE V8.3 QuantMLAgent + V8.4 ExecutionEngineAgent (Wall Street)"""
     in_secretary_mode = TELEGRAM_CHAT_ID in AGENT_CHAT_SESSIONS
 
     kelly_init = kelly_criterion()
@@ -2671,18 +2671,16 @@ def trading_loop(send_fn):
 
     # === UPGRADE ÉTAPE 5 : Message de démarrage avec infos live ===
     send_fn(
-        f"BOT v7.2 DÉMARRÉ — LIVE PROGRESSIVE\n"
+        f"BOT v8 DÉMARRÉ — LIVE PROGRESSIVE + Staking + QuantML + Execution\n"
         f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
         f"Mode live     : {'TESTNET' if TESTNET_MODE else 'RÉEL LIVE'}\n"
         f"Trading mode  : {TRADING_MODE}\n"
         f"Max positions : {MODE_CONFIG[TRADING_MODE]['max_positions']}\n"
-        f"Winrate goal  : {performance_tracker.validate_winrate_goal(memory)}\n"
         f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
         f"Capital     : ${CAPITAL_INITIAL:,.2f}\n"
         f"Kelly init  : {kelly_init*100:.1f}%\n"
         f"Testnet     : {'✅ ACTIVÉ' if TESTNET_MODE else '❌ DÉSACTIVÉ'}\n"
-        f"Wallet copier : {'Prêt' if hasattr(wallet_copier, 'copy_trade') else 'Inactif'}\n"
-        f"Dashboard   : JSON + PDF export auto activé"
+        f"Agents actifs : YieldStaking + QuantML + ExecutionEngine"
     )
 
     while bot_state["running"]:
@@ -2690,7 +2688,7 @@ def trading_loop(send_fn):
         check_daily_reset()
 
         # === UPGRADE ÉTAPE 5 : Export auto du dashboard ===
-        if now - bot_state.get("last_dashboard_export", 0) >= 300:  # toutes les 5 min
+        if now - bot_state.get("last_dashboard_export", 0) >= 300:
             performance_tracker.export_to_json(memory, "dashboard_performance.json")
             performance_tracker.export_to_pdf(memory, "performance_report.pdf")
             bot_state["last_dashboard_export"] = now
@@ -2716,8 +2714,6 @@ def trading_loop(send_fn):
                 print(f"[MICRO] {e}")
             bot_state["last_micro"] = now
 
-        # (le reste de ta boucle originale reste IDENTIQUE — aucune ligne supprimée)
-
         if now - bot_state.get("last_epargne",0) >= CYCLE_EPARGNE:
             try:
                 run_epargne_scan(send_fn)
@@ -2726,8 +2722,7 @@ def trading_loop(send_fn):
             bot_state["last_epargne"] = now
 
         # === UPGRADE V8 : Yield Staking ETH/SOL (cerveau commun) ===
-        # Correction SyntaxError : trading_loop est sync → on utilise run_coroutine_threadsafe
-        if now - bot_state.get("last_staking", 0) >= 1800:   # toutes les 30 min
+        if now - bot_state.get("last_staking", 0) >= 1800:
             try:
                 staking_ctx = {
                     "equity": get_equity_safe(),
@@ -2743,8 +2738,7 @@ def trading_loop(send_fn):
             except Exception as e:
                 print(f"[YIELD] {e}")
 
-        # === UPGRADE V8.3 : QuantMLAgent — Détection régime de marché (Wall Street) ===
-        # Toutes les 15 min → adapte automatiquement la stratégie du bot
+        # === UPGRADE V8.3 : QuantMLAgent — Détection régime de marché ===
         if now - bot_state.get("last_quant_ml", 0) >= 900:
             try:
                 quant_ctx = {
@@ -2762,6 +2756,24 @@ def trading_loop(send_fn):
                     send_fn(regime_result["summary"])
             except Exception as e:
                 print(f"[QuantML] {e}")
+
+        # === UPGRADE V8.4 : ExecutionEngineAgent — Exécution intelligente ===
+        if now - bot_state.get("last_execution", 0) >= 300:
+            try:
+                exec_ctx = {
+                    "symbol": "BTCUSDT",
+                    "side": "BUY",
+                    "amount_usd": 150.0,
+                    "price": get_price("BTCUSDT"),
+                    "market_regime": bot_state.get("market_regime", "NEUTRAL"),
+                    "shared_glossary": context.get("shared_glossary", {}) if 'context' in locals() else {}
+                }
+                exec_result = await execution_engine.respond("execute this trade now", exec_ctx)
+                if exec_result.get("confidence", 0) > 0.85:
+                    send_fn(exec_result["summary"])
+                bot_state["last_execution"] = now
+            except Exception as e:
+                print(f"[Execution] {e}")
 
         if now - bot_state["last_status"] >= CYCLE_STATUS:
             try:
@@ -2792,13 +2804,14 @@ def trading_loop(send_fn):
                     stop_str = "🛑 STOP JOUR ACTIF" if bot_state.get("daily_stopped") else ""
                     ws_str   = "📡 WS✅" if ws_manager.connected else "📡 REST"
                     send_fn(
-                        f"📊 BILAN v7 — {datetime.now().strftime('%H:%M')}\n━━━━━━━━━━━━━━━━━━━\n"
+                        f"📊 BILAN v8 — {datetime.now().strftime('%H:%M')}\n━━━━━━━━━━━━━━━━━━━\n"
                         f"💰 Capital  : ${equity:.2f} ({pnl/sim['initial']*100:+.1f}%)\n"
                         f"📅 Auj.     : ${daily_pnl:+.2f} ({daily_pct:+.1f}%)\n"
                         f"📍 Positions: {len(sim['positions'])}/{MAX_POSITIONS}{pos_lines}\n"
                         f"━━━━━━━━━━━━━━━━━━━\n"
                         f"🏆 WR       : {stats['win_rate']}% ({stats['wins']}✅/{stats['losses']}❌)\n"
                         f"📐 Kelly    : {kelly*100:.1f}%\n"
+                        f"📊 Régime   : {bot_state.get('market_regime', 'NEUTRAL')}\n"
                         f"⚡ Micro    : {micro_c} trades\n"
                         f"📊 WR DB(30): {wr_db}%\n"
                         f"🧠 AI Pool  : {_pool_stats['last_provider']} ({_pool_stats['total_calls']} appels | cache:{_pool_stats['cache_hits']})\n"
@@ -2820,7 +2833,6 @@ def trading_loop(send_fn):
 
     # Fin de la boucle
     send_fn("Bot arrêté proprement.")
-
 # ═══════════════════════════════════════════════════════════════
 #  WATCHDOG + RÉSUMÉ JOURNALIER
 # ═══════════════════════════════════════════════════════════════
