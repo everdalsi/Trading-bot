@@ -38,13 +38,13 @@ matplotlib
 # =================================================================
 # === UPGRADES PHASE 1 (version finale build-stable) ==============
 # =================================================================
-vectorbt>=0.26.0          # Backtester vectorisé ultra-rapide (SMA, RSI, etc. intégrés)
+vectorbt>=0.26.0          # Backtester vectorisé ultra-rapide (SMA, RSI, Bollinger, etc. intégrés)
 backtrader                # Backtester classique de secours
-pyfolio-reloaded          # Analyse performance (VaR, drawdown) – version maintenue
-quantstats                # Alternative légère et moderne à pyfolio (très stable en 3.12)
+pyfolio-reloaded          # Analyse performance pro (VaR, drawdown) – version maintenue
+quantstats                # Alternative légère et très stable à pyfolio
 redis                     # Cache hot data + positions
 ccxt>=4.3.0               # Version plus récente pour OCO / reduce-only
 aiohttp                   # Async pour WS & execution pro
 
-# Note : pandas_ta supprimé définitivement car il cause des conflits de wheels dans Docker slim.
-# VectorBT + quantstats couvrent largement tes besoins en backtest et analyse perf.
+# Note : pandas_ta a été retiré car il cause des conflits de wheels dans Docker.
+# VectorBT + quantstats couvrent largement tes besoins en backtest et analyse de performance.
