@@ -1,8 +1,36 @@
 {
   "sim": {
-    "cash": 997.5878941853191,
+    "cash": 998.1321549042967,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MICRO_ARBUSDT_154": {
+        "id": 154,
+        "symbol": "ARBUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.0893,
+        "price_out": null,
+        "qty": 5442.607189777013,
+        "amount_usd": 486.02482204708735,
+        "confidence": 88,
+        "reason": "EMA\u2191 RSI7=56 mom=+0.00% vol=2.8x",
+        "exit_reason": null,
+        "time_in": "2026-03-28 04:03:23",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0894,
+        "open_time": 1774670603.2481077,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_ARBUSDT_154"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -4034,6 +4062,32 @@
         "leverage": 1,
         "peak_price": 0.08981,
         "open_time": 1774670509.8314369,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 154,
+        "symbol": "ARBUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.0893,
+        "price_out": 0.0894,
+        "qty": 5442.607189777013,
+        "amount_usd": 486.02482204708735,
+        "confidence": 88,
+        "reason": "EMA\u2191 RSI7=56 mom=+0.00% vol=2.8x",
+        "exit_reason": "\u23f1 TIMEOUT 69s",
+        "time_in": "2026-03-28 04:03:23",
+        "time_out": "2026-03-28 04:04:33",
+        "pnl": 0.544261,
+        "pnl_pct": 0.112,
+        "duration_min": 1,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0893,
+        "open_time": 1774670603.2481077,
         "kelly_pct": 0.48
       }
     ],
@@ -18445,6 +18499,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-28 04:03"
+      },
+      {
+        "trade_id": 154,
+        "pnl": 0.544261,
+        "symbol": "ARBUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-28 04:04"
       }
     ],
     "patterns_to_avoid": [
@@ -19030,10 +19095,11 @@
       "score=4",
       "score=4",
       "score=4",
+      "score=4",
       "score=4"
     ],
     "confidence_threshold": 82,
-    "total_wins": 39,
+    "total_wins": 40,
     "total_losses": 408,
     "symbol_scores": {
       "Deadwhale": -15,
@@ -19042,7 +19108,7 @@
       "SOLUSDT": -11,
       "APTUSDT": -15,
       "NEKO": -10,
-      "ARBUSDT": -15,
+      "ARBUSDT": -13,
       "TONUSDT": -15,
       "TRXUSDT": -2,
       "ONDOUSDT": -2,
@@ -19063,7 +19129,7 @@
       "TAOUSDT": 4,
       "STXUSDT": -6,
       "RENDERUSDT": -2,
-      "DOGEUSDT": -9,
+      "DOGEUSDT": -7,
       "UNIUSDT": -6,
       "LINKUSDT": -2,
       "FLOKIUSDT": 4,
