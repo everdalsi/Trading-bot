@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 749.4474378391285,
+    "cash": 999.0450057405174,
     "initial": 1000.0,
     "positions": {
       "MICRO_NEARUSDT_137": {
@@ -3629,17 +3629,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 1.163,
-        "price_out": null,
+        "price_out": 1.163,
         "qty": 214.6152776452182,
         "amount_usd": 249.5975679013888,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=21 mom=-0.34% vol=7.5x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 71s",
         "time_in": "2026-03-28 02:48:25",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-28 02:49:36",
+        "pnl": 0.0,
+        "pnl_pct": 0.0,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -17870,6 +17870,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-28 02:48"
+      },
+      {
+        "trade_id": 137,
+        "pnl": 0.0,
+        "symbol": "NEARUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-28 02:49"
       }
     ],
     "patterns_to_avoid": [
@@ -17905,7 +17916,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -18151,6 +18161,7 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "score=4",
       "score=4",
       "score=4",
       "score=4",
@@ -18452,7 +18463,7 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 33,
-    "total_losses": 397,
+    "total_losses": 398,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -11,
@@ -18505,7 +18516,7 @@
       "TRXUSDT": 0,
       "ONDOUSDT": 0,
       "AVAXUSDT": 0,
-      "APTUSDT": 2,
+      "APTUSDT": 3,
       "OPUSDT": 5,
       "MEMEUSDT": 3,
       "NOTUSDT": 1,
