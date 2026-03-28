@@ -19,6 +19,8 @@ import numpy as np
 from datetime import datetime, timedelta
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
+import vectorbt as vbt
+from execution_engine import ExecutionEngine
 from urllib.parse import urlparse
 from logging_config import logger
 logger.info("Bot v7.1 démarré avec logging étendu ✅")
@@ -37,6 +39,7 @@ yield_staking = YieldStakingAgent()                        # ← AJOUT V8 stakin
 from agents.base_agent import BaseAgent  # ← UPGRADE V8 : import pour cerveau commun
 
 memory = Memory()
+execution = ExecutionEngine(BINANCE_KEY, BINANCE_SECRET, testnet=TESTNET_MODE)
 orchestrator = Orchestrator()
 performance_tracker = PerformanceTracker()
 wallet_copier = WalletCopierAgent()
@@ -2605,10 +2608,11 @@ def test_strategy_variation(send_fn):
         send_fn(f"🧬 ÉVOLUTION: {best_strat['name']}\nWR:{best_wr:.0f}% vs {current_wr:.0f}%")
 
 # ═══════════════════════════════════════════════════════════════
-#  BOUCLE PRINCIPALE
+#  BOUCLE PRINCIPALE UPGRADE PHASE 1
 # ═══════════════════════════════════════════════════════════════
 def trading_loop(send_fn):
-    """Boucle principale autonome V8 — Le cerveau collectif décide et agit tout seul"""
+    """Boucle principale autonome V8 — Le cerveau collectif décide et agit tout seul
+    UPGRADE PHASE 1 : backtester intégré + execution_engine pro + memory persistante"""
     global _main_loop
 
     # FIX CRITICAL : on récupère le loop principal de manière sûre (thread-safe)
@@ -2621,12 +2625,35 @@ def trading_loop(send_fn):
     in_secretary_mode = TELEGRAM_CHAT_ID in AGENT_CHAT_SESSIONS
     last_micro = last_meme = last_epargne = last_status = last_regime = last_staking = 0
 
+    # === UPGRADE PHASE 1 : timers pour backtest et risk metrics ===
+    last_backtest = 0
+    last_risk_check = 0
+
     logger.info("🚀 Trading Loop autonome V8 démarré — Agents décident seuls")
+    logger.info("✅ PHASE 1 ACTIVÉE : Backtester VectorBT + ExecutionEngine pro + SQLite Memory")
 
     while bot_state["running"]:
         now = time.time()
         equity = get_equity_safe()
         current_price = get_current_price("BTCUSDT") or 0.0   # ← FIX ici pour le performance_tracker
+
+        # === UPGRADE PHASE 1 : Backtest périodique toutes les 6h ===
+        if now - last_backtest >= 21600:  # 6 heures
+            last_backtest = now
+            try:
+                backtest_stats = await run_backtest("BTCUSDT", "5m")  # fonction ajoutée précédemment
+                logger.info(f"[BACKTEST PHASE 1] Return: {backtest_stats.get('total_return', 0):.2%} | "
+                           f"Max DD: {backtest_stats.get('max_drawdown', 0):.2%} | "
+                           f"Win Rate: {backtest_stats.get('win_rate', 0):.2%}")
+            except Exception as bt_e:
+                logger.warning(f"Backtest error (non blocking): {bt_e}")
+
+        # === UPGRADE PHASE 1 : Risk check périodique ===
+        if now - last_risk_check >= 300:  # toutes les 5 min
+            last_risk_check = now
+            positions = memory.get_positions()
+            if positions:
+                logger.info(f"[RISK] Positions actives : {len(positions)} | Equity : ${equity:,.2f}")
 
         # === 1. MICRO HIGH FREQ CYCLE (toutes les 45s) ===
         if now - last_micro >= CYCLE_MICRO:
@@ -2651,11 +2678,40 @@ def trading_loop(send_fn):
 
                 if decision.get("decision") == "TRADE" and decision.get("confidence", 0) >= 0.85:
                     exec_ctx = {**micro_ctx, "side": decision.get("side", "BUY"), "amount_usd": decision.get("amount_usd", 150)}
-                    exec_future = asyncio.run_coroutine_threadsafe(
-                        execution_engine.respond("execute this trade now", exec_ctx), _main_loop
-                    )
-                    exec_result = exec_future.result(timeout=10)
-                    logger.info(f"🚀 AUTO TRADE exécuté par le cerveau : {exec_result.get('summary')}")
+                    
+                    # === UPGRADE PHASE 1 : Execution via ExecutionEngine ===
+                    try:
+                        exec_future = asyncio.run_coroutine_threadsafe(
+                            execution_engine.place_order(
+                                symbol="BTCUSDT",
+                                side=decision.get("side", "BUY"),
+                                order_type="market",
+                                amount=decision.get("amount_usd", 150) / current_price,
+                                price=current_price
+                            ), _main_loop
+                        )
+                        exec_result = exec_future.result(timeout=10)
+                        logger.info(f"🚀 AUTO TRADE exécuté par le cerveau via ExecutionEngine : {exec_result.get('summary', exec_result)}")
+                        
+                        # Sauvegarde persistante dans memory SQLite
+                        memory.save_lesson(
+                            symbol="BTCUSDT",
+                            action=decision.get("side", "BUY"),
+                            outcome="pending",
+                            pnl=0.0,
+                            confidence=decision.get("confidence", 0.85),
+                            lesson="Micro trade exécuté par orchestreur collectif"
+                        )
+                        memory.save_position("BTCUSDT", decision.get("side", "BUY").lower(), 
+                                           decision.get("amount_usd", 150) / current_price, current_price)
+                    except Exception as exec_e:
+                        logger.warning(f"ExecutionEngine error: {exec_e}")
+                        # fallback vers ton ancien execution_engine.respond si besoin
+                        exec_future = asyncio.run_coroutine_threadsafe(
+                            execution_engine.respond("execute this trade now", exec_ctx), _main_loop
+                        )
+                        exec_result = exec_future.result(timeout=10)
+                        logger.info(f"🚀 AUTO TRADE exécuté par le cerveau : {exec_result.get('summary')}")
             except Exception as e:
                 logger.warning(f"Micro cycle error: {e}")
 
@@ -2669,10 +2725,23 @@ def trading_loop(send_fn):
                 )
                 _, decision = future.result(timeout=12)
                 if decision.get("decision") == "TRADE":
-                    exec_future = asyncio.run_coroutine_threadsafe(
-                        execution_engine.respond("execute meme trade", {**meme_ctx, **decision}), _main_loop
-                    )
-                    exec_future.result(timeout=10)
+                    # UPGRADE : passage par ExecutionEngine
+                    try:
+                        exec_future = asyncio.run_coroutine_threadsafe(
+                            execution_engine.place_order(
+                                symbol=decision.get("symbol", "BTCUSDT"),
+                                side=decision.get("side", "BUY"),
+                                order_type="market",
+                                amount=decision.get("amount", 100) / get_current_price(decision.get("symbol", "BTCUSDT"))
+                            ), _main_loop
+                        )
+                        exec_future.result(timeout=10)
+                    except:
+                        # fallback original
+                        exec_future = asyncio.run_coroutine_threadsafe(
+                            execution_engine.respond("execute meme trade", {**meme_ctx, **decision}), _main_loop
+                        )
+                        exec_future.result(timeout=10)
             except:
                 pass
 
@@ -2687,6 +2756,8 @@ def trading_loop(send_fn):
                 staking_result = future.result(timeout=15)
                 if "réel" in staking_result.get("summary", "") or "STAKING RÉEL" in staking_result.get("summary", ""):
                     logger.info(f"💰 Staking réel surveillé : {staking_result['summary']}")
+                    # UPGRADE : sauvegarde leçon staking
+                    memory.save_lesson("USDT", "STAKING", "executed", 0.0, 0.95, staking_result.get("summary", ""))
             except Exception as e:
                 logger.warning(f"Staking auto error: {e}")
 
@@ -2713,6 +2784,9 @@ def trading_loop(send_fn):
             try:
                 send_fn(generate_dashboard())
                 performance_tracker.export_dashboard()
+                # UPGRADE : cache hot data
+                memory.cache_set("last_equity", equity)
+                memory.cache_set("last_price_BTC", current_price)
             except:
                 pass
 
@@ -2727,6 +2801,19 @@ def trading_loop(send_fn):
             })
             if len(memory["lessons"]) > MAX_LESSONS:
                 memory["lessons"] = memory["lessons"][-MAX_LESSONS:]
+
+            # UPGRADE : sauvegarde persistante des leçons
+            try:
+                memory.save_lesson(
+                    symbol="BTCUSDT",
+                    action="AUTO_LEARNING",
+                    outcome="ongoing",
+                    pnl=equity - sim.get("daily_start_equity", CAPITAL_INITIAL),
+                    confidence=0.80,
+                    lesson=f"Extreme learning mode - Equity: ${equity:,.2f}"
+                )
+            except:
+                pass
 
         time.sleep(0.1)  # petite pause pour ne pas surcharger
 
@@ -4201,7 +4288,22 @@ async def cmd_test_brain(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await update.message.reply_text(f"❌ ERREUR dans cmd_test_brain :\n{str(e)}")
         logger.error(f"Test brain error: {e}")  
-
+        
+# =================================================================
+# === UPGRADES PHASE 1 AJOUTÉES (backtester + paper mode) ========
+# =================================================================
+async def run_backtest(symbol: str = "BTCUSDT", timeframe: str = "5m"):
+    """Backtest vectorisé rapide – ajouté sans rien supprimer"""
+    logger.info(f"[BACKTEST PHASE 1] {symbol} {timeframe}")
+    df = execution.get_historical_data(symbol, timeframe)
+    fast_ma = vbt.MA.run(df['close'], window=10)
+    slow_ma = vbt.MA.run(df['close'], window=50)
+    entries = fast_ma.ma_crossed_above(slow_ma)
+    exits = fast_ma.ma_crossed_below(slow_ma)
+    pf = vbt.Portfolio.from_signals(df['close'], entries, exits, fees=0.0004, slippage=0.001, init_cash=10000)
+    stats = pf.stats()
+    logger.info(f"Backtest → Return {stats.get('total_return',0):.2%} | Max DD {stats.get('max_drawdown',0):.2%} | Win Rate {stats.get('win_rate',0):.2%}")
+    return stats
 
 if __name__ == "__main__":
     print("🚀 Trading Bot v7.2 — LIVE PROGRESSIVE chargé")
