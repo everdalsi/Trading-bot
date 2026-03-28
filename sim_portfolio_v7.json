@@ -1,8 +1,63 @@
 {
   "sim": {
-    "cash": 1000.1297068018496,
+    "cash": 750.4238516797382,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MICRO_DOGEUSDT_149": {
+        "id": 149,
+        "symbol": "DOGEUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.08984,
+        "price_out": null,
+        "qty": 5423.677572950368,
+        "amount_usd": 487.26319315386104,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=18 mom=-0.10% vol=2.6x",
+        "exit_reason": null,
+        "time_in": "2026-03-28 03:49:24",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.08987,
+        "open_time": 1774669764.3600032,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_DOGEUSDT_149"
+      },
+      "MICRO_INJUSDT_150": {
+        "id": 150,
+        "symbol": "INJUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 2.842,
+        "price_out": null,
+        "qty": 87.9199737682266,
+        "amount_usd": 249.86856544929998,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=10 mom=-0.14% vol=3.9x",
+        "exit_reason": null,
+        "time_in": "2026-03-28 03:49:27",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 2.844,
+        "open_time": 1774669767.022575,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_INJUSDT_150"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -3904,6 +3959,58 @@
         "leverage": 1,
         "peak_price": 0.000515,
         "open_time": 1774669192.035198,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 149,
+        "symbol": "DOGEUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.08984,
+        "price_out": 0.08987,
+        "qty": 5423.677572950368,
+        "amount_usd": 487.26319315386104,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=18 mom=-0.10% vol=2.6x",
+        "exit_reason": "\u23f1 TIMEOUT 70s",
+        "time_in": "2026-03-28 03:49:24",
+        "time_out": "2026-03-28 03:50:34",
+        "pnl": 0.16271,
+        "pnl_pct": 0.033,
+        "duration_min": 1,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.08984,
+        "open_time": 1774669764.3600032,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 150,
+        "symbol": "INJUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 2.842,
+        "price_out": null,
+        "qty": 87.9199737682266,
+        "amount_usd": 249.86856544929998,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=10 mom=-0.14% vol=3.9x",
+        "exit_reason": null,
+        "time_in": "2026-03-28 03:49:27",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 2.842,
+        "open_time": 1774669767.022575,
         "kelly_pct": 0.48
       }
     ],
@@ -18260,6 +18367,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-28 03:40"
+      },
+      {
+        "trade_id": 149,
+        "pnl": 0.16271,
+        "symbol": "DOGEUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-28 03:50"
       }
     ],
     "patterns_to_avoid": [
@@ -18842,11 +18960,12 @@
       "score=4",
       "score=4",
       "score=4",
+      "score=4",
       "score=4"
     ],
     "confidence_threshold": 82,
     "total_wins": 37,
-    "total_losses": 405,
+    "total_losses": 406,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -11,
@@ -18860,7 +18979,7 @@
       "ONDOUSDT": -2,
       "AVAXUSDT": 2,
       "OPUSDT": -15,
-      "MEMEUSDT": -14,
+      "MEMEUSDT": -15,
       "NOTUSDT": -6,
       "ORDIUSDT": 1,
       "WIFUSDT": -6,
@@ -18875,7 +18994,7 @@
       "TAOUSDT": 4,
       "STXUSDT": -6,
       "RENDERUSDT": -2,
-      "DOGEUSDT": -15,
+      "DOGEUSDT": -13,
       "UNIUSDT": -6,
       "LINKUSDT": -2,
       "FLOKIUSDT": 4,
@@ -18906,7 +19025,7 @@
       "AVAXUSDT": 0,
       "APTUSDT": 5,
       "OPUSDT": 5,
-      "MEMEUSDT": 0,
+      "MEMEUSDT": 1,
       "NOTUSDT": 1,
       "ORDIUSDT": 0,
       "WIFUSDT": 1,
