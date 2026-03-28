@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 496.03225594910515,
+    "cash": 745.6206195864493,
     "initial": 1000.0,
     "positions": {
       "MICRO_NEARUSDT_128": {
@@ -106,7 +106,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 65964.44,
+        "peak_price": 65989.18,
         "open_time": 1774665045.1486511,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_BTCUSDT_131"
@@ -133,7 +133,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 1983.52,
+        "peak_price": 1984.24,
         "open_time": 1774665045.394933,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_ETHUSDT_132"
@@ -160,7 +160,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 82.43,
+        "peak_price": 82.47,
         "open_time": 1774665045.6385233,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_SOLUSDT_133"
@@ -3530,17 +3530,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 1.168,
-        "price_out": null,
+        "price_out": 1.168,
         "qty": 213.68866749772616,
         "amount_usd": 249.58836363734414,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=14 mom=-0.09% vol=6.8x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 64s",
         "time_in": "2026-03-28 02:30:33",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-28 02:31:38",
+        "pnl": 0.0,
+        "pnl_pct": 0.0,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -17802,6 +17802,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-28 02:31"
+      },
+      {
+        "trade_id": 128,
+        "pnl": 0.0,
+        "symbol": "NEARUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-28 02:31"
       }
     ],
     "patterns_to_avoid": [
@@ -17843,7 +17854,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -18089,6 +18099,7 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "score=4",
       "score=4",
       "score=4",
       "score=4",
@@ -18381,7 +18392,7 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 30,
-    "total_losses": 391,
+    "total_losses": 392,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -15,
@@ -18395,14 +18406,14 @@
       "ONDOUSDT": -2,
       "AVAXUSDT": 2,
       "OPUSDT": -15,
-      "MEMEUSDT": 1,
+      "MEMEUSDT": -2,
       "NOTUSDT": -6,
       "ORDIUSDT": 1,
       "WIFUSDT": -6,
       "JUPUSDT": 4,
       "PIXEL": -15,
       "PIXELUSDT": -4,
-      "NEARUSDT": -12,
+      "NEARUSDT": -15,
       "STRKUSDT": -6,
       "IMXUSDT": -6,
       "FETUSDT": -15,
@@ -18436,7 +18447,7 @@
       "AVAXUSDT": 0,
       "APTUSDT": 2,
       "OPUSDT": 5,
-      "MEMEUSDT": 0,
+      "MEMEUSDT": 1,
       "NOTUSDT": 1,
       "ORDIUSDT": 0,
       "WIFUSDT": 1,
