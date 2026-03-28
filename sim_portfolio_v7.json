@@ -3,33 +3,6 @@
     "cash": 496.03225594910515,
     "initial": 1000.0,
     "positions": {
-      "MICRO_MEMEUSDT_127": {
-        "id": 127,
-        "symbol": "MEMEUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.00052,
-        "price_out": null,
-        "qty": 935993.8033921763,
-        "amount_usd": 486.71677776393165,
-        "confidence": 88,
-        "reason": "EMA\u2191 RSI7=59 mom=+0.19% vol=27.8x",
-        "exit_reason": null,
-        "time_in": "2026-03-28 02:30:09",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.00052,
-        "open_time": 1774665009.9046266,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_MEMEUSDT_127"
-      },
       "MICRO_NEARUSDT_128": {
         "id": 128,
         "symbol": "NEARUSDT",
