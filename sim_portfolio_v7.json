@@ -1,8 +1,36 @@
 {
   "sim": {
-    "cash": 998.748586867214,
+    "cash": 1000.6309478402188,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MICRO_MEMEUSDT_140": {
+        "id": 140,
+        "symbol": "MEMEUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.000517,
+        "price_out": null,
+        "qty": 941180.4865023339,
+        "amount_usd": 486.5903115217066,
+        "confidence": 88,
+        "reason": "EMA\u2191 RSI7=59 mom=+0.19% vol=6.3x",
+        "exit_reason": null,
+        "time_in": "2026-03-28 03:00:06",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.000519,
+        "open_time": 1774666806.4752953,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_MEMEUSDT_140"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -3670,6 +3698,32 @@
         "leverage": 1,
         "peak_price": 0.2268,
         "open_time": 1774666724.2376673,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 140,
+        "symbol": "MEMEUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.000517,
+        "price_out": 0.000519,
+        "qty": 941180.4865023339,
+        "amount_usd": 486.5903115217066,
+        "confidence": 88,
+        "reason": "EMA\u2191 RSI7=59 mom=+0.19% vol=6.3x",
+        "exit_reason": "\u23f1 TIMEOUT 65s",
+        "time_in": "2026-03-28 03:00:06",
+        "time_out": "2026-03-28 03:01:12",
+        "pnl": 1.882361,
+        "pnl_pct": 0.387,
+        "duration_min": 1,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.000517,
+        "open_time": 1774666806.4752953,
         "kelly_pct": 0.48
       }
     ],
@@ -17927,6 +17981,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-28 02:59"
+      },
+      {
+        "trade_id": 140,
+        "pnl": 1.882361,
+        "symbol": "MEMEUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-28 03:01"
       }
     ],
     "patterns_to_avoid": [
@@ -18506,10 +18571,11 @@
       "score=4",
       "score=4",
       "score=4",
+      "score=4",
       "score=4"
     ],
     "confidence_threshold": 82,
-    "total_wins": 33,
+    "total_wins": 34,
     "total_losses": 400,
     "symbol_scores": {
       "Deadwhale": -15,
@@ -18524,7 +18590,7 @@
       "ONDOUSDT": -2,
       "AVAXUSDT": 2,
       "OPUSDT": -15,
-      "MEMEUSDT": -15,
+      "MEMEUSDT": -13,
       "NOTUSDT": -6,
       "ORDIUSDT": 1,
       "WIFUSDT": -6,
@@ -18534,7 +18600,7 @@
       "NEARUSDT": -15,
       "STRKUSDT": -6,
       "IMXUSDT": -6,
-      "FETUSDT": -13,
+      "FETUSDT": -11,
       "INJUSDT": -12,
       "TAOUSDT": 4,
       "STXUSDT": -6,
@@ -18574,7 +18640,7 @@
       "NEARUSDT": 4,
       "STRKUSDT": 1,
       "IMXUSDT": 1,
-      "FETUSDT": 4,
+      "FETUSDT": 0,
       "INJUSDT": 2,
       "TAOUSDT": 0,
       "STXUSDT": 1,
