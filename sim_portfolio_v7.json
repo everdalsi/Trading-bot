@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 496.24457615193563,
+    "cash": 745.996421360255,
     "initial": 1000.0,
     "positions": {
       "MICRO_XRPUSDT_117": {
@@ -3244,17 +3244,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 1.3235,
-        "price_out": null,
+        "price_out": 1.3227,
         "qty": 188.81972118267134,
         "amount_usd": 249.90290098526552,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=26 mom=-0.16% vol=2.7x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 65s",
         "time_in": "2026-03-28 02:17:14",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-28 02:18:24",
+        "pnl": -0.151056,
+        "pnl_pct": -0.06,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -17395,6 +17395,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-28 02:18"
+      },
+      {
+        "trade_id": 117,
+        "pnl": -0.151056,
+        "symbol": "XRPUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-28 02:18"
       }
     ],
     "patterns_to_avoid": [
@@ -17445,7 +17456,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -17691,6 +17701,7 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "score=4",
       "score=4",
       "score=4",
       "score=4",
@@ -17972,7 +17983,7 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 28,
-    "total_losses": 382,
+    "total_losses": 383,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -11,
@@ -18005,7 +18016,7 @@
       "UNIUSDT": -6,
       "LINKUSDT": -2,
       "FLOKIUSDT": 4,
-      "XRPUSDT": 4,
+      "XRPUSDT": 1,
       "LTCUSDT": -6,
       "DOTUSDT": 1,
       "BONKUSDT": 4,
@@ -18040,7 +18051,7 @@
       "LINKUSDT": 1,
       "FLOKIUSDT": 0,
       "BTCUSDT": 0,
-      "SOLUSDT": 0,
+      "SOLUSDT": 1,
       "XRPUSDT": 0,
       "LTCUSDT": 1,
       "DOTUSDT": 0,
