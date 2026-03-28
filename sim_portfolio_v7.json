@@ -3,33 +3,6 @@
     "cash": 788.4931758446514,
     "initial": 1000.0,
     "positions": {
-      "MICRO_BTCUSDT_114": {
-        "id": 114,
-        "symbol": "BTCUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 66108.85,
-        "price_out": null,
-        "qty": 0.010525650053146065,
-        "amount_usd": 695.8386205159253,
-        "confidence": 88,
-        "reason": "EMA\u2191 RSI7=55 mom=+0.07% vol=2.8x",
-        "exit_reason": null,
-        "time_in": "2026-03-28 01:55:19",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 66133.55,
-        "open_time": 1774662919.214877,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_BTCUSDT_114"
-      },
       "MICRO_ENAUSDT_115": {
         "id": 115,
         "symbol": "ENAUSDT",
