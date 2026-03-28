@@ -1,8 +1,4 @@
 """
-Trading Bot v7 — AI Pool +Épargne + Risk Management Avancé
-"""
-
-"""
 Trading Bot v8 — GOAT du cerveau collectif + Cerveau commun parfait + Spécialisation stricte
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 UPGRADES AJOUTÉES (sans rien supprimer de l’original 4200 lignes que tu as collé) :
