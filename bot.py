@@ -2678,7 +2678,6 @@ def trading_loop(send_fn):
                 "confidence_threshold": memory.get("confidence_threshold", CONFIDENCE_BASE)
             }
 
-            # Cerveau collectif décide tout seul
             try:
                 future = asyncio.run_coroutine_threadsafe(
                     orchestrator.ask_all("analyse micro et donne TRADE ou NO TRADE", micro_ctx),
@@ -2706,7 +2705,6 @@ def trading_loop(send_fn):
                 )
                 _, decision = future.result(timeout=12)
                 if decision.get("decision") == "TRADE":
-                    # Execution auto
                     exec_future = asyncio.run_coroutine_threadsafe(
                         execution_engine.respond("execute meme trade", {**meme_ctx, **decision}), _main_loop
                     )
@@ -2719,13 +2717,12 @@ def trading_loop(send_fn):
             last_epargne = now
             staking_ctx = {"equity": equity, "shared_glossary": shared_glossary}
             try:
-                # YieldStaking décide + transfert auto vers savings
                 future = asyncio.run_coroutine_threadsafe(
                     yield_staking.respond("check staking and transfer to savings", staking_ctx), _main_loop
                 )
                 staking_result = future.result(timeout=15)
-                if "transféré" in staking_result.get("summary", ""):
-                    logger.info(f"💰 Staking auto + transfert savings : {staking_result['summary']}")
+                if "réel" in staking_result.get("summary", "") or "STAKING RÉEL" in staking_result.get("summary", ""):
+                    logger.info(f"💰 Staking réel surveillé : {staking_result['summary']}")
             except Exception as e:
                 logger.warning(f"Staking auto error: {e}")
 
@@ -2739,7 +2736,6 @@ def trading_loop(send_fn):
                 )
                 regime = future.result(timeout=10)
                 bot_state["market_regime"] = regime.get("regime", "NEUTRAL")
-                # Hedging auto si besoin
                 hedge_future = asyncio.run_coroutine_threadsafe(
                     orchestrator.hedging.respond("check hedging needed", regime_ctx), _main_loop
                 )
@@ -2768,7 +2764,7 @@ def trading_loop(send_fn):
             if len(memory["lessons"]) > MAX_LESSONS:
                 memory["lessons"] = memory["lessons"][-MAX_LESSONS:]
 
-        await asyncio.sleep(1)  # petite pause pour ne pas surcharger
+        time.sleep(0.1)  # ← FIX : time.sleep au lieu de await
 
     logger.info("🛑 Trading Loop autonome arrêté")
 # ═══════════════════════════════════════════════════════════════
