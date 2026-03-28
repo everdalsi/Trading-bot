@@ -3,33 +3,6 @@
     "cash": 573.9779226912107,
     "initial": 1000.0,
     "positions": {
-      "MICRO_NEARUSDT_157": {
-        "id": 157,
-        "symbol": "NEARUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 1.163,
-        "price_out": null,
-        "qty": 109.95415480460548,
-        "amount_usd": 127.87668203775618,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=22 mom=-0.17% vol=10.5x",
-        "exit_reason": null,
-        "time_in": "2026-03-28 04:08:54",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 1.163,
-        "open_time": 1774670934.3794348,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_NEARUSDT_157"
-      },
       "MICRO_MEMEUSDT_158": {
         "id": 158,
         "symbol": "MEMEUSDT",
