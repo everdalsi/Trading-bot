@@ -3,33 +3,6 @@
     "cash": 692.3695771832906,
     "initial": 1000.0,
     "positions": {
-      "MICRO_LINKUSDT_110": {
-        "id": 110,
-        "symbol": "LINKUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 8.51,
-        "price_out": null,
-        "qty": 80.16405187768753,
-        "amount_usd": 682.1960814791208,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=22 mom=-0.23% vol=2.5x",
-        "exit_reason": null,
-        "time_in": "2026-03-28 01:36:47",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 8.51,
-        "open_time": 1774661807.6267016,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_LINKUSDT_110"
-      },
       "MICRO_FETUSDT_111": {
         "id": 111,
         "symbol": "FETUSDT",
