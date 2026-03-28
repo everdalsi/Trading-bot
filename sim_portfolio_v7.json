@@ -2,35 +2,7 @@
   "sim": {
     "cash": 998.9658013811851,
     "initial": 1000.0,
-    "positions": {
-      "MICRO_ENAUSDT_123": {
-        "id": 123,
-        "symbol": "ENAUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.0885,
-        "price_out": null,
-        "qty": 5502.420523851247,
-        "amount_usd": 486.96421636083534,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=13 mom=+0.00% vol=3.7x",
-        "exit_reason": null,
-        "time_in": "2026-03-28 02:20:40",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0885,
-        "open_time": 1774664440.276517,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_ENAUSDT_123"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
