@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 990.1870553457304,
+    "cash": 999.0450057405175,
     "initial": 1000.0,
     "positions": {
       "MICRO_SOLUSDT_133": {
@@ -3525,17 +3525,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 82.39,
-        "price_out": null,
+        "price_out": 82.46,
         "qty": 0.10742117869011676,
         "amount_usd": 8.85043091227872,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=23 mom=-0.12% vol=4.0x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 72s",
         "time_in": "2026-03-28 02:30:45",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-28 02:32:10",
+        "pnl": 0.007519,
+        "pnl_pct": 0.085,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -17722,6 +17722,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-28 02:32"
+      },
+      {
+        "trade_id": 133,
+        "pnl": 0.007519,
+        "symbol": "SOLUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-28 02:32"
       }
     ],
     "patterns_to_avoid": [
@@ -18299,16 +18310,17 @@
       "score=4",
       "score=4",
       "score=4",
+      "score=4",
       "score=4"
     ],
     "confidence_threshold": 82,
-    "total_wins": 31,
+    "total_wins": 32,
     "total_losses": 395,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -11,
-      "ETHUSDT": -9,
-      "SOLUSDT": -15,
+      "ETHUSDT": -7,
+      "SOLUSDT": -13,
       "APTUSDT": -15,
       "NEKO": -10,
       "ARBUSDT": -15,
