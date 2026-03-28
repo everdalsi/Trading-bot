@@ -1,8 +1,36 @@
 {
   "sim": {
-    "cash": 994.8850304504944,
+    "cash": 994.7675681975354,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MICRO_SOLUSDT_170": {
+        "id": 170,
+        "symbol": "SOLUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 82.53,
+        "price_out": null,
+        "qty": 5.873112647952027,
+        "amount_usd": 484.70798683548077,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=13 mom=-0.15% vol=15.5x",
+        "exit_reason": null,
+        "time_in": "2026-03-28 04:58:22",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 82.53,
+        "open_time": 1774673902.5699568,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_SOLUSDT_170"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -4450,6 +4478,32 @@
         "leverage": 1,
         "peak_price": 0.000505,
         "open_time": 1774673833.56563,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 170,
+        "symbol": "SOLUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 82.53,
+        "price_out": 82.51,
+        "qty": 5.873112647952027,
+        "amount_usd": 484.70798683548077,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=13 mom=-0.15% vol=15.5x",
+        "exit_reason": "\u23f1 TIMEOUT 72s",
+        "time_in": "2026-03-28 04:58:22",
+        "time_out": "2026-03-28 04:59:35",
+        "pnl": -0.117462,
+        "pnl_pct": -0.024,
+        "duration_min": 1,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 82.53,
+        "open_time": 1774673902.5699568,
         "kelly_pct": 0.48
       }
     ],
@@ -19037,6 +19091,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-28 04:58"
+      },
+      {
+        "trade_id": 170,
+        "pnl": -0.117462,
+        "symbol": "SOLUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-28 04:59"
       }
     ],
     "patterns_to_avoid": [
@@ -19052,7 +19117,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -19298,6 +19362,7 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "score=4",
       "score=4",
       "score=4",
       "score=4",
@@ -19632,7 +19697,7 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 46,
-    "total_losses": 417,
+    "total_losses": 418,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -11,
@@ -19698,7 +19763,7 @@
       "AVAXUSDT": 0,
       "APTUSDT": 5,
       "OPUSDT": 5,
-      "MEMEUSDT": 3,
+      "MEMEUSDT": 4,
       "NOTUSDT": 1,
       "ORDIUSDT": 0,
       "WIFUSDT": 1,
