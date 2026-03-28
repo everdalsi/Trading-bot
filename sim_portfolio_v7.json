@@ -18733,7 +18733,7 @@
       "score=4"
     ],
     "confidence_threshold": 82,
-    "total_wins": 35,
+    "total_wins": 36,
     "total_losses": 404,
     "symbol_scores": {
       "Deadwhale": -15,
@@ -18748,7 +18748,7 @@
       "ONDOUSDT": -2,
       "AVAXUSDT": 2,
       "OPUSDT": -15,
-      "MEMEUSDT": -13,
+      "MEMEUSDT": -11,
       "NOTUSDT": -6,
       "ORDIUSDT": 1,
       "WIFUSDT": -6,
@@ -18794,7 +18794,7 @@
       "AVAXUSDT": 0,
       "APTUSDT": 5,
       "OPUSDT": 5,
-      "MEMEUSDT": 2,
+      "MEMEUSDT": 0,
       "NOTUSDT": 1,
       "ORDIUSDT": 0,
       "WIFUSDT": 1,
@@ -27719,6 +27719,6 @@
         "status": "\u2705 Promos d\u00e9tect\u00e9es"
       }
     ],
-    "last_scan": 1774664576.4473915
+    "last_scan": 1774668188.8160481
   }
 }
