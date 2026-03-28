@@ -3,33 +3,6 @@
     "cash": 990.1870553457304,
     "initial": 1000.0,
     "positions": {
-      "MICRO_ETHUSDT_132": {
-        "id": 132,
-        "symbol": "ETHUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 1983.18,
-        "price_out": null,
-        "qty": 0.008702705069720908,
-        "amount_usd": 17.25903064016911,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=12 mom=-0.11% vol=3.6x",
-        "exit_reason": null,
-        "time_in": "2026-03-28 02:30:45",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 1984.49,
-        "open_time": 1774665045.394933,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_ETHUSDT_132"
-      },
       "MICRO_SOLUSDT_133": {
         "id": 133,
         "symbol": "SOLUSDT",
