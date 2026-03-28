@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 939.2422469810717,
+    "cash": 972.9220198390632,
     "initial": 1000.0,
     "positions": {
       "MICRO_BTCUSDT_131": {
@@ -3527,17 +3527,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 65936.3,
-        "price_out": null,
+        "price_out": 65981.98,
         "qty": 0.000510438954059752,
         "amount_usd": 33.656456006570025,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=17 mom=-0.16% vol=12.0x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 73s",
         "time_in": "2026-03-28 02:30:45",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-28 02:32:02",
+        "pnl": 0.023317,
+        "pnl_pct": 0.069,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -17754,6 +17754,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-28 02:31"
+      },
+      {
+        "trade_id": 131,
+        "pnl": 0.023317,
+        "symbol": "BTCUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-28 02:32"
       }
     ],
     "patterns_to_avoid": [
@@ -18329,14 +18340,15 @@
       "score=4",
       "score=4",
       "score=4",
+      "score=4",
       "score=4"
     ],
     "confidence_threshold": 82,
     "total_wins": 30,
-    "total_losses": 394,
+    "total_losses": 395,
     "symbol_scores": {
       "Deadwhale": -15,
-      "BTCUSDT": -15,
+      "BTCUSDT": -13,
       "ETHUSDT": -11,
       "SOLUSDT": -15,
       "APTUSDT": -15,
@@ -18371,7 +18383,7 @@
       "DOTUSDT": 1,
       "BONKUSDT": 4,
       "PYTHUSDT": -12,
-      "ENAUSDT": -7
+      "ENAUSDT": -10
     },
     "symbol_blacklist": {
       "OPUSDT": {
@@ -18413,7 +18425,7 @@
       "DOTUSDT": 0,
       "BONKUSDT": 0,
       "PYTHUSDT": 2,
-      "ENAUSDT": 0,
+      "ENAUSDT": 1,
       "ETHUSDT": 0
     },
     "bad_setups": [
