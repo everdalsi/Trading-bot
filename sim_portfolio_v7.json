@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 915.918092056,
+    "cash": 980.1667837343691,
     "initial": 1000.0,
     "positions": {
       "MICRO_ENAUSDT_108": {
@@ -2902,17 +2902,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.0883,
-        "price_out": null,
+        "price_out": 0.0882,
         "qty": 728.4432163080409,
         "amount_usd": 64.32153600000001,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=13 mom=+0.00% vol=19.9x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 60s",
         "time_in": "2026-03-28 01:35:32",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-28 01:36:40",
+        "pnl": -0.072844,
+        "pnl_pct": -0.113,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -16850,6 +16850,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-28 01:36"
+      },
+      {
+        "trade_id": 108,
+        "pnl": -0.072844,
+        "symbol": "ENAUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-28 01:36"
       }
     ],
     "patterns_to_avoid": [
@@ -16905,7 +16916,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -17151,6 +17161,7 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "score=4",
       "score=4",
       "score=4"
     ],
@@ -17423,7 +17434,7 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 24,
-    "total_losses": 377,
+    "total_losses": 378,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -15,
@@ -17460,7 +17471,8 @@
       "LTCUSDT": -6,
       "DOTUSDT": 1,
       "BONKUSDT": 4,
-      "PYTHUSDT": -6
+      "PYTHUSDT": -6,
+      "ENAUSDT": -3
     },
     "symbol_blacklist": {},
     "consecutive_losses": {
@@ -17470,7 +17482,7 @@
       "ONDOUSDT": 0,
       "AVAXUSDT": 0,
       "APTUSDT": 2,
-      "OPUSDT": 3,
+      "OPUSDT": 4,
       "MEMEUSDT": 0,
       "NOTUSDT": 1,
       "ORDIUSDT": 0,
