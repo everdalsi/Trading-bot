@@ -4339,30 +4339,40 @@ async def cmd_execute(update, ctx):
         "shared_glossary": {}
     })
     await update.message.reply_text(result["full_summary"])
+    
 async def cmd_test_brain(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    if not _auth(update): return
-    await update.message.reply_text("🧪 Test cerveau collectif lancé sur BTCUSDT...")
+    if not _auth(update): 
+        return
+    await update.message.reply_text("🧪 Test cerveau collectif V5 lancé sur BTCUSDT... (diagnostic activé)")
 
-    market_data = {
-        "symbol": "BTCUSDT",
-        "price": get_price("BTCUSDT"),
-        "rsi": compute_indicators(get_klines("BTCUSDT", "15", 50)).get("rsi", 50),
-        "market_regime": bot_state.get("market_regime", "NEUTRAL")
-    }
+    try:
+        market_data = {
+            "symbol": "BTCUSDT",
+            "price": get_price("BTCUSDT"),
+            "rsi": compute_indicators(get_klines("BTCUSDT", "15", 50)).get("rsi", 50),
+            "market_regime": bot_state.get("market_regime", "NEUTRAL"),
+            "positions": sim.get("positions", {}),
+            "peak_equity": sim.get("peak_equity", get_equity_safe()),
+        }
 
-    result = await orchestrator.run(market_data, memory)
-    
-    msg = "🧠 **TEST Cerveau Collectif V5**\n"
-    msg += f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-    msg += f"**Décision finale : {result['final_decision'].get('decision', 'NO TRADE')}**\n"
-    msg += f"Raison : {result['final_decision'].get('reason', '—')}\n"
-    msg += f"Confiance : {result['final_decision'].get('final_confidence', 0):.0f}%\n"
-    msg += f"Debate rounds : {result.get('debate_rounds', 0)}\n\n"
-    msg += "**Qui a parlé :**\n"
-    for r in result["responses"][:8]:
-        msg += f"• {r.get('agent', '—')} → {r.get('summary', '')[:80]}...\n"
-    
-    await update.message.reply_text(msg)    
+        result = await orchestrator.run(market_data, memory)
+        
+        msg = "🧠 **TEST Cerveau Collectif V5 — OK**\n"
+        msg += f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        msg += f"**Décision finale : {result['final_decision'].get('decision', 'NO TRADE')}**\n"
+        msg += f"Raison : {result['final_decision'].get('reason', '—')}\n"
+        msg += f"Confiance : {result['final_decision'].get('final_confidence', 0):.0f}%\n"
+        msg += f"Debate rounds : {result.get('debate_rounds', 0)}\n\n"
+        msg += "**Agents qui ont parlé :**\n"
+        for r in result.get("responses", [])[:10]:
+            msg += f"• {r.get('agent', '—')} → {r.get('summary', '')[:80]}...\n"
+        
+        await update.message.reply_text(msg)
+
+    except Exception as e:
+        error_msg = f"❌ ERREUR dans cmd_test_brain :\n{type(e).__name__}: {str(e)[:400]}"
+        await update.message.reply_text(error_msg)
+        print(f"[TEST_BRAIN ERROR] {e}")    
 
 
 if __name__ == "__main__":
