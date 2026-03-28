@@ -1,8 +1,63 @@
 {
   "sim": {
-    "cash": 999.5157405206573,
+    "cash": 749.2552535423856,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MICRO_ARBUSDT_125": {
+        "id": 125,
+        "symbol": "ARBUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.0893,
+        "price_out": null,
+        "qty": 5453.125070343383,
+        "amount_usd": 486.96406878166414,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=17 mom=-0.11% vol=3.6x",
+        "exit_reason": null,
+        "time_in": "2026-03-28 02:27:36",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0893,
+        "open_time": 1774664856.1057642,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_ARBUSDT_125"
+      },
+      "MICRO_ETHUSDT_126": {
+        "id": 126,
+        "symbol": "ETHUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 1985.2,
+        "price_out": null,
+        "qty": 0.12578842155512668,
+        "amount_usd": 249.71517447123748,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=20 mom=-0.04% vol=13.4x",
+        "exit_reason": null,
+        "time_in": "2026-03-28 02:28:31",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 1985.2,
+        "open_time": 1774664911.698689,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_ETHUSDT_126"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -3280,6 +3335,58 @@
         "leverage": 1,
         "peak_price": 0.0885,
         "open_time": 1774664682.451498,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 125,
+        "symbol": "ARBUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.0893,
+        "price_out": 0.0892,
+        "qty": 5453.125070343383,
+        "amount_usd": 486.96406878166414,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=17 mom=-0.11% vol=3.6x",
+        "exit_reason": "\u23f1 TIMEOUT 68s",
+        "time_in": "2026-03-28 02:27:36",
+        "time_out": "2026-03-28 02:28:44",
+        "pnl": -0.545313,
+        "pnl_pct": -0.112,
+        "duration_min": 1,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.0893,
+        "open_time": 1774664856.1057642,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 126,
+        "symbol": "ETHUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 1985.2,
+        "price_out": null,
+        "qty": 0.12578842155512668,
+        "amount_usd": 249.71517447123748,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=20 mom=-0.04% vol=13.4x",
+        "exit_reason": null,
+        "time_in": "2026-03-28 02:28:31",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 1985.2,
+        "open_time": 1774664911.698689,
         "kelly_pct": 0.48
       }
     ],
@@ -17372,6 +17479,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-28 02:25"
+      },
+      {
+        "trade_id": 125,
+        "pnl": -0.545313,
+        "symbol": "ARBUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-28 02:28"
       }
     ],
     "patterns_to_avoid": [
@@ -17415,7 +17533,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -17661,6 +17778,7 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "score=4",
       "score=4",
       "score=4",
       "score=4",
@@ -17949,7 +18067,7 @@
       "score=4"
     ],
     "confidence_threshold": 82,
-    "total_wins": 28,
+    "total_wins": 29,
     "total_losses": 390,
     "symbol_scores": {
       "Deadwhale": -15,
@@ -17958,7 +18076,7 @@
       "SOLUSDT": -15,
       "APTUSDT": -15,
       "NEKO": -10,
-      "ARBUSDT": -12,
+      "ARBUSDT": -15,
       "TONUSDT": -15,
       "TRXUSDT": -2,
       "ONDOUSDT": -2,
@@ -17988,7 +18106,7 @@
       "DOTUSDT": 1,
       "BONKUSDT": 4,
       "PYTHUSDT": -12,
-      "ENAUSDT": -6
+      "ENAUSDT": -4
     },
     "symbol_blacklist": {
       "OPUSDT": {
@@ -18030,7 +18148,7 @@
       "DOTUSDT": 0,
       "BONKUSDT": 0,
       "PYTHUSDT": 2,
-      "ENAUSDT": 1,
+      "ENAUSDT": 0,
       "ETHUSDT": 1
     },
     "bad_setups": [
