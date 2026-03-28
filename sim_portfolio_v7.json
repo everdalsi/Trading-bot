@@ -3,33 +3,6 @@
     "cash": 745.6206195864493,
     "initial": 1000.0,
     "positions": {
-      "MICRO_NEARUSDT_128": {
-        "id": 128,
-        "symbol": "NEARUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 1.168,
-        "price_out": null,
-        "qty": 213.68866749772616,
-        "amount_usd": 249.58836363734414,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=14 mom=-0.09% vol=6.8x",
-        "exit_reason": null,
-        "time_in": "2026-03-28 02:30:33",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 1.168,
-        "open_time": 1774665033.809595,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_NEARUSDT_128"
-      },
       "MICRO_FETUSDT_129": {
         "id": 129,
         "symbol": "FETUSDT",
