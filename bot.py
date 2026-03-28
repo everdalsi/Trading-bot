@@ -27,7 +27,11 @@ from agents.wallet_copier_agent import WalletCopierAgent
 from agents.quant_ml_agent import QuantMLAgent   # ← AJOUT V8.3 QuantML
 quant_ml = QuantMLAgent()      # ← AJOUT V8.3 QuantML
 from agents.execution_engine_agent import ExecutionEngineAgent   # ← AJOUT V8.4 Execution
-# === UPGRADE PHASE 1 : ExecutionEngine avec chargement sécurisé des clés ===
+from agents.yield_staking_agent import YieldStakingAgent   # ← AJOUT V8 staking
+yield_staking = YieldStakingAgent()                        # ← AJOUT V8 staking
+from agents.base_agent import BaseAgent  # ← UPGRADE V8 : import pour cerveau commun
+
+memory = Memory()# === UPGRADE PHASE 1 : ExecutionEngine avec chargement sécurisé des clés ===
 from dotenv import load_dotenv
 import os
 
@@ -41,13 +45,8 @@ execution = ExecutionEngine(
     api_key=BINANCE_KEY,
     api_secret=BINANCE_SECRET,
     testnet=TESTNET_MODE
-)                        # ← AJOUT V8.4 Execution
-from agents.yield_staking_agent import YieldStakingAgent   # ← AJOUT V8 staking
-yield_staking = YieldStakingAgent()                        # ← AJOUT V8 staking
-from agents.base_agent import BaseAgent  # ← UPGRADE V8 : import pour cerveau commun
+)
 
-memory = Memory()
-execution = ExecutionEngine(BINANCE_KEY, BINANCE_SECRET, testnet=TESTNET_MODE)
 orchestrator = Orchestrator()
 performance_tracker = PerformanceTracker()
 wallet_copier = WalletCopierAgent()
