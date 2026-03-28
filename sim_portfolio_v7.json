@@ -2,35 +2,7 @@
   "sim": {
     "cash": 998.2401043800419,
     "initial": 1000.0,
-    "positions": {
-      "MICRO_APTUSDT_143": {
-        "id": 143,
-        "symbol": "APTUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.95,
-        "price_out": null,
-        "qty": 512.2022355611809,
-        "amount_usd": 486.59212378312185,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=26 mom=-0.32% vol=32.9x",
-        "exit_reason": null,
-        "time_in": "2026-03-28 03:14:46",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.95,
-        "open_time": 1774667686.6481848,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_APTUSDT_143"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
