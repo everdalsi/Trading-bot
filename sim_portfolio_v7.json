@@ -3,33 +3,6 @@
     "cash": 874.0331212728107,
     "initial": 1000.0,
     "positions": {
-      "MICRO_DOGEUSDT_118": {
-        "id": 118,
-        "symbol": "DOGEUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.09032,
-        "price_out": null,
-        "qty": 1418.8464086054494,
-        "amount_usd": 128.15020762524418,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=28 mom=-0.09% vol=10.9x",
-        "exit_reason": null,
-        "time_in": "2026-03-28 02:17:15",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.09032,
-        "open_time": 1774664235.2178965,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_DOGEUSDT_118"
-      },
       "MICRO_OPUSDT_119": {
         "id": 119,
         "symbol": "OPUSDT",
