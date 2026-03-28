@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 899.7571859529435,
+    "cash": 976.4635117695286,
     "initial": 1000.0,
     "positions": {
       "MICRO_AVAXUSDT_112": {
@@ -52,7 +52,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 1985.36,
+        "peak_price": 1986.6,
         "open_time": 1774661853.423075,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_ETHUSDT_113"
@@ -3006,17 +3006,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 8.7,
-        "price_out": null,
+        "price_out": 8.71,
         "qty": 8.806696419814596,
         "amount_usd": 76.61825885238699,
         "confidence": 88,
         "reason": "EMA\u2193 RSI7=19 mom=-0.46% vol=3.9x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 73s",
         "time_in": "2026-03-28 01:37:19",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-28 01:38:33",
+        "pnl": 0.088067,
+        "pnl_pct": 0.115,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -16998,6 +16998,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-28 01:38"
+      },
+      {
+        "trade_id": 112,
+        "pnl": 0.088067,
+        "symbol": "AVAXUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-28 01:38"
       }
     ],
     "patterns_to_avoid": [
@@ -17567,11 +17578,12 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m"
+      "backtest_5m",
+      "score=4"
     ],
     "confidence_threshold": 82,
     "total_wins": 24,
-    "total_losses": 381,
+    "total_losses": 382,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -15,
@@ -17583,7 +17595,7 @@
       "TONUSDT": -15,
       "TRXUSDT": -2,
       "ONDOUSDT": -2,
-      "AVAXUSDT": -2,
+      "AVAXUSDT": 0,
       "OPUSDT": -15,
       "MEMEUSDT": 4,
       "NOTUSDT": -6,
@@ -17595,7 +17607,7 @@
       "NEARUSDT": -12,
       "STRKUSDT": -6,
       "IMXUSDT": -6,
-      "FETUSDT": -12,
+      "FETUSDT": -15,
       "INJUSDT": -12,
       "TAOUSDT": 4,
       "STXUSDT": -6,
@@ -17629,7 +17641,7 @@
       "NEARUSDT": 2,
       "STRKUSDT": 1,
       "IMXUSDT": 1,
-      "FETUSDT": 1,
+      "FETUSDT": 2,
       "INJUSDT": 2,
       "TAOUSDT": 0,
       "STXUSDT": 1,
