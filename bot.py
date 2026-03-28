@@ -628,7 +628,8 @@ def check_daily_reset():
         bot_state["daily_stopped"] = False
 
 def get_equity_safe() -> float:
-    """Calcul sécurisé du capital total (cash + positions) avec protection contre les valeurs fantômes"""
+    """Calcul sécurisé du capital total (cash + positions) avec protection contre les valeurs fantômes
+    + UPGRADE V8.2 Wall Street : staking ETH/SOL inclus dans l'equity (real-time tracking)"""
     try:
         prices = get_prices_batch()
         equity = float(sim.get("cash", CAPITAL_INITIAL))
@@ -665,6 +666,22 @@ def get_equity_safe() -> float:
 
             except Exception:
                 continue
+
+        # === UPGRADE V8.2 — Staking ETH/SOL inclus dans equity (Wall Street) ===
+        # Le yield passif compte maintenant dans le capital total
+        # (valeur nominale + yield futur estimé)
+        try:
+            if hasattr(yield_staking, 'staked_positions') and yield_staking.staked_positions:
+                for asset, amount in yield_staking.staked_positions.items():
+                    equity += amount * 1.0  # valeur nominale
+                    # Bonus yield futur (estimation conservatrice)
+                    if asset == "ETH":
+                        equity += amount * 0.00016  # ~5.8% APY / 365
+                    elif asset == "SOL":
+                        equity += amount * 0.000225  # ~8.2% APY / 365
+                print(f"[YIELD-EQUITY] Staking inclus → +{sum(yield_staking.staked_positions.values()):,.2f} $")
+        except Exception as staking_err:
+            print(f"[YIELD-EQUITY] Erreur tracking staking: {staking_err}")
 
         # Protection ultime contre capital fantôme
         if equity > CAPITAL_INITIAL * 1000 or equity < 0:
@@ -3635,22 +3652,6 @@ async def cmd_help(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     )
 
 last_summary = 0
-
-# === PATCH get_equity_safe ultra-safe (évite les capital fantôme) ===
-def get_equity_safe():
-    try:
-        cash = float(sim.get("cash", CAPITAL_INITIAL))
-        positions_value = sum(
-            float(p.get("value", p.get("amount_usd", 0))) 
-            for p in sim.get("positions", {}).values()
-        )
-        equity = cash + positions_value
-        # Log clair pour debug
-        print(f"[EQUITY-SAFE] Cash=${cash:,.2f} | Positions=${positions_value:,.2f} | Total=${equity:,.2f}")
-        return equity
-    except Exception as e:
-        print(f"[EQUITY-SAFE] Erreur → fallback à {CAPITAL_INITIAL}")
-        return CAPITAL_INITIAL
 
 def send_summary(send_fn):
     global last_summary
