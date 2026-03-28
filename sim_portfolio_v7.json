@@ -2,35 +2,7 @@
   "sim": {
     "cash": 994.8850304504944,
     "initial": 1000.0,
-    "positions": {
-      "MICRO_ARBUSDT_168": {
-        "id": 168,
-        "symbol": "ARBUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.0892,
-        "price_out": null,
-        "qty": 2785.747282610457,
-        "amount_usd": 248.48865760885278,
-        "confidence": 88,
-        "reason": "EMA\u2191 RSI7=55 mom=+0.00% vol=4.1x",
-        "exit_reason": null,
-        "time_in": "2026-03-28 04:50:28",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.0893,
-        "open_time": 1774673428.8870008,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_ARBUSDT_168"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
