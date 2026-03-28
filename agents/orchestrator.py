@@ -46,6 +46,7 @@ class Orchestrator:
         self.knowledge_specialist = KnowledgeSpecialistAgent()
         self.self_improvement = SelfImprovementEngineer(orchestrator=self)
         self.wallet_copier = WalletCopierAgent()
+        self.portfolio_manager = PortfolioManager()
         self.social_listener = SocialListenerAgent()
 
         # === UPGRADE V5 : nouveaux agents intégrés au cerveau collectif ===
@@ -89,7 +90,8 @@ class Orchestrator:
             self.quant_ml.safe_respond(question, enriched_ctx),
             self.execution_engine.safe_respond(question, enriched_ctx),
             self.yield_staking.safe_respond(question, enriched_ctx),
-            self.hedging.safe_respond(question, enriched_ctx),   # ← Hedging ajouté au débat
+            self.hedging.safe_respond(question, enriched_ctx),
+            self.portfolio_manager.safe_respond(question, enriched_ctx),
         ]
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -148,6 +150,7 @@ class Orchestrator:
                 self.execution_engine.safe_respond(f"Raffine ton analyse en tenant compte des autres agents (utilise le glossaire commun) et vise ≥ 99 %", collaboration_ctx),
                 self.yield_staking.safe_respond(f"Raffine ton analyse en tenant compte des autres agents (utilise le glossaire commun) et vise ≥ 99 %", collaboration_ctx),
                 self.hedging.safe_respond(f"Raffine ton analyse en tenant compte des autres agents (utilise le glossaire commun) et vise ≥ 99 %", collaboration_ctx),
+                self.portfolio_manager.safe_respond(f"Raffine ton analyse en tenant compte des autres agents (utilise le glossaire commun) et vise ≥ 99 %", collaboration_ctx),
             ]
 
             collab_results = await asyncio.gather(*collab_tasks, return_exceptions=True)
