@@ -2,35 +2,7 @@
   "sim": {
     "cash": 992.5118001460753,
     "initial": 1000.0,
-    "positions": {
-      "MICRO_BNBUSDT_174": {
-        "id": 174,
-        "symbol": "BNBUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 610.55,
-        "price_out": null,
-        "qty": 0.7919241802153824,
-        "amount_usd": 483.5093082305017,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=25 mom=-0.03% vol=2.8x",
-        "exit_reason": null,
-        "time_in": "2026-03-28 05:04:59",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 610.66,
-        "open_time": 1774674299.7128046,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_BNBUSDT_174"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
