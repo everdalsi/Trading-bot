@@ -1,6 +1,6 @@
 {
   "sim": {
-    "cash": 304.0,
+    "cash": 1001.8709677419355,
     "initial": 1000.0,
     "positions": {
       "MICRO_PYTHUSDT_176": {
@@ -25,7 +25,7 @@
           "score=4"
         ],
         "leverage": 1,
-        "peak_price": 0.0372,
+        "peak_price": 0.0373,
         "open_time": 1774679789.378824,
         "kelly_pct": 0.48,
         "pos_key": "MICRO_PYTHUSDT_176"
@@ -4643,17 +4643,17 @@
         "side": "LONG",
         "trade_type": "MICRO",
         "price_in": 0.0372,
-        "price_out": null,
+        "price_out": 0.0373,
         "qty": 18709.67741935484,
         "amount_usd": 696.0,
         "confidence": 88,
         "reason": "EMA\u2191 RSI7=23 mom=-0.27% vol=143.6x",
-        "exit_reason": null,
+        "exit_reason": "\u23f1 TIMEOUT 74s",
         "time_in": "2026-03-28 06:36:29",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
+        "time_out": "2026-03-28 06:37:44",
+        "pnl": 1.870968,
+        "pnl_pct": 0.269,
+        "duration_min": 1,
         "patterns": [
           "score=4"
         ],
@@ -19313,6 +19313,17 @@
         "action_future": "Exiger plus de confirmation avant entr\u00e9e",
         "type": "erreur",
         "date": "2026-03-28 06:11"
+      },
+      {
+        "trade_id": 176,
+        "pnl": 1.870968,
+        "symbol": "PYTHUSDT",
+        "market": "MICRO",
+        "lecon": "Scalp rapide gagnant",
+        "pattern": "score=4",
+        "action_future": "Conserver ce setup pour micro-trading",
+        "type": "succes",
+        "date": "2026-03-28 06:37"
       }
     ],
     "patterns_to_avoid": [
@@ -19906,9 +19917,10 @@
       "score=4",
       "score=4",
       "score=4",
+      "score=4",
       "score=4"
     ],
-    "confidence_threshold": 82,
+    "confidence_threshold": 80,
     "total_wins": 47,
     "total_losses": 421,
     "symbol_scores": {
@@ -19947,7 +19959,7 @@
       "LTCUSDT": -6,
       "DOTUSDT": 1,
       "BONKUSDT": 4,
-      "PYTHUSDT": -12,
+      "PYTHUSDT": -10,
       "ENAUSDT": -10,
       "SUIUSDT": -6,
       "BNBUSDT": 2
