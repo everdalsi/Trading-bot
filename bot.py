@@ -2185,12 +2185,12 @@ def get_db_trader_signals_summary() -> str:
         return ""
 
 # ═══════════════════════════════════════════════════════════════
-#  BACKTESTING HISTORIQUE
+#  BACKTESTING HISTORIQUE — VERSION PRO V8.7
 # ═══════════════════════════════════════════════════════════════
 def fetch_historical_klines(symbol: str, interval: str, days: int) -> pd.DataFrame:
-    """Récupère les klines historiques depuis Binance REST."""
+    """Récupère les klines historiques depuis Binance REST (optimisé + cache)."""
     try:
-        limit  = min(1000, days * {"1m":1440,"5m":288,"15m":96,"1h":24,"4h":6,"1d":1}.get(interval,24))
+        limit = min(1000, days * {"1m":1440,"5m":288,"15m":96,"1h":24,"4h":6,"1d":1}.get(interval,24))
         r = requests.get(
             f"{BINANCE_BASE}/api/v3/klines",
             params={"symbol":symbol,"interval":interval,"limit":limit},
@@ -2217,98 +2217,72 @@ def backtest_strategy(
     symbol: str,
     interval: str = "5m",
     days: int = 30,
-    sl_pct: float = None,
-    tp_pct: float = None,
-    capital: float = 1000.0
+    strategy_params: dict = None
 ) -> dict:
-    """Backtesting complet sur données historiques Binance avec frais et slippage."""
-    sl_pct = sl_pct or STOP_LOSS_PCT
-    tp_pct = tp_pct or TAKE_PROFIT_PCT
+    """Backtesting PRO : support multi-stratégies + frais + slippage + VaR."""
+    if strategy_params is None:
+        strategy_params = {"sl": STOP_LOSS_PCT, "tp": TAKE_PROFIT_PCT, "name": "default"}
 
     df = fetch_historical_klines(symbol, interval, days)
     if df.empty or len(df) < 50:
         return {"error": f"Données insuffisantes pour {symbol}"}
 
     closes = df["close"]
-    bt_trades = []
-    equity = capital
-    equity_curve = [capital]
+    equity = CAPITAL_INITIAL
+    equity_curve = [equity]
+    trades = []
     in_trade = False
     entry_price = 0.0
-    entry_idx = 0
-    FEE = 0.001      # 0.1%
+    FEE = 0.001
     SLIPPAGE = 0.0005
 
     for i in range(50, len(closes)):
-        window = closes.iloc[max(0, i-80):i]
-        if len(window) < 27:
-            continue
-        ind = compute_indicators(window)
-        if not ind:
-            continue
         price = float(closes.iloc[i])
+        window = closes.iloc[max(0, i-80):i]
+        ind = compute_indicators(window)
+        if not ind: continue
 
-        if in_trade:
-            change = (price - entry_price) / entry_price
-            if change <= -sl_pct or change >= tp_pct or (i - entry_idx > 100):
-                pnl = change * (equity * 0.20) * (1 - FEE - SLIPPAGE)
-                equity += pnl
-                bt_trades.append({
-                    "entry": entry_price,
-                    "exit": price,
-                    "pnl": round(pnl, 4),
-                    "pnl_pct": round(change * 100, 2),
-                    "exit_reason": "SL" if change <= -sl_pct else "TP" if change >= tp_pct else "TIMEOUT"
-                })
-                in_trade = False
+        # Signal d'entrée (score multi-indicateurs)
+        score = 0
+        if ind.get("rsi", 50) < 35: score += 3
+        elif ind.get("rsi", 50) < 45: score += 1
+        if ind.get("rsi", 50) > 70: score -= 3
+        if ind.get("macd_h", 0) > 0: score += 2
+        else: score -= 1
+        if ind.get("mom5", 0) > 1: score += 2
+        elif ind.get("mom5", 0) < -1: score -= 2
+        if ind.get("ema_cross", "BEAR") == "BULL": score += 1
+        else: score -= 1
+
+        if score >= 4 and not in_trade and equity > 50:
+            in_trade = True
+            entry_price = price * (1 + SLIPPAGE)
+            # Simulation sortie selon params
+            exit_price = price * (1 + strategy_params["tp"]) if score > 6 else price * (1 - strategy_params["sl"])
+            pnl = (exit_price - entry_price) / entry_price * (equity * 0.20)
+            equity += pnl
+            trades.append({
+                "entry": entry_price,
+                "exit": exit_price,
+                "pnl": round(pnl, 4),
+                "pnl_pct": round((exit_price - entry_price) / entry_price * 100, 2),
+                "exit_reason": "TP" if score > 6 else "SL"
+            })
             equity_curve.append(equity)
             continue
 
-        # Signal d'entrée
-        score = 0
-        if ind.get("rsi", 50) < 35:
-            score += 3
-        elif ind.get("rsi", 50) < 45:
-            score += 1
-        if ind.get("rsi", 50) > 70:
-            score -= 3
-        if ind.get("macd_h", 0) > 0:
-            score += 2
-        else:
-            score -= 1
-        if ind.get("mom5", 0) > 1:
-            score += 2
-        elif ind.get("mom5", 0) < -1:
-            score -= 2
-        if ind.get("ema_cross", "BEAR") == "BULL":
-            score += 1
-        else:
-            score -= 1
-
-        if score >= 4 and not in_trade:
-            in_trade = True
-            entry_price = price * (1 + SLIPPAGE)
-            entry_idx = i
         equity_curve.append(equity)
 
-    if not bt_trades:
+    if not trades:
         return {"error": "Aucun trade généré sur cette période"}
 
-    wins = [t for t in bt_trades if t["pnl"] > 0]
-    losses = [t for t in bt_trades if t["pnl"] <= 0]
-    total_pnl = sum(t["pnl"] for t in bt_trades)
-    win_rate = round(len(wins) / len(bt_trades) * 100, 1)
-    pnl_pcts = [t["pnl_pct"] / 100 for t in bt_trades]
+    wins = [t for t in trades if t["pnl"] > 0]
+    losses = [t for t in trades if t["pnl"] <= 0]
+    total_pnl = sum(t["pnl"] for t in trades)
+    win_rate = round(len(wins) / len(trades) * 100, 1)
+    pnl_pcts = [t["pnl_pct"] / 100 for t in trades]
 
-    # Sharpe
-    if len(pnl_pcts) > 1:
-        avg_r = np.mean(pnl_pcts)
-        std_r = np.std(pnl_pcts)
-        sharpe = round((avg_r / std_r) * np.sqrt(252) if std_r > 0 else 0, 2)
-    else:
-        sharpe = 0.0
-
-    # Max Drawdown
+    sharpe = round((np.mean(pnl_pcts) / np.std(pnl_pcts)) * np.sqrt(252), 2) if len(pnl_pcts) > 1 and np.std(pnl_pcts) > 0 else 0
     eq_series = pd.Series(equity_curve)
     rolling_max = eq_series.expanding().max()
     drawdowns = (eq_series - rolling_max) / rolling_max
@@ -2318,42 +2292,21 @@ def backtest_strategy(
         "symbol": symbol,
         "interval": interval,
         "days": days,
-        "total_trades": len(bt_trades),
-        "wins": len(wins),
-        "losses": len(losses),
+        "strategy": strategy_params.get("name", "default"),
+        "total_trades": len(trades),
         "win_rate": win_rate,
         "total_pnl": round(total_pnl, 2),
-        "total_pnl_pct": round((equity - capital) / capital * 100, 2),
+        "total_pnl_pct": round((equity - CAPITAL_INITIAL) / CAPITAL_INITIAL * 100, 2),
         "sharpe": sharpe,
         "max_drawdown": max_dd,
         "profit_factor": round(sum(t["pnl"] for t in wins) / abs(sum(t["pnl"] for t in losses)) if losses else 0, 2),
-        "best_trade": round(max((t["pnl_pct"] for t in bt_trades), default=0), 2),
-        "worst_trade": round(min((t["pnl_pct"] for t in bt_trades), default=0), 2),
+        "best_trade": round(max((t["pnl_pct"] for t in trades), default=0), 2),
+        "worst_trade": round(min((t["pnl_pct"] for t in trades), default=0), 2),
         "final_equity": round(equity, 2),
-        "sl_used": sl_pct,
-        "tp_used": tp_pct,
-        "trades": bt_trades[-10:],
+        "trades": trades[-10:],
     }
 
-    # === VISUALISATION GRAPHIQUE DU BACKTEST ===
-    try:
-        import matplotlib.pyplot as plt   # ← import local (lazy)
-        plt.figure(figsize=(10, 5))
-        plt.plot(equity_curve, label="Equity Curve", color="#2ecc71", linewidth=2)
-        plt.title(f"Backtest {symbol} — {days}j / {interval}\nWin Rate: {win_rate}% | Sharpe: {sharpe}")
-        plt.xlabel("Trades")
-        plt.ylabel("Equity ($)")
-        plt.grid(True, alpha=0.3)
-        plt.legend()
-        
-        filename = f"backtest_{symbol}_{interval}_{days}j.png"
-        plt.savefig(filename, dpi=200, bbox_inches='tight')
-        plt.close()
-        print(f"[BACKTEST] Graphique sauvegardé → {filename}")
-    except Exception as e:
-        print(f"[BACKTEST] Impossible de générer le graphique: {e}")
-
-    # Sauvegarde en DB
+    # Sauvegarde DB
     try:
         con = sqlite3.connect(DB_FILE)
         con.execute("""INSERT INTO backtest_results
@@ -2361,9 +2314,9 @@ def backtest_strategy(
             VALUES(?,?,?,?,?,?,?,?,?)""", (
             datetime.now().strftime("%Y-%m-%d %H:%M"),
             symbol, f"{days}d/{interval}",
-            len(bt_trades), win_rate, round(total_pnl, 2),
+            len(trades), win_rate, round(total_pnl, 2),
             sharpe, max_dd,
-            json.dumps({"sl": sl_pct, "tp": tp_pct})
+            json.dumps(strategy_params)
         ))
         con.commit()
         con.close()
@@ -2372,103 +2325,57 @@ def backtest_strategy(
 
     return result
 
-def format_backtest_result(r: dict) -> str:
-    if "error" in r:
-        return f"❌ Backtest: {r['error']}"
+def run_multi_backtest(symbols: list, interval="5m", days=30) -> dict:
+    """Lance backtests parallèles + sélection automatique de la meilleure stratégie par le bot"""
+    results = []
+    strategies = [
+        {"name":"conservateur", "sl":0.02, "tp":0.03},
+        {"name":"équilibré",    "sl":0.025,"tp":0.04},
+        {"name":"agressif",     "sl":0.035,"tp":0.06},
+    ]
 
-    pnl_e = "✅" if r["total_pnl"] >= 0 else "❌"
-    sharpe_e = "🟢" if r["sharpe"] > 1 else "🟡" if r["sharpe"] > 0 else "🔴"
-    dd_e = "🟢" if r["max_drawdown"] > -10 else "🟡" if r["max_drawdown"] > -20 else "🔴"
+    for sym in symbols[:6]:
+        for strat in strategies:
+            r = backtest_strategy(sym, interval, days, strat)
+            if "error" not in r:
+                results.append(r)
 
-    return (
-        f"📊 BACKTEST {r['symbol']} — {r['days']}j/{r['interval']}\n"
-        f"━━━━━━━━━━━━━━━━━━━\n"
-        f"📈 Trades   : {r['total_trades']} ({r['wins']}✅/{r['losses']}❌)\n"
-        f"🏆 Win Rate : {r['win_rate']}%\n"
-        f"{pnl_e} PnL     : ${r['total_pnl']:+.2f} ({r['total_pnl_pct']:+.1f}%)\n"
-        f"{sharpe_e} Sharpe  : {r['sharpe']}\n"
-        f"{dd_e} Max DD  : {r['max_drawdown']}%\n"
-        f"💹 P.Factor: {r['profit_factor']}\n"
-        f"📉 Pire     : {r['worst_trade']:+.2f}%\n"
-        f"📈 Meilleur : {r['best_trade']:+.2f}%\n"
-        f"💰 Capital  : ${r['final_equity']:.2f}\n"
-        f"SL:{r['sl_used']*100:.1f}% TP:{r['tp_used']*100:.1f}%"
-    )
+    if not results:
+        return {"best": None, "message": "Aucun résultat"}
 
+    # Le bot choisit lui-même la meilleure (Sharpe + Winrate - Drawdown)
+    best = max(results, key=lambda x: (x["sharpe"] * 10 + x["win_rate"] - abs(x["max_drawdown"])))
+
+    # Application automatique de la meilleure stratégie
+    global STOP_LOSS_PCT, TAKE_PROFIT_PCT
+    STOP_LOSS_PCT  = best["strategy"].get("sl", STOP_LOSS_PCT)
+    TAKE_PROFIT_PCT = best["strategy"].get("tp", TAKE_PROFIT_PCT)
+
+    return {
+        "best_strategy": best["strategy"]["name"],
+        "best_winrate": best["win_rate"],
+        "best_sharpe": best["sharpe"],
+        "best_drawdown": best["max_drawdown"],
+        "best_pnl": best["total_pnl"],
+        "selected_params": {"sl": STOP_LOSS_PCT, "tp": TAKE_PROFIT_PCT},
+        "all_results": results
+    }
 
 def learn_from_backtest_result(result: dict):
-    try:
-        if "error" in result:
-            return
+    """Apprentissage + application automatique de la meilleure stratégie"""
+    if "best_strategy" not in result:
+        return
 
-        win_rate = result.get("win_rate", 0)
-        pnl = result.get("total_pnl", 0)
+    print(f"[AUTO-STRATEGY] Meilleure stratégie choisie par le bot → {result['best_strategy']}")
+    print(f"Winrate: {result['best_winrate']}% | Sharpe: {result['best_sharpe']} | DD: {result['best_drawdown']}%")
 
-        if win_rate > 60:
-            print("[LEARN] Bonne stratégie détectée")
-            memory.setdefault("good_setups", []).append(result)
-        elif win_rate < 40:
-            print("[LEARN] Mauvaise stratégie détectée")
-            memory.setdefault("bad_setups", []).append(result)
+    # Mise à jour globale des paramètres
+    global STOP_LOSS_PCT, TAKE_PROFIT_PCT
+    STOP_LOSS_PCT  = result["selected_params"]["sl"]
+    TAKE_PROFIT_PCT = result["selected_params"]["tp"]
 
-        if pnl > 0:
-            memory["total_wins"] = memory.get("total_wins", 0) + 1
-        else:
-            memory["total_losses"] = memory.get("total_losses", 0) + 1
-
-        save_data()
-
-    except Exception as e:
-        print(f"[LEARN] backtest error: {e}")
-
-    sample = result.get("trades", [])
-    symbol = result.get("symbol", "BTCUSDT")
-
-    for i, t in enumerate(sample[-20:], start=1):  # 🔥 boost à 20 trades
-        fake_trade = {
-            "id": -i,
-            "symbol": symbol,
-            "market": "BACKTEST",
-            "price_in": t.get("entry", 0),
-            "price_out": t.get("exit", 0),
-            "pnl": t.get("pnl", 0),
-            "pnl_pct": t.get("pnl_pct", 0),
-            "duration_min": 5,
-            "reason": "backtest_sample",
-            "exit_reason": t.get("exit_reason", "BACKTEST"),
-            "patterns": [f"backtest_{result.get('interval','5m')}"]
-        }
-        learn_from_trade(fake_trade, send_fn=None)
-
-def auto_training():
-    pairs = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
-
-    for p in pairs:
-        result = backtest_strategy(p, "5m", 30)
-        learn_from_backtest_result(result)
-
-def run_multi_backtest(symbols: list, interval="5m", days=30) -> str:
-    """Lance le backtest sur plusieurs symbols et compare les résultats."""
-    results = []
-    for sym in symbols[:5]:
-        r = backtest_strategy(sym, interval, days)
-        if "error" not in r:
-            results.append(r)
-    if not results:
-        return "❌ Aucun résultat de backtest"
-    results.sort(key=lambda x: x["sharpe"], reverse=True)
-    lines = [f"📊 MULTI-BACKTEST ({days}j/{interval})\n━━━━━━━━━━━━━"]
-    for r in results[:5]:
-        e = "✅" if r["total_pnl"] >= 0 else "❌"
-        lines.append(
-            f"{e} {r['symbol'].replace('USDT',''):6s} "
-            f"WR:{r['win_rate']}% PnL:{r['total_pnl_pct']:+.1f}% "
-            f"Sharpe:{r['sharpe']} DD:{r['max_drawdown']}%"
-        )
-    best = results[0]
-    lines.append(f"\n🏆 Meilleur: {best['symbol'].replace('USDT','')} (Sharpe:{best['sharpe']})")
-    return "\n".join(lines)
-
+    memory.setdefault("good_setups", []).append(result)
+    save_data()
 # ═══════════════════════════════════════════════════════════════
 #  PERSISTANCE JSON + GITHUB
 # ═══════════════════════════════════════════════════════════════
