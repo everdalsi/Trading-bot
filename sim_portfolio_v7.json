@@ -1,8 +1,90 @@
 {
   "sim": {
-    "cash": 998.1321549042967,
+    "cash": 620.5912111810558,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MICRO_SOLUSDT_155": {
+        "id": 155,
+        "symbol": "SOLUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 82.49,
+        "price_out": null,
+        "qty": 5.895138633402513,
+        "amount_usd": 486.28998586937325,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=27 mom=-0.13% vol=2.9x",
+        "exit_reason": null,
+        "time_in": "2026-03-28 04:07:54",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 82.49,
+        "open_time": 1774670874.005135,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_SOLUSDT_155"
+      },
+      "MICRO_SUIUSDT_156": {
+        "id": 156,
+        "symbol": "SUIUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.875,
+        "price_out": null,
+        "qty": 284.99371971864537,
+        "amount_usd": 249.3695047538147,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=27 mom=-0.17% vol=39.5x",
+        "exit_reason": null,
+        "time_in": "2026-03-28 04:08:11",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.8751,
+        "open_time": 1774670891.4643788,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_SUIUSDT_156"
+      },
+      "MICRO_NEARUSDT_157": {
+        "id": 157,
+        "symbol": "NEARUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 1.163,
+        "price_out": null,
+        "qty": 109.95415480460548,
+        "amount_usd": 127.87668203775618,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=22 mom=-0.17% vol=10.5x",
+        "exit_reason": null,
+        "time_in": "2026-03-28 04:08:54",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 1.163,
+        "open_time": 1774670934.3794348,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_NEARUSDT_157"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -4060,6 +4142,84 @@
         "leverage": 1,
         "peak_price": 0.0893,
         "open_time": 1774670603.2481077,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 155,
+        "symbol": "SOLUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 82.49,
+        "price_out": 82.44,
+        "qty": 5.895138633402513,
+        "amount_usd": 486.28998586937325,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=27 mom=-0.13% vol=2.9x",
+        "exit_reason": "\u23f1 TIMEOUT 70s",
+        "time_in": "2026-03-28 04:07:54",
+        "time_out": "2026-03-28 04:09:05",
+        "pnl": -0.294757,
+        "pnl_pct": -0.061,
+        "duration_min": 1,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 82.49,
+        "open_time": 1774670874.005135,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 156,
+        "symbol": "SUIUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.875,
+        "price_out": null,
+        "qty": 284.99371971864537,
+        "amount_usd": 249.3695047538147,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=27 mom=-0.17% vol=39.5x",
+        "exit_reason": null,
+        "time_in": "2026-03-28 04:08:11",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.875,
+        "open_time": 1774670891.4643788,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 157,
+        "symbol": "NEARUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 1.163,
+        "price_out": null,
+        "qty": 109.95415480460548,
+        "amount_usd": 127.87668203775618,
+        "confidence": 88,
+        "reason": "EMA\u2193 RSI7=22 mom=-0.17% vol=10.5x",
+        "exit_reason": null,
+        "time_in": "2026-03-28 04:08:54",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 1.163,
+        "open_time": 1774670934.3794348,
         "kelly_pct": 0.48
       }
     ],
@@ -18482,6 +18642,17 @@
         "action_future": "Conserver ce setup pour micro-trading",
         "type": "succes",
         "date": "2026-03-28 04:04"
+      },
+      {
+        "trade_id": 155,
+        "pnl": -0.294757,
+        "symbol": "SOLUSDT",
+        "market": "MICRO",
+        "lecon": "Entr\u00e9e trop agressive",
+        "pattern": "score=4",
+        "action_future": "Exiger plus de confirmation avant entr\u00e9e",
+        "type": "erreur",
+        "date": "2026-03-28 04:09"
       }
     ],
     "patterns_to_avoid": [
@@ -18507,7 +18678,6 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
-      "backtest_5m",
       "score=4",
       "backtest_5m",
       "backtest_5m",
@@ -18753,6 +18923,7 @@
       "backtest_5m",
       "backtest_5m",
       "backtest_5m",
+      "score=4",
       "score=4",
       "score=4",
       "score=4",
@@ -19071,16 +19242,16 @@
       "score=4"
     ],
     "confidence_threshold": 82,
-    "total_wins": 40,
+    "total_wins": 41,
     "total_losses": 408,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -11,
       "ETHUSDT": -7,
-      "SOLUSDT": -11,
+      "SOLUSDT": -14,
       "APTUSDT": -15,
       "NEKO": -10,
-      "ARBUSDT": -13,
+      "ARBUSDT": -11,
       "TONUSDT": -15,
       "TRXUSDT": -2,
       "ONDOUSDT": -2,
@@ -19125,7 +19296,7 @@
       }
     },
     "consecutive_losses": {
-      "ARBUSDT": 3,
+      "ARBUSDT": 0,
       "TONUSDT": 3,
       "TRXUSDT": 0,
       "ONDOUSDT": 0,
