@@ -2,35 +2,7 @@
   "sim": {
     "cash": 994.7675681975354,
     "initial": 1000.0,
-    "positions": {
-      "MICRO_SOLUSDT_170": {
-        "id": 170,
-        "symbol": "SOLUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 82.53,
-        "price_out": null,
-        "qty": 5.873112647952027,
-        "amount_usd": 484.70798683548077,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=13 mom=-0.15% vol=15.5x",
-        "exit_reason": null,
-        "time_in": "2026-03-28 04:58:22",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 82.53,
-        "open_time": 1774673902.5699568,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_SOLUSDT_170"
-      }
-    },
+    "positions": {},
     "trades": [
       {
         "id": 1,
