@@ -14,10 +14,13 @@ KNOWLEDGE_DIR = "knowledge"
 class LearningAgent(BaseAgent):
 
     def __init__(self):
+        # Ligne originale conservée
         super().__init__(
             name="learning",
             role="Mémoire infinie, scoring des patterns et ajustement de confiance"
         )
+        # UPGRADE V3 : rôle plus précis pour le cerveau commun
+        self.role = "Mémoire infinie, scoring des patterns et ajustement de confiance — uniquement dans mon domaine d’expertise"
         self._ensure_tables()
         self.knowledge_text = self._load_knowledge_base()
 
@@ -554,6 +557,21 @@ class LearningAgent(BaseAgent):
             return {"score": 0.5, "count": 0, "regime": "neutral"}
 
     async def respond(self, question: str, context: dict) -> Dict[str, Any]:
+        # === UPGRADE V3 : Vérification stricte de spécialisation (cerveau commun) ===
+        if not self._is_in_my_domain(question):
+            return {
+                "agent": self.name,
+                "summary": f"⚠️ {self.name} a détecté une question hors de sa spécialité → je ne réponds pas",
+                "confidence": 0.0,
+                "recommendation": "HOLD - Ignoré par spécialisation stricte",
+                "warning": "Hors domaine learning"
+            }
+
+        # === UPGRADE V3 : Glossaire partagé forcé pour zéro malentendu ===
+        shared_glossary = context.get("shared_glossary", {})
+        def explain(k): 
+            return self.explain_term(k) or shared_glossary.get(k, k)
+
         extreme_learning = context.get("extreme_learning_mode", False) or context.get("learning_mode", False)
 
         if extreme_learning and context.get("symbol"):
@@ -690,5 +708,6 @@ class LearningAgent(BaseAgent):
             "knowledge_loaded": bool(self.knowledge_text),
             "regime": regime,
             "validated_score": validated_score,
-            "immune_health": immune_health
+            "immune_health": immune_health,
+            "glossary_used": True
         }
