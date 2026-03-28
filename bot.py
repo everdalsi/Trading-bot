@@ -2660,7 +2660,6 @@ def trading_loop(send_fn):
     try:
         _main_loop = asyncio.get_event_loop()
     except RuntimeError:
-        # Si on est dans un thread sans loop, on en crée un dédié
         _main_loop = asyncio.new_event_loop()
         asyncio.set_event_loop(_main_loop)
 
@@ -2672,11 +2671,14 @@ def trading_loop(send_fn):
     while bot_state["running"]:
         now = time.time()
         equity = get_equity_safe()
+        current_price = get_current_price("BTCUSDT") or 0.0   # ← FIX ici pour le performance_tracker
 
         # === 1. MICRO HIGH FREQ CYCLE (toutes les 45s) ===
         if now - last_micro >= CYCLE_MICRO:
             last_micro = now
-            performance_tracker.update_trade_results()
+            # ← FIX : on passe bien memory + current_price
+            performance_tracker.update_trade_results(memory, current_price)
+
             micro_ctx = {
                 "symbol": "BTCUSDT",
                 "shared_glossary": shared_glossary,
@@ -2685,7 +2687,6 @@ def trading_loop(send_fn):
                 "confidence_threshold": memory.get("confidence_threshold", CONFIDENCE_BASE)
             }
 
-            # Cerveau collectif décide tout seul
             try:
                 future = asyncio.run_coroutine_threadsafe(
                     orchestrator.ask_all("analyse micro et donne TRADE ou NO TRADE", micro_ctx),
