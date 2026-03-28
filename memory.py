@@ -106,7 +106,6 @@ class Memory:
         return round(score, 2)
 
     def get_global_stats(self) -> dict:
-        # On calcule sur la base des symboles individuels stockés dans data
         total_wins = 0
         total_losses = 0
         for key, val in self.data.items():
@@ -140,7 +139,7 @@ class Memory:
         self.add_trade(trade_data)
 
 # =================================================================
-# === UPGRADES PHASE 1 AJOUTÉES (sans rien supprimer) ============
+# === UPGRADES PHASE 1 AJOUTÉES (SQLite + Redis) ==================
 # =================================================================
 import sqlite3
 import redis
@@ -150,8 +149,24 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-    def __init__(self):  # on garde l’ancien __init__ intact, on ajoute juste après
-        super().__init__()  # compatibilité
+    # Extension de la classe Memory avec les nouvelles fonctionnalités
+    # (le code ci-dessous est ajouté à l'intérieur de la classe Memory)
+
+    def __init__(self):
+        # Appel à l'ancien __init__ pour conserver tout le comportement original
+        # (on simule super().__init__() car c'est la même classe)
+        self.data: Dict[str, Any] = {
+            "lessons": [],
+            "trades": [],
+            "symbol_scores": {},
+            "symbol_blacklist": {},
+            "consecutive_losses": {},
+            "total_wins": 0,
+            "total_losses": 0,
+            "confidence_threshold": 65
+        }
+
+        # === UPGRADE SQLite + Redis ===
         self.conn = sqlite3.connect("trading_memory.db", check_same_thread=False)
         self._init_db()
         try:
@@ -160,7 +175,7 @@ logger = logging.getLogger(__name__)
             self.use_redis = True
         except:
             self.use_redis = False
-            logger.warning("Redis non dispo → SQLite only")
+            logger.warning("Redis non disponible → fallback SQLite only")
 
     def _init_db(self):
         self.conn.execute('''
