@@ -1,8 +1,36 @@
 {
   "sim": {
-    "cash": 995.1085755691115,
+    "cash": 510.2916775518404,
     "initial": 1000.0,
-    "positions": {},
+    "positions": {
+      "MICRO_MEMEUSDT_162": {
+        "id": 162,
+        "symbol": "MEMEUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.000509,
+        "price_out": null,
+        "qty": 952488.9941400219,
+        "amount_usd": 484.8168980172711,
+        "confidence": 88,
+        "reason": "EMA\u2191 RSI7=59 mom=+0.19% vol=6.5x",
+        "exit_reason": null,
+        "time_in": "2026-03-28 04:22:54",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.000509,
+        "open_time": 1774671774.3829546,
+        "kelly_pct": 0.48,
+        "pos_key": "MICRO_MEMEUSDT_162"
+      }
+    },
     "trades": [
       {
         "id": 1,
@@ -4242,6 +4270,32 @@
         "leverage": 1,
         "peak_price": 0.000511,
         "open_time": 1774671654.3299391,
+        "kelly_pct": 0.48
+      },
+      {
+        "id": 162,
+        "symbol": "MEMEUSDT",
+        "market": "MICRO",
+        "side": "LONG",
+        "trade_type": "MICRO",
+        "price_in": 0.000509,
+        "price_out": null,
+        "qty": 952488.9941400219,
+        "amount_usd": 484.8168980172711,
+        "confidence": 88,
+        "reason": "EMA\u2191 RSI7=59 mom=+0.19% vol=6.5x",
+        "exit_reason": null,
+        "time_in": "2026-03-28 04:22:54",
+        "time_out": null,
+        "pnl": null,
+        "pnl_pct": null,
+        "duration_min": null,
+        "patterns": [
+          "score=4"
+        ],
+        "leverage": 1,
+        "peak_price": 0.000509,
+        "open_time": 1774671774.3829546,
         "kelly_pct": 0.48
       }
     ],
@@ -19332,7 +19386,7 @@
     ],
     "confidence_threshold": 82,
     "total_wins": 42,
-    "total_losses": 413,
+    "total_losses": 414,
     "symbol_scores": {
       "Deadwhale": -15,
       "BTCUSDT": -11,
@@ -19346,7 +19400,7 @@
       "ONDOUSDT": -2,
       "AVAXUSDT": 2,
       "OPUSDT": -15,
-      "MEMEUSDT": -14,
+      "MEMEUSDT": -15,
       "NOTUSDT": -6,
       "ORDIUSDT": 1,
       "WIFUSDT": -6,
@@ -19398,7 +19452,7 @@
       "AVAXUSDT": 0,
       "APTUSDT": 5,
       "OPUSDT": 5,
-      "MEMEUSDT": 0,
+      "MEMEUSDT": 1,
       "NOTUSDT": 1,
       "ORDIUSDT": 0,
       "WIFUSDT": 1,
@@ -28324,6 +28378,6 @@
         "status": "\u2705 Promos d\u00e9tect\u00e9es"
       }
     ],
-    "last_scan": 1774668188.8160481
+    "last_scan": 1774671795.6695821
   }
 }
