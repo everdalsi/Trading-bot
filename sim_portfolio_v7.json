@@ -3,33 +3,6 @@
     "cash": 899.7571859529435,
     "initial": 1000.0,
     "positions": {
-      "MICRO_FETUSDT_111": {
-        "id": 111,
-        "symbol": "FETUSDT",
-        "market": "MICRO",
-        "side": "LONG",
-        "trade_type": "MICRO",
-        "price_in": 0.2272,
-        "price_out": null,
-        "qty": 912.7975738100914,
-        "amount_usd": 207.3876087696528,
-        "confidence": 88,
-        "reason": "EMA\u2193 RSI7=27 mom=-0.44% vol=16.6x",
-        "exit_reason": null,
-        "time_in": "2026-03-28 01:36:50",
-        "time_out": null,
-        "pnl": null,
-        "pnl_pct": null,
-        "duration_min": null,
-        "patterns": [
-          "score=4"
-        ],
-        "leverage": 1,
-        "peak_price": 0.2272,
-        "open_time": 1774661810.0311131,
-        "kelly_pct": 0.48,
-        "pos_key": "MICRO_FETUSDT_111"
-      },
       "MICRO_AVAXUSDT_112": {
         "id": 112,
         "symbol": "AVAXUSDT",
