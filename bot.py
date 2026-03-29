@@ -4330,14 +4330,6 @@ async def run_backtest(symbol: str = "BTCUSDT", timeframe: str = "5m"):
     stats = pf.stats()
     logger.info(f"Backtest → Return {stats.get('total_return',0):.2%} | Max DD {stats.get('max_drawdown',0):.2%} | Win Rate {stats.get('win_rate',0):.2%}")
     return stats
-    def get_glossary(self) -> str:
-        """Compatibilité V8 — Ancienne méthode get_glossary() redirigée vers le nouveau contexte"""
-        logger.info("[KNOWLEDGE-BASE] get_glossary() appelée → fallback contexte agent")
-        context = self.get_context_for_agent(
-            "Glossaire complet trading : définitions, stratégies, risk management, Wyckoff, VSA, Kelly Criterion, etc.",
-            max_results=6
-        )
-        return context + "\n\n**Glossaire dynamique chargé ✅**"
 
 if __name__ == "__main__":
     print("🚀 Trading Bot v7.2 — LIVE PROGRESSIVE chargé")
