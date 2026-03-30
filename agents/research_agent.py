@@ -5,12 +5,12 @@
 """
 🔍 RESEARCH AGENT V4 — GOAT de la recherche multi-sources + Cerveau commun parfait + Spécialisation stricte
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-UPGRADES AJOUTÉES (sans rien supprimer de l’original que tu as collé) :
+UPGRADES AJOUTÉES (sans rien supprimer de l’original) :
 - Héritage complet de BaseAgent V3 (safe_respond, _is_in_my_domain, explain_term)
 - Glossaire partagé forcé pour zéro malentendu avec tous les autres agents
 - Vérification stricte de spécialisation (ne répond jamais hors de son rôle)
 - Utilisation systématique de explain_term + shared_glossary
-- Commentaires détaillés ajoutés partout pour plus de clarté et plus de lignes
+- Commentaires détaillés ajoutés partout pour plus de clarté
 - Summary encore plus alignée avec le cerveau collectif
 """
 
@@ -19,6 +19,21 @@ import time
 import json
 from agents.base_agent import BaseAgent
 from typing import Dict, Any
+
+# ======================== FIX 3 : IMPORTS MANQUANTS ========================
+from data_handler import (
+    get_klines_5m_cached,
+    compute_indicators,
+    get_fear_greed_value,
+    get_liquidations,
+    get_volume_data,
+    get_order_book,
+    get_whale_alerts,
+    get_mev_alerts,
+    get_flashbots_alerts,
+    get_sandwich_alerts
+)
+# ===========================================================================
 
 class ResearchAgent(BaseAgent):
     def __init__(self):
@@ -60,8 +75,8 @@ Retourne UNIQUEMENT JSON valide :
             resp = await self.groq_ask(prompt)
             if "{" in resp and "}" in resp:
                 twitter_data = json.loads(resp[resp.find("{"):resp.rfind("}")+1])
-        except:
-            pass
+        except Exception as e:
+            print(f"[ResearchAgent] Twitter KOL error: {e}")
 
         # 2. On-chain + TA + SMART MONEY + ORDER BOOK + SPOOFING ULTRA AVANCÉ V3 + WASH TRADING AVANCÉ V3 + MEV + FLASHBOTS + SANDWICH ATTACKS
         onchain = {}
@@ -98,8 +113,8 @@ Retourne UNIQUEMENT JSON valide :
                     last_vol = vols[-1]
                     volume_spike = last_vol > avg_vol * 3.0
                     total_volume = sum(vols)
-            except:
-                pass
+            except Exception as e:
+                print(f"[ResearchAgent] Volume data error: {e}")
 
             smart_money["alerts"] = len(whales)
             if volume_spike or any("volume spike" in a.get("summary","").lower() for a in whales):
@@ -116,7 +131,7 @@ Retourne UNIQUEMENT JSON valide :
             ob_wall_size = order_book.get("wall_size", 0)
             ob_depth_ratio = order_book.get("depth_ratio", 1.0)
 
-            # SPOOFING ULTRA AVANCÉ V3 (conservé)
+            # SPOOFING ULTRA AVANCÉ V3
             spoof_score = 0.0
             spoof_reasons = []
             if ob_ratio > 9.0 or ob_ratio < 0.08:
@@ -168,7 +183,7 @@ Retourne UNIQUEMENT JSON valide :
                 "algo": "ultra_advanced_v3"
             }
 
-            # WASH TRADING AVANCÉ V3 (conservé)
+            # WASH TRADING AVANCÉ V3
             wash_score = 0.0
             wash_reasons = []
             if volume_spike and price_change_pct < 0.6 and total_volume > 600000:
@@ -217,7 +232,7 @@ Retourne UNIQUEMENT JSON valide :
                 "algo": "advanced_v3"
             }
 
-            # MEV (conservé)
+            # MEV
             mev_score = 0.0
             mev_reasons = []
             mev_type = "none"
@@ -244,7 +259,8 @@ Retourne UNIQUEMENT JSON valide :
                 if mev_alerts > 0 and price_change_pct < 1.0 and total_volume > 800000:
                     mev_score += 6.0
                     mev_reasons.append("MEV cross-DEX probable")
-            except:
+            except Exception as e:
+                print(f"[ResearchAgent] MEV error: {e}")
                 mev_data = []
 
             if mev_score >= 12.0:
@@ -269,7 +285,7 @@ Retourne UNIQUEMENT JSON valide :
                 "type": mev_type
             }
 
-            # FLASHBOTS (conservé)
+            # FLASHBOTS
             flashbots_score = 0.0
             flashbots_reasons = []
             flashbots_type = "none"
@@ -292,7 +308,8 @@ Retourne UNIQUEMENT JSON valide :
                 if flashbots_bundles > 2 and price_change_pct < 1.0 and total_volume > 900000:
                     flashbots_score += 6.5
                     flashbots_reasons.append("Flashbots haute activité volume")
-            except:
+            except Exception as e:
+                print(f"[ResearchAgent] Flashbots error: {e}")
                 fb_data = []
 
             if flashbots_score >= 12.0:
@@ -341,7 +358,8 @@ Retourne UNIQUEMENT JSON valide :
                 if sandwich_attacks > 0 and flashbots_bundles > 1:
                     sandwich_score += 8.0
                     sandwich_reasons.append("Flashbots bundle + sandwich")
-            except:
+            except Exception as e:
+                print(f"[ResearchAgent] Sandwich error: {e}")
                 sandwich_data = []
 
             if sandwich_score >= 12.0:
@@ -376,8 +394,8 @@ Retourne UNIQUEMENT JSON valide :
                 "price_change_pct": price_change_pct,
                 "total_volume": total_volume
             })
-        except:
-            pass
+        except Exception as e:
+            print(f"[ResearchAgent] On-chain analysis error: {e}")
 
         # Synthèse finale
         combined_strength = twitter_data.get("strength", 5) + (smart_money["score"] - 5)
@@ -468,7 +486,7 @@ Retourne UNIQUEMENT JSON valide :
         return result
 
     async def respond(self, question: str, context: dict) -> Dict[str, Any]:
-        # === UPGRADE V4 : Vérification stricte de spécialisation (cerveau commun) ===
+        # === UPGRADE V4 : Vérification stricte de spécialisation ===
         if not self._is_in_my_domain(question):
             return {
                 "agent": self.name,
@@ -478,7 +496,7 @@ Retourne UNIQUEMENT JSON valide :
                 "warning": "Hors domaine research"
             }
 
-        # === UPGRADE V4 : Glossaire partagé forcé pour zéro malentendu ===
+        # === UPGRADE V4 : Glossaire partagé forcé ===
         shared_glossary = context.get("shared_glossary", {})
         def explain(k): 
             return self.explain_term(k) or shared_glossary.get(k, k)
@@ -493,7 +511,7 @@ Retourne UNIQUEMENT JSON valide :
         fb_str = f" | Flashbots: {data['flashbots_level']} ({data['flashbots_type']})" if data.get("flashbots_detected") else ""
         sandwich_str = f" | Sandwich: {data['sandwich_level']} ({data['sandwich_attacks']} attaques)" if data.get("sandwich_detected") else ""
 
-        # === UPGRADE GROK-LIKE : RAISONNEMENT NATUREL PROFESSIONNEL ===
+        # === RAISONNEMENT NATUREL PROFESSIONNEL ===
         natural_summary = (
             f"Salut ! J’ai fait un tour complet sur {symbol} : KOLs, on-chain, order book, spoofing, wash trading, MEV, Flashbots et sandwich attacks. "
             f"Le sentiment global est {data['sentiment']}, avec une force de {data['strength']}/10. "
@@ -563,5 +581,5 @@ Retourne UNIQUEMENT JSON valide :
             "urgency": data.get("urgency", 6) if not extreme_learning else 9,
             "source": "ULTIME multi-sources",
             "full_summary": natural_summary,
-            "glossary_used": True  # UPGRADE V4 : trace du glossaire commun
+            "glossary_used": True
         }
