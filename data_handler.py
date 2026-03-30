@@ -27,7 +27,7 @@ class DataHandler:
                 params={"symbol": symbol.upper()},
                 timeout=5
             )
-            r.raise_for_status()                    # Lève exception si HTTP ≠ 200
+            r.raise_for_status()
             price = float(r.json()["price"])
             self.price_cache[symbol.upper()] = {"price": price, "ts": now}
             return price
@@ -50,7 +50,6 @@ class DataHandler:
         now = time.time()
         result = {}
 
-        # Cache existant
         for sym, cached in list(self.price_cache.items()):
             if now - cached["ts"] < self.cache_ttl:
                 result[sym] = cached["price"]
@@ -197,3 +196,36 @@ def get_klines_5m_cached(symbol: str) -> pd.Series:
 
 def get_volume_data(symbol: str, interval: str, limit: int) -> list:
     return data_handler.get_volume_data(symbol, interval, limit)
+
+
+# ======================== FIX : compute_indicators ========================
+def compute_indicators(closes: list) -> dict:
+    """
+    Calcule RSI + MACD à partir d'une liste de prix de clôture.
+    Utilisé par ResearchAgent.
+    """
+    if len(closes) < 14:
+        return {"rsi": 50.0, "macd_h": 0.0, "macd": 0.0}
+
+    closes_series = pd.Series(closes, dtype=float)
+
+    # RSI
+    delta = closes_series.diff()
+    gain = delta.where(delta > 0, 0).rolling(window=14).mean()
+    loss = -delta.where(delta < 0, 0).rolling(window=14).mean()
+    rs = gain / loss
+    rsi = 100 - (100 / (1 + rs))
+
+    # MACD
+    ema12 = closes_series.ewm(span=12, adjust=False).mean()
+    ema26 = closes_series.ewm(span=26, adjust=False).mean()
+    macd_line = ema12 - ema26
+    signal_line = macd_line.ewm(span=9, adjust=False).mean()
+    macd_histogram = macd_line - signal_line
+
+    return {
+        "rsi": round(float(rsi.iloc[-1]), 2),
+        "macd": round(float(macd_line.iloc[-1]), 6),
+        "macd_h": round(float(macd_histogram.iloc[-1]), 6)
+    }
+# ===========================================================================
