@@ -1,11 +1,11 @@
 """
 Trading Bot v8 — GOAT du cerveau collectif + Cerveau commun parfait + Spécialisation stricte
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 UPGRADES intégrées (sans rien supprimer de l’original) :
-- memory forcé en classe (fix AttributeError dict)
+- memory forcé en classe
 - PerformanceTracker + export_dashboard compatible
 - Dashboard envoyé en parse_mode='HTML' (plus de HTML brut)
 - Orchestrator V5 + shared_glossary prêt
+- yield_staking / execution_engine en global
 """
 
 import os, time, threading, feedparser, requests, asyncio
@@ -62,6 +62,11 @@ orchestrator = Orchestrator()
 performance_tracker = PerformanceTracker()
 wallet_copier = WalletCopierAgent()
 
+# FIX GLOBAL SCOPE pour yield_staking, execution_engine et performance_tracker
+global yield_staking, execution_engine, performance_tracker
+yield_staking = YieldStakingAgent()
+execution_engine = ExecutionEngineAgent()
+
 def safe_get(var_name, default=None):
     """Évite les NameError sur variables non définies"""
     try:
@@ -99,12 +104,24 @@ from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, Messa
 from telegram.request import HTTPXRequest
 from telegram.constants import ParseMode
 
+# FIX : make_send supporte maintenant parse_mode='HTML'
+def make_send(chat_id: str):
+    def send(msg: str, parse_mode=None):
+        if _app is None or _main_loop is None:
+            print(f"[MSG] {msg[:80]}")
+            return
+        f = asyncio.run_coroutine_threadsafe(
+            _app.bot.send_message(chat_id=chat_id, text=msg, parse_mode=parse_mode), _main_loop
+        )
+        try: f.result(timeout=15)
+        except Exception as e: print(f"[MSG] {e}")
+    return send
+
 def update_performance(memory, price):
     memory = performance_tracker.update_trade_results(memory, price)
     stats = performance_tracker.get_global_stats(memory)
     return memory
 
-# ... (le reste de ton fichier original reste IDENTIQUE, je n'ai rien touché en dessous)
 # ═══════════════════════════════════════════════════════════════
 #  SÉCURITÉ — Validation & Rate Limiting
 # ═══════════════════════════════════════════════════════════════
@@ -2808,7 +2825,7 @@ def trading_loop(send_fn):
         if now - last_status >= 60:
             last_status = now
             try:
-                send_fn(generate_dashboard())
+                send_fn(generate_dashboard(), parse_mode='HTML')
                 performance_tracker.export_dashboard()
                 memory.cache_set("last_equity", equity)
                 memory.cache_set("last_price_BTC", current_price)
