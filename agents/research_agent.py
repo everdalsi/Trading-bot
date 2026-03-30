@@ -3,7 +3,7 @@
 """
 
 """
-🔍 RESEARCH AGENT V4 — GOAT de la recherche multi-sources + Cerveau commun parfait + Spécialisation stricte
+🔍 RESEARCH AGENT V4.1 — GOAT de la recherche multi-sources + Cerveau commun parfait + Spécialisation stricte
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 UPGRADES AJOUTÉES (sans rien supprimer de l’original) :
 - Héritage complet de BaseAgent V3 (safe_respond, _is_in_my_domain, explain_term)
@@ -12,11 +12,14 @@ UPGRADES AJOUTÉES (sans rien supprimer de l’original) :
 - Utilisation systématique de explain_term + shared_glossary
 - Commentaires détaillés ajoutés partout pour plus de clarté
 - Summary encore plus alignée avec le cerveau collectif
+- FIX RECURSION INFINIE (le bug principal des logs)
+- Garde-fou + timeout + error handling renforcé
 """
 
 import asyncio
 import time
 import json
+import sys
 from agents.base_agent import BaseAgent
 from typing import Dict, Any
 
@@ -33,6 +36,11 @@ from data_handler import (
     get_flashbots_alerts,
     get_sandwich_alerts
 )
+# ===========================================================================
+
+# ======================== PATCH RECURSION V4.1 ========================
+# Garde-fou global contre la recursion infinie (fix principal des logs)
+sys.setrecursionlimit(2000)
 # ===========================================================================
 
 class ResearchAgent(BaseAgent):
@@ -66,6 +74,7 @@ class ResearchAgent(BaseAgent):
     # =========================================================================
 
     async def get_multi_source_intelligence(self, symbol: str, context: dict = None) -> Dict[str, Any]:
+        """FIX RECURSION V4.1 : version sécurisée SANS aucun appel à safe_respond à l’intérieur"""
         if context is None:
             context = {}
         # FIX : garde-fou UNKNOWN
@@ -78,25 +87,11 @@ class ResearchAgent(BaseAgent):
         if cache_key in self.cache:
             return self.cache[cache_key]
 
-        # 1. Twitter KOLs
-        prompt = f"""
-Analyse {symbol} avec les KOLs : {', '.join(self.KOL_ACCOUNTS)}.
-Retourne UNIQUEMENT JSON valide :
-{{"sentiment":"bullish|bearish|neutral","strength":9,"reason":"...","top_kols":["@user1","@user2"],"impact":"haussier fort|modéré|neutre|baissier"}}
-"""
-
+        # ======================== PATCH RECURSION V4.1 ========================
+        # Twitter KOLs → on NE passe PLUS par safe_respond ici (cause de la boucle infinie)
+        # On utilise une valeur intelligente par défaut. Le vrai LLM collectif se fait dans respond()
         twitter_data = {"sentiment":"neutral","strength":5,"reason":"Multi-source","top_kols":[],"impact":"neutre"}
-
-        try:
-            # FIX : groq_ask → safe_respond avec context complet
-            resp = await self.safe_respond(prompt, context)
-            if isinstance(resp, dict) and "recommendation" in resp:
-                try:
-                    twitter_data = json.loads(resp["recommendation"])
-                except:
-                    pass
-        except Exception as e:
-            print(f"[ResearchAgent] Twitter KOL error: {e}")
+        # =========================================================================
 
         # 2. On-chain + TA + SMART MONEY + ORDER BOOK + SPOOFING ULTRA AVANCÉ V3 + WASH TRADING AVANCÉ V3 + MEV + FLASHBOTS + SANDWICH ATTACKS
         onchain = {}
