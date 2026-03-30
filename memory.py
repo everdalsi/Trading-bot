@@ -4,12 +4,13 @@ import redis
 import pickle
 from datetime import datetime
 import logging
+import os   # ← AJOUTÉ
 
 logger = logging.getLogger(__name__)
 
 class Memory:
     def __init__(self):
-        # === Code original ===
+        # === Code original (dictionnaire de compatibilité) ===
         self.data: Dict[str, Any] = {
             "lessons": [],
             "trades": [],
@@ -21,16 +22,27 @@ class Memory:
             "confidence_threshold": 65
         }
 
-        # === UPGRADE PHASE 1 : SQLite + Redis ===
+        # === UPGRADE PHASE 1 : SQLite + Redis (fix Railway/Docker) ===
         self.conn = sqlite3.connect("trading_memory.db", check_same_thread=False)
         self._init_db()
+
+        # FIX 1 : Redis host dynamique (localhost → redis sur Railway/Docker)
+        redis_host = os.getenv("REDIS_HOST", "redis")   # ← CORRIGÉ
         try:
-            self.redis = redis.Redis(host="localhost", port=6379, db=0, decode_responses=True)
+            self.redis = redis.Redis(
+                host=redis_host,
+                port=6379,
+                db=0,
+                decode_responses=True,
+                socket_connect_timeout=5,
+                socket_timeout=5
+            )
             self.redis.ping()
             self.use_redis = True
+            logger.info(f"✅ Redis connecté (host={redis_host})")
         except Exception as e:
             self.use_redis = False
-            logger.warning(f"Redis non disponible → fallback SQLite only. Error: {e}")
+            logger.warning(f"Redis non disponible (host={redis_host}) → fallback SQLite only. Error: {e}")
 
     # --- MÉTHODES DE COMPATIBILITÉ DICTIONNAIRE (OBLIGATOIRE POUR BOT.PY) ---
     def get(self, key: str, default=None):
@@ -54,7 +66,7 @@ class Memory:
     def update(self, other_dict):
         self.data.update(other_dict)
 
-    # --- TES FONCTIONS ORIGINALES ---
+    # --- TES FONCTIONS ORIGINALES (inchangées) ---
     def _init_symbol(self, symbol: str):
         if symbol not in self.data:
             self.data[symbol] = {
