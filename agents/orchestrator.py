@@ -98,11 +98,11 @@ class Orchestrator:
 
         responses = []
         agent_names = [
-            "analyst", "risk", "trader", "learning", "research",
-            "knowledge_specialist", "wallet_copier", "social_listener",
-            "self_improvement", "quant_ml", "execution_engine",
-            "yield_staking", "hedging"
-        ]
+    "analyst", "risk", "trader", "learning", "research",
+    "knowledge_specialist", "wallet_copier", "social_listener",
+    "self_improvement", "quant_ml", "execution_engine",
+    "yield_staking", "hedging", "portfolio_manager"   # ← AJOUTÉ
+]
         for i, res in enumerate(results):
             if isinstance(res, Exception) or "error" in str(res):
                 responses.append({
