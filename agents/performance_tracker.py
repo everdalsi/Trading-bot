@@ -347,7 +347,7 @@ class PerformanceTracker(BaseAgent):  # ← UPGRADE : hérite maintenant de Base
             peak = max(peak, val)
             dd = (val - peak) / peak if peak != 0 else 0
             max_dd = min(max_dd, dd)
-        return max_dd
+            return max_dd
 
     def _get_lesson_count(self) -> int:
         try:
@@ -364,7 +364,7 @@ class PerformanceTracker(BaseAgent):  # ← UPGRADE : hérite maintenant de Base
         goal_met = stats.get("winrate", 0) >= 92.0 and stats.get("max_drawdown", 0) > -8.0
         if goal_met:
             print("🎯 [PERF-TRACKER] OBJECTIF WINRATE 92 %+ ATTEINT — Prêt pour testnet LIVE !")
-        return goal_met
+            return goal_met
 
     # === UPGRADE V5 : Méthode respond obligatoire pour le cerveau commun ===
     async def respond(self, question: str, context: dict) -> Dict[str, Any]:
@@ -380,7 +380,7 @@ class PerformanceTracker(BaseAgent):  # ← UPGRADE : hérite maintenant de Base
 
         # === UPGRADE V5 : Glossaire partagé forcé pour zéro malentendu ===
         shared_glossary = context.get("shared_glossary", {})
-        def explain(k): 
+    def explain(k): 
             return self.explain_term(k) or shared_glossary.get(k, k)
 
         memory = context.get("memory", {})
@@ -393,7 +393,7 @@ class PerformanceTracker(BaseAgent):  # ← UPGRADE : hérite maintenant de Base
             f"Aligné avec le {explain('glossary')} du cerveau collectif et notre objectif winrate parfait."
         )
 
-        return {
+            return {
             "agent": self.name,
             "summary": natural_summary,
             "global_stats": stats,
@@ -402,3 +402,4 @@ class PerformanceTracker(BaseAgent):  # ← UPGRADE : hérite maintenant de Base
             "full_summary": natural_summary,
             "glossary_used": True
         }
+        
