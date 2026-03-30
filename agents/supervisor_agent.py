@@ -14,6 +14,7 @@ UPGRADES AJOUTÉES (sans rien supprimer de l’original V4) :
 - Utilisation systématique de explain_term + shared_glossary
 - Commentaires détaillés ajoutés partout pour plus de clarté et plus de lignes
 - Summary encore plus alignée avec le cerveau collectif
+- FIX 4 : _is_in_my_domain élargi pour participer au débat collectif (synthèse, final decision, vote…)
 """
 
 from typing import Dict, Any
@@ -29,6 +30,28 @@ class SupervisorAgent(BaseAgent):
         )
         # UPGRADE V5 : rôle plus précis pour le cerveau commun
         self.role = "Synthèse finale, arbitrage et décision ultime — uniquement dans mon domaine d’expertise"
+
+    # ======================== FIX 4 : _is_in_my_domain corrigé ========================
+    def _is_in_my_domain(self, question: str) -> bool:
+        """FIX 4 : Le Supervisor doit participer au débat collectif et à la synthèse finale"""
+        q = question.lower()
+        
+        # Mots-clés de base du rôle
+        base_keywords = ["portfolio", "wallet", "savings", "staking", "transfer", "funding", "supervisor", "synthèse", "arbitre"]
+        
+        # Mots-clés pour le débat collectif (critique pour que le Supervisor ne s'exclue plus)
+        debate_keywords = [
+            "synthétise", "synthèse", "summarize", "summary", "final decision",
+            "vote", "débat", "orchestrator", "consensus", "cerveau collectif",
+            "décision finale", "arbitrage", "supervisor"
+        ]
+        
+        # Bypass automatique pour toute question de synthèse/débat
+        if any(kw in q for kw in debate_keywords):
+            return True
+            
+        return any(kw in q for kw in base_keywords)
+    # ===========================================================================
 
     async def respond(self, question: str, context: dict) -> Dict[str, Any]:
         # === UPGRADE V5 : Vérification stricte de spécialisation (cerveau commun) ===
@@ -127,7 +150,6 @@ class SupervisorAgent(BaseAgent):
         # === UPGRADE ÉTAPE 2 : STRICT VETO MODE + VETO COLLECTIF DUR ===
         strict_veto_mode = context.get("strict_veto_mode", False)
         if strict_veto_mode:
-            # Détection automatique de tout veto (Risk, Learning, Immune, etc.)
             veto_detected = any(
                 "VETO" in str(r.get("summary", "")).upper() or
                 "VETO" in str(r.get("recommendation", "")).upper() or
@@ -152,7 +174,6 @@ class SupervisorAgent(BaseAgent):
         debate_rounds    = context.get("debate_rounds", 0)
         immune_health    = context.get("immune_health", 100)
 
-        # Si le cerveau collectif n’a pas atteint 98 % → HOLD systématique (protection winrate)
         if final_confidence < 0.98 and debate_rounds >= 3:
             return {
                 "agent": self.name,
@@ -164,7 +185,6 @@ class SupervisorAgent(BaseAgent):
                 "glossary_used": True
             }
 
-        # Vérification santé ImmuneSystem
         if immune_health < 70:
             return {
                 "agent": self.name,
@@ -176,7 +196,7 @@ class SupervisorAgent(BaseAgent):
                 "glossary_used": True
             }
 
-        # (le reste du code original reste IDENTIQUE – aucune ligne supprimée)
+        # (le reste du code original reste IDENTIQUE)
         final_decision = "HOLD"
         reason         = "Pas de consensus clair"
 
