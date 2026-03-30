@@ -45,20 +45,20 @@ class BaseAgent(ABC):
             }
 
     def _is_in_my_domain(self, question: str) -> bool:
-    """Spécialisation stricte mais plus souple pour le micro-cycle."""
-    domain_keywords = {
-        "trader": ["buy", "sell", "hold", "trade", "position", "décision"],
-        "risk": ["risk", "drawdown", "kelly", "veto", "perte", "stop"],
-        "analyst": ["pattern", "wyckoff", "vsa", "technique", "analyse"],
-        "learning": ["leçon", "mistake", "amélioration"],
-        "quant_ml": ["regime", "backtest", "model"],
-        "execution_engine": ["execute", "twap", "slice"],
-        "yield_staking": ["stake", "lido", "marinade", "apy"],
-        "portfolio_manager": ["portfolio", "savings", "allocation"],
-        # etc.
-    }
-    q = question.lower()
-    return any(kw in q for kw in domain_keywords.get(self.name, ["trade", "analyse"]))
+        """Spécialisation stricte mais plus souple pour le micro-cycle."""
+        domain_keywords = {
+            "trader": ["buy", "sell", "hold", "trade", "position", "décision"],
+            "risk": ["risk", "drawdown", "kelly", "veto", "perte", "stop"],
+            "analyst": ["pattern", "wyckoff", "vsa", "technique", "analyse"],
+            "learning": ["leçon", "mistake", "amélioration"],
+            "quant_ml": ["regime", "backtest", "model"],
+            "execution_engine": ["execute", "twap", "slice"],
+            "yield_staking": ["stake", "lido", "marinade", "apy"],
+            "portfolio_manager": ["portfolio", "savings", "allocation"],
+            # etc.
+        }
+        q = question.lower()
+        return any(kw in q for kw in domain_keywords.get(self.name, ["trade", "analyse"]))
 
     def explain_term(self, term: str) -> str:
         """Tous les agents utilisent le même glossaire → zéro malentendu."""
