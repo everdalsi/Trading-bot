@@ -35,7 +35,7 @@ class PortfolioManager(BaseAgent):
                 "agent": self.name,
                 "summary": f"✅ {transfer_amount:.2f}$ de rewards staking transférés automatiquement vers trading wallet",
                 "transferred": round(transfer_amount, 2),
-                "action": "AUTO_FUND_TRADING",
+                "recommendation": "AUTO_FUND_TRADING",   # ← FIX 2
                 "confidence": 0.96
             }
 
@@ -45,6 +45,6 @@ class PortfolioManager(BaseAgent):
             "agent": self.name,
             "summary": f"Portefeuilles : Trading ${self.wallets['trading']['balance']:.2f} | Savings ${self.wallets['staking_savings']['balance']:.2f} | Total ${total:.2f}",
             "all_wallets": self.wallets,
-            "action": "SHOW_ALL",
+            "recommendation": "SHOW_ALL",   # ← FIX 2
             "confidence": 1.0
         }
