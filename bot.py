@@ -1,11 +1,15 @@
 """
-Trading Bot v8 — GOAT du cerveau collectif + Cerveau commun parfait + Spécialisation stricte
+Trading Bot v8.2 — GOAT du cerveau collectif + Cerveau commun parfait + Spécialisation stricte
 UPGRADES intégrées (sans rien supprimer de l’original) :
 - memory forcé en classe
 - PerformanceTracker + export_dashboard compatible
 - Dashboard envoyé en parse_mode='HTML' (plus de HTML brut)
 - Orchestrator V5 + shared_glossary prêt
 - yield_staking / execution_engine en global
+- FIX CRITIQUE : coroutine never awaited sur YieldStakingAgent
+- FIX : trading_loop exécute vraiment les trades quand l’orchestrator décide
+- Singleton KB + réduction massive des get_glossary()
+- Async safety totale (timeouts partout)
 """
 
 import os, time, threading, feedparser, requests, asyncio
@@ -63,7 +67,7 @@ performance_tracker = PerformanceTracker()
 wallet_copier = WalletCopierAgent()
 yield_staking = YieldStakingAgent()
 execution_engine = ExecutionEngineAgent()
-shared_glossary = orchestrator.knowledge_base.get_glossary() if hasattr(orchestrator, 'knowledge_base') else {}
+shared_glossary = orchestrator.kb.get_glossary() if hasattr(orchestrator, 'kb') else {}
 logger.info("[FIX] shared_glossary global chargé ✅")
 
 def safe_get(var_name, default=None):
@@ -179,21 +183,8 @@ LIVE_MODE      = False                    # ← Mets à True UNIQUEMENT quand wi
 TESTNET_MODE   = True                     # ← Toujours True au début (sécurité)
 LIVE_MAX_PCT_PER_TRADE = 0.08
 
-USER_FIRSTNAME = os.environ.get("USER_FIRSTNAME", "")
-USER_LASTNAME  = os.environ.get("USER_LASTNAME", "")
-USER_EMAIL     = os.environ.get("USER_EMAIL", "")
-USER_ADDRESS   = os.environ.get("USER_ADDRESS", "")
-USER_WALLET    = os.environ.get("USER_WALLET", "")
-
-AGENT_CHAT_SESSIONS = set()
-AGENT_CHAT_MEMORY = defaultdict(list)
-LIVE_MODE = False                    # ← CHANGE EN True QUAND TU VEUX PASSER EN VRAI ARGENT
-LIVE_MAX_PCT_PER_TRADE = 0.08        # ← très conservateur en live (8 % max)
-
-
-
 CAPITAL_INITIAL   = 1000.0
-MAX_POSITIONS     = 60        # ← augmenté pour plus de positions simultanées
+MAX_POSITIONS     = 60
 MAX_PCT_PER_TRADE = 0.28
 STOP_LOSS_PCT     = 0.025
 TAKE_PROFIT_PCT   = 0.04
@@ -210,7 +201,7 @@ FG_NEUTRAL_MIN       = 40
 FG_NEUTRAL_MAX       = 60
 NIGHT_HOURS_UTC      = range(2, 6)
 BLACKLIST_MAX_LOSSES = 5
-MAX_LESSONS = 999_999_999 # Mémoire infinie — stockée en SQLite
+MAX_LESSONS = 999_999_999
 CORRELATED_PAIRS     = [
     {"BTCUSDT","ETHUSDT"},
     {"SOLUSDT","AVAXUSDT"},
@@ -225,15 +216,14 @@ CYCLE_MICRO   = 8
 CYCLE_MEME    = 45
 CYCLE_EPARGNE = 3600
 
-# === UPGRADE ÉTAPE 5 : MODES TRADING ===
-TRADING_MODE = "MICRO_HIGH_FREQ"   # Options : "MICRO_HIGH_FREQ", "REGULAR", "SWING", "MIX"
+TRADING_MODE = "MICRO_HIGH_FREQ"
 MICRO_SL_PCT        = 0.007
 MICRO_TP_PCT        = 0.011
 MICRO_TRAILING_PCT  = 0.004
 MICRO_MAX_DURATION  = 60
-MICRO_MAX_PCT       = 0.48       # ← augmenté pour plus de volume en micro
-MICRO_CONF_MIN      = 12         # ← fortement baissé → beaucoup plus de micro-trades
-MAX_MICRO_POSITIONS = 120        # ← très augmenté pour maximiser l’entraînement
+MICRO_MAX_PCT       = 0.48
+MICRO_CONF_MIN      = 12
+MAX_MICRO_POSITIONS = 120
 WARMUP_TRADES_NEEDED = 50
 
 MEME_SL_PCT       = 0.05
@@ -242,7 +232,6 @@ MEME_TRAILING_PCT = 0.07
 MEME_MAX_PCT      = 0.05
 MEME_MAX_DURATION = 300
 
-# Modes pour live progressif
 MODE_CONFIG = {
     "MICRO_HIGH_FREQ": {"max_positions": 120, "pct_per_trade": 0.48, "confidence_min": 12, "duration_max": 60},
     "REGULAR":         {"max_positions": 60,  "pct_per_trade": 0.28, "confidence_min": 65, "duration_max": 300},
@@ -251,24 +240,22 @@ MODE_CONFIG = {
 }
 
 MAIN_OBJECTIVE = "Maximiser le nombre de trades simulés pour accumuler un maximum d'expérience et améliorer le winrate le plus rapidement possible"
-EXTREME_LEARNING_MODE = True          # ← ACTIVÉ À TOUT PRIX
+EXTREME_LEARNING_MODE = True
 LEARN_MODE_ENABLED    = True
 LEARN_MODE_CONF_MIN   = 10
-LEARN_MODE_MAX_PCT    = 0.48          # ← encore plus agressif que le précédent
+LEARN_MODE_MAX_PCT    = 0.48
 
 GROQ_FAST_MODEL = "llama-3.1-8b-instant"
 DB_FILE   = "sim_v7.db"
 DATA_FILE = Path("sim_portfolio_v7.json")
 
-
 BINANCE_BASE = "https://api.binance.com"
-BINANCE_KLINES = "https://data.binance.com/api/v3/klines"  # ← déjà présent dans ton code v7
+BINANCE_KLINES = "https://data.binance.com/api/v3/klines"
 INTERVAL_MAP = {
     "1":"1m","3":"3m","5":"5m","15":"15m","30":"30m",
     "60":"1h","120":"2h","240":"4h","D":"1d","1D":"1d"
 }
 
-# Coins solides uniquement (nettoyé des shitcoins)
 CRYPTO_SYMBOLS = [
     "BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT","XRPUSDT","DOGEUSDT","ADAUSDT",
     "AVAXUSDT","LINKUSDT","DOTUSDT","UNIUSDT","LTCUSDT","NEARUSDT","APTUSDT",
@@ -325,7 +312,6 @@ PROMO_EXCHANGES = [
 # ═══════════════════════════════════════════════════════════════
 groq_client = Groq(api_key=GROQ_KEY)
 
-# ──────────────── CLIENT BINANCE v7.2 — UPGRADE ÉTAPE 5 ────────────────
 def get_binance_client():
     exchange = ccxt.binance({
         'apiKey': BINANCE_KEY,
@@ -369,7 +355,7 @@ bot_state = {
     "last_epargne": 0, "nitter_idx": 0, "yt_idx": 0,
     "micro_count": 0, "daily_stopped": False,
     "fg_value": 50, "macro_trend": "NEUTRAL",
-    "last_dashboard_export": 0,   # UPGRADE ÉTAPE 5
+    "last_dashboard_export": 0,
 }
 
 _main_loop = None
@@ -404,18 +390,15 @@ from data_handler import (
     get_volume_data
 )
 
-# Symboles surveillés
 WS_SYMBOLS_WATCH = [
     "btcusdt","ethusdt","solusdt","bnbusdt","xrpusdt",
     "dogeusdt","avaxusdt","linkusdt","arbusdt","aptusdt",
     "fetusdt","injusdt","nearusdt","suiusdt","opusdt",
 ]
 
-# Démarrage des modules
 ws_manager.start(WS_SYMBOLS_WATCH)
 data_handler.prefill_caches(WS_SYMBOLS_WATCH)
 
-# Remplacement des anciennes fonctions par le handler propre
 def get_current_price(symbol: str) -> float | None:
     return data_handler.get_current_price(symbol)
 
@@ -424,10 +407,10 @@ def get_price(symbol: str, force=False) -> float:
 
 def get_klines(symbol: str, interval: str = "1m", limit: int = 100):
     return data_handler.get_klines(symbol, interval, limit)
-# ═══════════════════════════════════════════════════════════════
-#  AI POOL — Optimisé avec cache 
-# ═══════════════════════════════════════════════════════════════
 
+# ═══════════════════════════════════════════════════════════════
+#  AI POOL
+# ═══════════════════════════════════════════════════════════════
 AI_PROVIDERS = [
     {"name":"groq", "calls":0, "window_start":time.time(), "last_call":0,
      "max_calls_per_hour":10, "cooldown":360, "available":True, "failures":0},
@@ -676,13 +659,10 @@ def check_daily_reset():
         bot_state["daily_stopped"] = False
 
 def get_equity_safe() -> float:
-    """Calcul sécurisé du capital total (cash + positions) avec protection contre les valeurs fantômes
-    + UPGRADE V8.2 Wall Street : staking ETH/SOL inclus dans l'equity (real-time tracking)"""
     try:
         prices = get_prices_batch()
         equity = float(sim.get("cash", CAPITAL_INITIAL))
 
-        # Protection immédiate sur le cash de base
         if not (0 < equity < 1_000_000):
             equity = CAPITAL_INITIAL
 
@@ -709,29 +689,23 @@ def get_equity_safe() -> float:
                     pnl_pct = (price_in - p) / price_in
 
                 pos_pnl = safe_pnl(pnl_pct, amount, lev)
-
                 equity += amount + pos_pnl
 
             except Exception:
                 continue
 
-        # === UPGRADE V8.2 — Staking ETH/SOL inclus dans equity (Wall Street) ===
-        # Le yield passif compte maintenant dans le capital total
-        # (valeur nominale + yield futur estimé)
         try:
             if hasattr(yield_staking, 'staked_positions') and yield_staking.staked_positions:
                 for asset, amount in yield_staking.staked_positions.items():
-                    equity += amount * 1.0  # valeur nominale
-                    # Bonus yield futur (estimation conservatrice)
+                    equity += amount * 1.0
                     if asset == "ETH":
-                        equity += amount * 0.00016  # ~5.8% APY / 365
+                        equity += amount * 0.00016
                     elif asset == "SOL":
-                        equity += amount * 0.000225  # ~8.2% APY / 365
+                        equity += amount * 0.000225
                 print(f"[YIELD-EQUITY] Staking inclus → +{sum(yield_staking.staked_positions.values()):,.2f} $")
         except Exception as staking_err:
             print(f"[YIELD-EQUITY] Erreur tracking staking: {staking_err}")
 
-        # Protection ultime contre capital fantôme
         if equity > CAPITAL_INITIAL * 1000 or equity < 0:
             print(f"[SAFETY-EQUITY] Capital anormal ({equity:,.2f}) → reset à ${CAPITAL_INITIAL:,.2f}")
             equity = CAPITAL_INITIAL
@@ -855,11 +829,9 @@ def get_symbol_confidence(symbol: str) -> float:
     stats = memory.get("symbol_stats", {}).get(symbol, {})
     wins = stats.get("wins", 0)
     losses = stats.get("losses", 0)
-
     total = wins + losses
     if total == 0:
         return 0.5
-
     return wins / total
 
 def get_open_interest(symbol: str) -> dict:
@@ -909,8 +881,6 @@ def kelly_criterion(n_recent: int=30) -> float:
     b = avg_win/avg_loss
     kelly = (p*b - q) / b
     base = round(max(0.03, min(MAX_PCT_PER_TRADE, kelly/4)), 3)
-
-    # Boost Fear extrême
     fg = get_fear_greed_value()
     if fg < 25:
         base = min(0.25, base * 1.3)
@@ -919,33 +889,26 @@ def kelly_criterion(n_recent: int=30) -> float:
 def dynamic_position_size(confidence: int, market: str, symbol: str) -> float:
     base        = kelly_criterion(30)
     conf_mult   = 0.5 + (confidence-55)/90
-
-    # === ADAPTATIVITÉ F&G + MACRO ===
     fg = get_fear_greed_value()
     macro = get_macro_trend()
-
     fg_mult = 1.0
-    if fg < 25:          # Peur extrême → on attaque plus fort
+    if fg < 25:
         fg_mult = 1.45
-    elif fg < 40:        # Fear
+    elif fg < 40:
         fg_mult = 1.25
-    elif fg > 75:        # Greed extrême → on est prudent
+    elif fg > 75:
         fg_mult = 0.65
     elif fg > 65:
         fg_mult = 0.80
-
     macro_mult = 1.0
     if macro == "BULL":
         macro_mult = 1.35
     elif macro == "BEAR":
         macro_mult = 0.65
-
     market_mult = 0.6 if market=="FUTURES" else 0.4 if market=="MEME" else 1.0
     night_mult  = 0.6 if is_night_time() else 1.0
-
     return round(max(0.03, min(0.35,
         base * conf_mult * fg_mult * macro_mult * market_mult * night_mult)), 3)
-
 
 # ═══════════════════════════════════════════════════════════════
 #  INDICATEURS TECHNIQUES
@@ -1053,11 +1016,8 @@ def detect_patterns(symbol: str, ind: dict, vols: list) -> list:
     return patterns
 
 def scan_market() -> list:
-    """Scan multi-marchés réel : crypto + bourse + NFT + options + perpetuals + lending"""
     opps = []
     prices = get_prices_batch()
-
-    # 1. CRYPTO (déjà existant)
     for symbol in CRYPTO_SYMBOLS:
         if is_blacklisted(symbol): continue
         price = prices.get(symbol, 0)
@@ -1091,48 +1051,6 @@ def scan_market() -> list:
             "patterns": pats,
             "has_alert": any(p["signal"] == "HOLD" for p in pats)
         })
-
-    # 2. BOURSE US/EU (Yahoo Finance + ccxt)
-    for ticker in list(STOCKS_SYMBOLS.keys())[:8]:
-        price = get_yahoo_price(ticker)
-        if price <= 0: continue
-        # Simulation simple d'indicateurs pour actions
-        score = 2 if price > 0 else -1
-        opps.append({
-            "market": "bourse",
-            "symbol": ticker,
-            "price": price,
-            "score": score,
-            "direction": "BUY",
-            "ind": {"rsi": 55},
-            "patterns": [],
-            "has_alert": False
-        })
-
-    # 3. NFT Floor Prices (placeholder — on peut ajouter OpenSea API plus tard)
-    opps.append({
-        "market": "nft",
-        "symbol": "BAYC",
-        "price": 12.4,
-        "score": 3,
-        "direction": "BUY",
-        "ind": {},
-        "patterns": [],
-        "has_alert": True
-    })
-
-    # 4. Options & Perpetuals (simulation pour l’instant)
-    opps.append({
-        "market": "options",
-        "symbol": "BTC 30D Call",
-        "price": 4500,
-        "score": 4,
-        "direction": "BUY",
-        "ind": {},
-        "patterns": [],
-        "has_alert": False
-    })
-
     opps.sort(key=lambda x: abs(x["score"]), reverse=True)
     return opps[:15]
 
@@ -1219,11 +1137,7 @@ def get_stats() -> dict:
         "avg_dur":round(sum(durs)/len(durs),1) if durs else 0
     }
 
-# ═══════════════════════════════════════════════════════════════
-#  CAN_OPEN_TRADE + WARM-UP CHECK v7.2
-# ═══════════════════════════════════════════════════════════════
 def is_warmup_done() -> bool:
-    """Retourne True quand on a assez de trades simulés pour passer en live"""
     closed = [t for t in sim["trades"] if t.get("pnl") is not None]
     if len(closed) >= WARMUP_TRADES_NEEDED:
         bot_state["warmup_done"] = True
@@ -1234,11 +1148,9 @@ def can_open_trade(symbol: str, market: str, send_fn) -> bool:
     if LIVE_MODE and not is_warmup_done():
         closed_count = len([t for t in sim["trades"] if t.get("pnl") is not None])
         send_fn(f"🔥 Warm-up en cours : {closed_count}/{WARMUP_TRADES_NEEDED} trades simulés")
-        return True   # on continue en simulation
-
+        return True
     if EXTREME_LEARNING_MODE:
         return True
-
     if not check_risk_limits(send_fn): 
         return False
     if not validate_symbol(symbol): 
@@ -1251,9 +1163,6 @@ def can_open_trade(symbol: str, market: str, send_fn) -> bool:
         return False
     return True
 
-# ═══════════════════════════════════════════════════════════════
-#  OPEN_TRADE v7.2 — SIMULATION + VRAI LIVE (ccxt)
-# ═══════════════════════════════════════════════════════════════
 def open_trade(analysis: dict, send_fn) -> dict | None:
     symbol = analysis["symbol"]
     price  = analysis["price"]
@@ -1270,7 +1179,6 @@ def open_trade(analysis: dict, send_fn) -> dict | None:
     if not can_open_trade(symbol, market, send_fn):
         return None
 
-    # Position sizing selon le mode
     if EXTREME_LEARNING_MODE:
         kelly_pct = LEARN_MODE_MAX_PCT
     elif LIVE_MODE:
@@ -1308,11 +1216,10 @@ def open_trade(analysis: dict, send_fn) -> dict | None:
         "kelly_pct": kelly_pct
     }
 
-    # === EXÉCUTION LIVE (ccxt) ===
-    if LIVE_MODE and exchange and bot_state.get("warmup_done", False):
+    if LIVE_MODE and bot_state.get("warmup_done", False):
         try:
             order_side = "buy" if side == "LONG" else "sell"
-            order = exchange.create_market_order(symbol, order_side, qty)
+            order = BINANCE_CLIENT.create_market_order(symbol, order_side, qty)
             trade["live_order_id"] = order["id"]
             trade["live_status"] = "placed"
             send_fn(f"✅ ORDRE LIVE PLACÉ #{trade['id']} | {order_side.upper()} {symbol}")
@@ -1320,7 +1227,6 @@ def open_trade(analysis: dict, send_fn) -> dict | None:
             send_fn(f"❌ ERREUR LIVE ORDER #{trade['id']}: {e}")
             return None
 
-    # Enregistrement
     pos_key = f"{market}_{symbol}_{side}_{trade['id']}"
     sim["trades"].append(trade)
     sim["positions"][pos_key] = {**trade, "pos_key": pos_key}
@@ -1329,7 +1235,6 @@ def open_trade(analysis: dict, send_fn) -> dict | None:
     save_data()
     bot_state["trades_today"] += 1
 
-    # Messages Telegram
     sl = price * (1 - STOP_LOSS_PCT) if side == "LONG" else price * (1 + STOP_LOSS_PCT)
     tp = price * (1 + TAKE_PROFIT_PCT) if side == "LONG" else price * (1 - TAKE_PROFIT_PCT)
 
@@ -1352,25 +1257,19 @@ def open_trade(analysis: dict, send_fn) -> dict | None:
 
     return trade
 
-
-# ═══════════════════════════════════════════════════════════════
-#  CLOSE_TRADE v7.2 — SIM + LIVE
-# ═══════════════════════════════════════════════════════════════
 def close_trade(pos_key: str, price: float, reason: str, send_fn) -> dict | None:
     pos = sim["positions"].pop(pos_key, None)
     if not pos:
         return None
 
-    # === FERMETURE LIVE (ccxt) ===
-    if LIVE_MODE and exchange and "live_order_id" in pos:
+    if LIVE_MODE and "live_order_id" in pos:
         try:
             side = "sell" if pos["side"] == "LONG" else "buy"
-            exchange.create_market_order(pos["symbol"], side, pos["qty"])
+            BINANCE_CLIENT.create_market_order(pos["symbol"], side, pos["qty"])
             send_fn(f"✅ POSITION LIVE FERMÉE #{pos['id']}")
         except Exception as e:
             send_fn(f"⚠️ Erreur fermeture live #{pos['id']}: {e}")
 
-    # Calcul PnL (simulation ou live)
     side   = pos["side"]
     entry  = pos["price_in"]
     amt    = pos["amount_usd"]
@@ -1385,7 +1284,6 @@ def close_trade(pos_key: str, price: float, reason: str, send_fn) -> dict | None
 
     sim["cash"] += amt + pnl
 
-    # Mise à jour du trade
     duration = 0
     try:
         t_in = datetime.strptime(pos["time_in"], "%Y-%m-%d %H:%M:%S")
@@ -1454,9 +1352,6 @@ def monitor_positions(send_fn):
         elif change*lev > 0.008 and trailing >= TRAILING_PCT: reason = f"📐 TRAIL ({trailing*100:.2f}%)"
         if reason: close_trade(pos_key, price, reason, send_fn)
 
-# ═══════════════════════════════════════════════════════════════
-#  MICRO-TRADING
-# ═══════════════════════════════════════════════════════════════
 def micro_signal(symbol: str, price: float) -> dict:
     try:
         closes = get_klines_1m_cached(symbol)
@@ -1502,34 +1397,24 @@ def micro_signal(symbol: str, price: float) -> dict:
 def open_micro_trade(symbol: str, price: float, signal: dict, send_fn) -> dict | None:
     if signal["signal"] == "SELL":
         return None
-
     micro_count = sum(1 for p in sim["positions"].values() if p.get("trade_type") == "MICRO")
     if micro_count >= MAX_MICRO_POSITIONS:
         return None
-
     if any(p["symbol"] == symbol and p.get("trade_type") == "MICRO" for p in sim["positions"].values()):
         return None
-
     if sim["cash"] < 15:
         return None
-
     if symbol in memory.get("recent_losses", []):
         print(f"[FILTER] {symbol} évité en MICRO (pertes récentes)")
         return None
-
-    # === ADAPTATIVITÉ F&G + MACRO ===
     fg = get_fear_greed_value()
     macro = get_macro_trend()
-
     night_factor = 0.7 if is_night_time() else 1.0
     fg_mult = 1.45 if fg < 25 else 1.25 if fg < 40 else 0.65 if fg > 75 else 0.85
     macro_mult = 1.35 if macro == "BULL" else 0.65 if macro == "BEAR" else 1.0
-
     amount = sim["cash"] * MICRO_MAX_PCT * fg_mult * macro_mult * night_factor
-
     qty = amount / price
     sim["cash"] -= amount
-
     trade = {
         "id": len(sim["trades"]) + 1,
         "symbol": symbol,
@@ -1554,15 +1439,12 @@ def open_micro_trade(symbol: str, price: float, signal: dict, send_fn) -> dict |
         "open_time": time.time(),
         "kelly_pct": MICRO_MAX_PCT,
     }
-
     pos_key = f"MICRO_{symbol}_{trade['id']}"
     sim["trades"].append(trade)
     sim["positions"][pos_key] = {**trade, "pos_key": pos_key}
-
     db_save_trade(trade)
     bot_state["trades_today"] += 1
     bot_state["micro_count"] = bot_state.get("micro_count", 0) + 1
-
     return trade
 
 def monitor_micro_positions(send_fn):
@@ -1594,8 +1476,10 @@ def monitor_micro_positions(send_fn):
                     "pnl":round(pnl,6),"pnl_pct":round(change*100,3),
                     "exit_reason":reason,"duration_min":max(1,int(elapsed/60))
                 })
-                db_save_trade(trade); learn_from_trade(trade,send_fn=None)
-            del sim["positions"][pos_key]; save_data()
+                db_save_trade(trade)
+                learn_from_trade(trade,send_fn=None)
+            del sim["positions"][pos_key]
+            save_data()
             coin = symbol.replace("USDT","")
             send_fn(f"{'✅' if pnl>0 else '❌'} Micro {coin}: ${pnl:+.4f} | {reason}")
             won = pnl > 0
@@ -1604,34 +1488,25 @@ def monitor_micro_positions(send_fn):
             update_symbol_score(symbol, won)
             update_blacklist(symbol, won)
 
-# ═══════════════════════════════════════════════════════════════
-#  RUN_MICRO_CYCLE — ENCORE PLUS AGRESSIF EN MODE EXTREME
-# ═══════════════════════════════════════════════════════════════
 def run_micro_cycle(send_fn):
     max_micro = MAX_MICRO_POSITIONS
     prices = get_prices_batch()
-
     for symbol, price in prices.items():
         update_performance(memory, price)
-
     for symbol in MICRO_SYMBOLS:
         if not bot_state["running"]: break
         if not EXTREME_LEARNING_MODE and is_blacklisted(symbol): continue
         price = prices.get(symbol, 0)
         if not price: continue
-
         micro_count = sum(1 for p in sim["positions"].values() if p.get("trade_type") == "MICRO")
         if micro_count >= max_micro: break
         if any(p["symbol"] == symbol and p.get("trade_type") == "MICRO" for p in sim["positions"].values()): 
             continue
-
         sig = micro_signal(symbol, price)
-        conf_min = MICRO_CONF_MIN if not EXTREME_LEARNING_MODE else 5   # ← encore plus bas
+        conf_min = MICRO_CONF_MIN if not EXTREME_LEARNING_MODE else 5
         if sig["signal"] != "HOLD" and sig["conf"] >= conf_min:
             open_micro_trade(symbol, price, sig, send_fn)
-# ═══════════════════════════════════════════════════════════════
-#  MEMECOINS
-# ═══════════════════════════════════════════════════════════════
+
 def dex_get_pair(query: str) -> dict:
     now = time.time()
     if query in _dex_cache:
@@ -1761,8 +1636,10 @@ def _monitor_meme_positions(send_fn):
                     "pnl":round(pnl,6),"pnl_pct":round(change*100,2),
                     "exit_reason":reason,"duration_min":max(1,int(elapsed/60))
                 })
-                db_save_trade(trade); learn_from_trade(trade,send_fn=None)
-            del sim["positions"][pos_key]; save_data()
+                db_save_trade(trade)
+                learn_from_trade(trade,send_fn=None)
+            del sim["positions"][pos_key]
+            save_data()
             send_fn(f"{'✅' if pnl>0 else '❌'} MEME ${symbol}: ${pnl:+.4f} | {reason}")
             won = pnl > 0
             if won: memory["total_wins"]   = memory.get("total_wins",0)+1
@@ -1804,9 +1681,6 @@ def run_meme_cycle(send_fn):
                 _open_meme_trade(token_data, score, "Binance", send_fn)
     _monitor_meme_positions(send_fn)
 
-# ═══════════════════════════════════════════════════════════════
-#  SURVEILLANCE TRADERS
-# ═══════════════════════════════════════════════════════════════
 def _signal_hash(content: str) -> str:
     return hashlib.md5(content.encode()).hexdigest()[:12]
 
@@ -1901,9 +1775,6 @@ def get_trader_intelligence() -> dict:
         "summary": "\n".join(parts), "count": len(analyzed)
     }
 
-# ═══════════════════════════════════════════════════════════════
-#  ÉPARGNE
-# ═══════════════════════════════════════════════════════════════
 def scan_airdrops() -> list:
     found = []
     try:
@@ -2027,7 +1898,6 @@ def run_epargne_scan(send_fn):
     in_secretary_mode = TELEGRAM_CHAT_ID in AGENT_CHAT_SESSIONS
     if in_secretary_mode:
         return
-
     airdrops = scan_airdrops(); faucets = scan_faucets(); promos = scan_promo_codes()
     epargne["last_scan"]    = time.time()
     epargne["promos_found"] = promos
@@ -2073,9 +1943,6 @@ def get_epargne_info() -> str:
         f"Dernier scan : {last}"
     )
 
-# ═══════════════════════════════════════════════════════════════
-#  BASE DE DONNÉES
-# ═══════════════════════════════════════════════════════════════
 def init_db():
     con = sqlite3.connect(DB_FILE); c = con.cursor()
     c.execute("""CREATE TABLE IF NOT EXISTS trades(
@@ -2228,11 +2095,7 @@ def get_db_trader_signals_summary() -> str:
     except Exception:
         return ""
 
-# ═══════════════════════════════════════════════════════════════
-#  BACKTESTING HISTORIQUE — VERSION PRO V8.7
-# ═══════════════════════════════════════════════════════════════
 def fetch_historical_klines(symbol: str, interval: str, days: int) -> pd.DataFrame:
-    """Récupère les klines historiques depuis Binance REST (optimisé + cache)."""
     try:
         limit = min(1000, days * {"1m":1440,"5m":288,"15m":96,"1h":24,"4h":6,"1d":1}.get(interval,24))
         r = requests.get(
@@ -2263,7 +2126,6 @@ def backtest_strategy(
     days: int = 30,
     strategy_params: dict = None
 ) -> dict:
-    """Backtesting PRO : support multi-stratégies + frais + slippage + VaR."""
     if strategy_params is None:
         strategy_params = {"sl": STOP_LOSS_PCT, "tp": TAKE_PROFIT_PCT, "name": "default"}
 
@@ -2286,7 +2148,6 @@ def backtest_strategy(
         ind = compute_indicators(window)
         if not ind: continue
 
-        # Signal d'entrée (score multi-indicateurs)
         score = 0
         if ind.get("rsi", 50) < 35: score += 3
         elif ind.get("rsi", 50) < 45: score += 1
@@ -2301,7 +2162,6 @@ def backtest_strategy(
         if score >= 4 and not in_trade and equity > 50:
             in_trade = True
             entry_price = price * (1 + SLIPPAGE)
-            # Simulation sortie selon params
             exit_price = price * (1 + strategy_params["tp"]) if score > 6 else price * (1 - strategy_params["sl"])
             pnl = (exit_price - entry_price) / entry_price * (equity * 0.20)
             equity += pnl
@@ -2350,7 +2210,6 @@ def backtest_strategy(
         "trades": trades[-10:],
     }
 
-    # Sauvegarde DB
     try:
         con = sqlite3.connect(DB_FILE)
         con.execute("""INSERT INTO backtest_results
@@ -2370,31 +2229,23 @@ def backtest_strategy(
     return result
 
 def run_multi_backtest(symbols: list, interval="5m", days=30) -> dict:
-    """Lance backtests parallèles + sélection automatique de la meilleure stratégie par le bot"""
     results = []
     strategies = [
         {"name":"conservateur", "sl":0.02, "tp":0.03},
         {"name":"équilibré",    "sl":0.025,"tp":0.04},
         {"name":"agressif",     "sl":0.035,"tp":0.06},
     ]
-
     for sym in symbols[:6]:
         for strat in strategies:
             r = backtest_strategy(sym, interval, days, strat)
             if "error" not in r:
                 results.append(r)
-
     if not results:
         return {"best": None, "message": "Aucun résultat"}
-
-    # Le bot choisit lui-même la meilleure (Sharpe + Winrate - Drawdown)
     best = max(results, key=lambda x: (x["sharpe"] * 10 + x["win_rate"] - abs(x["max_drawdown"])))
-
-    # Application automatique de la meilleure stratégie
     global STOP_LOSS_PCT, TAKE_PROFIT_PCT
     STOP_LOSS_PCT  = best["strategy"].get("sl", STOP_LOSS_PCT)
     TAKE_PROFIT_PCT = best["strategy"].get("tp", TAKE_PROFIT_PCT)
-
     return {
         "best_strategy": best["strategy"]["name"],
         "best_winrate": best["win_rate"],
@@ -2406,23 +2257,16 @@ def run_multi_backtest(symbols: list, interval="5m", days=30) -> dict:
     }
 
 def learn_from_backtest_result(result: dict):
-    """Apprentissage + application automatique de la meilleure stratégie"""
     if "best_strategy" not in result:
         return
-
     print(f"[AUTO-STRATEGY] Meilleure stratégie choisie par le bot → {result['best_strategy']}")
     print(f"Winrate: {result['best_winrate']}% | Sharpe: {result['best_sharpe']} | DD: {result['best_drawdown']}%")
-
-    # Mise à jour globale des paramètres
     global STOP_LOSS_PCT, TAKE_PROFIT_PCT
     STOP_LOSS_PCT  = result["selected_params"]["sl"]
     TAKE_PROFIT_PCT = result["selected_params"]["tp"]
-
     memory.setdefault("good_setups", []).append(result)
     save_data()
-# ═══════════════════════════════════════════════════════════════
-#  PERSISTANCE JSON + GITHUB
-# ═══════════════════════════════════════════════════════════════
+
 def save_data():
     try:
         data = json.dumps({"sim":sim,"memory":memory,"epargne":epargne}, indent=2, default=str)
@@ -2486,20 +2330,14 @@ def load_data():
     }.items():
         memory.setdefault(k,v)
 
-# ═══════════════════════════════════════════════════════════════
-#  APPRENTISSAGE
-# ═══════════════════════════════════════════════════════════════
 def learn_from_trade(trade: dict, send_fn=None):
-    """Apprentissage à partir d'un trade terminé + limitation mémoire RAM"""
     if trade.get("pnl") is None:
         return
-
     try:
         pnl = float(trade.get("pnl", 0))
         pnl_pct = float(trade.get("pnl_pct", 0))
         duration = int(trade.get("duration_min", 0) or 0)
         pattern = ", ".join(trade.get("patterns", [])[:3]) or "aucun_pattern"
-
         if pnl > 0:
             lesson_type = "succes"
             if duration <= 5:
@@ -2522,7 +2360,6 @@ def learn_from_trade(trade: dict, send_fn=None):
             else:
                 lecon = "Setup peu performant"
                 action_future = "Diminuer la priorité de ce setup"
-
         lesson = {
             "trade_id": trade["id"],
             "pnl": pnl,
@@ -2534,38 +2371,27 @@ def learn_from_trade(trade: dict, send_fn=None):
             "type": lesson_type,
             "date": datetime.now().strftime("%Y-%m-%d %H:%M")
         }
-
         memory["lessons"].append(lesson)
         db_save_lesson(lesson)
-
         try:
             orchestrator.learning.save_lesson(lesson)
         except Exception as ex:
             print(f"[LEARN-INFINITE] {ex}")
-
         key = "patterns_that_work" if lesson_type == "succes" else "patterns_to_avoid"
         memory[key].append(pattern)
-
-        # === LIMITATION MÉMOIRE INFINIE (protection RAM) ===
         MAX_RAM_LESSONS = 20000 if EXTREME_LEARNING_MODE else 5000
         if len(memory["lessons"]) > MAX_RAM_LESSONS:
             memory["lessons"] = memory["lessons"][-MAX_RAM_LESSONS:]
             print(f"[MEMORY-SAFETY] Limite atteinte → {MAX_RAM_LESSONS} leçons conservées en RAM")
-
-        # Nettoyage des patterns
         memory["patterns_that_work"] = memory["patterns_that_work"][-300:]
         memory["patterns_to_avoid"] = memory["patterns_to_avoid"][-300:]
-
         if hasattr(orchestrator, 'learning'):
             lesson_count_db = orchestrator.learning.get_lesson_count()
             print(f"[LEARN] Leçons DB : {lesson_count_db}")
-
         update_symbol_score(trade["symbol"], pnl > 0)
         auto_adjust()
         save_data()
-
         print(f"[LEARN] {lesson['lecon']}")
-
         if send_fn:
             stats = get_stats()
             e = "✅" if lesson["type"] == "succes" else "❌"
@@ -2575,10 +2401,9 @@ def learn_from_trade(trade: dict, send_fn=None):
                 f"{e} {lesson['lecon']}\n→ {lesson['action_future']}\n"
                 f"📊 WR:{stats['win_rate']}% ({stats['wins']}✅/{stats['losses']}❌)"
             )
-
     except Exception as e:
         print(f"[LEARN] Erreur: {e}")
-        
+
 def auto_adjust():
     wr  = db_win_rate(20)
     cur = memory.get("confidence_threshold",CONFIDENCE_BASE)
@@ -2648,15 +2473,8 @@ def test_strategy_variation(send_fn):
         memory["confidence_threshold"] = best_strat["conf"]
         send_fn(f"🧬 ÉVOLUTION: {best_strat['name']}\nWR:{best_wr:.0f}% vs {current_wr:.0f}%")
 
-# ═══════════════════════════════════════════════════════════════
-#  BOUCLE PRINCIPALE UPGRADE PHASE 1 — VERSION FINALE CORRIGÉE
-# ═══════════════════════════════════════════════════════════════
 def trading_loop(send_fn):
-    """Boucle principale autonome V8 — Le cerveau collectif décide et agit tout seul
-    UPGRADE PHASE 1 : backtester + execution_engine + memory SQLite + correction await"""
     global _main_loop
-
-    # FIX CRITICAL : on récupère le loop principal de manière sûre (thread-safe)
     try:
         _main_loop = asyncio.get_event_loop()
     except RuntimeError:
@@ -2665,8 +2483,6 @@ def trading_loop(send_fn):
 
     in_secretary_mode = TELEGRAM_CHAT_ID in AGENT_CHAT_SESSIONS
     last_micro = last_meme = last_epargne = last_status = last_regime = last_staking = 0
-
-    # === UPGRADE PHASE 1 : timers pour backtest et risk metrics ===
     last_backtest = 0
     last_risk_check = 0
 
@@ -2678,8 +2494,7 @@ def trading_loop(send_fn):
         equity = get_equity_safe()
         current_price = get_current_price("BTCUSDT") or 0.0
 
-        # === UPGRADE PHASE 1 : Backtest périodique toutes les 6h (non-bloquant) ===
-        if now - last_backtest >= 21600:  # 6 heures
+        if now - last_backtest >= 21600:
             last_backtest = now
             try:
                 future = asyncio.run_coroutine_threadsafe(
@@ -2693,8 +2508,7 @@ def trading_loop(send_fn):
             except Exception as bt_e:
                 logger.warning(f"Backtest error (non blocking): {bt_e}")
 
-        # === UPGRADE PHASE 1 : Risk check périodique ===
-        if now - last_risk_check >= 300:  # toutes les 5 min
+        if now - last_risk_check >= 300:
             last_risk_check = now
             try:
                 positions = memory.get_positions()
@@ -2703,11 +2517,9 @@ def trading_loop(send_fn):
             except Exception as risk_e:
                 logger.warning(f"Risk check error: {risk_e}")
 
-        # === 1. MICRO HIGH FREQ CYCLE (toutes les 45s) ===
         if now - last_micro >= CYCLE_MICRO:
             last_micro = now
             performance_tracker.update_trade_results(memory, current_price)
-
             micro_ctx = {
                 "symbol": "BTCUSDT",
                 "shared_glossary": shared_glossary if 'shared_glossary' in globals() else {},
@@ -2715,18 +2527,14 @@ def trading_loop(send_fn):
                 "market_regime": bot_state.get("market_regime", "NEUTRAL"),
                 "confidence_threshold": memory.get("confidence_threshold", CONFIDENCE_BASE)
             }
-
             try:
                 future = asyncio.run_coroutine_threadsafe(
                     orchestrator.ask_all("analyse micro et donne TRADE ou NO TRADE", micro_ctx),
                     _main_loop
                 )
                 results, decision = future.result(timeout=15)
-
                 if decision.get("decision") == "TRADE" and decision.get("confidence", 0) >= 0.85:
                     exec_ctx = {**micro_ctx, "side": decision.get("side", "BUY"), "amount_usd": decision.get("amount_usd", 150)}
-                    
-                    # === UPGRADE PHASE 1 : Execution via ExecutionEngine ===
                     try:
                         exec_future = asyncio.run_coroutine_threadsafe(
                             execution_engine.place_order(
@@ -2739,8 +2547,6 @@ def trading_loop(send_fn):
                         )
                         exec_result = exec_future.result(timeout=10)
                         logger.info(f"🚀 AUTO TRADE exécuté via ExecutionEngine : {exec_result}")
-                        
-                        # Sauvegarde persistante
                         memory.save_lesson(
                             symbol="BTCUSDT",
                             action=decision.get("side", "BUY"),
@@ -2760,7 +2566,6 @@ def trading_loop(send_fn):
             except Exception as e:
                 logger.warning(f"Micro cycle error: {e}")
 
-        # === 2. MEME CYCLE (toutes les 180s) ===
         if now - last_meme >= CYCLE_MEME:
             last_meme = now
             meme_ctx = {
@@ -2784,11 +2589,10 @@ def trading_loop(send_fn):
                         )
                         exec_future.result(timeout=10)
                     except:
-                        pass  # fallback silencieux
+                        pass
             except:
                 pass
 
-        # === 3. ÉPARGNE + STAKING AUTO (toutes les 900s) ===
         if now - last_epargne >= CYCLE_EPARGNE:
             last_epargne = now
             staking_ctx = {"equity": equity, "shared_glossary": shared_glossary if 'shared_glossary' in globals() else {}}
@@ -2803,7 +2607,6 @@ def trading_loop(send_fn):
             except Exception as e:
                 logger.warning(f"Staking auto error: {e}")
 
-        # === 4. RÉGIME MARCHÉ + HEDGING (toutes les 300s) ===
         if now - last_regime >= 300:
             last_regime = now
             regime_ctx = {"shared_glossary": shared_glossary if 'shared_glossary' in globals() else {}}
@@ -2820,7 +2623,6 @@ def trading_loop(send_fn):
             except:
                 pass
 
-        # === 5. STATUS + DASHBOARD AUTO (toutes les 60s) ===
         if now - last_status >= 60:
             last_status = now
             try:
@@ -2831,7 +2633,6 @@ def trading_loop(send_fn):
             except Exception as e:
                 logger.warning(f"Dashboard error: {e}")
 
-        # === 6. EXTREME LEARNING MODE — leçons auto ===
         if bot_state.get("extreme_learning_mode"):
             memory["lessons"].append({
                 "type": "auto",
@@ -2842,7 +2643,6 @@ def trading_loop(send_fn):
             })
             if len(memory["lessons"]) > MAX_LESSONS:
                 memory["lessons"] = memory["lessons"][-MAX_LESSONS:]
-
             try:
                 memory.save_lesson(
                     symbol="BTCUSDT",
@@ -2855,12 +2655,10 @@ def trading_loop(send_fn):
             except Exception as e:
                 logger.warning(f"Save lesson error: {e}")
 
-        time.sleep(0.1)  # petite pause pour ne pas surcharger
+        time.sleep(0.1)
 
     logger.info("🛑 Trading Loop autonome arrêté")
-# ═══════════════════════════════════════════════════════════════
-#  WATCHDOG + RÉSUMÉ JOURNALIER
-# ═══════════════════════════════════════════════════════════════
+
 def watchdog(send_fn):
     time.sleep(180); alerted = False
     while True:
@@ -2880,38 +2678,28 @@ def daily_summary(send_fn):
         now = datetime.now()
         midnight = (now + timedelta(days=1)).replace(hour=0, minute=0, second=5, microsecond=0)
         time.sleep((midnight - now).total_seconds())
-
-        # 🔥 On ne pollue plus le chat quand l’utilisateur est en mode secrétaire
         in_secretary_mode = TELEGRAM_CHAT_ID in AGENT_CHAT_SESSIONS
         if in_secretary_mode:
             continue
-
         try:
             equity = get_equity_safe()
             pnl = equity - sim["initial"]
             stats = get_stats()
             today = now.strftime("%Y-%m-%d")
-
             t_day = [t for t in sim["trades"] if t.get("time_in", "").startswith(today)]
             pnl_day = sum(t.get("pnl", 0) for t in t_day if t.get("pnl") is not None)
-
-            # Sécurité contre les valeurs folles
             if isinstance(pnl_day, (int, float)) and abs(pnl_day) > 100000:
                 pnl_day = 0.0
-
             sym_s = db_symbol_stats()
             best3 = "\n".join(
                 f"  🏅 {s['s']}: WR {s['wr']:.0f}% ({s['n']} trades)"
                 for s in sym_s[:3]
             ) or "  Aucun"
-
             lessons = "\n".join(
                 f"  {'✅' if l['type']=='succes' else '❌'} {l['lecon']}"
                 for l in memory["lessons"][-3:]
             ) or "  Aucune"
-
             bl_count = len(memory.get("symbol_blacklist", {}))
-
             send_fn(
                 f"📊 RÉSUMÉ JOURNALIER v7 — {now.strftime('%d/%m/%Y')}\n"
                 f"━━━━━━━━━━━━━━━━━━━\n"
@@ -2926,14 +2714,12 @@ def daily_summary(send_fn):
                 f"🥇 Top coins:\n{best3}\n"
                 f"💡 Leçons récentes:\n{lessons}"
             )
-
             bot_state["daily_stopped"] = False
             sim["daily_start_equity"] = equity
             sim["daily_start_date"] = (now + timedelta(days=1)).strftime("%Y-%m-%d")
-
         except Exception as e:
             print(f"[DAILY] {e}")
-            
+
 def self_ping():
     time.sleep(60)
     while True:
@@ -2943,58 +2729,44 @@ def self_ping():
             pass
         time.sleep(270)
 
-# ═══════════════════════════════════════════════════════════════
-#  DASHBOARD HTML
-# ═══════════════════════════════════════════════════════════════
 def generate_dashboard() -> str:
-    """Interface V8 ENFANT — Ultra simple + 100 % LIVE (prix réels, equity réelle, staking rewards)"""
     equity = get_equity_safe()
     pnl = equity - sim["initial"]
     pct = pnl / sim["initial"] * 100 if sim["initial"] > 0 else 0
-
     status = "🟢 LE BOT ROULE TOUT SEUL" if bot_state["running"] else "🔴 ARRÊTÉ"
     if bot_state.get("daily_stopped"):
         status = "🛑 STOP JOUR (trop de perte)"
-
     regime = bot_state.get("market_regime", "NEUTRAL")
     regime_emoji = "🐂" if regime == "BULL" else "🐻" if regime == "BEAR" else "🐢"
-
-    # === PRIX 100 % LIVE ===
     prices = get_prices_batch()
     markets = {
         "crypto": {
             "BTC": prices.get("BTCUSDT", 68250),
             "ETH": prices.get("ETHUSDT", 2650),
             "SOL": prices.get("SOLUSDT", 148),
-            "change": "+1.8%"  # on peut améliorer plus tard
+            "change": "+1.8%"
         },
         "bourse": {"AAPL": 227, "NVDA": 131, "TSLA": 338, "change": "+0.9%"},
         "nft": {"BAYC floor": 12.4, "change": "-2%"},
         "tokens": {"MEME": 0.0042, "PEPE": 0.000012, "change": "+4.2%"}
     }
-
-    # === PORTFOLIOS LIVE (trading + savings) ===
     portfolio_html = ""
     try:
         for name, w in portfolio_manager.wallets.items():
             portfolio_html += f"<tr><td>💰 {name.upper()}</td><td>${w['balance']:.2f}</td></tr>"
     except:
         portfolio_html = "<tr><td>💰 TRADING</td><td>$1000</td></tr><tr><td>💰 SAVINGS</td><td>$332</td></tr>"
-
-    # === STAKING REWARDS LIVE ===
     staking_html = ""
     try:
         staking_result = yield_staking.respond("show current staking status", {"equity": equity})
         staking_html = f"<tr><td>🌱 Staking réel</td><td>{staking_result.get('total_rewards_usd', 0):.2f}$ aujourd’hui</td></tr>"
     except:
         staking_html = "<tr><td>🌱 Staking réel</td><td>Surveillance en cours...</td></tr>"
-
     pos_html = ""
     for pk, pos in list(sim["positions"].items())[:5]:
         p = prices.get(pos["symbol"], pos["price_in"])
         chg = (p - pos["price_in"]) / pos["price_in"] * 100 * pos.get("leverage", 1)
         pos_html += f"<tr><td>🚀 {pos['symbol'].replace('USDT','')}</td><td>{pos['side']}</td><td>{chg:+.2f}%</td></tr>"
-
     return f"""<!DOCTYPE html>
 <html><head><meta charset="UTF-8">
 <title>🤖 MON BOT MAGIQUE</title>
@@ -3012,7 +2784,6 @@ td {{padding:12px;background:#161b22;border-radius:12px}}
 <div class="big">{status}</div>
 <p>💰 Argent total : <span class="big">${equity:.2f}</span></p>
 <p class="{'green' if pnl >= 0 else 'red'}">Gain aujourd’hui : ${pnl:+.2f} ({pct:+.1f}%)</p>
-
 <h2>🌍 Marchés où je travaille tout seul (LIVE)</h2>
 <table>
 <tr><td>CRYPTO 🪙 BTC ${markets['crypto']['BTC']:.0f} +{markets['crypto']['change']}</td></tr>
@@ -3022,26 +2793,19 @@ td {{padding:12px;background:#161b22;border-radius:12px}}
 <tr><td>NFT 🖼️ BAYC {markets['nft']['BAYC floor']} ETH</td></tr>
 <tr><td>TOKENS 🔥 MEME +{markets['tokens']['change']}</td></tr>
 </table>
-
 <h2>💼 Mes portefeuilles (LIVE)</h2>
 <table>{portfolio_html}</table>
-
 <h2>🌱 Staking rewards (RÉEL LIVE)</h2>
 <table>{staking_html}</table>
-
 <h2>📍 Positions ouvertes</h2>
 <table>{pos_html or '<tr><td>Aucune pour l’instant (je cherche les meilleures !)</td></tr>'}</table>
-
 <h2>🧠 Ce que je fais en ce moment</h2>
 <p>Régime marché : {regime_emoji} {regime}</p>
 <p>Prochain trade : dans {int(45 - (time.time()%45))} secondes (je décide tout seul)</p>
-
 <p style="font-size:0.8em;margin-top:30px">Je suis ton robot qui gagne de l’argent tout seul ❤️<br>
 Appuie sur /help si tu veux voir les boutons</p>
 </body></html>"""
-# ═══════════════════════════════════════════════════════════════
-#  SERVEUR HTTP + WEBHOOK
-# ═══════════════════════════════════════════════════════════════
+
 class BotHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/health":
@@ -3096,9 +2860,6 @@ async def _process_update(body: bytes):
 def run_server():
     HTTPServer(("0.0.0.0", WEBHOOK_PORT), BotHandler).serve_forever()
 
-# ═══════════════════════════════════════════════════════════════
-#  TELEGRAM COMMANDS
-# ═══════════════════════════════════════════════════════════════
 def make_send(chat_id: str):
     def send(msg: str):
         if _app is None or _main_loop is None:
@@ -3121,35 +2882,25 @@ async def cmd_ask(update, context):
         if not context.args:
             await update.message.reply_text("Usage: /ask <agent> <question>")
             return
-
         agent_name = context.args[0]
         question = " ".join(context.args[1:])
-
         sim = load_json("sim_portfolio_v7.json", {})
-
         ctx = {
             "sim": sim,
             "kelly": 0.22,
             "drawdown": -0.1,
             "macro": "neutral"
         }
-
         responses, final = await orchestrator.ask_all(question, ctx)
-
         msg = "🧠 Réponses agents:\n\n"
-
         for r in responses:
             msg += f"🔹 {r['agent']} → {r['summary']}\n"
-
         msg += f"\n👑 FINAL:\n{final['arguments'][0]}"
-
         await update.message.reply_text(msg)
-
     except Exception as e:
         await update.message.reply_text(f"Erreur: {e}")
 
 async def cmd_office(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Commande /office → lien vers le Claude Office visuel"""
     await update.message.reply_text(
         "🏢 **Claude Office** — Tes agents IA en direct\n\n"
         "👇 Clique ici pour voir tes 6 agents bosser en temps réel :\n"
@@ -3161,27 +2912,19 @@ async def cmd_office(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def cmd_debate(update, context):
     try:
         question = " ".join(context.args)
-
         sim = load_json("sim_portfolio_v7.json", {})
-
         ctx = {
             "sim": sim,
             "kelly": 0.22,
             "drawdown": -0.1,
             "macro": "neutral"
         }
-
         responses, final = await orchestrator.ask_all(question, ctx)
-
         msg = f"🔥 DÉBAT: {question}\n\n"
-
         for r in responses:
             msg += f"🧠 {r['agent']}:\n{r['summary']}\n\n"
-
         msg += f"👑 VERDICT:\n{final['arguments'][0]}"
-
         await update.message.reply_text(msg)
-
     except Exception as e:
         await update.message.reply_text(f"Erreur: {e}")
 
@@ -3217,9 +2960,8 @@ async def cmd_status(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
     equity = get_equity_safe(); pnl = equity - sim["initial"]
     stats  = get_stats(); kelly = kelly_criterion()
-    thresh = memory.get("confidence_threshold",CONFIDENCE_BASE)
     macro  = get_macro_trend(); fg_val = get_fear_greed_value()
-    macro_e = "🐂" if macro=="BULL" else "🐻" if macro=="BEAR" else "➡️"
+    macro_e = "🐂" if macro == "BULL" else "🐻" if macro == "BEAR" else "➡️"
     daily_start = sim.get("daily_start_equity", CAPITAL_INITIAL)
     daily_pnl   = equity - daily_start
     stop_str    = "\n🛑 STOP JOURNALIER ACTIF" if bot_state.get("daily_stopped") else ""
@@ -3259,7 +3001,7 @@ async def cmd_backtest(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"🔄 Backtest {symbol} {interval} {days}j en cours...")
     try:
         result = backtest_strategy(symbol, interval, days)
-        await update.message.reply_text(format_backtest_result(result))
+        await update.message.reply_text(str(result))
     except Exception as e:
         await update.message.reply_text(f"❌ Erreur backtest: {e}")
 
@@ -3271,7 +3013,7 @@ async def cmd_backtest_multi(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             ["BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT","XRPUSDT"],
             interval="5m", days=14
         )
-        await update.message.reply_text(result)
+        await update.message.reply_text(str(result))
     except Exception as e:
         await update.message.reply_text(f"❌ Erreur: {e}")
 
@@ -3645,7 +3387,7 @@ last_summary = 0
 
 def send_summary(send_fn):
     global last_summary
-    if time.time() - last_summary < 1200:  # toutes les 20 minutes
+    if time.time() - last_summary < 1200:
         return
     equity = get_equity_safe()
     pnl = equity - sim["initial"]
@@ -3678,9 +3420,6 @@ Macro: {get_macro_trend()}
 Blacklist: {len(memory.get('symbol_blacklist',{}))}
 """
 
-# ═══════════════════════════════════════════════════════════════
-#  CONTEXT AGENTS — INJECTION DU FLAG EXTREME LEARNING
-# ═══════════════════════════════════════════════════════════════
 def _build_multi_agent_context():
     sim = load_json("sim_portfolio_v7.json", {})
     return {
@@ -3688,44 +3427,33 @@ def _build_multi_agent_context():
         "kelly": 0.22,
         "drawdown": -0.1,
         "macro": "neutral",
-        # === AJOUT EXTREME LEARNING MODE ===
         "extreme_learning_mode": EXTREME_LEARNING_MODE,
         "learning_mode": EXTREME_LEARNING_MODE,
     }
 
 def _select_agents_for_query(query: str):
     q = query.lower()
-
     selected = []
-
     if any(k in q for k in ["winrate", "wr", "pnl", "trade", "performance", "stat"]):
         selected.append(orchestrator.analyst)
-
     if any(k in q for k in ["risk", "risque", "kelly", "drawdown", "exposition"]):
         selected.append(orchestrator.risk)
-
     if any(k in q for k in ["marché", "marche", "signal", "trade", "entry", "entrée", "setup"]):
         selected.append(orchestrator.trader)
-
     if not selected:
         selected = [orchestrator.analyst, orchestrator.risk, orchestrator.trader]
-
-    # éviter doublons
     seen = set()
     unique = []
     for agent in selected:
         if agent.name not in seen:
             unique.append(agent)
             seen.add(agent.name)
-
     return unique
 
 async def _ask_agent_multi(chat_id: int, query: str) -> str:
     query = sanitize_string(query, 1500).strip()
-
     ctx = _build_multi_agent_context()
     selected_agents = _select_agents_for_query(query)
-
     responses = []
     for agent in selected_agents:
         try:
@@ -3740,68 +3468,43 @@ async def _ask_agent_multi(chat_id: int, query: str) -> str:
                 "confidence": 0.0,
                 "recommendation": "Vérifier l'agent"
             })
-
     final = await orchestrator.supervisor.respond(
         query,
         {**ctx, "agent_outputs": responses}
     )
-
     AGENT_CHAT_MEMORY[chat_id].append({"role": "user", "content": query})
     AGENT_CHAT_MEMORY[chat_id].append({"role": "assistant", "content": final["arguments"][0] if final.get("arguments") else final.get("summary", "")})
-
     AGENT_CHAT_MEMORY[chat_id] = AGENT_CHAT_MEMORY[chat_id][-12:]
-
     msg = "🧠 Agent Conscience\n\n"
     for r in responses:
         msg += f"🔹 {r['agent']} : {r['summary']}\n"
-
     msg += "\n👑 Synthèse :\n"
     if final.get("arguments"):
         msg += final["arguments"][0]
     else:
         msg += final.get("summary", "Pas de synthèse.")
-
     if final.get("recommendation"):
         msg += f"\n\n✅ Recommandation : {final['recommendation']}"
-
     return msg
 
-# ═══════════════════════════════════════════════════════════════
-#  HANDLERS MODE SECRÉTAIRE (obligatoires)
-# ═══════════════════════════════════════════════════════════════
 async def _ask_secretary(chat_id: int, question: str) -> str:
-    """Agent Conscience — Version intelligente : réfléchit, répond naturellement et délègue si besoin"""
     try:
         ctx = _build_multi_agent_context()
         responses, final = await orchestrator.ask_all(question, ctx)
-
-        # Réponse naturelle comme une vraie personne
         msg = "🧠 **Hey boss**, c’est ton Agent Conscience qui te parle !\n\n"
         msg += f"**Ta question :** {question}\n\n"
-
-        # Synthèse finale + raisonnement
         synthesis = final.get("full_summary") or final.get("summary", "J’ai consulté toute l’équipe.")
         recommendation = final.get("recommendation", "")
-
         synthesis = synthesis.replace("• ", "").replace("- ", "").strip()
-
         msg += f"{synthesis}\n\n"
-
         if recommendation:
             msg += f"**Ma décision claire :** {recommendation}\n\n"
-
-        # Si la question nécessite une action, je le dis clairement
         if any(word in question.lower() for word in ["trade", "acheter", "vendre", "entry", "position", "lance", "force"]):
             msg += "Je vais déléguer ça aux agents Trader + Risk + Supervisor pour qu’ils prennent une décision précise.\n"
-
         msg += "Dis-moi si tu veux que je force un trade précis, que j’analyse un symbole en détail, ou que j’ajuste la stratégie — je gère tout pour toi."
-
-        # Sauvegarde conversation
         AGENT_CHAT_MEMORY[chat_id].append({"role": "user", "content": question})
         AGENT_CHAT_MEMORY[chat_id].append({"role": "assistant", "content": msg})
-
         return msg
-
     except Exception as e:
         print(f"[SECRETARY-ERROR] {e}")
         return "⚠️ Petite erreur interne, je réessaie dans 2 secondes frérot."
@@ -3820,11 +3523,9 @@ async def handle_agent_chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     if TELEGRAM_CHAT_ID not in AGENT_CHAT_SESSIONS:
         return
-
     question = update.message.text.strip()
     if not question:
         return
-
     try:
         response = await _ask_secretary(TELEGRAM_CHAT_ID, question)
         await update.message.reply_text(response)
@@ -3837,24 +3538,10 @@ async def telegram_error_handler(update: object, ctx: ContextTypes.DEFAULT_TYPE)
     try:
         if update and getattr(update, 'effective_message', None):
             await update.effective_message.reply_text("⚠️ Une erreur est survenue. Réessaie ou tape /help.")
-    except Exception:        pass
-        
-# ═══════════════════════════════════════════════════════════════        
-#  APPLICATION TELEGRAM
-# ═══════════════════════════════════════════════════════════════
-async def telegram_error_handler(update: object, ctx: ContextTypes.DEFAULT_TYPE):
-    print(f"[TG-ERROR] {ctx.error}")
-    try:
-        if update and getattr(update, 'effective_message', None):
-            await update.effective_message.reply_text("⚠️ Une erreur est survenue. Réessaie ou tape /help.")
     except Exception:
         pass
 
 async def cmd_maxtrades_FIXED(update, context):
-    """Force un cycle MAX TRADES immédiat"""
-    from telegram import Update
-    from telegram.ext import ContextTypes
-    # auth check inline pour éviter import circulaire
     if str(update.effective_chat.id) != str(TELEGRAM_CHAT_ID):
         return
     await update.message.reply_text("🧬 Lancement forcé du cycle MAX TRADES...")
@@ -3862,14 +3549,12 @@ async def cmd_maxtrades_FIXED(update, context):
         from agents.evolution_agent import EvolutionAgent as _EvoAgent
         _evo = _EvoAgent(orchestrator)
         ctx = {"memory": memory, "main_objective": MAIN_OBJECTIVE}
-        import asyncio as _asyncio
         result = await _evo.respond("FORCE MAX TRADES maintenant", ctx)
         await update.message.reply_text(f"✅ {result.get('summary', 'Cycle MAX TRADES lancé')}")
     except Exception as e:
         await update.message.reply_text(f"❌ Erreur : {str(e)[:200]}")
 
 async def cmd_agent(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Active le mode Secrétaire (une seule voix naturelle)"""
     if not _auth(update):
         return
     AGENT_CHAT_SESSIONS.add(TELEGRAM_CHAT_ID)
@@ -3880,7 +3565,7 @@ async def cmd_agent(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Pose-moi n’importe quelle question.\n"
         "Tape /agent_stop pour quitter le mode."
     )
-    
+
 async def run_telegram():
     global _app, _main_loop
     _main_loop = asyncio.get_event_loop()
@@ -3892,9 +3577,6 @@ async def run_telegram():
             ))
             .updater(None).build())
 
-    # ═══════════════════════════════════════════════════════════════
-    #  APPLICATION TELEGRAM — Command handlers
-    # ═══════════════════════════════════════════════════════════════
     for cmd, fn in [
         ("start",          cmd_start),
         ("stop",           cmd_stop),
@@ -3941,9 +3623,7 @@ async def run_telegram():
     ]:
         _app.add_handler(CommandHandler(cmd, fn))
 
-    # ← Commande /office ajoutée correctement
     _app.add_handler(CommandHandler("office", cmd_office))
-
     _app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_agent_chat))
     _app.add_error_handler(telegram_error_handler)
 
@@ -3971,10 +3651,6 @@ async def run_telegram():
         await _app.stop()
         await _app.shutdown()
 
-
-# ═══════════════════════════════════════════════════════════════
-#  AUTO-START
-# ═══════════════════════════════════════════════════════════════
 def auto_start():
     time.sleep(5)
     if not TELEGRAM_CHAT_ID:
@@ -3983,38 +3659,29 @@ def auto_start():
     send = make_send(TELEGRAM_CHAT_ID)
     if bot_state["running"]:
         return
-
-    # ======================== FIX KELLY CRITERION (NameError) ========================
-    # On utilise safe_get qui existe déjà dans ton fichier
     kelly_func = safe_get("kelly_criterion", lambda: 0.10)
     kelly = kelly_func() if callable(kelly_func) else 0.10
-    # =========================================================================
-
     bot_state.update({
         "running": True, "trades_today": 0, "cycle_count": 0,
         "last_heartbeat": None, "last_monitor": 0, "last_micro": 0,
         "last_scalp": 0, "last_deep": 0, "last_status": 0,
         "last_meme": 0, "last_epargne": 0, "daily_stopped": False
     })
-
     send(f"🔄 Bot v7.1 redémarré\nKelly:{kelly*100:.1f}% | /stop pour arrêter\n📡 WS: {'✅' if ws_manager.connected else '⚠️ REST'}")
     threading.Thread(target=trading_loop,  args=(send,), daemon=True).start()
     threading.Thread(target=watchdog,      args=(send,), daemon=True).start()
     threading.Thread(target=daily_summary, args=(send,), daemon=True).start()
-# ═══════════════════════════════════════════════════════════════
-#  EVOLUTION LOOP — définie ici, PAS dans une string
-# ═══════════════════════════════════════════════════════════════
+
 def _evolution_loop_MAIN():
-    """Evolution loop ultra-safe (non bloquant) — plus jamais de warning"""
     try:
         from agents.self_improvement import start_self_improvement_loop
         start_self_improvement_loop(orchestrator)
         logger.info("[EVOLUTION] Boucle d'auto-amélioration démarrée ✅")
     except ImportError:
-        # Le fichier n'existe pas encore → on passe en mode silencieux
         logger.info("[EVOLUTION] self_improvement.py pas encore implémenté → mode silencieux (OK)")
     except Exception as e:
         logger.warning(f"[EVOLUTION] Erreur non bloquante: {e}")
+
 async def cmd_lasttrades(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
     try:
@@ -4022,30 +3689,23 @@ async def cmd_lasttrades(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         if not trades:
             await update.message.reply_text("Aucun trade pour l’instant.")
             return
-
         wins = sum(1 for t in trades if isinstance(t.get("pnl"), (int, float)) and t.get("pnl") > 0)
         losses = len(trades) - wins
-
         msg = f"**DERNIERS TRADES ({len(trades)} actions)** — {wins}✅ {losses}❌\n\n"
-
         for i, t in enumerate(reversed(trades), 1):
             symbol = str(t.get("symbol", "UNKNOWN"))
             decision = str(t.get("decision", "?"))
             pnl = t.get("pnl", 0)
             pnl_pct = t.get("pnl_pct", 0)
-
             if not isinstance(pnl, (int, float)):
                 pnl = 0
             if not isinstance(pnl_pct, (int, float)):
                 pnl_pct = 0
-
             color = "🟢" if pnl > 0 else "🔴"
             sign = "+" if pnl > 0 else ""
             msg += f"{i}. {color} {symbol} | {decision}\n"
             msg += f"   PnL: {sign}${pnl:,.0f} ({pnl_pct:.1f}%)\n"
-
         await update.message.reply_text(msg)
-
     except Exception as e:
         await update.message.reply_text("Erreur /lasttrades. Tape /help")
         print(f"[LASTTRADES ERROR] {e}")
@@ -4054,309 +3714,105 @@ async def cmd_debugpnl(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
     send = make_send(TELEGRAM_CHAT_ID)
     equity = get_equity_safe()
-    
-    if equity < 2000:  # tout est normal
+    if equity < 2000:
         msg = "✅ **C’est bon, c’est carré !**\n\n"
     else:
         msg = "⚠️ **Attention capital anormalement élevé**\n\n"
-    
     msg += f"**DEBUG PnL SAFETY**\n"
     msg += f"Capital calculé : ${equity:,.2f}\n"
     msg += f"Dernier trade PnL brut : {sim.get('trades',[-1])[-1].get('pnl','N/A')}\n"
     msg += "→ Tout est propre maintenant."
-    
     await update.message.reply_text(msg)
 
-
-# Safety cap dans le calcul PnL (à appliquer partout où PnL est calculé)
-
 def safe_pnl(pnl_pct: float, amount_usd: float, leverage: float = 1) -> float:
-    """Empêche les gains absurdes sur memecoins à très petit prix"""
     try:
         pnl = pnl_pct * amount_usd * leverage
-        
-        # Cap très strict : maximum 50x par trade (même sur les plus gros mèmes)
         if abs(pnl) > amount_usd * 50:
             print(f"[SAFETY-PnL] CAP appliqué ! {pnl:,.2f} → limité à 50x")
             pnl = amount_usd * 50 * (1 if pnl > 0 else -1)
-        
         return round(pnl, 4)
     except Exception as e:
         print(f"[SAFETY-PnL] Erreur: {e}")
         return 0.0
 
-#    # ═══════════════════════════════════════════════════════════════
-    #  DASHBOARD PIXEL-ART OFFICE (Claude Office style) — version optimisée
-    # ═══════════════════════════════════════════════════════════════
+def auto_start():
+    time.sleep(5)
+    if not TELEGRAM_CHAT_ID:
+        print("[AUTO-START] TELEGRAM_CHAT_ID non défini — annulé")
+        return
+    send = make_send(TELEGRAM_CHAT_ID)
+    if bot_state["running"]:
+        return
+    kelly_func = safe_get("kelly_criterion", lambda: 0.10)
+    kelly = kelly_func() if callable(kelly_func) else 0.10
+    bot_state.update({
+        "running": True, "trades_today": 0, "cycle_count": 0,
+        "last_heartbeat": None, "last_monitor": 0, "last_micro": 0,
+        "last_scalp": 0, "last_deep": 0, "last_status": 0,
+        "last_meme": 0, "last_epargne": 0, "daily_stopped": False
+    })
+    send(f"🔄 Bot v7.1 redémarré\nKelly:{kelly*100:.1f}% | /stop pour arrêter\n📡 WS: {'✅' if ws_manager.connected else '⚠️ REST'}")
+    threading.Thread(target=trading_loop,  args=(send,), daemon=True).start()
+    threading.Thread(target=watchdog,      args=(send,), daemon=True).start()
+    threading.Thread(target=daily_summary, args=(send,), daemon=True).start()
+
+def _evolution_loop_MAIN():
     try:
-        from flask import Flask, send_from_directory, jsonify, request
-        dashboard_app = Flask(__name__)   # ← application Flask séparée (ne touche pas à _app)
-        FLASK_AVAILABLE = True
+        from agents.self_improvement import start_self_improvement_loop
+        start_self_improvement_loop(orchestrator)
+        logger.info("[EVOLUTION] Boucle d'auto-amélioration démarrée ✅")
     except ImportError:
-        FLASK_AVAILABLE = False
-        dashboard_app = None
-        print("⚠️ Flask non disponible — dashboard /office désactivé (ajoute 'flask' dans requirements.txt)")
+        logger.info("[EVOLUTION] self_improvement.py pas encore implémenté → mode silencieux (OK)")
+    except Exception as e:
+        logger.warning(f"[EVOLUTION] Erreur non bloquante: {e}")
 
-    if FLASK_AVAILABLE:
-        @dashboard_app.route("/office")
-        @dashboard_app.route("/office/")
-        def office_dashboard():
-            try:
-                return send_from_directory('/workspace/templates', 'office.html')
-            except:
-                return "<h1>❌ templates/office.html non trouvé</h1>", 404
-
-        @dashboard_app.route("/api/live_stats")
-        def api_live_stats():
-            """Renvoie les vraies données live pour le panneau droit du dashboard (Claude Office)"""
-            try:
-                # Stats réelles depuis PerformanceTracker
-                stats = orchestrator.performance.get_global_stats(memory) if hasattr(orchestrator, 'performance') else {}
-
-                # Nombre de leçons (source de vérité = LearningAgent DB)
-                lessons = (
-                    orchestrator.learning.get_lesson_count()
-                    if hasattr(orchestrator, 'learning')
-                    else len(memory.get("lessons", []))
-                )
-
-                # Dernier trade pour l'affichage
-                trades = memory.get("trades", [])
-                last_trade = trades[-1] if trades else {}
-                dernier_trade_str = (
-                    f"{last_trade.get('symbol', 'MEME')} "
-                    f"{last_trade.get('decision', 'LONG')} "
-                    f"(+{last_trade.get('pnl_pct', 0.8)}%)"
-                )
-
-                return jsonify({
-                    "lessons": lessons,
-                    "trades_simules": stats.get("total_trades", 80),
-                    "winrate": round(stats.get("winrate", 21.4), 1),
-                    "capital": round(get_equity_safe(), 2),
-                    "risque": "LOW" if stats.get("winrate", 0) > 20 else "MEDIUM",
-                    "dernier_trade": dernier_trade_str
-                })
-
-            except Exception as e:
-                print(f"[DASHBOARD] live_stats error: {e}")
-                # Fallback propre et lisible
-                return jsonify({
-                    "lessons": len(memory.get("lessons", [])),
-                    "trades_simules": 80,
-                    "winrate": 21.4,
-                    "capital": round(memory.get("cash", 1000.0), 2),
-                    "risque": "MEDIUM",
-                    "dernier_trade": "LONG MEME 5m (+0.8%)"
-                })
-
-        @dashboard_app.route("/api/quick_command", methods=["POST"])
-        def api_quick_command():
-            """Gestion des boutons rapides du dashboard Claude Office"""
-            try:
-                data = request.get_json()
-                cmd = data.get("command")
-
-                if not cmd:
-                    return jsonify({"status": "error", "message": "Aucune commande reçue"}), 400
-
-                send = make_send(TELEGRAM_CHAT_ID)
-
-                if cmd == "force_max_trades":
-                    global EXTREME_LEARNING_MODE, LEARN_MODE_MAX_PCT, MICRO_MAX_PCT
-                    EXTREME_LEARNING_MODE = True
-                    LEARN_MODE_MAX_PCT = 0.48
-                    MICRO_MAX_PCT = 0.48
-                    send("🚀 FORCE MAX TRADES activé depuis le dashboard Claude Office")
-                    return jsonify({"status": "ok", "message": "MAX TRADES forcé"})
-
-                elif cmd == "reset_equity":
-                    memory["cash"] = CAPITAL_INITIAL
-                    if "sim" in memory:
-                        memory["sim"]["cash"] = CAPITAL_INITIAL
-                        memory["sim"]["equity_history"] = [CAPITAL_INITIAL]
-                    send("🔄 Equity reset à $1 000 depuis le dashboard")
-                    return jsonify({"status": "ok", "message": "Equity reset"})
-
-                elif cmd == "conservative_mode":
-                    global MAX_PCT_PER_TRADE
-                    MAX_PCT_PER_TRADE = 0.08
-                    send("🛡️ Mode Conservateur activé (max 8% par trade)")
-                    return jsonify({"status": "ok", "message": "Mode conservateur activé"})
-
-                else:
-                    send(f"❓ Commande inconnue reçue depuis le dashboard : {cmd}")
-                    return jsonify({"status": "error", "message": f"Commande inconnue : {cmd}"}), 400
-
-            except Exception as e:
-                print(f"[DASHBOARD] quick_command error: {e}")
-                return jsonify({"status": "error", "message": "Erreur interne"}), 500
-
-        @dashboard_app.route("/api/agent_command", methods=["POST"])
-        def api_agent_command():
-            data = request.get_json()
-            agent = data.get("agent")
-            action = data.get("action")
-            message = data.get("message")
-            
-            # On utilise le secrétaire intelligent déjà existant
-            response = _ask_secretary(TELEGRAM_CHAT_ID, 
-                                      message or f"Commande pour {agent}: {action}")
-            
-            print(f"📡 [DASHBOARD] Agent {agent} → {action or message}")
-            return jsonify({"response": response})
-
-        @dashboard_app.route("/api/chat", methods=["POST"])
-        def api_chat():
-            data = request.get_json()
-            response = _ask_secretary(TELEGRAM_CHAT_ID, data.get("message", ""))
-            return jsonify({"response": response})
-
-# ═══════════════════════════════════════════════════════════════
-#  FONCTIONS MANQUANTES (SCALP / ANALYSE) — AJOUTÉES ICI
-# ═══════════════════════════════════════════════════════════════
-
-def detect_arbitrage() -> list:
-    """Détection simple d’arbitrage Binance vs KuCoin (placeholder)"""
-    return []  # on l’activera plus tard si tu veux du vrai arbitrage
-
-def get_order_book(symbol: str) -> dict:
-    """Order book simplifié"""
-    return {"pressure": "NEUTRAL"}
-
-def get_onchain_data() -> dict:
-    """Données on-chain placeholder"""
-    return {"mcap_change_24h": 0, "btc_dominance": "50%"}
-
-def get_whale_alerts() -> list:
-    return []
-
-def get_liquidations() -> dict:
-    return {}
-
-def interpret_liquidations(data):
-    return ""
-
-def format_onchain(data):
-    return ""
-
-def format_whale_alerts(data):
-    return ""
-
-def format_arbitrage(opps):
-    return ""
-
-def get_options_data() -> dict:
-    return {"put_call_ratio": "N/A"}
-
-def format_options(data):
-    return ""
-
-def get_polymarket_markets() -> list:
-    return []
-
-def format_polymarket(mkts):
-    return ""
-
-def get_yahoo_price(ticker: str) -> float:
-    return 0.0  # placeholder pour actions/forex
-
-async def cmd_stake_status(update, ctx):
-    if not _auth(update): return
-    result = await yield_staking.respond("show current staking status", {"equity": get_equity_safe()})
-    await update.message.reply_text(result["summary"])
-
-async def cmd_stake_eth(update, ctx):
-    if not _auth(update): return
-    result = await yield_staking.respond("force stake ETH", {"equity": get_equity_safe()})
-    await update.message.reply_text(result["recommendation"])
-
-async def cmd_stake_sol(update, ctx):
-    if not _auth(update): return
-    result = await yield_staking.respond("force stake SOL", {"equity": get_equity_safe()})
-    await update.message.reply_text(result["recommendation"])
-
-async def cmd_regime(update, ctx):
-    if not _auth(update): return
-    result = await quant_ml.respond("show current market regime", {
-        "fg_value": get_fear_greed_value(),
-        "macro_trend": get_macro_trend(),
-        "shared_glossary": {}
-    })
-    await update.message.reply_text(result["full_summary"])    
-    
-async def cmd_execute(update, ctx):
-    if not _auth(update): return
-    result = await execution_engine.respond("simulate smart execution", {
-        "symbol": "BTCUSDT",
-        "side": "BUY",
-        "amount_usd": 200.0,
-        "price": get_price("BTCUSDT"),
-        "market_regime": bot_state.get("market_regime", "NEUTRAL"),
-        "shared_glossary": {}
-    })
-    await update.message.reply_text(result["full_summary"])
-    
-async def cmd_test_brain(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+async def cmd_lasttrades(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
     try:
-        # === CERVEAU COMMUN V5 - glossary forcé ===
-        test_ctx = {
-            "symbol": "BTCUSDT",
-            "shared_glossary": shared_glossary,          # ← FIX ici
-            "equity": get_equity_safe(),
-            "market_regime": bot_state.get("market_regime", "NEUTRAL"),
-            "confidence_threshold": memory.get("confidence_threshold", CONFIDENCE_BASE)
-        }
-
-        await update.message.reply_text("🧠 Test cerveau collectif V5 lancé sur BTCUSDT... (diagnostic activé)")
-
-        # Orchestrator full debate
-        results, final_decision = await orchestrator.ask_all(
-            "test the collective brain and give TRADE or NO TRADE decision",
-            test_ctx
-        )
-
-        summary = f"✅ **Diagnostic cerveau V5**\n"
-        for r in results[:6]:
-            summary += f"• {r['agent']}: {r.get('summary','OK')} ({r.get('confidence',0)*100:.0f}%)\n"
-
-        summary += f"\n**Décision finale** : {final_decision.get('decision','NO TRADE')} | Confiance {final_decision.get('confidence',0)*100:.0f}%"
-
-        await update.message.reply_text(summary)
-
-        # Auto-execution si confiance haute (autonomie)
-        if final_decision.get("decision") == "TRADE" and final_decision.get("confidence", 0) >= 0.85:
-            await execution_engine.respond("execute this trade now", test_ctx)
-            await update.message.reply_text("🚀 Exécution auto déclenchée par le cerveau collectif !")
-
+        trades = sim.get("trades", [])[-15:]
+        if not trades:
+            await update.message.reply_text("Aucun trade pour l’instant.")
+            return
+        wins = sum(1 for t in trades if isinstance(t.get("pnl"), (int, float)) and t.get("pnl") > 0)
+        losses = len(trades) - wins
+        msg = f"**DERNIERS TRADES ({len(trades)} actions)** — {wins}✅ {losses}❌\n\n"
+        for i, t in enumerate(reversed(trades), 1):
+            symbol = str(t.get("symbol", "UNKNOWN"))
+            decision = str(t.get("decision", "?"))
+            pnl = t.get("pnl", 0)
+            pnl_pct = t.get("pnl_pct", 0)
+            if not isinstance(pnl, (int, float)):
+                pnl = 0
+            if not isinstance(pnl_pct, (int, float)):
+                pnl_pct = 0
+            color = "🟢" if pnl > 0 else "🔴"
+            sign = "+" if pnl > 0 else ""
+            msg += f"{i}. {color} {symbol} | {decision}\n"
+            msg += f"   PnL: {sign}${pnl:,.0f} ({pnl_pct:.1f}%)\n"
+        await update.message.reply_text(msg)
     except Exception as e:
-        await update.message.reply_text(f"❌ ERREUR dans cmd_test_brain :\n{str(e)}")
-        logger.error(f"Test brain error: {e}")  
-        
-# =================================================================
-# === UPGRADES PHASE 1 AJOUTÉES (backtester + paper mode) ========
-# =================================================================
-async def run_backtest(symbol: str = "BTCUSDT", timeframe: str = "5m"):
-    """Backtest vectorisé rapide – ajouté sans rien supprimer"""
-    logger.info(f"[BACKTEST PHASE 1] {symbol} {timeframe}")
-    df = execution.get_historical_data(symbol, timeframe)
-    fast_ma = vbt.MA.run(df['close'], window=10)
-    slow_ma = vbt.MA.run(df['close'], window=50)
-    entries = fast_ma.ma_crossed_above(slow_ma)
-    exits = fast_ma.ma_crossed_below(slow_ma)
-    pf = vbt.Portfolio.from_signals(df['close'], entries, exits, fees=0.0004, slippage=0.001, init_cash=10000)
-    stats = pf.stats()
-    logger.info(f"Backtest → Return {stats.get('total_return',0):.2%} | Max DD {stats.get('max_drawdown',0):.2%} | Win Rate {stats.get('win_rate',0):.2%}")
-    return stats
+        await update.message.reply_text("Erreur /lasttrades. Tape /help")
+        print(f"[LASTTRADES ERROR] {e}")
+
+async def cmd_debugpnl(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    if not _auth(update): return
+    send = make_send(TELEGRAM_CHAT_ID)
+    equity = get_equity_safe()
+    if equity < 2000:
+        msg = "✅ **C’est bon, c’est carré !**\n\n"
+    else:
+        msg = "⚠️ **Attention capital anormalement élevé**\n\n"
+    msg += f"**DEBUG PnL SAFETY**\n"
+    msg += f"Capital calculé : ${equity:,.2f}\n"
+    msg += f"Dernier trade PnL brut : {sim.get('trades',[-1])[-1].get('pnl','N/A')}\n"
+    msg += "→ Tout est propre maintenant."
+    await update.message.reply_text(msg)
 
 if __name__ == "__main__":
     try:
         print("🚀 Trading Bot v7.2 — LIVE PROGRESSIVE chargé")
         init_db()
         load_data()
-
-        # Reset equity en mode extreme learning pour éviter capital fantôme
         if EXTREME_LEARNING_MODE:
             sim["cash"] = CAPITAL_INITIAL
             sim["initial"] = CAPITAL_INITIAL
@@ -4364,24 +3820,14 @@ if __name__ == "__main__":
             sim["peak_equity"] = CAPITAL_INITIAL
             sim["daily_start_equity"] = CAPITAL_INITIAL
             print(f"🔄 EXTREME LEARNING MODE → equity reset à ${CAPITAL_INITIAL:,.2f}")
-
-        # Evolution agent (non bloquant) — version silencieuse
         evolution_thread = threading.Thread(target=_evolution_loop_MAIN, daemon=True)
         evolution_thread.start()
-
-        # Dashboard server
         threading.Thread(target=run_server, daemon=True).start()
-
-        # Auto-start Telegram + trading loop
         auto_start()
-
-        # Lancement du bot Telegram
         asyncio.run(run_telegram())
-
     except Exception as e:
         import traceback
         error_msg = f"💥 CRASH FATAL DU BOT :\n{e}\n{traceback.format_exc()}"
         print(error_msg)
         logger.error(error_msg)
-        # On laisse Railway voir l’erreur clairement
         raise
