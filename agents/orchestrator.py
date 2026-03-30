@@ -1,5 +1,5 @@
 """
-🎯 ORCHESTRATOR V5 — Cerveau Collectif Parfait + Zéro Malentendu + Spécialisation Forcée
+🎯 ORCHESTRATOR V5.1 — Cerveau Collectif Parfait + Zéro Malentendu + Spécialisation Forcée
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Upgrade BaseAgent V3 + glossaire partagé + safe_respond partout + vérif rôle stricte
 + Intégration QuantML / ExecutionEngine / YieldStaking / Hedging dans le débat collectif
@@ -31,10 +31,19 @@ from agents.execution_engine_agent import ExecutionEngineAgent
 from agents.yield_staking_agent import YieldStakingAgent
 from agents.hedging_agent import HedgingAgent
 
+# ======================== PATCH ORCHESTRATOR V5.1 ========================
+# Utilisation du KnowledgeBase Singleton (créé dans base_agent.py)
+# → Supprime définitivement les multiples "ChromaDB initialisée"
+from agents.base_agent import _KnowledgeBaseSingleton
+# ===========================================================================
+
 class Orchestrator:
 
     def __init__(self):
-        self.kb = KnowledgeBase()
+        # ======================== PATCH SINGLETON KB ========================
+        # On utilise le singleton au lieu de KnowledgeBase() direct
+        self.kb = _KnowledgeBaseSingleton.get_instance()
+        # ===========================================================================
 
         self.analyst    = AnalystAgent()
         self.risk       = RiskAgent()
@@ -59,7 +68,7 @@ class Orchestrator:
     async def ask_all(
         self, question: str, context: dict
     ) -> Tuple[List[Dict], Dict]:
-        print(f"[ORCHESTRATOR V5] 🚀 Démarrage analyse collective → {question[:80]}...")
+        print(f"[ORCHESTRATOR V5.1] 🚀 Démarrage analyse collective → {question[:80]}...")
 
         # === UPGRADE : Glossaire commun forcé pour zéro malentendu ===
         context["shared_glossary"] = self.kb.get_glossary()
@@ -74,7 +83,7 @@ class Orchestrator:
 
         enriched_ctx = self._enrich_context(context)
 
-        # === PHASE 1 : Appel parallèle avec safe_respond ===
+        # === PHASE 1 : Appel parallèle avec safe_respond + TIMEOUT ===
         tasks = [
             self.analyst.safe_respond(question, enriched_ctx),
             self.risk.safe_respond(question, enriched_ctx),
@@ -92,7 +101,17 @@ class Orchestrator:
             self.portfolio_manager.safe_respond(question, enriched_ctx),
         ]
 
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+        # ======================== PATCH TIMEOUT GATHER ========================
+        # Timeout global de 15 secondes pour tout le débat collectif
+        try:
+            results = await asyncio.wait_for(
+                asyncio.gather(*tasks, return_exceptions=True),
+                timeout=15.0
+            )
+        except asyncio.TimeoutError:
+            print("[ORCHESTRATOR V5.1] ⚠️ Timeout global du débat collectif → fallback NO TRADE")
+            return [], {"decision": "NO TRADE", "reason": "Timeout Orchestrator", "score": 0.0}
+        # =========================================================================
 
         responses = []
         agent_names = [
@@ -123,7 +142,7 @@ class Orchestrator:
             else:
                 # On ne skip plus les agents pendant un débat collectif
                 if res.get("warning") and not is_debate:
-                    print(f"[ORCHESTRATOR V5] ⚠️ {res.get('agent', 'unknown')} hors domaine → ignoré")
+                    print(f"[ORCHESTRATOR V5.1] ⚠️ {res.get('agent', 'unknown')} hors domaine → ignoré")
                     continue
                 responses.append(res)
 
@@ -134,7 +153,7 @@ class Orchestrator:
 
         while current_confidence < 0.99 and self.debate_rounds < max_rounds:
             self.debate_rounds += 1
-            print(f"[ORCHESTRATOR V5] 🔥 Débat round {self.debate_rounds}/7 — confiance {current_confidence:.2f}")
+            print(f"[ORCHESTRATOR V5.1] 🔥 Débat round {self.debate_rounds}/7 — confiance {current_confidence:.2f}")
 
             collaboration_ctx = {
                 **enriched_ctx,
@@ -163,7 +182,16 @@ class Orchestrator:
                 self.portfolio_manager.safe_respond(f"Raffine ton analyse en tenant compte des autres agents (utilise le glossaire commun) et vise ≥ 99 %", collaboration_ctx),
             ]
 
-            collab_results = await asyncio.gather(*collab_tasks, return_exceptions=True)
+            # ======================== PATCH TIMEOUT COLLAB ========================
+            try:
+                collab_results = await asyncio.wait_for(
+                    asyncio.gather(*collab_tasks, return_exceptions=True),
+                    timeout=12.0
+                )
+            except asyncio.TimeoutError:
+                print("[ORCHESTRATOR V5.1] ⚠️ Timeout durant le débat round → sortie avec décision actuelle")
+                break
+            # =========================================================================
 
             # Veto dur
             risk_resp = next((r for r in collab_results if isinstance(r, dict) and r.get("agent") == "risk"), {})
@@ -186,7 +214,7 @@ class Orchestrator:
             "debate_rounds": self.debate_rounds
         })
 
-        print(f"[ORCHESTRATOR V5] Terminé après {self.debate_rounds} rounds → confiance {current_confidence:.2f}")
+        print(f"[ORCHESTRATOR V5.1] Terminé après {self.debate_rounds} rounds → confiance {current_confidence:.2f}")
         return final_responses, final
 
     def _enrich_context(self, context: dict) -> dict:
