@@ -368,7 +368,7 @@ class PerformanceTracker(BaseAgent):  # ← UPGRADE : hérite maintenant de Base
 
     # === UPGRADE V5 : Méthode respond obligatoire pour le cerveau commun ===
     async def respond(self, question: str, context: dict) -> Dict[str, Any]:
-        # === UPGRADE V5 : Vérification stricte de spécialisation (cerveau commun) ===
+        # === Vérification stricte de spécialisation ===
         if not self._is_in_my_domain(question):
             return {
                 "agent": self.name,
@@ -378,9 +378,10 @@ class PerformanceTracker(BaseAgent):  # ← UPGRADE : hérite maintenant de Base
                 "warning": "Hors domaine performance"
             }
 
-        # === UPGRADE V5 : Glossaire partagé forcé pour zéro malentendu ===
+        # === Glossaire partagé forcé ===
         shared_glossary = context.get("shared_glossary", {})
-    def explain(k): 
+
+        def explain(k): 
             return self.explain_term(k) or shared_glossary.get(k, k)
 
         memory = context.get("memory", {})
@@ -393,7 +394,7 @@ class PerformanceTracker(BaseAgent):  # ← UPGRADE : hérite maintenant de Base
             f"Aligné avec le {explain('glossary')} du cerveau collectif et notre objectif winrate parfait."
         )
 
-            return {
+        return {
             "agent": self.name,
             "summary": natural_summary,
             "global_stats": stats,
@@ -402,4 +403,9 @@ class PerformanceTracker(BaseAgent):  # ← UPGRADE : hérite maintenant de Base
             "full_summary": natural_summary,
             "glossary_used": True
         }
+
+    # === COMPATIBILITÉ V8 : export_dashboard (obligatoire pour bot.py) ===
+    def export_dashboard(self, memory: dict):
+        """Compatibilité ancienne méthode export_dashboard()"""
+        return self.generate_dashboard_data(memory)
         
