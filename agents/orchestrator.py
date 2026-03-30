@@ -56,15 +56,13 @@ class Orchestrator:
 
         self.debate_rounds = 0
 
-    async def ask_all(
+        async def ask_all(
         self, question: str, context: dict
     ) -> Tuple[List[Dict], Dict]:
         print(f"[ORCHESTRATOR V5] 🚀 Démarrage analyse collective → {question[:80]}...")
 
-        # === UPGRADE : Glossaire commun forcé pour zéro malentendu ===
         context["shared_glossary"] = self.kb.get_glossary()
 
-        # === UPGRADE : Vérification santé du système avec safe_respond ===
         immune_status = await self.self_improvement.safe_respond("monitor health", context)
         context["immune_health"] = immune_status.get("score", 100)
 
@@ -74,7 +72,6 @@ class Orchestrator:
 
         enriched_ctx = self._enrich_context(context)
 
-        # === PHASE 1 : Appel parallèle avec safe_respond ===
         tasks = [
             self.analyst.safe_respond(question, enriched_ctx),
             self.risk.safe_respond(question, enriched_ctx),
@@ -102,13 +99,12 @@ class Orchestrator:
             "yield_staking", "hedging", "portfolio_manager"
         ]
 
-        # ======================== PATCH DÉBAT COLLECTIF ========================
-        # On autorise TOUS les agents dès qu’il s’agit d’un débat
+        # ======================== PATCH DÉBAT COLLECTIF (renforcé) ========================
         q_lower = question.lower()
         is_debate = any(kw in q_lower for kw in [
             "débat", "synthétise", "synthèse", "collective", "final decision",
             "verdict", "trade ou no trade", "analyse micro", "décision finale",
-            "cerveau collectif", "orchestrator", "ask_all", "round"
+            "cerveau collectif", "orchestrator", "ask_all", "round", "micro", "meme"
         ])
         # =========================================================================
 
@@ -121,13 +117,12 @@ class Orchestrator:
                     "recommendation": "Vérifier rôle",
                 })
             else:
-                # On ne skip plus les agents pendant un débat collectif
                 if res.get("warning") and not is_debate:
-                    print(f"[ORCHESTRATOR V5] ⚠️ {res['agent']} hors domaine → ignoré")
+                    print(f"[ORCHESTRATOR V5] ⚠️ {res.get('agent', 'unknown')} hors domaine → ignoré")
                     continue
                 responses.append(res)
 
-        # === PHASE DÉBAT COLLECTIF (le reste de ton code original reste IDENTIQUE) ===
+        # === Le reste de ta méthode reste IDENTIQUE (phase débat, veto, supervisor, etc.) ===
         current_confidence = 0.0
         max_rounds = 7
         self.debate_rounds = 0
@@ -165,7 +160,6 @@ class Orchestrator:
 
             collab_results = await asyncio.gather(*collab_tasks, return_exceptions=True)
 
-            # Veto dur
             risk_resp = next((r for r in collab_results if isinstance(r, dict) and r.get("agent") == "risk"), {})
             learn_resp = next((r for r in collab_results if isinstance(r, dict) and r.get("agent") == "learning"), {})
 
@@ -178,7 +172,6 @@ class Orchestrator:
             final_responses = [r for r in collab_results if not isinstance(r, Exception)]
             current_confidence = max((r.get("confidence", 0) for r in final_responses), default=0.0)
 
-        # Décision finale via Supervisor
         final = await self.supervisor.respond("Synthétise tout avec le glossaire commun et donne décision finale claire : TRADE ou NO TRADE", {
             **enriched_ctx,
             "agent_outputs": final_responses,
