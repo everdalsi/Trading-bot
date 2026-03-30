@@ -3983,19 +3983,24 @@ def auto_start():
     send = make_send(TELEGRAM_CHAT_ID)
     if bot_state["running"]:
         return
+
+    # ======================== FIX KELLY CRITERION (NameError) ========================
+    # On utilise safe_get qui existe déjà dans ton fichier
+    kelly_func = safe_get("kelly_criterion", lambda: 0.10)
+    kelly = kelly_func() if callable(kelly_func) else 0.10
+    # =========================================================================
+
     bot_state.update({
         "running": True, "trades_today": 0, "cycle_count": 0,
         "last_heartbeat": None, "last_monitor": 0, "last_micro": 0,
         "last_scalp": 0, "last_deep": 0, "last_status": 0,
         "last_meme": 0, "last_epargne": 0, "daily_stopped": False
     })
-    kelly = kelly_criterion()
+
     send(f"🔄 Bot v7.1 redémarré\nKelly:{kelly*100:.1f}% | /stop pour arrêter\n📡 WS: {'✅' if ws_manager.connected else '⚠️ REST'}")
     threading.Thread(target=trading_loop,  args=(send,), daemon=True).start()
     threading.Thread(target=watchdog,      args=(send,), daemon=True).start()
     threading.Thread(target=daily_summary, args=(send,), daemon=True).start()
-
-
 # ═══════════════════════════════════════════════════════════════
 #  EVOLUTION LOOP — définie ici, PAS dans une string
 # ═══════════════════════════════════════════════════════════════
