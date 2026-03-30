@@ -1,5 +1,5 @@
 """
-🔍 KNOWLEDGE BASE V1.3 — Version Intégrale Stable + AUTO-LOAD
+🔍 KNOWLEDGE BASE V1.3 — Version Intégrale Stable + AUTO-LOAD + get_glossary
 """
 
 import os
@@ -21,6 +21,17 @@ class KnowledgeBase:
                 metadata={"hnsw:space": "cosine"}
             )
             logger.info("✅ [KNOWLEDGE-BASE] ChromaDB initialisée")
+            
+            if self.collection and self.collection.count() == 0:
+                logger.info("🔄 [KNOWLEDGE-BASE] Collection vide → Chargement automatique des PDFs...")
+                self.load_pdfs_from_root()
+            else:
+                count = self.collection.count() if self.collection else 0
+                logger.info(f"📚 [KNOWLEDGE-BASE] {count} fragments déjà présents dans ChromaDB (auto-load skipped)")
+                
+        except Exception as e:
+            logger.error(f"❌ [KNOWLEDGE-BASE] Erreur initialisation : {e}")
+            self.collection = None
             
             # === AUTO-LOAD PDFs (ce que tu as demandé) ===
             # Chargement automatique si la base est vide (premier démarrage)
@@ -126,7 +137,8 @@ class KnowledgeBase:
         for i, r in enumerate(results, 1):
             context += f"[{i}] (Source: {r['source']})\n{r['content'][:600]}...\n\n"
         return context.strip()
-         def get_glossary(self) -> str:
+        
+    def get_glossary(self) -> str:
         """Compatibilité V8 — Ancienne méthode get_glossary() pour Orchestrator V5"""
         logger.info("[KNOWLEDGE-BASE] get_glossary() appelée → fallback contexte agent")
         context = self.get_context_for_agent(
