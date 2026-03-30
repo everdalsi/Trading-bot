@@ -12,10 +12,9 @@ class DataHandler:
         self.price_cache = {}
         self.kline_cache_1m = {}
         self.kline_cache_5m = {}
-        self.cache_ttl = 30  # secondes
+        self.cache_ttl = 30
 
     def get_current_price(self, symbol: str) -> float | None:
-        """Prix actuel avec cache court + gestion d'erreurs fine"""
         now = time.time()
         cached = self.price_cache.get(symbol.upper())
         if cached and now - cached["ts"] < self.cache_ttl:
@@ -31,22 +30,11 @@ class DataHandler:
             price = float(r.json()["price"])
             self.price_cache[symbol.upper()] = {"price": price, "ts": now}
             return price
-
-        except requests.exceptions.Timeout:
-            logger.warning(f"[DATA] Timeout prix {symbol}")
-            return None
-        except requests.exceptions.ConnectionError:
-            logger.error(f"[DATA] Connexion impossible pour {symbol}")
-            return None
-        except requests.exceptions.HTTPError as e:
-            logger.error(f"[DATA] HTTP error {symbol}: {e.response.status_code}")
-            return None
         except Exception as e:
-            logger.error(f"[DATA] Erreur inattendue prix {symbol}: {e}")
+            logger.error(f"[DATA] Erreur prix {symbol}: {e}")
             return None
 
     def get_prices_batch(self, symbols: list = None) -> dict:
-        """Récupère tous les prix en une seule requête Binance"""
         now = time.time()
         result = {}
 
@@ -68,19 +56,12 @@ class DataHandler:
                         self.price_cache[sym] = {"price": price, "ts": now}
                 except Exception:
                     pass
-        except requests.exceptions.Timeout:
-            logger.warning("[DATA] Timeout batch prices")
-        except requests.exceptions.ConnectionError:
-            logger.error("[DATA] Connexion impossible batch prices")
-        except requests.exceptions.HTTPError as e:
-            logger.error(f"[DATA] HTTP error batch prices: {e.response.status_code}")
         except Exception as e:
             logger.error(f"[DATA] Erreur batch prices: {e}")
 
         return result
 
     def prefill_caches(self, symbols):
-        """Pré-remplissage au démarrage avec gestion d'erreurs"""
         logger.info(f"[DATA] Pré-remplissage caches pour {len(symbols)} symboles")
         for sym in symbols[:8]:
             sym = sym.upper()
@@ -93,20 +74,14 @@ class DataHandler:
                 r.raise_for_status()
                 closes = [float(c[4]) for c in r.json()]
                 self.kline_cache_1m[sym] = deque(closes, maxlen=60)
-            except requests.exceptions.Timeout:
-                logger.warning(f"[DATA] Timeout pré-remplissage {sym}")
-            except requests.exceptions.ConnectionError:
-                logger.error(f"[DATA] Connexion impossible pour {sym}")
             except Exception as e:
                 logger.warning(f"[DATA] Impossible de pré-remplir {sym}: {e}")
             time.sleep(0.3)
         logger.info("[DATA] Pré-remplissage terminé ✅")
 
     def get_klines(self, symbol: str, interval: str = "1m", limit: int = 100) -> pd.Series:
-        """Retourne les klines sous forme de pd.Series"""
         symbol = symbol.upper()
 
-        # 1. Cache WebSocket
         try:
             from websocket_manager import ws_manager
             ws_data = ws_manager.get_klines(symbol, interval)
@@ -115,7 +90,6 @@ class DataHandler:
         except Exception:
             pass
 
-        # 2. Cache local
         if interval == "1m" and symbol in self.kline_cache_1m:
             cached = list(self.kline_cache_1m[symbol])
             if len(cached) >= 14:
@@ -125,7 +99,6 @@ class DataHandler:
             if len(cached) >= 14:
                 return pd.Series(cached, dtype=float)
 
-        # 3. Fallback REST
         interval_map = {
             "1": "1m", "3": "3m", "5": "5m", "15": "15m", "30": "30m",
             "60": "1h", "120": "2h", "240": "4h", "D": "1d", "1D": "1d"
@@ -144,10 +117,6 @@ class DataHandler:
             elif binance_interval == "5m":
                 self.kline_cache_5m[symbol] = deque(closes, maxlen=120)
             return pd.Series(closes, dtype=float)
-        except requests.exceptions.Timeout:
-            logger.warning(f"[DATA] Timeout klines {symbol} {interval}")
-        except requests.exceptions.ConnectionError:
-            logger.error(f"[DATA] Connexion impossible klines {symbol}")
         except Exception as e:
             logger.error(f"[DATA] Erreur klines {symbol} {interval}: {e}")
 
@@ -160,7 +129,6 @@ class DataHandler:
         return self.get_klines(symbol, "5m", 120)
 
     def get_volume_data(self, symbol: str, interval: str, limit: int) -> list:
-        """Retourne les volumes"""
         try:
             interval_map = {"1": "1m", "5": "5m", "15": "15m", "60": "1h"}
             binance_interval = interval_map.get(interval, interval)
@@ -171,10 +139,6 @@ class DataHandler:
             )
             r.raise_for_status()
             return [float(c[5]) for c in r.json()]
-        except requests.exceptions.Timeout:
-            logger.warning(f"[DATA] Timeout volume {symbol}")
-        except requests.exceptions.ConnectionError:
-            logger.error(f"[DATA] Connexion impossible volume {symbol}")
         except Exception as e:
             logger.error(f"[DATA] Erreur volume {symbol}: {e}")
         return [1.0] * limit
@@ -198,12 +162,40 @@ def get_volume_data(symbol: str, interval: str, limit: int) -> list:
     return data_handler.get_volume_data(symbol, interval, limit)
 
 
-# ======================== FIX : compute_indicators ========================
+# ======================== FONCTIONS MANQUANTES (stubs) ========================
+
+def get_fear_greed_value() -> int:
+    """Fear & Greed Index (valeur par défaut réaliste)"""
+    return 55
+
+def get_liquidations() -> dict:
+    """Liquidations (vide pour l'instant)"""
+    return {}
+
+def get_order_book(symbol: str) -> dict:
+    """Order book simplifié"""
+    return {"pressure": "neutre", "ratio": 1.0, "wall_size": 0, "depth_ratio": 1.0}
+
+def get_whale_alerts() -> list:
+    """Alertes whales (vide)"""
+    return []
+
+def get_mev_alerts(symbol: str) -> list:
+    """MEV alerts (vide)"""
+    return []
+
+def get_flashbots_alerts(symbol: str) -> list:
+    """Flashbots alerts (vide)"""
+    return []
+
+def get_sandwich_alerts(symbol: str) -> list:
+    """Sandwich alerts (vide)"""
+    return []
+
+
+# ======================== compute_indicators ========================
 def compute_indicators(closes: list) -> dict:
-    """
-    Calcule RSI + MACD à partir d'une liste de prix de clôture.
-    Utilisé par ResearchAgent.
-    """
+    """Calcule RSI + MACD (utilisé par ResearchAgent)"""
     if len(closes) < 14:
         return {"rsi": 50.0, "macd_h": 0.0, "macd": 0.0}
 
