@@ -55,7 +55,20 @@ class ResearchAgent(BaseAgent):
         "VitalikButerin","cz_binance","aantonop","sassal0x"
     ]
 
+    # ======================== FIX : _is_in_my_domain ========================
+    def _is_in_my_domain(self, question: str) -> bool:
+        """Spécialisation stricte + participation au débat collectif"""
+        keywords = ["analyse", "recherche", "KOL", "on-chain", "spoofing", "wash", "MEV", "order book", "sentiment", "klines", "fear greed"]
+        debate_keywords = ["synthèse", "débat", "cerveau collectif", "final decision", "raffine"]
+        q_lower = question.lower()
+        return any(k in q_lower for k in keywords) or any(d in q_lower for d in debate_keywords)
+    # =========================================================================
+
     async def get_multi_source_intelligence(self, symbol: str) -> Dict[str, Any]:
+        # FIX : garde-fou UNKNOWN
+        if not symbol or symbol.upper() == "UNKNOWN":
+            symbol = "BTCUSDT"
+
         now = time.time()
         cache_key = f"{symbol}_{int(now / self.cache_ttl)}"
 
@@ -72,9 +85,13 @@ Retourne UNIQUEMENT JSON valide :
         twitter_data = {"sentiment":"neutral","strength":5,"reason":"Multi-source","top_kols":[],"impact":"neutre"}
 
         try:
-            resp = await self.groq_ask(prompt)
-            if "{" in resp and "}" in resp:
-                twitter_data = json.loads(resp[resp.find("{"):resp.rfind("}")+1])
+            # FIX : groq_ask → safe_respond (BaseAgent)
+            resp = await self.safe_respond(prompt, {"shared_glossary": self.context.get("shared_glossary", {})})
+            if isinstance(resp, dict) and "recommendation" in resp:
+                try:
+                    twitter_data = json.loads(resp["recommendation"])
+                except:
+                    pass
         except Exception as e:
             print(f"[ResearchAgent] Twitter KOL error: {e}")
 
@@ -88,10 +105,14 @@ Retourne UNIQUEMENT JSON valide :
         flashbots = {"detected": False, "score": 0, "level": "none", "reason": "", "algo": "advanced_v2", "bundles": 0, "type": "none"}
         sandwich = {"detected": False, "score": 0, "level": "none", "reason": "", "algo": "advanced_v2", "attacks": 0}
 
+        # FIX : price_change_pct et total_volume déclarés AVANT le try
+        price_change_pct = 0.0
+        total_volume = 0
+
         try:
             closes = get_klines_5m_cached(symbol)
             if len(closes) >= 27:
-                ind = compute_indicators(closes)
+                ind = compute_indicators(closes.tolist())   # FIX : .tolist() pour pandas Series
                 onchain = {
                     "rsi": ind.get("rsi", 50),
                     "macd": ind.get("macd_h", 0)
@@ -105,7 +126,6 @@ Retourne UNIQUEMENT JSON valide :
             # Smart Money
             whales = get_whale_alerts()
             volume_spike = False
-            total_volume = 0
             try:
                 vols = get_volume_data(symbol, "5", 10)
                 if len(vols) > 1:
@@ -502,7 +522,7 @@ Retourne UNIQUEMENT JSON valide :
             return self.explain_term(k) or shared_glossary.get(k, k)
 
         extreme_learning = context.get("extreme_learning_mode", False) or context.get("learning_mode", False)
-        symbol = context.get("symbol", "UNKNOWN")
+        symbol = context.get("symbol", "BTCUSDT")
         data = await self.get_multi_source_intelligence(symbol)
 
         spoof_str = f" | Spoofing: {data['spoofing_level']} ({data['spoofing_reason']})" if data.get("spoofing_detected") else ""
