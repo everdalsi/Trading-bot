@@ -63,6 +63,8 @@ performance_tracker = PerformanceTracker()
 wallet_copier = WalletCopierAgent()
 yield_staking = YieldStakingAgent()
 execution_engine = ExecutionEngineAgent()
+shared_glossary = orchestrator.knowledge_base.get_glossary() if hasattr(orchestrator, 'knowledge_base') else {}
+logger.info("[FIX] shared_glossary global chargé ✅")
 
 def safe_get(var_name, default=None):
     """Évite les NameError sur variables non définies"""
@@ -4357,9 +4359,12 @@ if __name__ == "__main__":
         sim["daily_start_equity"] = CAPITAL_INITIAL
         print(f"🔄 EXTREME LEARNING MODE → equity reset à ${CAPITAL_INITIAL:,.2f}")
 
-    # Evolution agent
+    # Evolution agent (non bloquant)
+try:
     evolution_thread = threading.Thread(target=_evolution_loop_MAIN, daemon=True)
     evolution_thread.start()
+except Exception as e:
+    print(f"[EVOLUTION] Import error (non bloquant): {e}")
 
     # Dashboard server
     threading.Thread(target=run_server, daemon=True).start()
