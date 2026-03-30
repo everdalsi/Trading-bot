@@ -61,9 +61,6 @@ if isinstance(memory, dict):
 orchestrator = Orchestrator()
 performance_tracker = PerformanceTracker()
 wallet_copier = WalletCopierAgent()
-
-# FIX GLOBAL SCOPE pour yield_staking, execution_engine et performance_tracker
-global yield_staking, execution_engine, performance_tracker
 yield_staking = YieldStakingAgent()
 execution_engine = ExecutionEngineAgent()
 
