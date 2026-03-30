@@ -347,7 +347,7 @@ class PerformanceTracker(BaseAgent):  # ← UPGRADE : hérite maintenant de Base
             peak = max(peak, val)
             dd = (val - peak) / peak if peak != 0 else 0
             max_dd = min(max_dd, dd)
-            return max_dd
+        return max_dd
 
     def _get_lesson_count(self) -> int:
         try:
