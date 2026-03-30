@@ -9,7 +9,7 @@ import asyncio
 from typing import Dict, Any, List, Tuple
 import os
 
-from agents.base_agent import BaseAgent  # ← UPGRADE : base commune avec safe_respond
+from agents.base_agent import BaseAgent
 from agents.analyst_agent import AnalystAgent
 from agents.risk_agent import RiskAgent
 from agents.trader_agent import TraderAgent
@@ -29,12 +29,12 @@ from agents.social_listener_agent import SocialListenerAgent
 from agents.quant_ml_agent import QuantMLAgent
 from agents.execution_engine_agent import ExecutionEngineAgent
 from agents.yield_staking_agent import YieldStakingAgent
-from agents.hedging_agent import HedgingAgent   # ← AJOUTÉ ICI (ligne obligatoire)
+from agents.hedging_agent import HedgingAgent
 
 class Orchestrator:
 
     def __init__(self):
-        self.kb = KnowledgeBase()  # ← UPGRADE : glossaire partagé accessible par TOUT le cerveau
+        self.kb = KnowledgeBase()
 
         self.analyst    = AnalystAgent()
         self.risk       = RiskAgent()
@@ -49,11 +49,10 @@ class Orchestrator:
         self.portfolio_manager = PortfolioManager()
         self.social_listener = SocialListenerAgent()
 
-        # === UPGRADE V5 : nouveaux agents intégrés au cerveau collectif ===
         self.quant_ml           = QuantMLAgent()
         self.execution_engine   = ExecutionEngineAgent()
         self.yield_staking      = YieldStakingAgent()
-        self.hedging            = HedgingAgent()   # ← juste après self.yield_staking (comme demandé)
+        self.hedging            = HedgingAgent()
 
         self.debate_rounds = 0
 
@@ -75,7 +74,7 @@ class Orchestrator:
 
         enriched_ctx = self._enrich_context(context)
 
-        # === PHASE 1 : Appel parallèle avec safe_respond (spécialisation stricte) ===
+        # === PHASE 1 : Appel parallèle avec safe_respond ===
         tasks = [
             self.analyst.safe_respond(question, enriched_ctx),
             self.risk.safe_respond(question, enriched_ctx),
@@ -86,7 +85,6 @@ class Orchestrator:
             self.wallet_copier.safe_respond(question, enriched_ctx),
             self.social_listener.safe_respond(question, enriched_ctx),
             self.self_improvement.safe_respond(question, enriched_ctx),
-            # === UPGRADE V5 : tous les nouveaux agents participent ===
             self.quant_ml.safe_respond(question, enriched_ctx),
             self.execution_engine.safe_respond(question, enriched_ctx),
             self.yield_staking.safe_respond(question, enriched_ctx),
@@ -98,11 +96,22 @@ class Orchestrator:
 
         responses = []
         agent_names = [
-    "analyst", "risk", "trader", "learning", "research",
-    "knowledge_specialist", "wallet_copier", "social_listener",
-    "self_improvement", "quant_ml", "execution_engine",
-    "yield_staking", "hedging", "portfolio_manager"   # ← AJOUTÉ
-]
+            "analyst", "risk", "trader", "learning", "research",
+            "knowledge_specialist", "wallet_copier", "social_listener",
+            "self_improvement", "quant_ml", "execution_engine",
+            "yield_staking", "hedging", "portfolio_manager"
+        ]
+
+        # ======================== PATCH DÉBAT COLLECTIF ========================
+        # On autorise TOUS les agents dès qu’il s’agit d’un débat
+        q_lower = question.lower()
+        is_debate = any(kw in q_lower for kw in [
+            "débat", "synthétise", "synthèse", "collective", "final decision",
+            "verdict", "trade ou no trade", "analyse micro", "décision finale",
+            "cerveau collectif", "orchestrator", "ask_all", "round"
+        ])
+        # =========================================================================
+
         for i, res in enumerate(results):
             if isinstance(res, Exception) or "error" in str(res):
                 responses.append({
@@ -112,12 +121,13 @@ class Orchestrator:
                     "recommendation": "Vérifier rôle",
                 })
             else:
-                if res.get("warning"):
+                # On ne skip plus les agents pendant un débat collectif
+                if res.get("warning") and not is_debate:
                     print(f"[ORCHESTRATOR V5] ⚠️ {res['agent']} hors domaine → ignoré")
                     continue
                 responses.append(res)
 
-        # === PHASE DÉBAT COLLECTIF (jusqu’à ≥ 99 % + glossaire forcé à chaque round) ===
+        # === PHASE DÉBAT COLLECTIF (le reste de ton code original reste IDENTIQUE) ===
         current_confidence = 0.0
         max_rounds = 7
         self.debate_rounds = 0
@@ -133,7 +143,7 @@ class Orchestrator:
                 "debate_round": self.debate_rounds,
                 "target_confidence": 0.99,
                 "strict_veto_mode": True,
-                "shared_glossary": self.kb.get_glossary(),  # ← glossaire forcé
+                "shared_glossary": self.kb.get_glossary(),
             }
 
             collab_tasks = [
