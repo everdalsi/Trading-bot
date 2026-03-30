@@ -46,6 +46,7 @@ class ResearchAgent(BaseAgent):
         self.role = "Intelligence temps réel ultra-puissante multi-sources — uniquement dans mon domaine d’expertise"
         self.cache = {}
         self.cache_ttl = 120
+        self.context = {}  # ← FIX : évite l'erreur 'ResearchAgent' object has no attribute 'context'
 
     KOL_ACCOUNTS = [
         "saylor","RaoulGMI","APompliano","CathieDWood","balajis","pmarca",
@@ -59,12 +60,14 @@ class ResearchAgent(BaseAgent):
     def _is_in_my_domain(self, question: str) -> bool:
         """Spécialisation stricte + participation au débat collectif"""
         keywords = ["analyse", "recherche", "KOL", "on-chain", "spoofing", "wash", "MEV", "order book", "sentiment", "klines", "fear greed"]
-        debate_keywords = ["synthèse", "débat", "cerveau collectif", "final decision", "raffine"]
+        debate_keywords = ["synthèse", "débat", "cerveau collectif", "final decision", "raffine", "trade ou no trade", "micro", "meme"]
         q_lower = question.lower()
         return any(k in q_lower for k in keywords) or any(d in q_lower for d in debate_keywords)
     # =========================================================================
 
-    async def get_multi_source_intelligence(self, symbol: str) -> Dict[str, Any]:
+    async def get_multi_source_intelligence(self, symbol: str, context: dict = None) -> Dict[str, Any]:
+        if context is None:
+            context = {}
         # FIX : garde-fou UNKNOWN
         if not symbol or symbol.upper() == "UNKNOWN":
             symbol = "BTCUSDT"
@@ -85,8 +88,8 @@ Retourne UNIQUEMENT JSON valide :
         twitter_data = {"sentiment":"neutral","strength":5,"reason":"Multi-source","top_kols":[],"impact":"neutre"}
 
         try:
-            # FIX : groq_ask → safe_respond (BaseAgent)
-            resp = await self.safe_respond(prompt, {"shared_glossary": self.context.get("shared_glossary", {})})
+            # FIX : groq_ask → safe_respond avec context complet
+            resp = await self.safe_respond(prompt, context)
             if isinstance(resp, dict) and "recommendation" in resp:
                 try:
                     twitter_data = json.loads(resp["recommendation"])
@@ -523,7 +526,7 @@ Retourne UNIQUEMENT JSON valide :
 
         extreme_learning = context.get("extreme_learning_mode", False) or context.get("learning_mode", False)
         symbol = context.get("symbol", "BTCUSDT")
-        data = await self.get_multi_source_intelligence(symbol)
+        data = await self.get_multi_source_intelligence(symbol, context)
 
         spoof_str = f" | Spoofing: {data['spoofing_level']} ({data['spoofing_reason']})" if data.get("spoofing_detected") else ""
         wash_str = f" | Wash Trading: {data['wash_trading_level']} ({data['wash_trading_reason']})" if data.get("wash_trading_detected") else ""
