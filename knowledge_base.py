@@ -126,3 +126,11 @@ class KnowledgeBase:
         for i, r in enumerate(results, 1):
             context += f"[{i}] (Source: {r['source']})\n{r['content'][:600]}...\n\n"
         return context.strip()
+         def get_glossary(self) -> str:
+        """Compatibilité V8 — Ancienne méthode get_glossary() pour Orchestrator V5"""
+        logger.info("[KNOWLEDGE-BASE] get_glossary() appelée → fallback contexte agent")
+        context = self.get_context_for_agent(
+            "Glossaire complet trading : définitions, stratégies, risk management, Wyckoff, VSA, Kelly Criterion, etc.",
+            max_results=6
+        )
+        return context + "\n\n**Glossaire dynamique chargé ✅**"   
