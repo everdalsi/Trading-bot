@@ -310,7 +310,9 @@ PROMO_EXCHANGES = [
 # ═══════════════════════════════════════════════════════════════
 #  CLIENTS
 # ═══════════════════════════════════════════════════════════════
-groq_client = Groq(api_key=GROQ_KEY)
+if not GROQ_KEY:
+      raise RuntimeError("[FATAL] GROQ_API_KEY est absent du .env — le bot ne peut pas démarrer sans clé IA.")
+  groq_client = Groq(api_key=GROQ_KEY)
 
 def get_binance_client():
     exchange = ccxt.binance({
@@ -337,12 +339,8 @@ sim = {
     "session": 1, "peak_equity": CAPITAL_INITIAL,
     "daily_start_equity": CAPITAL_INITIAL, "daily_start_date": "",
 }
-memory = {
-    "lessons": [], "patterns_to_avoid": [], "patterns_that_work": [],
-    "confidence_threshold": CONFIDENCE_BASE,
-    "total_wins": 0, "total_losses": 0,
-    "symbol_scores": {}, "symbol_blacklist": {}, "consecutive_losses": {},
-}
+# FIX CRITIQUE : la définition de memory en dict supprimée — écrasait l instance Memory() créée ligne ~55.
+  # L instance Memory() (classe) est la seule référence valide : memory.get(), memory.data, etc.
 epargne = {
     "total_earned": 0.0, "airdrops_claimed": [],
     "faucets_used": [], "promos_found": [], "last_scan": 0,
