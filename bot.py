@@ -4351,31 +4351,37 @@ async def run_backtest(symbol: str = "BTCUSDT", timeframe: str = "5m"):
     return stats
 
 if __name__ == "__main__":
-    print("🚀 Trading Bot v7.2 — LIVE PROGRESSIVE chargé")
-    init_db()
-    load_data()
+    try:
+        print("🚀 Trading Bot v7.2 — LIVE PROGRESSIVE chargé")
+        init_db()
+        load_data()
 
-    # Reset equity en mode extreme learning pour éviter capital fantôme
-    if EXTREME_LEARNING_MODE:
-        sim["cash"] = CAPITAL_INITIAL
-        sim["initial"] = CAPITAL_INITIAL
-        sim["equity_history"] = [CAPITAL_INITIAL]
-        sim["peak_equity"] = CAPITAL_INITIAL
-        sim["daily_start_equity"] = CAPITAL_INITIAL
-        print(f"🔄 EXTREME LEARNING MODE → equity reset à ${CAPITAL_INITIAL:,.2f}")
+        # Reset equity en mode extreme learning pour éviter capital fantôme
+        if EXTREME_LEARNING_MODE:
+            sim["cash"] = CAPITAL_INITIAL
+            sim["initial"] = CAPITAL_INITIAL
+            sim["equity_history"] = [CAPITAL_INITIAL]
+            sim["peak_equity"] = CAPITAL_INITIAL
+            sim["daily_start_equity"] = CAPITAL_INITIAL
+            print(f"🔄 EXTREME LEARNING MODE → equity reset à ${CAPITAL_INITIAL:,.2f}")
 
-    # Evolution agent (non bloquant)
-try:
-    evolution_thread = threading.Thread(target=_evolution_loop_MAIN, daemon=True)
-    evolution_thread.start()
-except Exception as e:
-    print(f"[EVOLUTION] Import error (non bloquant): {e}")
+        # Evolution agent (non bloquant) — version silencieuse
+        evolution_thread = threading.Thread(target=_evolution_loop_MAIN, daemon=True)
+        evolution_thread.start()
 
-    # Dashboard server
-    threading.Thread(target=run_server, daemon=True).start()
+        # Dashboard server
+        threading.Thread(target=run_server, daemon=True).start()
 
-    # Auto-start Telegram + trading loop
-    auto_start()
+        # Auto-start Telegram + trading loop
+        auto_start()
 
-    # Lancement du bot Telegram
-    asyncio.run(run_telegram())
+        # Lancement du bot Telegram
+        asyncio.run(run_telegram())
+
+    except Exception as e:
+        import traceback
+        error_msg = f"💥 CRASH FATAL DU BOT :\n{e}\n{traceback.format_exc()}"
+        print(error_msg)
+        logger.error(error_msg)
+        # On laisse Railway voir l’erreur clairement
+        raise
