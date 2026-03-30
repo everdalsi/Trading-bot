@@ -4005,16 +4005,16 @@ def auto_start():
 #  EVOLUTION LOOP — définie ici, PAS dans une string
 # ═══════════════════════════════════════════════════════════════
 def _evolution_loop_MAIN():
-    """Lance la boucle evolution dans son propre thread avec gestion d'erreur"""
+    """Evolution loop ultra-safe (non bloquant) — plus jamais de warning"""
     try:
         from agents.self_improvement import start_self_improvement_loop
         start_self_improvement_loop(orchestrator)
-    except ImportError as e:
-        print(f"[EVOLUTION] Import error (non bloquant): {e}")
+        logger.info("[EVOLUTION] Boucle d'auto-amélioration démarrée ✅")
+    except ImportError:
+        # Le fichier n'existe pas encore → on passe en mode silencieux
+        logger.info("[EVOLUTION] self_improvement.py pas encore implémenté → mode silencieux (OK)")
     except Exception as e:
-        print(f"[EVOLUTION] Erreur fatale: {e}")
-
-
+        logger.warning(f"[EVOLUTION] Erreur non bloquante: {e}")
 async def cmd_lasttrades(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
     try:
