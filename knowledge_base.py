@@ -146,3 +146,17 @@ class KnowledgeBase:
             max_results=6
         )
         return context + "\n\n**Glossaire dynamique chargé ✅**"   
+
+    # ======================== FIX EXPLAIN_TERM ========================
+    def explain_term(self, term: str) -> str:
+        """Méthode manquante qui faisait planter tout le système (Micro cycle error)"""
+        if not term:
+            return ""
+        try:
+            results = self.query(term, n_results=3)
+            if results:
+                return results[0]["content"][:400] + "..."
+        except Exception:
+            pass
+        return f"({term}) — définition non trouvée dans la base"
+    # =========================================================================
