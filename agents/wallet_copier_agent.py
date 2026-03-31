@@ -4,6 +4,20 @@ Copie live des wallets pros/whales avec API Etherscan + Solscan réelles
 Filtre risque VaR / drawdown / corrélation + funding depuis staking rewards
 """
 
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ENV VARS REQUISES (à configurer dans Railway / .env) :
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ETH_PUBLIC_ADDRESS    = Votre adresse Ethereum publique (0x...)
+# SOL_PUBLIC_ADDRESS    = Votre adresse Solana publique (base58)
+# ETHERSCAN_API_KEY     = Clé API Etherscan (https://etherscan.io/myapikey)
+# BINANCE_API_KEY       = Clé API Binance (lecture seule suffisante)
+# BINANCE_SECRET_KEY    = Secret API Binance
+# NEWS_API_KEY          = Clé NewsAPI.org pour NewsEventAgent
+# GROQ_API_KEY          = Clé API Groq (LLaMA)
+# TELEGRAM_BOT_TOKEN    = Token bot Telegram
+# TELEGRAM_CHAT_ID      = Chat ID autorisé
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 from agents.base_agent import BaseAgent
 from typing import Dict, Any
 import requests
