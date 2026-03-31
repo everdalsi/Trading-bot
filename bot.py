@@ -2674,7 +2674,9 @@ def trading_loop(send_fn):
                     sym_conf  = float(sym_final.get("confidence", 0))
                     best_conf = float(best_decision.get("confidence", 0))
                     reco      = str(sym_final.get("recommendation", sym_final.get("decision", "HOLD"))).upper()
-                    if sym_conf > best_conf and any(x in reco for x in ["BUY", "SELL", "TRADE"]):
+                    # FIX: 'TRADE' in 'NO TRADE' == True → vérification stricte
+                    _reco_actionable = ("BUY" in reco or "SELL" in reco or "LONG" in reco or "SHORT" in reco) and "NO" not in reco
+                    if sym_conf > best_conf and _reco_actionable:
                         best_symbol   = sym
                         best_decision = sym_final
 
@@ -2690,8 +2692,12 @@ def trading_loop(send_fn):
                 # ── Exécution du trade ────────────────────────────────────
                 reco_str  = str(decision.get("recommendation", decision.get("decision", "HOLD"))).upper()
                 trade_conf = float(decision.get("confidence", 0))
-                if trade_conf >= 0.80 and any(x in reco_str for x in ["BUY", "SELL", "TRADE", "LONG", "SHORT"]):
-                    trade_side = "BUY" if any(x in reco_str for x in ["BUY", "LONG"]) else "SELL"
+                # FIX: vérification stricte — 'NO TRADE' ne doit pas déclencher un SELL
+                _is_buy  = any(x in reco_str for x in ["BUY", "LONG"])
+                _is_sell = any(x in reco_str for x in ["SELL", "SHORT"])
+                _is_no   = "NO" in reco_str  # couvre: NO TRADE, NO ACTION, etc.
+                if trade_conf >= 0.80 and (_is_buy or _is_sell) and not _is_no:
+                    trade_side = "BUY" if _is_buy else "SELL"
                     trade_price = get_current_price(best_symbol) or current_price
                     amount_usd  = decision.get("amount_usd", equity * float(decision.get("kelly_adjusted", 0.05)))
                     amount_usd  = max(10.0, min(amount_usd, equity * 0.10))
