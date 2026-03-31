@@ -41,6 +41,8 @@ from agents.funding_rate_agent import FundingRateAgent
 from agents.drawdown_guard_agent import DrawdownGuardAgent
 from agents.correlation_watcher_agent import CorrelationWatcherAgent
 from agents.backtest_validator_agent import BacktestValidatorAgent
+from agents.polymarket_arb_agent import PolymarketArbAgent
+from agents.event_sniper_agent import EventSniperAgent
 
 from logging_config import logger
 
@@ -109,8 +111,12 @@ class Orchestrator:
         self.correlation_watcher = CorrelationWatcherAgent()
         self.backtest_validator  = BacktestValidatorAgent()
 
+        # ── Agents V8 — Edge Arbitrage & Snipe ───────────────────────────
+        self.polymarket_arb  = PolymarketArbAgent()    # Spread Polymarket vs CEX
+        self.event_sniper    = EventSniperAgent()       # Liquidations/OI/funding/volume
+
         self.debate_rounds = 0
-        logger.info("[ORCHESTRATOR V7] ✅ Tous les agents initialisés — Mode PARALLÈLE activé")
+        logger.info("[ORCHESTRATOR V7] ✅ Tous les agents initialisés — Mode PARALLÈLE activé (+ PolyArb + Sniper)")
 
     def get_backtest_validator(self) -> BacktestValidatorAgent:
         return self.backtest_validator
@@ -207,11 +213,15 @@ class Orchestrator:
             _safe_call(self.knowledge_specialist, question, context),
             _safe_call(self.wallet_copier,        question, context),
             _safe_call(self.correlation_watcher,  question, context),
+            # ── Agents V8 : edge arbitrage + snipe (indépendants) ──
+            _safe_call(self.polymarket_arb,       question, context, timeout=8.0),
+            _safe_call(self.event_sniper,         question, context, timeout=10.0),
             return_exceptions=False
         )
 
         (analyst_resp, quant_resp, ob_resp, social_resp,
-         research_resp, ks_resp, wc_resp, corr_resp) = group_a
+         research_resp, ks_resp, wc_resp, corr_resp,
+         poly_arb_resp, sniper_resp) = group_a
 
         # Enrichir le contexte avec les résultats Phase 1
         context["analysis"]             = analyst_resp.get("analysis", {})
@@ -221,6 +231,25 @@ class Orchestrator:
         context["portfolio_correlation"] = corr_resp.get("correlation", 0.0)
         context["size_reduction"]       = corr_resp.get("size_reduction", 1.0)
         context["atr"]                  = analyst_resp.get("analysis", {}).get("tf_1h", {}).get("atr", 0.0)
+
+        # Enrichir contexte V8 : signaux edge
+        context["poly_arb_signal"]    = poly_arb_resp.get("signal", "HOLD")
+        context["poly_arb_spread"]    = poly_arb_resp.get("best_spread", {}).get("price_gap_pct", 0.0) if poly_arb_resp.get("best_spread") else 0.0
+        context["sniper_signal"]      = sniper_resp.get("signal", "HOLD")
+        context["sniper_confidence"]  = sniper_resp.get("confidence", 0.0)
+        context["liq_pressure_long"]  = sniper_resp.get("liq_long_usd", 0.0)
+        context["liq_pressure_short"] = sniper_resp.get("liq_short_usd", 0.0)
+
+        # Cache résultats edge pour le dashboard REST API
+        import time as _time
+        self._poly_arb_cache = {**poly_arb_resp, "updated_at": int(_time.time())}
+        self._sniper_cache   = {**sniper_resp,   "updated_at": int(_time.time())}
+
+        # Log si edge actif
+        if poly_arb_resp.get("signal") != "HOLD":
+            logger.info(f"[ORCH V8] 🏦 PolyArb signal: {poly_arb_resp['signal']} spread={context['poly_arb_spread']:.2f}%")
+        if sniper_resp.get("should_emit"):
+            logger.info(f"[ORCH V8] 🎯 Sniper signal: {sniper_resp['signal']} conf={sniper_resp['confidence']:.0%}")
 
         # ── Phase 2 : agents de risque et de décision PARALLÈLES ──────────
         group_b = await asyncio.gather(
@@ -250,6 +279,7 @@ class Orchestrator:
             analyst_resp, quant_resp, ob_resp, social_resp,
             research_resp, ks_resp, wc_resp, corr_resp,
             risk_resp, hedging_resp, trader_resp,
+            poly_arb_resp, sniper_resp,
         ]
         # Filtrer les réponses vides
         all_outputs = [r for r in all_outputs if r and isinstance(r, dict)]

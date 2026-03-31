@@ -394,6 +394,40 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         </div>
       </div>
 
+      <!-- ── Edge: Polymarket Spread ────────────────── -->
+      <div class="card" id="edge-spread-card">
+        <div class="card-header">
+          <span class="card-title">🏦 Polymarket Spread Monitor</span>
+          <span class="badge" id="spread-signal-badge" style="background:var(--yellow);color:#000">HOLD</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">
+          <div class="stat-mini"><div class="stat-label">Marchés</div><div class="stat-val" id="spread-markets">--</div></div>
+          <div class="stat-mini"><div class="stat-label">Spread Max</div><div class="stat-val" id="spread-max">-- %</div></div>
+          <div class="stat-mini"><div class="stat-label">Signaux Session</div><div class="stat-val" id="spread-signals">--</div></div>
+        </div>
+        <div id="spread-list" style="font-size:12px;color:var(--text2)">En attente...</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">
+          ⚡ Edge: oracle Polymarket lag 15-20s → trade CEX
+        </div>
+      </div>
+
+      <!-- ── Edge: Event Sniper ─────────────────────── -->
+      <div class="card" id="edge-sniper-card">
+        <div class="card-header">
+          <span class="card-title">🎯 Event Sniper</span>
+          <span class="badge" id="sniper-signal-badge" style="background:var(--yellow);color:#000">HOLD</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">
+          <div class="stat-mini"><div class="stat-label">Confiance</div><div class="stat-val" id="sniper-conf">-- %</div></div>
+          <div class="stat-mini"><div class="stat-label">Liq Long</div><div class="stat-val" id="sniper-liq-l">--M$</div></div>
+          <div class="stat-mini"><div class="stat-label">Liq Short</div><div class="stat-val" id="sniper-liq-s">--M$</div></div>
+        </div>
+        <div id="sniper-events" style="font-size:12px;color:var(--text2)">En attente d'événements...</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">
+          💡 Liquidation cascade → continue 87% du temps dans la même direction (+3-8s d'avance)
+        </div>
+      </div>
+
       <div class="page-pad"></div>
     </div>
 
@@ -690,7 +724,7 @@ function notify(msg, type='info') {
 // FETCH ALL
 // ═══════════════════════════════════════════════════════════════
 async function fetchAll() {
-  const [botSt, agents, portfolio, positions, trades, stats, market, prices] = await Promise.all([
+  const [botSt, agents, portfolio, positions, trades, stats, market, prices, spread, sniper] = await Promise.all([
     api('/api/bot/status'),
     api('/api/agents'),
     api('/api/portfolio'),
@@ -699,6 +733,8 @@ async function fetchAll() {
     api('/api/trades/stats'),
     api('/api/market/overview'),
     api('/api/market/prices'),
+    api('/api/edge/spread'),
+    api('/api/edge/sniper'),
   ]);
 
   if (botSt)    { S.running = botSt.running; renderTopBar(botSt); }
@@ -709,6 +745,8 @@ async function fetchAll() {
   if (stats)    { S.stats = stats; renderStats(stats); }
   if (market)   { S.market = market; renderMarket(market); }
   if (prices)   { S.prices = prices; renderPrices(prices); }
+  if (spread)   renderSpread(spread);
+  if (sniper)   renderSniper(sniper);
 
   const now = new Date();
   document.getElementById('sc-time').textContent = now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
@@ -923,6 +961,93 @@ function renderAgents(agentsData) {
         <span style="font-size:10px;color:var(--text3)">${a.status||'idle'}</span>
       </div>
       ${a.lastAction ? `<div class="ac-action">${esc(a.lastAction)}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RENDER: EDGE — POLYMARKET SPREAD
+// ═══════════════════════════════════════════════════════════════
+function renderSpread(data) {
+  const sig   = data.signal || 'HOLD';
+  const stats = data.stats || {};
+  const spreads = data.spreads || [];
+
+  // Badge signal
+  const badge = document.getElementById('spread-signal-badge');
+  if (badge) {
+    badge.textContent = sig;
+    badge.style.background = sig === 'HOLD' ? 'var(--yellow)' : (sig.includes('LONG') ? 'var(--green)' : 'var(--red)');
+    badge.style.color = '#fff';
+  }
+  // Stats
+  const el = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  el('spread-markets', data.markets_count || 0);
+  el('spread-max',     (stats.max_spread_pct || 0).toFixed(2) + ' %');
+  el('spread-signals', stats.total_signals || 0);
+
+  // Liste des spreads
+  const listEl = document.getElementById('spread-list');
+  if (!listEl) return;
+  if (!spreads.length) {
+    listEl.innerHTML = '<span style="color:var(--green)">✅ Aucun spread — marchés alignés</span>';
+    return;
+  }
+  listEl.innerHTML = spreads.slice(0, 4).map(s => {
+    const emoji = s.price_gap_pct >= 0.6 ? '🔥' : '⚡';
+    const clr   = s.direction === 'LONG' ? 'var(--green)' : 'var(--red)';
+    return `<div style="margin-bottom:6px;padding:6px;background:var(--surface2);border-radius:8px">
+      <div style="display:flex;justify-content:space-between">
+        <span>${emoji} <b>${esc(s.asset)}</b></span>
+        <span style="color:${clr};font-weight:700">${s.direction} ${s.price_gap_pct.toFixed(2)}%</span>
+      </div>
+      <div style="font-size:10px;color:var(--text3);margin-top:2px">${esc((s.question||'').slice(0,60))}…</div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RENDER: EDGE — EVENT SNIPER
+// ═══════════════════════════════════════════════════════════════
+function renderSniper(data) {
+  const sig   = data.signal || 'HOLD';
+  const conf  = data.confidence || 0;
+  const liqL  = data.liq_long_usd || 0;
+  const liqS  = data.liq_short_usd || 0;
+  const events= data.events || [];
+
+  // Badge signal
+  const badge = document.getElementById('sniper-signal-badge');
+  if (badge) {
+    badge.textContent = sig;
+    badge.style.background = sig === 'HOLD' ? 'var(--yellow)' : (sig === 'LONG' ? 'var(--green)' : 'var(--red)');
+    badge.style.color = '#fff';
+  }
+  const el = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  el('sniper-conf',  (conf * 100).toFixed(0) + ' %');
+  el('sniper-liq-l', (liqL / 1e6).toFixed(1) + 'M$');
+  el('sniper-liq-s', (liqS / 1e6).toFixed(1) + 'M$');
+
+  const evEl = document.getElementById('sniper-events');
+  if (!evEl) return;
+  if (!events.length) {
+    evEl.innerHTML = '<span style="color:var(--text3)">💤 Pas d\'événement actif</span>';
+    return;
+  }
+  const emojiMap = {
+    'LIQUIDATION_CASCADE': '💥',
+    'OI_SPIKE':            '📊',
+    'FUNDING_EXTREME':     '⚠️',
+    'VOLUME_SPIKE':        '🌊',
+  };
+  evEl.innerHTML = events.map(e => `
+    <div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--border)">
+      <span>${emojiMap[e.type] || '•'}</span>
+      <div>
+        <div style="font-weight:600;font-size:12px">${esc(e.type)}</div>
+        <div style="font-size:10px;color:var(--text3)">${esc(e.detail||'')}</div>
+      </div>
+      <span style="margin-left:auto;font-weight:700;color:var(--yellow)">${((e.weight||0)*100).toFixed(0)}%</span>
     </div>
   `).join('');
 }

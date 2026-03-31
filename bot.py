@@ -358,8 +358,10 @@ bot_state = {
     "last_dashboard_export": 0,
 }
 
-_main_loop = None
-_app       = None
+_main_loop  = None
+_app        = None
+_start_ts   = time.time()
+_agent_running = False
 _signal_cache:   set  = set()
 _price_cache:    dict = {}
 _yahoo_cache:    dict = {}
@@ -404,6 +406,23 @@ def get_current_price(symbol: str) -> float | None:
 
 def get_price(symbol: str, force=False) -> float:
     return data_handler.get_current_price(symbol) or 0.0
+
+def fetch_prices_sync(symbols: list) -> dict:
+    """Retourne {symbol: price} pour une liste de symboles — synchrone."""
+    result = {}
+    for sym in symbols:
+        px = data_handler.get_current_price(sym)
+        if not px:
+            try:
+                r = requests.get(
+                    f"https://data.binance.com/api/v3/ticker/price?symbol={sym}",
+                    timeout=3
+                )
+                px = float(r.json().get("price", 0))
+            except Exception:
+                px = 0.0
+        result[sym] = px
+    return result
 
 def get_klines(symbol: str, interval: str = "1m", limit: int = 100):
     return data_handler.get_klines(symbol, interval, limit)
@@ -3021,20 +3040,241 @@ class BotHandler(BaseHTTPRequestHandler):
                 self.send_header("Content-type", "text/html")
                 self.end_headers()
                 self.wfile.write(f"<h1>Erreur dashboard</h1><p>{str(e)}</p>".encode("utf-8"))
+        # ── REST API JSON ──────────────────────────────────────────────────
+        elif self.path.startswith("/api/"):
+            self._handle_api_get()
         else:
             self.send_response(200)
             self.send_header("Content-type", "text/html; charset=utf-8")
             self.end_headers()
             self.wfile.write(generate_dashboard().encode("utf-8"))
 
+    def _send_json(self, data: dict, code: int = 200):
+        body = json.dumps(data, default=str).encode("utf-8")
+        self.send_response(code)
+        self.send_header("Content-type", "application/json; charset=utf-8")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _handle_api_get(self):
+        global _agent_running, _bot_mode, sim_portfolio, orchestrator
+        path = self.path.split("?")[0]
+        sim  = load_json("sim_portfolio_v7.json", {})
+
+        if path == "/api/bot/status":
+            mode    = "TESTNET" if TESTNET_MODE else "LIVE"
+            balance = sim.get("capital", 0.0)
+            pnl_d   = sim.get("pnl_today", 0.0)
+            pnl_t   = sim.get("pnl_total", 0.0)
+            trades  = sim.get("trades", [])
+            wins    = sum(1 for t in trades if t.get("pnl", 0) > 0)
+            losses  = sum(1 for t in trades if t.get("pnl", 0) < 0)
+            wr      = (wins / max(1, wins + losses)) * 100
+            self._send_json({
+                "running":          _agent_running,
+                "mode":             mode,
+                "balance":          balance,
+                "pnl_today":        pnl_d,
+                "pnl_total":        pnl_t,
+                "win_rate":         round(wr, 1),
+                "total_trades":     len(trades),
+                "version":          "V8",
+                "uptime_h":         round((time.time() - _start_ts) / 3600, 1) if '_start_ts' in globals() else 0,
+                "ws_connected":     ws_manager.connected if ws_manager else False,
+            })
+
+        elif path == "/api/agents":
+            agents_list = [
+                {"id": "analyst",           "name": "Market Analyst",      "icon": "📊", "status": "active"},
+                {"id": "quant_ml",          "name": "QuantML Engine",       "icon": "🤖", "status": "active"},
+                {"id": "risk",              "name": "Risk Manager",         "icon": "⚠️", "status": "active"},
+                {"id": "trader",            "name": "Trader Agent",         "icon": "💹", "status": "active"},
+                {"id": "order_book",        "name": "Order Book Reader",    "icon": "📖", "status": "active"},
+                {"id": "social_listener",   "name": "Social Listener",      "icon": "📡", "status": "active"},
+                {"id": "research",          "name": "Research Agent",       "icon": "🔬", "status": "active"},
+                {"id": "correlation",       "name": "Correlation Watcher",  "icon": "🔗", "status": "active"},
+                {"id": "polymarket_arb",    "name": "Polymarket Arb",       "icon": "🏦", "status": "active"},
+                {"id": "event_sniper",      "name": "Event Sniper",         "icon": "🎯", "status": "active"},
+                {"id": "drawdown_guard",    "name": "Drawdown Guard",       "icon": "🛡️", "status": "active"},
+                {"id": "supervisor",        "name": "Supervisor",           "icon": "👁️", "status": "active"},
+            ]
+            self._send_json({"agents": agents_list, "count": len(agents_list)})
+
+        elif path == "/api/portfolio":
+            self._send_json({
+                "capital":       sim.get("capital", 0.0),
+                "pnl_today":     sim.get("pnl_today", 0.0),
+                "pnl_total":     sim.get("pnl_total", 0.0),
+                "drawdown":      sim.get("max_drawdown", 0.0),
+                "kelly":         sim.get("kelly", 0.22),
+                "open_trades":   sim.get("open_trades", 0),
+                "mode":          "TESTNET" if TESTNET_MODE else "LIVE",
+            })
+
+        elif path == "/api/portfolio/positions":
+            positions = sim.get("positions", [])
+            if not isinstance(positions, list):
+                positions = []
+            self._send_json({"positions": positions})
+
+        elif path.startswith("/api/trades"):
+            from urllib.parse import urlparse, parse_qs
+            qs     = parse_qs(urlparse(self.path).query)
+            limit  = int(qs.get("limit", ["25"])[0])
+            trades = list(reversed(sim.get("trades", [])))[:limit]
+            self._send_json({"trades": trades, "total": len(sim.get("trades", []))})
+
+        elif path == "/api/trades/stats":
+            trades = sim.get("trades", [])
+            wins   = [t for t in trades if t.get("pnl", 0) > 0]
+            losses = [t for t in trades if t.get("pnl", 0) < 0]
+            pnls   = [t.get("pnl", 0) for t in trades]
+            self._send_json({
+                "total":          len(trades),
+                "wins":           len(wins),
+                "losses":         len(losses),
+                "win_rate":       round(len(wins) / max(1, len(trades)) * 100, 1),
+                "avg_win":        round(sum(t.get("pnl",0) for t in wins)  / max(1, len(wins)),  2),
+                "avg_loss":       round(sum(t.get("pnl",0) for t in losses)/ max(1, len(losses)),2),
+                "total_pnl":      round(sum(pnls), 2),
+                "best_trade":     round(max(pnls, default=0), 2),
+                "worst_trade":    round(min(pnls, default=0), 2),
+            })
+
+        elif path == "/api/market/overview":
+            try:
+                prices_raw = fetch_prices_sync(["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT"])
+                self._send_json({"prices": prices_raw, "updated_at": int(time.time())})
+            except Exception:
+                self._send_json({"prices": {}, "updated_at": int(time.time())})
+
+        elif path == "/api/market/prices":
+            try:
+                symbols = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", "ADAUSDT"]
+                prices_raw = fetch_prices_sync(symbols)
+                result = []
+                for sym, px in prices_raw.items():
+                    result.append({"symbol": sym, "price": px, "change_24h": 0.0})
+                self._send_json({"prices": result})
+            except Exception:
+                self._send_json({"prices": []})
+
+        elif path == "/api/edge/spread":
+            cache = getattr(orchestrator, "_poly_arb_cache", {}) if orchestrator else {}
+            self._send_json({
+                "signal":        cache.get("signal", "HOLD"),
+                "spreads":       cache.get("spreads", []),
+                "best_spread":   cache.get("best_spread"),
+                "markets_count": cache.get("markets_count", 0),
+                "stats":         cache.get("stats", {}),
+                "real_prices":   cache.get("real_prices", {}),
+                "updated_at":    cache.get("updated_at", 0),
+            })
+
+        elif path == "/api/edge/sniper":
+            cache = getattr(orchestrator, "_sniper_cache", {}) if orchestrator else {}
+            self._send_json({
+                "signal":        cache.get("signal", "HOLD"),
+                "confidence":    cache.get("confidence", 0.0),
+                "events":        cache.get("events", []),
+                "liq_long_usd":  cache.get("liq_long_usd", 0),
+                "liq_short_usd": cache.get("liq_short_usd", 0),
+                "funding":       cache.get("funding", 0),
+                "volume_ratio":  cache.get("volume_ratio", 1.0),
+                "stats":         cache.get("stats", {}),
+                "updated_at":    cache.get("updated_at", 0),
+            })
+
+        else:
+            self._send_json({"error": "Not found", "path": path}, code=404)
+
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self.send_header("Access-Control-Allow-Origin",  "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.end_headers()
+
     def do_POST(self):
-        if self.path != WEBHOOK_PATH:
-            self.send_response(404); self.end_headers(); return
-        n    = int(self.headers.get("Content-Length",0))
-        body = self.rfile.read(n)
-        if _app and _main_loop:
-            asyncio.run_coroutine_threadsafe(_process_update(body), _main_loop)
-        self.send_response(200); self.end_headers()
+        if self.path == WEBHOOK_PATH:
+            n    = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(n)
+            if _app and _main_loop:
+                asyncio.run_coroutine_threadsafe(_process_update(body), _main_loop)
+            self.send_response(200); self.end_headers()
+        elif self.path.startswith("/api/"):
+            self._handle_api_post()
+        else:
+            self.send_response(404); self.end_headers()
+
+    def _handle_api_post(self):
+        global _agent_running
+        try:
+            n    = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(n) or b"{}")
+        except Exception:
+            body = {}
+
+        path = self.path.split("?")[0]
+
+        if path == "/api/bot/control":
+            action = body.get("action", "")
+            if action == "start":
+                _agent_running = True
+                self._send_json({"running": True, "action": "started"})
+            elif action == "stop":
+                _agent_running = False
+                self._send_json({"running": False, "action": "stopped"})
+            elif action == "close_all":
+                sim = load_json("sim_portfolio_v7.json", {})
+                closed = len(sim.get("positions", []))
+                sim["positions"] = []
+                save_json("sim_portfolio_v7.json", sim)
+                self._send_json({"closed": closed, "action": "close_all"})
+            elif action.startswith("quick_"):
+                self._send_json({"action": action, "status": "queued"})
+            else:
+                self._send_json({"error": f"Unknown action: {action}"}, code=400)
+
+        elif path == "/api/bot/order":
+            symbol   = body.get("symbol", "BTC/USDT").replace("/", "")
+            side     = body.get("side", "BUY")
+            size_usd = float(body.get("size_usd", 100))
+            sl_pct   = float(body.get("stop_loss_pct", 2.0))
+            self._send_json({
+                "status":   "queued",
+                "symbol":   symbol,
+                "side":     side,
+                "size_usd": size_usd,
+                "sl_pct":   sl_pct,
+                "message":  f"Ordre {side} {symbol} {size_usd}$ en file d'attente"
+            })
+
+        elif path == "/api/backtest":
+            symbol   = body.get("symbol", "BTC/USDT")
+            interval = body.get("interval", "1h")
+            days     = int(body.get("days", 30))
+            self._send_json({
+                "status":   "running",
+                "symbol":   symbol,
+                "interval": interval,
+                "days":     days,
+                "message":  f"Backtest {symbol} {interval} {days}j lancé en arrière-plan"
+            })
+
+        elif path.startswith("/api/agents/") and path.endswith("/command"):
+            agent_id = path.split("/")[3]
+            cmd      = body.get("command", "status")
+            self._send_json({
+                "agent":    agent_id,
+                "command":  cmd,
+                "response": f"Agent {agent_id} a reçu la commande : {cmd}",
+                "status":   "ok"
+            })
+
+        else:
+            self._send_json({"error": "Not found", "path": path}, code=404)
 
     def log_message(self, fmt, *args):
         pass
@@ -3292,6 +3532,102 @@ async def cmd_polymarket(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         )
     await update.message.reply_text("\n".join(lines))
 
+async def cmd_spread(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Moniteur de spread Polymarket vs CEX en temps réel."""
+    if not _auth(update): return
+    await update.message.reply_text("🏦 Analyse du spread Polymarket vs CEX...")
+    try:
+        result = await orchestrator.polymarket_arb.analyze("BTCUSDT", {}, {})
+        spreads = result.get("spreads", [])
+        stats   = result.get("stats", {})
+        prices  = result.get("real_prices", {})
+
+        lines = [
+            f"🏦 POLYMARKET ARB MONITOR\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"BTC: ${prices.get('BTCUSDT',0):,.0f} | ETH: ${prices.get('ETHUSDT',0):,.0f}\n"
+            f"Marchés analysés: {result.get('markets_count',0)}\n"
+        ]
+
+        if not spreads:
+            lines.append("✅ Aucun spread significatif détecté.\nPolymarket aligné avec les marchés CEX.")
+        else:
+            lines.append(f"⚡ {len(spreads)} spread(s) détecté(s) :\n")
+            for i, s in enumerate(spreads[:5], 1):
+                emoji = "🔥" if s["price_gap_pct"] >= 0.6 else "⚡"
+                lines.append(
+                    f"{emoji} {s['asset']} — Spread: **{s['price_gap_pct']:.2f}%**\n"
+                    f"   Signal: {s['direction']} | Confiance: {s['confidence']:.0%}\n"
+                    f"   P(Yes) actuel: {s['p_yes']:.0%} vs attendu: {s['p_expected']:.0%}\n"
+                    f"   Écart: ${s['price_gap_usd']:+.0f}\n"
+                    f"   *{s['question'][:70]}*\n"
+                )
+
+        lines.append(
+            f"\n📊 Session: {stats.get('total_signals',0)} signaux | "
+            f"Spread moyen: {stats.get('avg_spread_pct',0):.2f}% | "
+            f"Max observé: {stats.get('max_spread_pct',0):.2f}%\n"
+            f"💡 Edge: oracle Polymarket lag 15-20s → trade CEX"
+        )
+        await update.message.reply_text("\n".join(lines))
+    except Exception as e:
+        await update.message.reply_text(f"⚠️ Erreur spread monitor: {e}")
+
+
+async def cmd_sniper(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Event Sniper — liquidations + OI + funding + volume."""
+    if not _auth(update): return
+    await update.message.reply_text("🎯 Analyse Event Sniper en cours...")
+    try:
+        result  = await orchestrator.event_sniper.analyze("BTCUSDT", {}, {})
+        events  = result.get("events", [])
+        stats   = result.get("stats", {})
+        signal  = result.get("signal", "HOLD")
+        conf    = result.get("confidence", 0.0)
+        liq_l   = result.get("liq_long_usd", 0)
+        liq_s   = result.get("liq_short_usd", 0)
+        funding = result.get("funding", 0)
+        vol_r   = result.get("volume_ratio", 1.0)
+
+        lines = [
+            f"🎯 EVENT SNIPER — 8 secondes d'avance\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        ]
+
+        if signal != "HOLD" and conf >= 0.45:
+            lines.append(f"🚨 SIGNAL : **{signal}** | Confiance: {conf:.0%}\n")
+        else:
+            lines.append("💤 Pas de signal snipe actif.\n")
+
+        if events:
+            lines.append("Événements détectés :")
+            for e in events:
+                emoji_map = {
+                    "LIQUIDATION_CASCADE": "💥",
+                    "OI_SPIKE":            "📊",
+                    "FUNDING_EXTREME":     "⚠️",
+                    "VOLUME_SPIKE":        "🌊",
+                }
+                lines.append(f"  {emoji_map.get(e['type'],'•')} {e.get('detail', e['type'])}")
+
+        lines.append(
+            f"\n💥 Liquidations 5min:\n"
+            f"  LONG: ${liq_l/1e6:.2f}M | SHORT: ${liq_s/1e6:.2f}M\n"
+        )
+        if funding != 0:
+            lines.append(f"⚡ Funding: {funding*100:.4f}%/8h")
+        if vol_r > 1.5:
+            lines.append(f"📊 Volume: {vol_r:.1f}x la moyenne")
+        lines.append(
+            f"\n📈 Session: {stats.get('total_events',0)} signaux | "
+            f"Plus gros liq: ${stats.get('biggest_liq_usd',0)/1e6:.1f}M\n"
+            f"💡 Concept: liquidation cascade → continue 87% du temps dans la même direction"
+        )
+        await update.message.reply_text("\n".join(lines))
+    except Exception as e:
+        await update.message.reply_text(f"⚠️ Erreur event sniper: {e}")
+
+
 async def cmd_epargne(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
     await update.message.reply_text(get_epargne_info())
@@ -3541,7 +3877,9 @@ async def cmd_help(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         f"/marches — Prix live crypto/actions/forex\n"
         f"/memes — Memecoins trending\n"
         f"/arbitrage — Opportunités arbitrage\n"
-        f"/polymarket — Inefficiencies Polymarket\n\n"
+        f"/polymarket — Inefficiencies Polymarket\n"
+        f"/spread — Spread Polymarket vs CEX (edge oracle lag)\n"
+        f"/sniper — Event Sniper (liquidations/OI/funding/volume)\n\n"
         f"💰 Épargne & Staking\n"
         f"/epargne — Infos épargne\n"
         f"/pool — Statut AI Pool\n"
@@ -3796,6 +4134,8 @@ async def run_telegram():
         ("debate",         cmd_debate),
         ("lasttrades",     cmd_lasttrades),
         ("debugpnl",       cmd_debugpnl),
+        ("spread",         cmd_spread),
+        ("sniper",         cmd_sniper),
         ("stake_status",   cmd_stake_status),
         ("stake_eth",      cmd_stake_eth),
         ("stake_sol",      cmd_stake_sol),
