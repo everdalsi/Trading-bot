@@ -428,6 +428,40 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         </div>
       </div>
 
+      <!-- ── Edge: Polymarket Direct Trader ────────── -->
+      <div class="card" id="edge-polybet-card">
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+          <span>🎯 <b>POLYMARKET TRADER</b></span>
+          <span class="badge" id="polybet-signal-badge" style="background:var(--yellow);color:#000">HOLD</span>
+        </div>
+        <div class="stats-row">
+          <div class="stat-mini"><div class="stat-label">Marchés scannés</div><div class="stat-val" id="polybet-markets">--</div></div>
+          <div class="stat-mini"><div class="stat-label">Avec edge</div><div class="stat-val" id="polybet-with-edge">--</div></div>
+          <div class="stat-mini"><div class="stat-label">Edge moyen</div><div class="stat-val" id="polybet-avg-edge">-- %</div></div>
+        </div>
+        <div id="polybet-list" style="font-size:12px;color:var(--text2)">En attente...</div>
+        <div class="card-footer" style="font-size:10px;color:var(--text3);margin-top:8px">
+          🎯 Stratégie: fair value CEX vs Polymarket oracle lag 15-30s | Edge min 4% | Kelly 25%
+        </div>
+      </div>
+
+      <!-- ── Edge: Sports Latency Arb ───────────────── -->
+      <div class="card" id="edge-sportsarb-card">
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+          <span>⚡ <b>SPORTS LATENCY ARB</b></span>
+          <span class="badge" id="sportsarb-signal-badge" style="background:var(--yellow);color:#000">HOLD</span>
+        </div>
+        <div class="stats-row">
+          <div class="stat-mini"><div class="stat-label">Arbs détectés</div><div class="stat-val" id="sportsarb-total">--</div></div>
+          <div class="stat-mini"><div class="stat-label">Best profit</div><div class="stat-val" id="sportsarb-best">-- %</div></div>
+          <div class="stat-mini"><div class="stat-label">Latence moy</div><div class="stat-val" id="sportsarb-lat">-- ms</div></div>
+        </div>
+        <div id="sportsarb-list" style="font-size:12px;color:var(--text2)">En attente...</div>
+        <div class="card-footer" style="font-size:10px;color:var(--text3);margin-top:8px">
+          ⚡ Arbitrage garanti multi-bookmakers | 10+ books | NBA · EPL · NFL · Tennis · MMA
+        </div>
+      </div>
+
       <div class="page-pad"></div>
     </div>
 
@@ -724,7 +758,7 @@ function notify(msg, type='info') {
 // FETCH ALL
 // ═══════════════════════════════════════════════════════════════
 async function fetchAll() {
-  const [botSt, agents, portfolio, positions, trades, stats, market, prices, spread, sniper] = await Promise.all([
+  const [botSt, agents, portfolio, positions, trades, stats, market, prices, spread, sniper, polybet, sportsarb] = await Promise.all([
     api('/api/bot/status'),
     api('/api/agents'),
     api('/api/portfolio'),
@@ -735,6 +769,8 @@ async function fetchAll() {
     api('/api/market/prices'),
     api('/api/edge/spread'),
     api('/api/edge/sniper'),
+    api('/api/edge/polybet'),
+    api('/api/edge/sportsarb'),
   ]);
 
   if (botSt)    { S.running = botSt.running; renderTopBar(botSt); }
@@ -747,6 +783,8 @@ async function fetchAll() {
   if (prices)   { S.prices = prices; renderPrices(prices); }
   if (spread)   renderSpread(spread);
   if (sniper)   renderSniper(sniper);
+  if (polybet)   renderPolybet(polybet);
+  if (sportsarb) renderSportsArb(sportsarb);
 
   const now = new Date();
   document.getElementById('sc-time').textContent = now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
@@ -1055,6 +1093,92 @@ function renderSniper(data) {
 // ═══════════════════════════════════════════════════════════════
 // ACTIVITY LOG
 // ═══════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════
+// RENDER: POLYMARKET DIRECT TRADER
+// ═══════════════════════════════════════════════════════════════
+function renderPolybet(data) {
+  const sig   = data.signal || 'HOLD';
+  const opps  = data.opportunities || [];
+  const stats = data.stats || {};
+
+  const badge = document.getElementById('polybet-signal-badge');
+  if (badge) {
+    badge.textContent  = sig;
+    badge.style.background = sig === 'HOLD' ? 'var(--yellow)' :
+      sig.includes('YES') ? 'var(--green)' : 'var(--red)';
+    badge.style.color = '#fff';
+  }
+  const el = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  el('polybet-markets',   data.markets_scanned || 0);
+  el('polybet-with-edge', data.markets_with_edge || 0);
+  el('polybet-avg-edge',  (data.avg_edge_pct || 0).toFixed(1) + ' %');
+
+  const listEl = document.getElementById('polybet-list');
+  if (!listEl) return;
+  if (!opps.length) {
+    listEl.innerHTML = '<span style="color:var(--green)">✅ Aucun edge >4% — Polymarket correctement pricé</span>';
+    return;
+  }
+  listEl.innerHTML = opps.slice(0, 4).map(o => {
+    const clr   = o.direction === 'BUY YES' ? 'var(--green)' : 'var(--red)';
+    const emoji = o.edge_pct >= 8 ? '🔥' : o.edge_pct >= 6 ? '⚡' : '💡';
+    return `<div style="margin-bottom:6px;padding:6px;background:var(--surface2);border-radius:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span>${emoji} <b>${esc(o.asset)}</b></span>
+        <span style="color:${clr};font-weight:700">${esc(o.direction)} ${o.edge_pct.toFixed(1)}%</span>
+      </div>
+      <div style="font-size:10px;color:var(--text3);margin-top:2px">
+        Polymarket: ${(o.price_yes*100).toFixed(0)}% → Fair: ${(o.fair_prob*100).toFixed(0)}% | Kelly: ${o.kelly_frac.toFixed(1)}%
+      </div>
+      <div style="font-size:10px;color:var(--text3);${''}">${esc((o.question||'').slice(0,70))}…</div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RENDER: SPORTS LATENCY ARB
+// ═══════════════════════════════════════════════════════════════
+function renderSportsArb(data) {
+  const sig  = data.signal || 'HOLD';
+  const opps = data.opportunities || [];
+  const stats = data.stats || {};
+
+  const badge = document.getElementById('sportsarb-signal-badge');
+  if (badge) {
+    badge.textContent  = sig === 'ARB_DETECTED' ? 'ARB ✓' : sig;
+    badge.style.background = sig === 'HOLD' ? 'var(--yellow)' : 'var(--green)';
+    badge.style.color = sig === 'HOLD' ? '#000' : '#fff';
+  }
+  const el = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  el('sportsarb-total', data.total_found || 0);
+  const bestProfit = opps.length ? opps[0].profit_pct : 0;
+  el('sportsarb-best', bestProfit.toFixed(2) + ' %');
+  el('sportsarb-lat',  (data.avg_latency_ms || 0).toFixed(1) + ' ms');
+
+  const listEl = document.getElementById('sportsarb-list');
+  if (!listEl) return;
+  if (!opps.length) {
+    listEl.innerHTML = '<span style="color:var(--text3)">✅ Aucun arb — marchés efficients</span>';
+    return;
+  }
+  listEl.innerHTML = opps.slice(0, 3).map(o => {
+    const emoji = o.profit_pct >= 2 ? '🔥' : '⚡';
+    const oddsStr = Object.entries(o.best_odds || {})
+      .map(([name, info]) => `${esc(name)} @${info.odds.toFixed(2)} (${esc(info.book)})`)
+      .join(' | ');
+    return `<div style="margin-bottom:6px;padding:6px;background:var(--surface2);border-radius:8px">
+      <div style="display:flex;justify-content:space-between">
+        <span>${emoji} <b>${esc(o.sport)}</b></span>
+        <span style="color:var(--green);font-weight:700">+${o.profit_pct.toFixed(2)}% garanti</span>
+      </div>
+      <div style="font-weight:600;font-size:11px;margin:2px 0">${esc(o.match)}</div>
+      <div style="font-size:10px;color:var(--text3)">${oddsStr}</div>
+    </div>`;
+  }).join('');
+}
+
+
 function pushActivity(agents) {
   const now = new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   const active = agents.filter(a => a.status==='active' && a.lastAction);
