@@ -332,6 +332,7 @@ class Orchestrator:
 
         # ── Phase 3 : décision trader (séquentielle — dépend de phases 1&2) ──
         trader_resp = await _safe_call(self.trader, question, context)
+        context["trader_decision"] = trader_resp  # FIX: supervisor accède context["trader_decision"]
 
         # ── Agréger tous les résultats ────────────────────────────────────
         all_outputs = [
