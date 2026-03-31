@@ -245,7 +245,7 @@ class SupervisorAgent(BaseAgent):
         elif polytrader_edge > 0.25 and ("SELL" in polytrader_signal or "NO" in polytrader_signal):
             edge_boost -= min(0.35, polytrader_edge / 100.0 * 0.8)
         if "ARB" in sportsarb_signal and sportsarb_profit > 0.40:
-            edge_boost += min(0.20, sportsarb_profit / 100.0 * 0.8)  # 0.85% profit → +0.0068
+            edge_boost += min(0.20, sportsarb_profit * 0.20)  # 0.85% profit → +0.17 boost
         if abs(edge_boost) > 0.0:
             logger.info(f"[SUPERVISOR] 🎯 Edge boost: {edge_boost:+.3f} (poly={polytrader_edge:.1f}% arb={sportsarb_profit:.2f}%)")
         net += edge_boost
