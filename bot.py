@@ -2697,7 +2697,7 @@ def trading_loop(send_fn):
                     amount_usd  = max(10.0, min(amount_usd, equity * 0.10))
                     try:
                         exec_future = asyncio.run_coroutine_threadsafe(
-                            execution_engine.place_order_async(
+                            execution.place_order_async(
                                 symbol     = best_symbol,
                                 side       = trade_side,
                                 order_type = "market",
@@ -2753,7 +2753,7 @@ def trading_loop(send_fn):
                         meme_sym = decision.get("symbol", "BTCUSDT")
                         meme_price = get_current_price(meme_sym) or 1
                         exec_future = asyncio.run_coroutine_threadsafe(
-                            execution_engine.place_order_async(
+                            execution.place_order_async(
                                 symbol     = meme_sym,
                                 side       = decision.get("side", "BUY"),
                                 order_type = "market",
