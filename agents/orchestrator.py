@@ -240,9 +240,8 @@ class Orchestrator:
 
         (analyst_resp, quant_resp, ob_resp, social_resp,
          research_resp, ks_resp, wc_resp, corr_resp,
-            poly_arb_resp, sniper_resp,
-            polytrader_resp, sportsarb_resp,
-         polytrader_resp, sportsarb_resp) = group_a
+         poly_arb_resp, sniper_resp,
+         polytrader_resp, sportsarb_resp) = group_a  # FIX: 12 valeurs, 12 variables
 
         # Enrichir le contexte avec les résultats Phase 1
         context["analysis"]             = analyst_resp.get("analysis", {})
