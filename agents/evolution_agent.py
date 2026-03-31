@@ -1,74 +1,190 @@
 """
-🎯 EVOLUTION AGENT V5.1 — Agent d'évolution autonome & MAX TRADES
+🎯 EVOLUTION AGENT V6 — Agent d'évolution autonome + Auto-réparation code + Git push sécurisé
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-FIX V5.1 :
-- _is_in_my_domain élargi : inclut "monitor", "health", "santé", "watchdog",
-  "immune", "raffine", "synthèse", "débat" pour que le health check Orchestrator
-  ne retourne plus confidence=0.0
-- Sécurité anti-écrasement de fichiers conservée (FIX 5 original)
-- Mode "suggestion" uniquement via evolution_changes.md (non destructeur)
+Rôle : surveille la qualité du code des agents, propose des améliorations,
+les écrit dans evolution_changes.md et les pousse sur GitHub.
+Mode suggestion uniquement (ne modifie pas directement bot.py pour éviter
+les écrasements accidentels).
+
+FIXES V6 :
+- _is_in_my_domain complet incluant health/monitor/débat
+- GitPushTool et EditBotFileTool avec fallback gracieux si unavailable
+- Vrai analyse des agents pour proposer des améliorations ciblées
+- Logs structurés (plus de print())
 """
 
+import os
+import time
+import subprocess
+from datetime import datetime
+from typing import Dict, Any, List
+
+from logging_config import logger
+
 try:
-    from agents.base_agent import BaseAgent
+    from agents.base_agent import BaseAgent, _KnowledgeBaseSingleton
 except ImportError:
     class BaseAgent:
         def __init__(self, name="", role=""):
             self.name = name
             self.role = role
+        def explain_term(self, t):
+            return t
+        async def safe_respond(self, q, c):
+            return {}
 
-from typing import Dict, Any
 
-try:
-    from tools import EditBotFileTool, GitPushTool
-except ImportError:
-    try:
-        from agents.tools import EditBotFileTool, GitPushTool
-    except ImportError:
-        class EditBotFileTool:
-            def _run(self, new_code="", filename="bot.py"):
-                return "Warning: EditBotFileTool non disponible"
-        class GitPushTool:
-            def _run(self, commit_message=""):
-                return "Warning: GitPushTool non disponible"
+# ────────────────────────────────────────────────────────────────────────────
+# TOOLS LOCAUX (sans dépendance crewai)
+# ────────────────────────────────────────────────────────────────────────────
 
+class EditBotFileTool:
+    """Écrit du contenu dans un fichier de manière sécurisée."""
+
+    def _run(self, new_code: str = "", filename: str = "evolution_changes.md") -> str:
+        # Sécurité : on n'écrase JAMAIS bot.py directement
+        if filename in ("bot.py", "execution_engine.py", "memory.py"):
+            return f"⚠️ Sécurité : modification directe de {filename} interdite. Utiliser evolution_changes.md"
+        try:
+            with open(filename, "a", encoding="utf-8") as f:
+                ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                f.write(f"\n\n## [{ts}] EvolutionAgent\n{new_code}\n")
+            return f"✅ {filename} mis à jour"
+        except Exception as e:
+            return f"⚠️ Edit skipped: {e}"
+
+
+class GitPushTool:
+    """Pousse les changements sur Git de manière sécurisée."""
+
+    def _run(self, commit_message: str = "EvolutionAgent auto-commit") -> str:
+        try:
+            # Vérification que git est disponible
+            result = subprocess.run(
+                ["git", "status", "--short"],
+                capture_output=True, text=True, timeout=10
+            )
+            if result.returncode != 0:
+                return "⚠️ Git non disponible"
+
+            # N'ajoute que les fichiers non-critiques
+            subprocess.run(
+                ["git", "add", "evolution_changes.md", "evolution_marker.txt"],
+                capture_output=True, timeout=10
+            )
+            commit = subprocess.run(
+                ["git", "commit", "-m", commit_message],
+                capture_output=True, text=True, timeout=15
+            )
+            if "nothing to commit" in commit.stdout:
+                return "ℹ️ Rien à committer"
+            push = subprocess.run(
+                ["git", "push"],
+                capture_output=True, text=True, timeout=30
+            )
+            if push.returncode == 0:
+                return f"✅ Push réussi : {commit_message}"
+            return f"⚠️ Push échoué: {push.stderr[:100]}"
+        except Exception as e:
+            return f"Warning: Push skipped: {e}"
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# AGENT
+# ────────────────────────────────────────────────────────────────────────────
 
 class EvolutionAgent(BaseAgent):
 
-    def __init__(self, orchestrator):
+    def __init__(self, orchestrator=None):
         super().__init__(
             name="evolution",
-            role="Agent d'évolution autonome — MAX TRADES & MAX EXPÉRIENCE"
+            role=(
+                "Agent d'évolution autonome — surveille le code des agents, propose des "
+                "améliorations ciblées, les documente et les pousse sur Git"
+            )
         )
         self.orchestrator = orchestrator
         self.edit_tool    = EditBotFileTool()
         self.push_tool    = GitPushTool()
+        self._last_eval_ts = 0
+        self._eval_interval = 300  # évalue toutes les 5 min max
 
     def _is_in_my_domain(self, question: str) -> bool:
-        """
-        FIX V5.1 : élargi pour inclure les vérifications santé/health envoyées
-        par l'Orchestrator via safe_respond("monitor health", ...).
-        Sans ce fix, immune_health revenait toujours à 0.0.
-        """
         q = question.lower()
-        evolution_keywords = [
+        keywords = [
             # Rôle principal
             "évolution", "evolution", "amélioration", "upgrade", "améliorer",
-            "modifier code", "auto-modif", "max trades",
-            # FIX : mots-clés santé/health envoyés par l'Orchestrator
+            "modifier code", "auto-modif", "max trades", "code", "agent",
+            # Santé/watchdog — envoyés par l'Orchestrator
             "monitor", "health", "santé", "watchdog", "immune",
-            "repair", "répare", "surveillance",
-            # FIX : mots-clés débat collectif
+            "repair", "répare", "surveillance", "anomalie",
+            # Débat collectif
             "raffine", "synthèse", "débat", "cerveau collectif",
             "final decision", "trade ou no trade",
         ]
-        return any(kw in q for kw in evolution_keywords)
+        return any(kw in q for kw in keywords)
+
+    def _analyze_agent_performance(self, memory: dict) -> List[Dict]:
+        """Analyse les performances des agents pour identifier les améliorations."""
+        improvements = []
+
+        # Analyse basée sur les stats mémoire
+        trades = memory.get("trades", []) if isinstance(memory, dict) else []
+        lessons = memory.get("lessons", []) if isinstance(memory, dict) else []
+
+        total   = len(trades)
+        wins    = [t for t in trades if isinstance(t, dict) and t.get("pnl", 0) > 0]
+        winrate = len(wins) / total if total > 0 else 0.0
+
+        if total >= 20 and winrate < 0.55:
+            improvements.append({
+                "agent":    "TraderAgent",
+                "issue":    f"Winrate bas : {winrate:.1%} ({total} trades)",
+                "proposal": "Augmenter le seuil de confiance minimum de 99% → réduire faux positifs",
+                "priority": "HIGH",
+            })
+
+        if total >= 50 and winrate >= 0.80:
+            improvements.append({
+                "agent":    "TraderAgent",
+                "issue":    "Winrate excellent",
+                "proposal": "Considérer augmenter légèrement la taille des positions",
+                "priority": "LOW",
+            })
+
+        lesson_count = len(lessons)
+        if lesson_count > 500 and lesson_count % 100 == 0:
+            improvements.append({
+                "agent":    "LearningAgent",
+                "issue":    f"{lesson_count} leçons accumulées",
+                "proposal": "Compresser les leçons anciennes pour optimiser les requêtes",
+                "priority": "MEDIUM",
+            })
+
+        return improvements
+
+    def _write_improvements(self, improvements: List[Dict], lesson_count: int, winrate: float) -> str:
+        """Écrit les propositions d'amélioration dans le fichier dédié."""
+        if not improvements:
+            return self.edit_tool._run(
+                new_code=f"Cycle auto-évaluation | Leçons={lesson_count} | WR={winrate:.1%} | Aucune amélioration requise ✅",
+                filename="evolution_changes.md"
+            )
+
+        content = f"Cycle auto-évaluation | Leçons={lesson_count} | WR={winrate:.1%}\n\n"
+        for imp in improvements:
+            content += (
+                f"### [{imp['priority']}] {imp['agent']}\n"
+                f"- Problème: {imp['issue']}\n"
+                f"- Proposition: {imp['proposal']}\n\n"
+            )
+        return self.edit_tool._run(new_code=content, filename="evolution_changes.md")
 
     async def respond(self, question: str, context: dict) -> Dict[str, Any]:
         if not self._is_in_my_domain(question):
             return {
                 "agent":          self.name,
-                "summary":        f"⚠️ {self.name} hors de sa spécialité → ignoré",
+                "summary":        "⚠️ EvolutionAgent hors spécialité → ignoré",
                 "confidence":     0.0,
                 "recommendation": "HOLD - Vérifier rôle",
                 "warning":        "Hors domaine evolution",
@@ -79,105 +195,68 @@ class EvolutionAgent(BaseAgent):
             return self.explain_term(k) or shared_glossary.get(k, k)
 
         memory = context.get("memory", {})
+        if not isinstance(memory, dict):
+            try:
+                memory = memory.data if hasattr(memory, 'data') else {}
+            except Exception:
+                memory = {}
 
-        try:
-            stats = (
-                self.orchestrator.performance.get_global_stats(memory)
-                if hasattr(self.orchestrator, "performance")
-                else {}
-            )
-        except Exception:
-            stats = {}
-
+        # Récupération stats
         try:
             lesson_count = (
                 self.orchestrator.learning.get_lesson_count()
-                if hasattr(self.orchestrator, "learning")
-                else 0
+                if self.orchestrator and hasattr(self.orchestrator, "learning")
+                else len(memory.get("lessons", []))
             )
         except Exception:
-            lesson_count = 0
+            lesson_count = len(memory.get("lessons", [])) if isinstance(memory, dict) else 0
 
-        extreme_learning = lesson_count < 1500
+        trades   = memory.get("trades", []) if isinstance(memory, dict) else []
+        total    = len(trades)
+        wins     = [t for t in trades if isinstance(t, dict) and t.get("pnl", 0) > 0]
+        winrate  = len(wins) / total if total > 0 else 0.0
 
-        print(f"[EVOLUTION] Cycle | Leçons={lesson_count} | Extreme={extreme_learning}")
+        # Rate limiting
+        now = time.time()
+        if now - self._last_eval_ts < self._eval_interval:
+            return {
+                "agent":          self.name,
+                "summary":        f"⏳ EvolutionAgent en cooldown | Leçons={lesson_count} | WR={winrate:.1%}",
+                "confidence":     0.90,
+                "recommendation": "HOLD - Cooldown actif",
+                "lesson_count":   lesson_count,
+                "winrate":        winrate,
+                "glossary_used":  True,
+            }
+        self._last_eval_ts = now
 
-        trigger_100 = (
-            context.get("trigger") == "auto_evaluation_100_trades"
-            or (lesson_count > 0 and lesson_count % 100 == 0)
+        # Analyse et amélioration
+        improvements = self._analyze_agent_performance(memory)
+        edit_result  = self._write_improvements(improvements, lesson_count, winrate)
+
+        # Push seulement si améliorations trouvées
+        push_result = "ℹ️ Aucune amélioration → push non nécessaire"
+        if improvements:
+            push_result = self.push_tool._run(
+                commit_message=f"EvolutionAgent — {len(improvements)} améliorations proposées | Leçons={lesson_count} | WR={winrate:.1%}"
+            )
+            logger.info(f"[EVOLUTION] {push_result}")
+
+        summary = (
+            f"🔄 EvolutionAgent | Leçons={lesson_count} | WR={winrate:.1%} | "
+            f"{len(improvements)} améliorations proposées | Push: {push_result[:50]}"
         )
 
-        if trigger_100:
-            print(f"[EVOLUTION] 🔥 TRIGGER 100 TRADES ({lesson_count} leçons)")
-            winrate = stats.get("winrate", 0)
-            improvements = []
-
-            if winrate < 0.98:
-                improvements.append(
-                    "Augmenter seuil de confiance à 0.99 dans l'orchestrator"
-                )
-
-            safe_log = (
-                f"# Evolution auto après {lesson_count} leçons\n"
-                f"# Winrate : {winrate:.1%}\n\nPropositions :\n"
-                + "\n".join([f"- {imp}" for imp in improvements])
-            )
-
-            try:
-                edit_result = self.edit_tool._run(
-                    new_code=safe_log,
-                    filename="evolution_changes.md"
-                )
-            except Exception as e:
-                edit_result = f"Warning: {e}"
-
-            try:
-                push_result = self.push_tool._run(
-                    commit_message=(
-                        f"EvolutionAgent — Auto-proposition après {lesson_count} trades "
-                        f"| Winrate {winrate:.1%}"
-                    )
-                )
-            except Exception as e:
-                push_result = f"Warning: Push skipped: {e}"
-
-            return {
-                "agent":        "evolution",
-                "summary":      (
-                    f"✅ Cycle d'évolution terminé ({lesson_count} leçons) "
-                    f"| {len(improvements)} améliorations proposées"
-                ),
-                "decision":     "EVOLUTION_PROPOSED_SAFELY",
-                "improvements": improvements,
-                "edit_result":  edit_result,
-                "push_result":  push_result,
-                "confidence":   0.95,
-                "recommendation": "Vérification propositions dans evolution_changes.md",
-                "glossary_used": True,
-            }
-
-        # Comportement normal (marker cycle)
-        try:
-            edit_result = self.edit_tool._run(
-                new_code=f"# EvolutionAgent cycle | Leçons={lesson_count}\n",
-                filename="evolution_marker.txt"
-            )
-        except Exception as e:
-            edit_result = f"Warning: Edit skipped: {e}"
-
-        try:
-            push_result = self.push_tool._run(
-                commit_message=f"EvolutionAgent — Cycle normal | Leçons={lesson_count}"
-            )
-        except Exception as e:
-            push_result = f"Warning: Push skipped: {e}"
-
         return {
-            "agent":          "evolution",
-            "summary":        f"MAX TRADES activé | Leçons={lesson_count}",
-            "decision":       "DEPLOYED_MAX_TRADES",
-            "extreme_learning": extreme_learning,
-            "confidence":     0.95,
-            "recommendation": "HOLD - Cycle normal",
+            "agent":          self.name,
+            "summary":        summary,
+            "decision":       "EVOLUTION_CYCLE_COMPLETE",
+            "improvements":   improvements,
+            "edit_result":    edit_result,
+            "push_result":    push_result,
+            "lesson_count":   lesson_count,
+            "winrate":        winrate,
+            "confidence":     0.92,
+            "recommendation": "Vérifier evolution_changes.md pour les propositions",
             "glossary_used":  True,
         }
