@@ -3128,20 +3128,19 @@ class BotHandler(BaseHTTPRequestHandler):
     def _handle_api_get(self):
         global _agent_running, _bot_mode, sim_portfolio, orchestrator
         path = self.path.split("?")[0]
-        _raw  = load_json("sim_portfolio_v7.json", {})
-        # BUG FIX: le JSON est sauvé sous {"sim": {...}, "memory":...}
-        # mais le code lisait directement "capital" sur le niveau racine → toujours 0
-        sim   = _raw.get("sim", _raw) if isinstance(_raw, dict) else {}
+        # FIX V2: utiliser le sim global en mémoire (temps réel) au lieu du disque
+        # Le disque peut être vieux de >1h ; le global est mis à jour à chaque trade
+        _sim    = sim  # référence directe au dict global (mis à jour par trading_loop)
         # Helpers pour calculer PnL/drawdown depuis les bonnes clés
-        _cash   = float(sim.get("cash",   sim.get("capital",   CAPITAL_INITIAL)))
-        _init   = float(sim.get("initial", CAPITAL_INITIAL))
-        _peak   = float(sim.get("peak_equity", max(_cash, _init)))
-        _daily  = float(sim.get("daily_start_equity", _init))
+        _cash   = float(_sim.get("cash",   _sim.get("capital",   CAPITAL_INITIAL)))
+        _init   = float(_sim.get("initial", CAPITAL_INITIAL))
+        _peak   = float(_sim.get("peak_equity", max(_cash, _init) if max(_cash, _init) > 0 else CAPITAL_INITIAL))
+        _daily  = float(_sim.get("daily_start_equity", _init))
         _pnl_d  = round(_cash - _daily, 2)
         _pnl_t  = round(_cash - _init,  2)
         _dd     = round((_peak - _cash) / _peak * 100, 2) if _peak > 0 else 0.0
-        _trades = sim.get("trades", [])
-        _pos    = sim.get("positions", [])
+        _trades = _sim.get("trades", [])
+        _pos    = _sim.get("positions", {})
         _pos    = list(_pos.values()) if isinstance(_pos, dict) else (_pos if isinstance(_pos, list) else [])
 
         if path == "/api/bot/status":
