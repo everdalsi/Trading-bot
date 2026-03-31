@@ -2655,7 +2655,7 @@ def trading_loop(send_fn):
                 "market_regime":    bot_state.get("market_regime", "NEUTRAL"),
                 "confidence_threshold": memory.get("confidence_threshold", CONFIDENCE_BASE),
                 "open_positions":   len(sim.get("positions", {})),
-                "max_positions":    3,
+                "max_positions":    10,  # TRAINING MODE
                 "daily_start_equity": sim.get("daily_start_equity", equity),
             }
 
@@ -2734,7 +2734,7 @@ def trading_loop(send_fn):
                 _is_buy  = any(x in reco_str for x in ["BUY", "LONG"])
                 _is_sell = any(x in reco_str for x in ["SELL", "SHORT"])
                 _is_no   = "NO" in reco_str  # couvre: NO TRADE, NO ACTION, etc.
-                if trade_conf >= 0.80 and (_is_buy or _is_sell) and not _is_no:
+                if trade_conf >= 0.15 and (_is_buy or _is_sell) and not _is_no:  # TRAINING MODE: seuil bas pour max apprentissage
                     trade_side = "BUY" if _is_buy else "SELL"
                     trade_price = get_current_price(best_symbol) or current_price
                     amount_usd  = decision.get("amount_usd", equity * float(decision.get("kelly_adjusted", 0.05)))
@@ -2752,14 +2752,15 @@ def trading_loop(send_fn):
                         )
                         exec_result = exec_future.result(timeout=12)
                         logger.info(f"🚀 AUTO TRADE {best_symbol} {trade_side} ${amount_usd:.2f} → {exec_result.get('fill_price', '?')}")
+                        # TRAINING MODE: enregistrer chaque trade comme lecon
                         if hasattr(memory, "save_lesson"):
                             memory.save_lesson(
                                 symbol     = best_symbol,
                                 action     = trade_side,
-                                outcome    = "pending",
+                                outcome    = "training",
                                 pnl        = 0.0,
                                 confidence = trade_conf,
-                                lesson     = f"Multi-symbol parallel trade | conf={trade_conf:.0%}"
+                                lesson     = f"[TRAINING] {trade_side} {best_symbol} conf={trade_conf:.0%} regime={micro_ctx.get('market_regime','?')}"
                             )
                         if hasattr(memory, "save_position") and exec_result.get("success"):
                             memory.save_position(
@@ -2768,6 +2769,11 @@ def trading_loop(send_fn):
                             )
                     except Exception as exec_e:
                         logger.warning(f"[MICRO] ExecutionEngine error {best_symbol}: {exec_e}")
+                        # TRAINING MODE: les erreurs sont aussi des lecons
+                        if hasattr(memory, "save_lesson"):
+                            try:
+                                memory.save_lesson(symbol=best_symbol, action=trade_side, outcome="training_error", pnl=0.0, confidence=trade_conf, lesson=f"[TRAINING ERROR] {trade_side} {best_symbol} conf={trade_conf:.0%} err={type(exec_e).__name__}")
+                            except Exception: pass
 
             except Exception as e:
                 logger.warning(f"[MICRO V7] Cycle error: {type(e).__name__}: {e or "timeout"}")
@@ -3183,10 +3189,10 @@ class BotHandler(BaseHTTPRequestHandler):
             losses = [t for t in _trades if t.get("pnl", 0) < 0]
             pnls   = [t.get("pnl", 0) for t in _trades]
             self._send_json({
-                "total":          len(trades),
+                "total":          len(_trades),
                 "wins":           len(wins),
                 "losses":         len(losses),
-                "win_rate":       round(len(wins) / max(1, len(trades)) * 100, 1),
+                "win_rate":       round(len(wins) / max(1, len(_trades)) * 100, 1),
                 "avg_win":        round(sum(t.get("pnl",0) for t in wins)  / max(1, len(wins)),  2),
                 "avg_loss":       round(sum(t.get("pnl",0) for t in losses)/ max(1, len(losses)),2),
                 "total_pnl":      round(sum(pnls), 2),
