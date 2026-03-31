@@ -1,7 +1,7 @@
 """
 Trading Bot v8.2 — GOAT du cerveau collectif + Cerveau commun parfait + Spécialisation stricte
 UPGRADES intégrées (sans rien supprimer de l’original) :
-- memory forcé en classe
+- memory forcé en class
 - PerformanceTracker + export_dashboard compatible
 - Dashboard envoyé en parse_mode='HTML' (plus de HTML brut)
 - Orchestrator V5 + shared_glossary 
