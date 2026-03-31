@@ -35,6 +35,12 @@ from agents.quant_ml_agent import QuantMLAgent
 from agents.execution_engine_agent import ExecutionEngineAgent
 from agents.yield_staking_agent import YieldStakingAgent
 from agents.base_agent import BaseAgent
+try:
+    from agents.soul_agent import SoulAgent as _SoulAgent
+    _SOUL_AVAILABLE = True
+except ImportError:
+    _SOUL_AVAILABLE = False
+    logger.info("[SOUL] soul_agent.py non disponible → fonctionnalité désactivée")
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -362,7 +368,8 @@ _main_loop  = None
 _app        = None
 _start_ts   = time.time()
 _agent_running = False
-_agent_activity_log = []   # Feed temps réel
+_agent_activity_log = []
+_soul = None   # Âme du bot — initialisée au démarrage   # Feed temps réel
 _last_debate_cycle   = {}  # Dernier cycle complet
 _debate_cycle_id     = 0   # Compteur de cycle
 _signal_cache:   set  = set()
@@ -2734,10 +2741,14 @@ def trading_loop(send_fn):
                 _is_buy  = any(x in reco_str for x in ["BUY", "LONG"])
                 _is_sell = any(x in reco_str for x in ["SELL", "SHORT"])
                 _is_no   = "NO" in reco_str  # couvre: NO TRADE, NO ACTION, etc.
-                if trade_conf >= 0.15 and (_is_buy or _is_sell) and not _is_no:  # TRAINING MODE: seuil bas pour max apprentissage
+                # SOUL: seuil dynamique ajusté par l'âme du bot selon l'expérience accumulée
+                _soul_thresh = (_soul.params["confidence_threshold"] if _soul else 0.15)
+                if trade_conf >= _soul_thresh and (_is_buy or _is_sell) and not _is_no:  # Seuil géré par l'âme
                     trade_side = "BUY" if _is_buy else "SELL"
                     trade_price = get_current_price(best_symbol) or current_price
-                    amount_usd  = decision.get("amount_usd", equity * float(decision.get("kelly_adjusted", 0.05)))
+                    # SOUL: en mode LIVE, utiliser le Kelly calculé par l'âme
+                    _kelly_soul = (_soul.params.get("kelly_fraction", 0.05) if _soul else 0.05)
+                    amount_usd  = decision.get("amount_usd", equity * float(decision.get("kelly_adjusted", _kelly_soul)))
                     amount_usd  = max(10.0, min(amount_usd, equity * 0.10))
                     try:
                         exec_future = asyncio.run_coroutine_threadsafe(
@@ -2885,6 +2896,13 @@ def trading_loop(send_fn):
                     )
             except Exception as e:
                 logger.warning(f"Save lesson error: {e}")
+
+        # ── SOUL: auto-ajustement toutes les 60s ──────────────────────────
+        if _soul:
+            try:
+                _soul.tick()
+            except Exception as _se:
+                logger.debug(f"[SOUL] tick error: {_se}")
 
         time.sleep(0.1)
 
@@ -3144,6 +3162,23 @@ class BotHandler(BaseHTTPRequestHandler):
                 "ws_connected":     ws_manager.connected if ws_manager else False,
             })
 
+        elif path in ("/api/soul", "/api/soul/state"):
+            if _soul:
+                self._send_json(_soul.get_state())
+            else:
+                self._send_json({
+                    "phase": "TRAINING", "live_mode": False, "live_progress_pct": 0,
+                    "live_ready": False, "missing_criteria": ["Soul agent non initialisé"],
+                    "params": {"confidence_threshold": 0.15, "max_positions": 10},
+                    "last_thought": "Je m'initialise...", "journal": []
+                })
+
+        elif path == "/api/soul/journal":
+            if _soul:
+                self._send_json({"journal": _soul.get_journal(limit=50)})
+            else:
+                self._send_json({"journal": []})
+
         elif path == "/api/agents":
             agents_list = [
                 {"id": "analyst",           "name": "Market Analyst",      "icon": "📊", "status": "active"},
@@ -3158,6 +3193,7 @@ class BotHandler(BaseHTTPRequestHandler):
                 {"id": "event_sniper",      "name": "Event Sniper",         "icon": "🎯", "status": "active"},
                 {"id": "drawdown_guard",    "name": "Drawdown Guard",       "icon": "🛡️", "status": "active"},
                 {"id": "supervisor",        "name": "Supervisor",           "icon": "👁️", "status": "active"},
+                {"id": "soul",              "name": "Soul Agent",           "icon": "🧬", "status": "active" if _soul else "inactive"},
             ]
             self._send_json({"agents": agents_list, "count": len(agents_list)})
 
@@ -4392,6 +4428,17 @@ def auto_start():
     threading.Thread(target=daily_summary, args=(send,), daemon=True).start()
 
 def _evolution_loop_MAIN():
+    global _soul
+    # ── Soul Agent — conscience autonome ─────────────────────────────────
+    try:
+        if _SOUL_AVAILABLE:
+            _soul = _SoulAgent(memory=memory, bot_state=bot_state, sim=sim)
+            logger.info("[SOUL] 🧬 Âme du bot initialisée ✅")
+        else:
+            logger.info("[SOUL] Soul agent non disponible → mode classique")
+    except Exception as e:
+        logger.warning(f"[SOUL] Init non bloquante: {e}")
+    # ── Self-Improvement legacy ───────────────────────────────────────────
     try:
         from agents.self_improvement import start_self_improvement_loop
         start_self_improvement_loop(orchestrator)
