@@ -43,6 +43,8 @@ from agents.correlation_watcher_agent import CorrelationWatcherAgent
 from agents.backtest_validator_agent import BacktestValidatorAgent
 from agents.polymarket_arb_agent import PolymarketArbAgent
 from agents.event_sniper_agent import EventSniperAgent
+from agents.polymarket_trader_agent import PolymarketTraderAgent
+from agents.sports_arb_agent import SportsArbAgent
 
 from logging_config import logger
 
@@ -114,9 +116,13 @@ class Orchestrator:
         # ── Agents V8 — Edge Arbitrage & Snipe ───────────────────────────
         self.polymarket_arb  = PolymarketArbAgent()    # Spread Polymarket vs CEX
         self.event_sniper    = EventSniperAgent()       # Liquidations/OI/funding/volume
+        self.polymarket_trader  = PolymarketTraderAgent()    # Direct Polymarket trading
+        self.sports_arb         = SportsArbAgent()           # Sports latency arbitrage
 
         self.debate_rounds = 0
-        logger.info("[ORCHESTRATOR V7] ✅ Tous les agents initialisés — Mode PARALLÈLE activé (+ PolyArb + Sniper)")
+        self._polytrader_cache = {}
+        self._sportsarb_cache  = {}
+        logger.info("[ORCHESTRATOR V9] ✅ 14 agents initialisés — Mode PARALLÈLE activé (+ PolyTrader + SportsArb)")
 
     def get_backtest_validator(self) -> BacktestValidatorAgent:
         return self.backtest_validator
@@ -216,12 +222,17 @@ class Orchestrator:
             # ── Agents V8 : edge arbitrage + snipe (indépendants) ──
             _safe_call(self.polymarket_arb,       question, context, timeout=8.0),
             _safe_call(self.event_sniper,         question, context, timeout=10.0),
+            # ── Agents V9 : Polymarket trader direct + Sports latency arb ──
+            _safe_call(self.polymarket_trader,  question, context, timeout=10.0),
+            _safe_call(self.sports_arb,         question, context, timeout=10.0),
             return_exceptions=False
         )
 
         (analyst_resp, quant_resp, ob_resp, social_resp,
          research_resp, ks_resp, wc_resp, corr_resp,
-         poly_arb_resp, sniper_resp) = group_a
+            poly_arb_resp, sniper_resp,
+            polytrader_resp, sportsarb_resp,
+         polytrader_resp, sportsarb_resp) = group_a
 
         # Enrichir le contexte avec les résultats Phase 1
         context["analysis"]             = analyst_resp.get("analysis", {})
@@ -244,6 +255,21 @@ class Orchestrator:
         import time as _time
         self._poly_arb_cache = {**poly_arb_resp, "updated_at": int(_time.time())}
         self._sniper_cache   = {**sniper_resp,   "updated_at": int(_time.time())}
+        self._polytrader_cache = {**polytrader_resp, "updated_at": int(_time.time())}
+        self._sportsarb_cache  = {**sportsarb_resp,  "updated_at": int(_time.time())}
+
+        # Enrichir contexte V9
+        context["polytrader_signal"]     = polytrader_resp.get("signal", "HOLD")
+        context["polytrader_edge"]       = polytrader_resp.get("avg_edge_pct", 0.0)
+        context["polytrader_opps"]       = polytrader_resp.get("markets_with_edge", 0)
+        context["sportsarb_signal"]      = sportsarb_resp.get("signal", "HOLD")
+        context["sportsarb_total"]       = sportsarb_resp.get("total_found", 0)
+        _sarb_opps = sportsarb_resp.get("opportunities", [])
+        context["sportsarb_best_profit"] = _sarb_opps[0].get("profit_pct", 0.0) if _sarb_opps else 0.0
+        if polytrader_resp.get("signal") != "HOLD":
+            logger.info(f"[ORCH V9] 🎯 PolyTrader: {polytrader_resp['signal']} edge={context['polytrader_edge']:.1f}%")
+        if sportsarb_resp.get("signal") != "HOLD":
+            logger.info(f"[ORCH V9] ⚡ SportsArb: {sportsarb_resp['signal']} profit={context['sportsarb_best_profit']:.2f}%")
 
         # Log si edge actif
         if poly_arb_resp.get("signal") != "HOLD":
