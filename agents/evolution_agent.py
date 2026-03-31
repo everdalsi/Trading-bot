@@ -21,6 +21,17 @@ from typing import Dict, Any, List
 
 from logging_config import logger
 
+# ── V6.0 : Import BacktestValidator ──────────────────────────────────────────
+try:
+    from agents.backtest_validator_agent import BacktestValidatorAgent
+    _BACKTEST_VALIDATOR = BacktestValidatorAgent()
+    _BACKTEST_ENABLED   = True
+except ImportError:
+    _BACKTEST_VALIDATOR = None
+    _BACKTEST_ENABLED   = False
+
+
+
 try:
     from agents.base_agent import BaseAgent, _KnowledgeBaseSingleton
 except ImportError:
@@ -34,7 +45,7 @@ except ImportError:
             return {}
 
 
-# ────────────────────────────────────────────────────────────────────────────
+# ─────────────────��──────────────────────────────────────────────────────────
 # TOOLS LOCAUX (sans dépendance crewai)
 # ────────────────────────────────────────────────────────────────────────────
 
@@ -78,6 +89,23 @@ class GitPushTool:
             )
             if "nothing to commit" in commit.stdout:
                 return "ℹ️ Rien à committer"
+            # FIX V6.0 : Backtest validation OBLIGATOIRE avant push
+            if _BACKTEST_ENABLED and _BACKTEST_VALIDATOR:
+                import asyncio
+                try:
+                    loop = asyncio.get_event_loop()
+                    if loop.is_closed():
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                    backtest_ok = loop.run_until_complete(
+                        _BACKTEST_VALIDATOR.validate_before_push(symbol="BTCUSDT")
+                    )
+                    if not backtest_ok:
+                        logger.warning("[EVOLUTION] 🛑 Push bloqué — BacktestValidator: résultat négatif sur 7j")
+                        return "🛑 Push bloqué (BacktestValidator: stratégie non rentable sur 7 jours)"
+                    logger.info("[EVOLUTION] ✅ BacktestValidator passé — push autorisé")
+                except Exception as e_bt:
+                    logger.warning(f"[EVOLUTION] ⚠️ BacktestValidator erreur: {e_bt} — push continué prudemment")
             # FIX: Vérification minimale avant push
             # Refus si le message de commit contient des patterns dangereux
             DANGEROUS_PATTERNS = [
