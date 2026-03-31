@@ -122,6 +122,8 @@ class Orchestrator:
         self.debate_rounds = 0
         self._polytrader_cache = {}
         self._sportsarb_cache  = {}
+        self._last_news_veto_ts    = 0.0   # Debounce : log VETO News max 1x/60s
+        self._last_funding_veto_ts = 0.0   # Debounce : log VETO Funding max 1x/60s
         logger.info("[ORCHESTRATOR V9] ✅ 14 agents initialisés — Mode PARALLÈLE activé (+ PolyTrader + SportsArb)")
 
     def get_backtest_validator(self) -> BacktestValidatorAgent:
@@ -175,7 +177,11 @@ class Orchestrator:
 
         # News : veto sur événement macro critique
         if news_resp.get("veto"):
-            logger.warning(f"[ORCH V7] 📰 VETO News: {news_resp.get('summary', '')[:60]}")
+            import time as _time_veto
+            _now_veto = _time_veto.time()
+            if _now_veto - self._last_news_veto_ts > 60:
+                logger.warning(f"[ORCH V7] 📰 VETO News: {news_resp.get('summary', '')[:60]}")
+                self._last_news_veto_ts = _now_veto
             return True, {
                 "agent": "orchestrator", "summary": news_resp.get("summary", "Pause événement macro"),
                 "confidence": 1.0, "recommendation": "NO TRADE", "veto_source": "news_event",
@@ -183,7 +189,11 @@ class Orchestrator:
 
         # Funding rate trop élevé
         if funding_resp.get("veto"):
-            logger.warning(f"[ORCH V7] 💰 VETO FundingRate: {funding_resp.get('summary', '')[:60]}")
+            import time as _time_veto2
+            _now_veto2 = _time_veto2.time()
+            if _now_veto2 - self._last_funding_veto_ts > 60:
+                logger.warning(f"[ORCH V7] 💰 VETO FundingRate: {funding_resp.get('summary', '')[:60]}")
+                self._last_funding_veto_ts = _now_veto2
             return True, {
                 "agent": "orchestrator", "summary": funding_resp.get("summary", "Funding rate trop élevé"),
                 "confidence": 1.0, "recommendation": "NO TRADE", "veto_source": "funding_rate",
