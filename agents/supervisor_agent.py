@@ -1,9 +1,5 @@
 """
-🎯 SUPERVISOR AGENT V4 — Arbitre final + Cerveau Collectif + Ultra-sélectivité 98%+
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Upgrade complète : débat multi-rounds, seuil 98 %, intégration ImmuneSystem, décision quasi 100% winrate
-"""
-
+🎯 SUPERVISOR AGENT V5 — GOAT de la synthèse finale + Cerveau commun parfait + Spécialisation stricte
 """
 🎯 SUPERVISOR AGENT V5 — GOAT de la synthèse finale + Cerveau commun parfait + Spécialisation stricte
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
