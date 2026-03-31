@@ -2607,12 +2607,12 @@ def trading_loop(send_fn):
                     run_backtest("BTCUSDT", "5m"), 
                     _main_loop
                 )
-                backtest_stats = future.result(timeout=20)
+                backtest_stats = future.result(timeout=45)
                 logger.info(f"[BACKTEST PHASE 1] Return: {backtest_stats.get('total_return', 0):.2%} | "
                            f"Max DD: {backtest_stats.get('max_drawdown', 0):.2%} | "
                            f"Win Rate: {backtest_stats.get('win_rate', 0):.2%}")
             except Exception as bt_e:
-                logger.warning(f"Backtest error (non blocking): {bt_e}")
+                logger.warning(f"Backtest error (non blocking): {type(bt_e).__name__}: {bt_e or "timeout"}")
 
         if now - last_risk_check >= 300:
             last_risk_check = now
@@ -2660,11 +2660,11 @@ def trading_loop(send_fn):
                 # ── Analyse parallèle sur les 3 meilleurs symboles ──────────
                 multi_future = asyncio.run_coroutine_threadsafe(
                     orchestrator.analyze_symbols_parallel(
-                        top_symbols[:3], micro_ctx
+                        top_symbols[:2], micro_ctx
                     ),
                     _main_loop
                 )
-                multi_results = multi_future.result(timeout=35)
+                multi_results = multi_future.result(timeout=60)
 
                 # Choisir le meilleur signal parmi les symboles analysés
                 best_symbol   = top_symbols[0]
@@ -2726,7 +2726,7 @@ def trading_loop(send_fn):
                         logger.warning(f"[MICRO] ExecutionEngine error {best_symbol}: {exec_e}")
 
             except Exception as e:
-                logger.warning(f"[MICRO V7] Cycle error: {e}")
+                logger.warning(f"[MICRO V7] Cycle error: {type(e).__name__}: {e or "timeout"}")
                 # Fallback : analyse simple BTC uniquement
                 try:
                     fallback_future = asyncio.run_coroutine_threadsafe(
@@ -2773,13 +2773,13 @@ def trading_loop(send_fn):
                 future = asyncio.run_coroutine_threadsafe(
                     yield_staking.respond("check staking and transfer to savings", staking_ctx), _main_loop
                 )
-                staking_result = future.result(timeout=15)
+                staking_result = future.result(timeout=25)
                 if "réel" in staking_result.get("summary", "") or "STAKING RÉEL" in staking_result.get("summary", ""):
                     logger.info(f"💰 Staking réel surveillé : {staking_result['summary']}")
                     if hasattr(memory, "save_lesson"):
                         memory.save_lesson("USDT", "STAKING", "executed", 0.0, 0.95, staking_result.get("summary", ""))
             except Exception as e:
-                logger.warning(f"Staking auto error: {e}")
+                logger.warning(f"Staking auto error: {type(e).__name__}: {e or "timeout"}")
 
         if now - last_regime >= 300:
             last_regime = now
