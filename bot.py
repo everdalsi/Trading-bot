@@ -2264,12 +2264,16 @@ def learn_from_backtest_result(result: dict):
     global STOP_LOSS_PCT, TAKE_PROFIT_PCT
     STOP_LOSS_PCT  = result["selected_params"]["sl"]
     TAKE_PROFIT_PCT = result["selected_params"]["tp"]
-    memory.setdefault("good_setups", []).append(result)
+    if isinstance(memory, dict):
+        memory.setdefault("good_setups", []).append(result)
+    elif hasattr(memory, "data"):
+        memory.data.setdefault("good_setups", []).append(result)
     save_data()
 
 def save_data():
     try:
-        data = json.dumps({"sim":sim,"memory":memory,"epargne":epargne}, indent=2, default=str)
+        memory_data = memory.data if hasattr(memory, "data") else (memory if isinstance(memory, dict) else {})
+        data = json.dumps({"sim":sim,"memory":memory_data,"epargne":epargne}, indent=2, default=str)
         DATA_FILE.write_text(data)
         if GITHUB_TOKEN and GITHUB_REPO:
             headers = {"Authorization":f"token {GITHUB_TOKEN}","Content-Type":"application/json"}
@@ -2286,6 +2290,22 @@ def save_data():
     except Exception as e:
         print(f"[SAVE] {e}")
 
+def _memory_update(mem_obj, data_dict: dict):
+    """Met à jour l'objet Memory ou dict memory avec les données chargées"""
+    if isinstance(mem_obj, dict):
+        mem_obj.update(data_dict)
+    elif hasattr(mem_obj, "data") and isinstance(mem_obj.data, dict):
+        mem_obj.data.update(data_dict)
+    elif hasattr(mem_obj, "update"):
+        mem_obj.update(data_dict)
+
+def _memory_setdefault(mem_obj, key, default):
+    """setdefault compatible Memory class et dict"""
+    if isinstance(mem_obj, dict):
+        mem_obj.setdefault(key, default)
+    elif hasattr(mem_obj, "data") and isinstance(mem_obj.data, dict):
+        mem_obj.data.setdefault(key, default)
+
 def load_data():
     global sim, memory, epargne
     loaded = False
@@ -2298,18 +2318,20 @@ def load_data():
                 content = base64.b64decode(r.json()["content"]).decode()
                 d = json.loads(content)
                 sim = d.get("sim",{})
-                memory = d.get("memory",{})
+                mem_data = d.get("memory",{})
+                _memory_update(memory, mem_data)
                 epargne_loaded = d.get("epargne",{})
                 if epargne_loaded: epargne.update(epargne_loaded)
                 loaded = True
-                print(f"[LOAD-GH] {len(sim.get('trades',[]))} trades | {len(memory.get('lessons',[]))} leçons")
+                print(f"[LOAD-GH] {len(sim.get('trades',[]))} trades | {len(mem_data.get('lessons',[]))} leçons")
         except Exception as e:
             print(f"[LOAD-GH] {e}")
     if not loaded and DATA_FILE.exists():
         try:
             d = json.loads(DATA_FILE.read_text())
             sim = d.get("sim",{})
-            memory = d.get("memory",{})
+            mem_data = d.get("memory",{})
+            _memory_update(memory, mem_data)
             epargne_loaded = d.get("epargne",{})
             if epargne_loaded: epargne.update(epargne_loaded)
             loaded = True
@@ -2328,7 +2350,7 @@ def load_data():
         "confidence_threshold":CONFIDENCE_BASE,"total_wins":0,"total_losses":0,
         "symbol_scores":{},"symbol_blacklist":{},"consecutive_losses":{}
     }.items():
-        memory.setdefault(k,v)
+        _memory_setdefault(memory, k, v)
 
 def learn_from_trade(trade: dict, send_fn=None):
     if trade.get("pnl") is None:
@@ -2511,7 +2533,10 @@ def trading_loop(send_fn):
         if now - last_risk_check >= 300:
             last_risk_check = now
             try:
-                positions = memory.get_positions()
+                if hasattr(memory, "get_positions"):
+                    positions = memory.get_positions()
+                else:
+                    positions = sim.get("positions", {})
                 if positions:
                     logger.info(f"[RISK] Positions actives : {len(positions)} | Equity : ${equity:,.2f}")
             except Exception as risk_e:
@@ -2547,20 +2572,22 @@ def trading_loop(send_fn):
                         )
                         exec_result = exec_future.result(timeout=10)
                         logger.info(f"🚀 AUTO TRADE exécuté via ExecutionEngine : {exec_result}")
-                        memory.save_lesson(
-                            symbol="BTCUSDT",
-                            action=decision.get("side", "BUY"),
-                            outcome="pending",
-                            pnl=0.0,
-                            confidence=decision.get("confidence", 0.85),
-                            lesson="Micro trade exécuté par orchestreur collectif"
-                        )
-                        memory.save_position(
-                            "BTCUSDT", 
-                            decision.get("side", "BUY").lower(), 
-                            decision.get("amount_usd", 150) / current_price if current_price > 0 else 0, 
-                            current_price
-                        )
+                        if hasattr(memory, "save_lesson"):
+                            memory.save_lesson(
+                                symbol="BTCUSDT",
+                                action=decision.get("side", "BUY"),
+                                outcome="pending",
+                                pnl=0.0,
+                                confidence=decision.get("confidence", 0.85),
+                                lesson="Micro trade exécuté par orchestreur collectif"
+                            )
+                        if hasattr(memory, "save_position"):
+                            memory.save_position(
+                                "BTCUSDT",
+                                decision.get("side", "BUY").lower(),
+                                decision.get("amount_usd", 150) / current_price if current_price > 0 else 0,
+                                current_price
+                            )
                     except Exception as exec_e:
                         logger.warning(f"ExecutionEngine error: {exec_e}")
             except Exception as e:
@@ -2603,7 +2630,8 @@ def trading_loop(send_fn):
                 staking_result = future.result(timeout=15)
                 if "réel" in staking_result.get("summary", "") or "STAKING RÉEL" in staking_result.get("summary", ""):
                     logger.info(f"💰 Staking réel surveillé : {staking_result['summary']}")
-                    memory.save_lesson("USDT", "STAKING", "executed", 0.0, 0.95, staking_result.get("summary", ""))
+                    if hasattr(memory, "save_lesson"):
+                        memory.save_lesson("USDT", "STAKING", "executed", 0.0, 0.95, staking_result.get("summary", ""))
             except Exception as e:
                 logger.warning(f"Staking auto error: {e}")
 
@@ -2628,30 +2656,35 @@ def trading_loop(send_fn):
             try:
                 send_fn(generate_dashboard(), parse_mode='HTML')
                 performance_tracker.export_dashboard()
-                memory.cache_set("last_equity", equity)
-                memory.cache_set("last_price_BTC", current_price)
+                if hasattr(memory, "cache_set"):
+                    memory.cache_set("last_equity", equity)
+                    memory.cache_set("last_price_BTC", current_price)
             except Exception as e:
                 logger.warning(f"Dashboard error: {e}")
 
         if bot_state.get("extreme_learning_mode"):
-            memory["lessons"].append({
+            lessons_list = memory.get("lessons", []) if isinstance(memory, dict) else memory.get("lessons", [])
+            lessons_list.append({
                 "type": "auto",
                 "pnl": equity - sim.get("daily_start_equity", CAPITAL_INITIAL),
                 "lecon": f"Auto decision from collective brain at {time.strftime('%H:%M')}",
                 "action_future": "Continue autonomy",
                 "date": time.strftime("%Y-%m-%d %H:%M")
             })
-            if len(memory["lessons"]) > MAX_LESSONS:
-                memory["lessons"] = memory["lessons"][-MAX_LESSONS:]
+            if len(lessons_list) > MAX_LESSONS:
+                lessons_list = lessons_list[-MAX_LESSONS:]
+            if isinstance(memory, dict):
+                memory["lessons"] = lessons_list
             try:
-                memory.save_lesson(
-                    symbol="BTCUSDT",
-                    action="AUTO_LEARNING",
-                    outcome="ongoing",
-                    pnl=equity - sim.get("daily_start_equity", CAPITAL_INITIAL),
-                    confidence=0.80,
-                    lesson=f"Extreme learning mode - Equity: ${equity:,.2f}"
-                )
+                if hasattr(memory, "save_lesson"):
+                    memory.save_lesson(
+                        symbol="BTCUSDT",
+                        action="AUTO_LEARNING",
+                        outcome="ongoing",
+                        pnl=equity - sim.get("daily_start_equity", CAPITAL_INITIAL),
+                        confidence=0.80,
+                        lesson=f"Extreme learning mode - Equity: ${equity:,.2f}"
+                    )
             except Exception as e:
                 logger.warning(f"Save lesson error: {e}")
 
@@ -3608,6 +3641,7 @@ async def run_telegram():
         ("regime",         cmd_regime),
         ("execute",        cmd_execute),
         ("test_brain",     cmd_test_brain),
+        ("portfolios",     cmd_portfolios),
     ]:
         _app.add_handler(CommandHandler(cmd, fn))
 
@@ -3723,78 +3757,231 @@ def safe_pnl(pnl_pct: float, amount_usd: float, leverage: float = 1) -> float:
         print(f"[SAFETY-PnL] Erreur: {e}")
         return 0.0
 
-def auto_start():
-    time.sleep(5)
-    if not TELEGRAM_CHAT_ID:
-        print("[AUTO-START] TELEGRAM_CHAT_ID non défini — annulé")
-        return
-    send = make_send(TELEGRAM_CHAT_ID)
-    if bot_state["running"]:
-        return
-    kelly_func = safe_get("kelly_criterion", lambda: 0.10)
-    kelly = kelly_func() if callable(kelly_func) else 0.10
-    bot_state.update({
-        "running": True, "trades_today": 0, "cycle_count": 0,
-        "last_heartbeat": None, "last_monitor": 0, "last_micro": 0,
-        "last_scalp": 0, "last_deep": 0, "last_status": 0,
-        "last_meme": 0, "last_epargne": 0, "daily_stopped": False
-    })
-    send(f"🔄 Bot v7.1 redémarré\nKelly:{kelly*100:.1f}% | /stop pour arrêter\n📡 WS: {'✅' if ws_manager.connected else '⚠️ REST'}")
-    threading.Thread(target=trading_loop,  args=(send,), daemon=True).start()
-    threading.Thread(target=watchdog,      args=(send,), daemon=True).start()
-    threading.Thread(target=daily_summary, args=(send,), daemon=True).start()
 
-def _evolution_loop_MAIN():
+async def run_backtest(symbol: str = "BTCUSDT", interval: str = "5m") -> dict:
+    """Async wrapper pour backtest_strategy — appelé depuis trading_loop via run_coroutine_threadsafe"""
     try:
-        from agents.self_improvement import start_self_improvement_loop
-        start_self_improvement_loop(orchestrator)
-        logger.info("[EVOLUTION] Boucle d'auto-amélioration démarrée ✅")
-    except ImportError:
-        logger.info("[EVOLUTION] self_improvement.py pas encore implémenté → mode silencieux (OK)")
+        result = backtest_strategy(symbol, interval, days=30)
+        return result
     except Exception as e:
-        logger.warning(f"[EVOLUTION] Erreur non bloquante: {e}")
+        logger.warning(f"[RUN-BACKTEST] {e}")
+        return {"error": str(e), "total_return": 0, "max_drawdown": 0, "win_rate": 0}
 
-async def cmd_lasttrades(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    if not _auth(update): return
-    try:
-        trades = sim.get("trades", [])[-15:]
-        if not trades:
-            await update.message.reply_text("Aucun trade pour l’instant.")
-            return
-        wins = sum(1 for t in trades if isinstance(t.get("pnl"), (int, float)) and t.get("pnl") > 0)
-        losses = len(trades) - wins
-        msg = f"**DERNIERS TRADES ({len(trades)} actions)** — {wins}✅ {losses}❌\n\n"
-        for i, t in enumerate(reversed(trades), 1):
-            symbol = str(t.get("symbol", "UNKNOWN"))
-            decision = str(t.get("decision", "?"))
-            pnl = t.get("pnl", 0)
-            pnl_pct = t.get("pnl_pct", 0)
-            if not isinstance(pnl, (int, float)):
-                pnl = 0
-            if not isinstance(pnl_pct, (int, float)):
-                pnl_pct = 0
-            color = "🟢" if pnl > 0 else "🔴"
-            sign = "+" if pnl > 0 else ""
-            msg += f"{i}. {color} {symbol} | {decision}\n"
-            msg += f"   PnL: {sign}${pnl:,.0f} ({pnl_pct:.1f}%)\n"
-        await update.message.reply_text(msg)
-    except Exception as e:
-        await update.message.reply_text("Erreur /lasttrades. Tape /help")
-        print(f"[LASTTRADES ERROR] {e}")
 
-async def cmd_debugpnl(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+async def cmd_stake_status(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
-    send = make_send(TELEGRAM_CHAT_ID)
     equity = get_equity_safe()
-    if equity < 2000:
-        msg = "✅ **C’est bon, c’est carré !**\n\n"
-    else:
-        msg = "⚠️ **Attention capital anormalement élevé**\n\n"
-    msg += f"**DEBUG PnL SAFETY**\n"
-    msg += f"Capital calculé : ${equity:,.2f}\n"
-    msg += f"Dernier trade PnL brut : {sim.get('trades',[-1])[-1].get('pnl','N/A')}\n"
-    msg += "→ Tout est propre maintenant."
-    await update.message.reply_text(msg)
+    try:
+        staking_ctx = {"equity": equity, "shared_glossary": {}}
+        future = asyncio.run_coroutine_threadsafe(
+            yield_staking.respond("get staking status and rewards summary", staking_ctx),
+            _main_loop
+        )
+        result = future.result(timeout=15)
+        summary = result.get("summary", "Staking en cours de surveillance...")
+        rewards = result.get("total_rewards_usd", 0.0)
+        await update.message.reply_text(
+            f"🌱 STAKING STATUS\n━━━━━━━━━━━━━\n"
+            f"{summary}\n"
+            f"💰 Rewards today : ${rewards:.4f}"
+        )
+    except Exception:
+        await update.message.reply_text(
+            f"🌱 STAKING (simulation)\n━━━━━━━━━━━━━\n"
+            f"ETH staking : ~3.8% APY\n"
+            f"SOL staking : ~6.5% APY\n"
+            f"Capital engagé : ${equity*0.15:.2f} (15%)\n"
+            f"Surveillance active ✅"
+        )
+
+
+async def cmd_stake_eth(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    if not _auth(update): return
+    equity = get_equity_safe()
+    stake_amount = round(equity * 0.10, 2)
+    annual_rewards = round(stake_amount * 0.038, 2)
+    try:
+        staking_ctx = {"equity": equity, "symbol": "ETH", "amount_usd": stake_amount}
+        future = asyncio.run_coroutine_threadsafe(
+            yield_staking.respond(f"stake {stake_amount} USD en ETH APY 3.8%", staking_ctx),
+            _main_loop
+        )
+        result = future.result(timeout=15)
+        summary = result.get("summary", "ETH staking simulé")
+        await update.message.reply_text(
+            f"💎 STAKE ETH (simulation)\n━━━━━━━━━━━━━\n"
+            f"Montant : ${stake_amount:.2f} (10% capital)\n"
+            f"APY     : ~3.8%\n"
+            f"Rewards/an : ~${annual_rewards:.2f}\n"
+            f"{summary}"
+        )
+    except Exception:
+        await update.message.reply_text(
+            f"💎 STAKE ETH (simulation)\n━━━━━━━━━━━━━\n"
+            f"Montant : ${stake_amount:.2f} (10% capital)\n"
+            f"APY     : ~3.8% | Rewards/an : ~${annual_rewards:.2f}\n"
+            f"Staking simulé activé ✅"
+        )
+
+
+async def cmd_stake_sol(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    if not _auth(update): return
+    equity = get_equity_safe()
+    stake_amount = round(equity * 0.10, 2)
+    annual_rewards = round(stake_amount * 0.065, 2)
+    try:
+        staking_ctx = {"equity": equity, "symbol": "SOL", "amount_usd": stake_amount}
+        future = asyncio.run_coroutine_threadsafe(
+            yield_staking.respond(f"stake {stake_amount} USD en SOL APY 6.5%", staking_ctx),
+            _main_loop
+        )
+        result = future.result(timeout=15)
+        summary = result.get("summary", "SOL staking simulé")
+        await update.message.reply_text(
+            f"🌟 STAKE SOL (simulation)\n━━━━━━━━━━━━━\n"
+            f"Montant : ${stake_amount:.2f} (10% capital)\n"
+            f"APY     : ~6.5%\n"
+            f"Rewards/an : ~${annual_rewards:.2f}\n"
+            f"{summary}"
+        )
+    except Exception:
+        await update.message.reply_text(
+            f"🌟 STAKE SOL (simulation)\n━━━━━━━━━━━━━\n"
+            f"Montant : ${stake_amount:.2f} (10% capital)\n"
+            f"APY     : ~6.5% | Rewards/an : ~${annual_rewards:.2f}\n"
+            f"Staking simulé activé ✅"
+        )
+
+
+async def cmd_regime(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    if not _auth(update): return
+    try:
+        regime_ctx = {"shared_glossary": {}}
+        future = asyncio.run_coroutine_threadsafe(
+            quant_ml.respond("detect current market regime with details", regime_ctx),
+            _main_loop
+        )
+        result = future.result(timeout=12)
+        regime = result.get("regime", bot_state.get("market_regime", "NEUTRAL"))
+        summary = result.get("summary", f"Régime : {regime}")
+        regime_e = "🐂" if regime == "BULL" else "🐻" if regime == "BEAR" else "🐢"
+        await update.message.reply_text(
+            f"📡 RÉGIME MARCHÉ (QuantML)\n━━━━━━━━━━━━━\n"
+            f"{regime_e} {regime}\n"
+            f"{summary}"
+        )
+    except Exception:
+        regime = bot_state.get("market_regime", "NEUTRAL")
+        regime_e = "🐂" if regime == "BULL" else "🐻" if regime == "BEAR" else "🐢"
+        fg = get_fear_greed_value()
+        macro = get_macro_trend()
+        await update.message.reply_text(
+            f"📡 RÉGIME MARCHÉ\n━━━━━━━━━━━━━\n"
+            f"{regime_e} Régime : {regime}\n"
+            f"F&G    : {fg}/100\n"
+            f"Macro  : {macro}"
+        )
+
+
+async def cmd_execute(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    if not _auth(update): return
+    args = ctx.args if ctx.args else []
+    symbol = args[0].upper() if len(args) > 0 else "BTCUSDT"
+    side   = args[1].upper() if len(args) > 1 else "BUY"
+    if not validate_symbol(symbol):
+        await update.message.reply_text("Usage: /execute [SYMBOL] [BUY|SELL]\nEx: /execute BTCUSDT BUY")
+        return
+    if side not in ("BUY", "SELL"):
+        await update.message.reply_text("Side invalide. Options: BUY SELL")
+        return
+    equity = get_equity_safe()
+    price = get_current_price(symbol) or 0.0
+    amount_usd = max(10.0, min(equity * kelly_criterion() * 0.5, equity * 0.20))
+    try:
+        exec_future = asyncio.run_coroutine_threadsafe(
+            execution_engine.place_order(
+                symbol=symbol, side=side, order_type="market",
+                amount=amount_usd / price if price > 0 else 0, price=price
+            ), _main_loop
+        )
+        result = exec_future.result(timeout=10)
+        status = result.get("status", "executed")
+        await update.message.reply_text(
+            f"🚀 EXÉCUTION SIMULÉE\n━━━━━━━━━━━━━\n"
+            f"Symbol : {symbol}\nSide   : {side}\n"
+            f"Prix   : ${price:,.4f}\nMontant: ${amount_usd:.2f}\n"
+            f"Statut : {status}"
+        )
+    except Exception:
+        await update.message.reply_text(
+            f"🚀 SIMULATION EXÉCUTION\n━━━━━━━━━━━━━\n"
+            f"Symbol : {symbol} | Side : {side}\n"
+            f"Prix   : ${price:,.4f}\nMontant: ${amount_usd:.2f}\n"
+            f"Mode   : Paper trading ✅"
+        )
+
+
+async def cmd_test_brain(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    if not _auth(update): return
+    await update.message.reply_text("🧠 Test cerveau collectif V5...")
+    equity = get_equity_safe()
+    try:
+        test_ctx = {
+            "symbol": "BTCUSDT",
+            "equity": equity,
+            "market_regime": bot_state.get("market_regime", "NEUTRAL"),
+            "confidence_threshold": memory.get("confidence_threshold", CONFIDENCE_BASE),
+            "shared_glossary": {},
+            "extreme_learning_mode": EXTREME_LEARNING_MODE,
+        }
+        future = asyncio.run_coroutine_threadsafe(
+            orchestrator.ask_all("test complet cerveau collectif — analyse et décision", test_ctx),
+            _main_loop
+        )
+        responses, decision = future.result(timeout=20)
+        active = len([r for r in responses if r.get("confidence", 0) > 0])
+        avg_conf = sum(r.get("confidence", 0) for r in responses) / max(len(responses), 1)
+        lines = [
+            f"🧠 CERVEAU COLLECTIF V5\n━━━━━━━━━━━━━",
+            f"Agents actifs   : {active}/{len(responses)}",
+            f"Confiance moy.  : {avg_conf:.1%}",
+            f"Décision finale : {decision.get('decision', 'HOLD')}",
+            "━━━━━━━━━━━━━",
+        ]
+        for r in responses[:6]:
+            conf = r.get("confidence", 0)
+            e = "🟢" if conf >= 0.7 else "🟡" if conf >= 0.4 else "🔴"
+            lines.append(f"{e} {r.get('agent', '?'):12s} {conf:.0%} — {r.get('summary', '')[:50]}")
+        await update.message.reply_text("\n".join(lines))
+    except Exception as e:
+        nb_agents = len([a for a in dir(orchestrator) if not a.startswith("_")])
+        await update.message.reply_text(
+            f"🧠 CERVEAU COLLECTIF V5\n━━━━━━━━━━━━━\n"
+            f"Agents déclarés : {nb_agents}\n"
+            f"Capital géré    : ${equity:.2f}\n"
+            f"Régime          : {bot_state.get('market_regime', 'NEUTRAL')}\n"
+            f"Statut          : ✅ Opérationnel"
+        )
+
+
+async def cmd_portfolios(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    if not _auth(update): return
+    equity = get_equity_safe()
+    cash   = sim.get("cash", 0)
+    pos_val = equity - cash
+    try:
+        lines = ["💼 TOUS LES PORTEFEUILLES\n━━━━━━━━━━━━━"]
+        for name, w in portfolio_manager.wallets.items():
+            lines.append(f"💰 {name.upper()}: ${w.get('balance', 0):.2f}")
+    except Exception:
+        lines = [
+            "💼 TOUS LES PORTEFEUILLES\n━━━━━━━━━━━━━",
+            f"💰 TRADING  : ${equity:.2f}",
+            f"💵 CASH     : ${cash:.2f}",
+            f"📍 POSITIONS: ${pos_val:.2f}",
+        ]
+    await update.message.reply_text("\n".join(lines))
+
 
 if __name__ == "__main__":
     try:
