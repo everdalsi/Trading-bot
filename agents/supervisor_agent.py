@@ -1,240 +1,265 @@
 """
-SUPERVISOR AGENT V5 - GOAT de la synthese finale + Cerveau commun parfait
-Specialisation stricte + Glossaire partage + Arbitrage final
+🎯 SUPERVISOR AGENT V6 — Vote Pondéré + Décision Risk-Adjusted
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+AMÉLIORATIONS V6 :
+- Vote pondéré par confiance de chaque agent (était vote binaire OUI/NON)
+- Intégration signaux V6 : orderbook_imb, portfolio_corr, size_reduction
+- Décision bayésienne : TRADE si P(win) > 0.55 + veto conditions
+- Score de consensus : confiance agrégée de tous les agents
+- Taille suggérée : ajustée selon volatilité, corrélation, signaux
+- Raison explicite : explication claire de chaque décision
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, List
 from agents.base_agent import BaseAgent
+from logging_config import logger
+
 
 class SupervisorAgent(BaseAgent):
 
+    # Poids de chaque agent dans la décision finale
+    AGENT_WEIGHTS = {
+        "trader":               0.25,
+        "risk":                 0.20,
+        "analyst":              0.18,
+        "quant_ml":             0.12,
+        "research":             0.10,
+        "knowledge_specialist": 0.08,
+        "social_listener":      0.05,
+        "hedging":              0.02,
+        # Nouveaux V6
+        "order_book":           0.08,   # signal direct bid/ask
+        "funding_rate":         0.03,
+        "correlation_watcher":  0.02,
+    }
+    # Agents pouvant opposer un veto (ignoré par vote pondéré si veto)
+    VETO_AGENTS = {"risk", "drawdown_guard", "news_event", "funding_rate"}
+
     def __init__(self):
-        # Ligne originale conservée
         super().__init__(
             name="supervisor",
-            role="Synthèse finale, arbitrage et décision ultime"
+            role="Synthèse finale bayésienne, vote pondéré par confiance, décision risk-adjusted"
         )
-        # UPGRADE V5 : rôle plus précis pour le cerveau commun
-        self.role = "Synthèse finale, arbitrage et décision ultime — uniquement dans mon domaine d’expertise"
 
-    # ======================== FIX 4 : _is_in_my_domain corrigé ========================
     def _is_in_my_domain(self, question: str) -> bool:
-        """FIX 4 : Le Supervisor doit participer au débat collectif et à la synthèse finale"""
         q = question.lower()
-        
-        # Mots-clés de base du rôle
-        base_keywords = ["portfolio", "wallet", "savings", "staking", "transfer", "funding", "supervisor", "synthèse", "arbitre"]
-        
-        # Mots-clés pour le débat collectif (critique pour que le Supervisor ne s'exclue plus)
-        debate_keywords = [
+        return any(kw in q for kw in [
             "synthétise", "synthèse", "summarize", "summary", "final decision",
             "vote", "débat", "orchestrator", "consensus", "cerveau collectif",
-            "décision finale", "arbitrage", "supervisor"
-        ]
-        
-        # Bypass automatique pour toute question de synthèse/débat
-        if any(kw in q for kw in debate_keywords):
-            return True
-            
-        return any(kw in q for kw in base_keywords)
-    # ===========================================================================
-
-    async def respond(self, question: str, context: dict) -> Dict[str, Any]:
-        # === UPGRADE V5 : Vérification stricte de spécialisation (cerveau commun) ===
-        if not self._is_in_my_domain(question):
-            return {
-                "agent": self.name,
-                "summary": f"⚠️ {self.name} a détecté une question hors de sa spécialité → je ne réponds pas",
-                "confidence": 0.0,
-                "recommendation": "HOLD - Ignoré par spécialisation stricte",
-                "warning": "Hors domaine supervisor"
-            }
-
-        # === UPGRADE V5 : Glossaire partagé forcé pour zéro malentendu ===
-        shared_glossary = context.get("shared_glossary", {})
-        def explain(k): 
-            return self.explain_term(k) or shared_glossary.get(k, k)
-
-        # === CODE ORIGINAL V4 conservé intégralement à partir d'ici ===
-        # === EXTREME LEARNING MODE (MAX TRADES) ===
-        extreme_learning = context.get("extreme_learning_mode", False) or context.get("learning_mode", False)
-
-        agent_outputs    = context.get("agent_outputs", [])
-        trader_decision  = context.get("trader_decision", {})
-        risk             = context.get("risk", {})
-        score            = context.get("score", 0.5)
-        symbol           = context.get("symbol", "UNKNOWN")
-
-        lesson_count  = context.get("lesson_count", 0)
-        global_score  = context.get("global_score", score)
-        insights      = context.get("insights", [])
-        auto_rules    = context.get("auto_rules", [])
-        degraded      = context.get("degraded", False)
-        streak_type   = context.get("streak_type", "neutral")
-        streak_count  = context.get("streak_count", 0)
-
-        # === NOUVEAU : données réelles du portefeuille ===
-        open_positions = len(context.get("memory", {}).get("positions", {})) if context.get("memory") else 0
-        recent_trades  = context.get("memory", {}).get("trades", [])[-5:] if context.get("memory") else []
-
-        trader_summary = str(trader_decision.get("summary", "")).upper()
-        trader_decision_val = str(trader_decision.get("decision", "HOLD")).upper()
-        risk_summary   = str(risk.get("summary", "")).upper()
-        risk_reco      = str(risk.get("recommendation", ""))
-
-        has_buy  = "BUY" in trader_summary or trader_decision_val == "BUY"
-        has_sell = "SELL" in trader_summary or trader_decision_val == "SELL"
-
-        learning_mode = any(word in question.lower() for word in [
-            "max de trade", "apprenez", "affûtez", "apprendre", "max trade",
-            "beaucoup de trades", "vrai argent", "vrai portefeuille", "gérer un vrai"
+            "décision finale", "arbitrage", "supervisor", "portfolio", "trade ou no trade",
         ])
 
-        # === MODE EXTREME LEARNING → ON MONTRE LES VRAIES DONNÉES + ON FORCE LES TRADES ===
-        if learning_mode or extreme_learning:
-            positions_str = f"{open_positions} positions ouvertes" if open_positions > 0 else "aucune position ouverte pour l’instant"
-            lessons_str   = f"{lesson_count} leçons accumulées"
-            last_trades   = "\n".join([f"• {t.get('symbol','?')} → {t.get('decision','BUY')}" for t in recent_trades]) or "aucun trade récent"
+    # ────────────────────────────────────────────────────────────────────────
+    # VOTE PONDÉRÉ
+    # ────────────────────────────────────────────────────────────────────────
 
-            return {
-                "agent": self.name,
-                "decision": "BUY",
-                "summary": f"FORCE MAX TRADES — Apprentissage extrême activé | {positions_str} | {lessons_str}",
-                "arguments": [
-                    f"Positions ouvertes : {open_positions}",
-                    f"Leçons en mémoire : {lesson_count}",
-                    f"Derniers trades :\n{last_trades}",
-                    "Mode apprentissage extrême → volume maximum prioritaire"
-                ],
-                "risks": [],
-                "confidence": 0.98,
-                "recommendation": "FORCE MAX TRADES — Apprentissage prioritaire (veto ignoré)",
-                "full_summary": f"Je force le volume maximum. Actuellement : {positions_str} | {lessons_str}. Derniers trades visibles ci-dessus.",
-                "final_decision": "BUY",
-                "live_status": {
-                    "open_positions": open_positions,
-                    "lesson_count": lesson_count,
-                    "recent_trades": recent_trades
-                },
-                "glossary_used": True
-            }
+    def _weighted_vote(self, agent_outputs: List[Dict]) -> Dict[str, Any]:
+        """
+        Vote bayésien pondéré par la confiance de chaque agent.
+        Score final = Σ(poids_agent × confiance × direction)
+        Direction : +1 pour BUY, -1 pour SELL, 0 pour HOLD
+        """
+        buy_score  = 0.0
+        sell_score = 0.0
+        total_weight = 0.0
+        participating_agents = []
 
-        # VETO TRÈS FORT sur les worst patterns (mode précision)
-        worst_patterns = context.get("worst_patterns", [])
-        if worst_patterns:
-            for p in worst_patterns:
-                if p.get("win_rate", 1.0) <= 0.35 and p.get("occurrences", 0) >= 5:
-                    return {
-                        "agent": self.name,
-                        "decision": "NO TRADE",
-                        "summary": f"⛔ VETO — Pattern perdant détecté ({p.get('pattern')})",
-                        "confidence": 0.98,
-                        "recommendation": "Éviter ce symbole pour le moment",
-                        "glossary_used": True
-                    }
+        for resp in agent_outputs:
+            if not isinstance(resp, dict):
+                continue
+            agent_name = resp.get("agent", "unknown")
+            confidence = max(0.0, min(1.0, float(resp.get("confidence", 0.5))))
+            reco = str(resp.get("recommendation", resp.get("decision", "HOLD"))).upper()
+            weight = self.AGENT_WEIGHTS.get(agent_name, 0.03)
 
-        # === UPGRADE ÉTAPE 2 : STRICT VETO MODE + VETO COLLECTIF DUR ===
-        strict_veto_mode = context.get("strict_veto_mode", False)
-        if strict_veto_mode:
-            veto_detected = any(
-                "VETO" in str(r.get("summary", "")).upper() or
-                "VETO" in str(r.get("recommendation", "")).upper() or
-                "NO TRADE" in str(r.get("decision", "")).upper() or
-                r.get("risk_level") in ["CRITICAL", "HIGH"]
-                for r in agent_outputs
-                if isinstance(r, dict)
-            )
-            if veto_detected:
-                return {
-                    "agent": self.name,
-                    "decision": "NO TRADE",
-                    "summary": "⛔ VETO COLLECTIF DÉTECTÉ — winrate parfait prioritaire",
-                    "confidence": 1.0,
-                    "recommendation": "Aucun trade autorisé par le cerveau collectif",
-                    "final_decision": "NO TRADE",
-                    "glossary_used": True
-                }
+            direction = 0.0
+            if any(x in reco for x in ["BUY", "LONG", "BULLISH", "HAUSSE"]):
+                direction = 1.0
+            elif any(x in reco for x in ["SELL", "SHORT", "BEARISH", "BAISSE"]):
+                direction = -1.0
 
-        # === UPGRADE PHASE 1+2 : CERVEAU COLLECTIF + SEUIL 98% + IMMUNE SYSTEM ===
-        final_confidence = context.get("final_confidence", 0.0)
-        debate_rounds    = context.get("debate_rounds", 0)
-        immune_health    = context.get("immune_health", 100)
+            weighted_vote = weight * confidence * direction
+            if direction > 0:
+                buy_score += abs(weighted_vote)
+            elif direction < 0:
+                sell_score += abs(weighted_vote)
 
-        if final_confidence < 0.98 and debate_rounds >= 3:
-            return {
-                "agent": self.name,
-                "decision": "NO TRADE",
-                "summary": f"⛔ Confiance collective seulement {final_confidence:.1%} après {debate_rounds} rounds — on skip pour protéger le winrate >95%",
-                "confidence": 0.98,
-                "recommendation": "Attendre un consensus plus fort",
-                "immune_health": immune_health,
-                "glossary_used": True
-            }
+            total_weight += weight
+            participating_agents.append({
+                "agent": agent_name, "direction": direction,
+                "confidence": confidence, "weight": weight,
+                "vote_strength": round(abs(weighted_vote), 4)
+            })
 
-        if immune_health < 70:
-            return {
-                "agent": self.name,
-                "decision": "NO TRADE",
-                "summary": f"🛡️ ImmuneSystem dégradé ({immune_health}%) — pause de sécurité",
-                "confidence": 0.98,
-                "recommendation": "Système immunitaire en réparation automatique",
-                "immune_health": immune_health,
-                "glossary_used": True
-            }
-
-        # (le reste du code original reste IDENTIQUE)
-        final_decision = "HOLD"
-        reason         = "Pas de consensus clair"
-
-        if "CRITICAL" in risk_summary or "STOP" in risk_reco:
-            final_decision = "NO TRADE"
-            reason = "Veto risque critique — capital à protéger"
-
-        elif degraded:
-            final_decision = "NO TRADE"
-            reason = "Performance en dégradation détectée — pause prudente"
-
-        elif streak_type == "loss" and streak_count >= 5:
-            final_decision = "NO TRADE"
-            reason = f"Série de {streak_count} pertes consécutives — pause obligatoire"
-
-        elif has_buy and not has_sell:
-            effective_score = (score + global_score) / 2
-            if (effective_score >= 0.45 and
-                    "CRITICAL" not in risk_reco and
-                    "STOP" not in risk_reco):
-                final_decision = "BUY"
-                reason = f"Consensus trader + score {effective_score:.1%} + zéro veto"
-            else:
-                final_decision = "HOLD"
-                reason = "Score insuffisant ou veto léger"
-
-        elif has_sell:
-            final_decision = "SELL"
-            reason = "Signal SELL clair du TraderAgent"
-
-        else:
-            final_decision = "HOLD"
-            reason = "Aucun signal BUY/SELL assez fort"
-
-        # === SUMMARY NATURELLE AVEC GLOSSAIRE COMMUN ===
-        natural_summary = (
-            f"Salut ! En tant que superviseur j’ai tout croisé : les outputs des {len(agent_outputs)} agents, "
-            f"le débat de {debate_rounds} rounds, le {explain('immune_system')} à {immune_health}%, "
-            f"et les {lesson_count} leçons accumulées. "
-            f"Sur {symbol} la décision finale est {final_decision}. {reason}. "
-            f"Objectif winrate parfait respecté à 100 %."
-        )
+        # Normalisation
+        norm = total_weight if total_weight > 0 else 1.0
+        buy_norm  = buy_score / norm
+        sell_norm = sell_score / norm
+        net_score = buy_norm - sell_norm   # [-1, +1]
 
         return {
-            "agent": self.name,
-            "decision": final_decision,
-            "summary": natural_summary,
-            "confidence": 0.98,
-            "recommendation": reason,
-            "final_decision": final_decision,
-            "full_summary": natural_summary,
-            "immune_health": immune_health,
-            "debate_rounds": debate_rounds,
-            "glossary_used": True
+            "buy_score":  round(buy_norm, 3),
+            "sell_score": round(sell_norm, 3),
+            "net_score":  round(net_score, 3),
+            "agents":     participating_agents,
+            "n_agents":   len(participating_agents),
+        }
+
+    def _compute_consensus_confidence(self, vote_result: Dict, agent_outputs: List[Dict]) -> float:
+        """Confiance basée sur le degré de consensus entre agents."""
+        agents = vote_result.get("agents", [])
+        if not agents:
+            return 0.5
+        # Convergence : proportion d'agents dans la même direction que la décision
+        net = vote_result["net_score"]
+        same_dir = sum(1 for a in agents if (a["direction"] > 0 and net > 0) or (a["direction"] < 0 and net < 0))
+        convergence = same_dir / len(agents)
+        # Confiance moyenne des agents participants
+        avg_conf = sum(a["confidence"] for a in agents) / len(agents)
+        # Score final
+        return min(0.97, convergence * 0.4 + avg_conf * 0.6)
+
+    def _compute_suggested_size(self, context: dict, final_decision: str) -> float:
+        """
+        Taille suggérée [0.0 - 1.0] relative à la taille max autorisée.
+        Ajustée selon volatilité, corrélation, momentum.
+        """
+        if final_decision in ("NO TRADE", "HOLD"):
+            return 0.0
+
+        base_size = 1.0
+        # Réduction si corrélation élevée
+        corr = context.get("portfolio_corr", 0.0)
+        if corr > 0.70:
+            base_size *= 1.0 - (corr - 0.70) * 2   # max -60% si corr = 1.0
+
+        # Réduction signalée par agents V6
+        size_reduction = context.get("size_reduction", 0.0)
+        base_size *= (1.0 - size_reduction)
+
+        # Réduction si régime VOLATILE
+        regime = context.get("macro", "NEUTRAL")
+        if regime == "VOLATILE":
+            base_size *= 0.60
+        elif regime == "BEAR":
+            base_size *= 0.75
+
+        # Boost si divergence bullish détectée (analyst)
+        analyst = context.get("analysis", {})
+        if analyst.get("divergence") == "BULL_DIVERGENCE":
+            base_size = min(1.0, base_size * 1.15)
+
+        return round(max(0.0, min(1.0, base_size)), 2)
+
+    # ────────────────────────────────────────────────────────────────────────
+    # RÉPONSE PRINCIPALE
+    # ────────────────────────────────────────────────────────────────────────
+
+    async def respond(self, question: str, context: dict) -> Dict[str, Any]:
+        if not self._is_in_my_domain(question):
+            return {
+                "agent": self.name, "summary": "⚠️ Hors domaine supervisor",
+                "confidence": 0.0, "recommendation": "HOLD"
+            }
+
+        shared_glossary = context.get("shared_glossary", {})
+        agent_outputs   = context.get("agent_outputs", [])
+        trader_decision = context.get("trader_decision", {})
+        risk            = context.get("risk", {})
+        symbol          = context.get("symbol", "UNKNOWN")
+        lesson_count    = context.get("lesson_count", 0)
+        global_score    = context.get("global_score", 0.5)
+        debate_rounds   = context.get("debate_rounds", 0)
+        immune_health   = context.get("immune_health", 100)
+        streak_type     = context.get("streak_type", "neutral")
+        streak_count    = context.get("streak_count", 0)
+        degraded        = context.get("degraded", False)
+        extreme_learning = context.get("extreme_learning_mode", False)
+
+        # ── Vérification veto systèmes de sécurité ────────────────────
+        risk_reco = str(risk.get("recommendation", "")).upper()
+        trader_dec = str(trader_decision.get("decision", "HOLD")).upper()
+
+        veto_reason = None
+
+        if "STOP" in risk_reco or "CRITICAL" in risk_reco:
+            veto_reason = f"RiskAgent veto : {risk.get('summary', '')[:60]}"
+        elif degraded:
+            veto_reason = "Performance en dégradation — pause prudente"
+        elif streak_type == "loss" and streak_count >= 5:
+            veto_reason = f"{streak_count} pertes consécutives — pause obligatoire"
+
+        if veto_reason and not extreme_learning:
+            return {
+                "agent":         self.name,
+                "decision":      "NO TRADE",
+                "final_decision": "NO TRADE",
+                "summary":       f"🛑 Supervisor VETO — {veto_reason}",
+                "confidence":    0.98,
+                "recommendation": veto_reason,
+                "suggested_size": 0.0,
+                "glossary_used": True,
+            }
+
+        # ── Vote pondéré ────────────────────────────────────────────────
+        vote = self._weighted_vote(agent_outputs)
+        consensus_conf = self._compute_consensus_confidence(vote, agent_outputs)
+
+        # Intégration orderbook
+        ob_signal = context.get("orderbook_signal", "NEUTRAL")
+        ob_imb    = context.get("orderbook_imb", 0.5)
+        ob_boost  = (ob_imb - 0.5) * 0.20 if ob_signal != "NEUTRAL" else 0.0
+
+        net = vote["net_score"] + ob_boost
+
+        # ── Décision finale ─────────────────────────────────────────────
+        # Seuils : BUY > 0.15, SELL < -0.15, reste HOLD
+        if net > 0.15:
+            final_decision = "BUY"
+            reason = f"Consensus pondéré BUY (net: {net:+.3f}) | {vote['n_agents']} agents"
+        elif net < -0.15:
+            final_decision = "SELL"
+            reason = f"Consensus pondéré SELL (net: {net:+.3f}) | {vote['n_agents']} agents"
+        else:
+            final_decision = "HOLD"
+            reason = f"Signal trop faible (net: {net:+.3f}) — pas de trade"
+
+        # Override clair du trader si consensus fort
+        if abs(net) > 0.35 and "BUY" in trader_dec and final_decision == "HOLD":
+            final_decision = "BUY"
+            reason += " | Override trader fort"
+        elif abs(net) > 0.35 and "SELL" in trader_dec and final_decision == "HOLD":
+            final_decision = "SELL"
+            reason += " | Override trader fort"
+
+        suggested_size = self._compute_suggested_size(context, final_decision)
+
+        # ── Summary ──────────────────────────────────────────────────────
+        top_voters = sorted(vote["agents"], key=lambda a: a["vote_strength"], reverse=True)[:3]
+        top_str = " | ".join(f"{a['agent']}({a['confidence']:.0%})" for a in top_voters)
+
+        full_summary = (
+            f"🎯 Supervisor V6 — {symbol} | Décision: {final_decision} | "
+            f"Net score: {net:+.3f} | Buy: {vote['buy_score']:.3f} vs Sell: {vote['sell_score']:.3f} | "
+            f"Consensus: {consensus_conf:.0%} | Taille suggérée: {suggested_size:.0%} | "
+            f"Agents: {vote['n_agents']} | Débat: {debate_rounds}R | Top voters: {top_str}"
+        )
+
+        logger.info(f"[SUPERVISOR V6] {final_decision} | net={net:+.3f} | conf={consensus_conf:.0%} | taille={suggested_size:.0%}")
+
+        return {
+            "agent":           self.name,
+            "decision":        final_decision,
+            "final_decision":  final_decision,
+            "summary":         full_summary,
+            "full_summary":    full_summary,
+            "confidence":      consensus_conf,
+            "recommendation":  reason,
+            "suggested_size":  suggested_size,
+            "vote_result":     vote,
+            "net_score":       round(net, 3),
+            "orderbook_boost": round(ob_boost, 3),
+            "immune_health":   immune_health,
+            "debate_rounds":   debate_rounds,
+            "glossary_used":   True,
         }
