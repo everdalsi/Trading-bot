@@ -315,6 +315,7 @@ class Orchestrator:
             research_resp, ks_resp, wc_resp, corr_resp,
             risk_resp, hedging_resp, trader_resp,
             poly_arb_resp, sniper_resp,
+            polytrader_resp, sportsarb_resp,  # FIX: agents V9 — supervisor voit leurs signaux
         ]
         # Filtrer les réponses vides
         all_outputs = [r for r in all_outputs if r and isinstance(r, dict)]
@@ -329,9 +330,9 @@ class Orchestrator:
 
         self.debate_rounds += 1
         logger.info(
-            f"[ORCH V7] ✅ Décision: {final.get('decision', '?')} | "
+            f"[ORCH V9] ✅ Décision: {final.get('decision', final.get('recommendation', '?'))} | "
             f"conf: {final.get('confidence', 0):.0%} | "
-            f"{len(all_outputs)} agents | Parallèle ✓"
+            f"{len(all_outputs)} agents | kelly={context.get('kelly_adjusted', 0):.1%} | regime={context.get('market_regime', '?')}"
         )
         return all_outputs, final
 
