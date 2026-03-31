@@ -169,7 +169,7 @@ HF_KEY           = os.environ.get("HF_KEY", "")
 GITHUB_TOKEN     = os.environ.get("GITHUB_TOKEN", "")
 GITHUB_REPO      = os.environ.get("GITHUB_REPO", "")
 WEBHOOK_PATH     = "/webhook"
-WEBHOOK_PORT     = 8000
+WEBHOOK_PORT     = int(os.environ.get("PORT", 8000))
 
 USER_FIRSTNAME = os.environ.get("USER_FIRSTNAME", "")
 USER_LASTNAME  = os.environ.get("USER_LASTNAME", "")
