@@ -49,8 +49,9 @@ from agents.sports_arb_agent import SportsArbAgent
 from logging_config import logger
 
 # Timeout par agent (secondes)
-AGENT_TIMEOUT = 12.0
-PHASE0_TIMEOUT = 5.0
+AGENT_TIMEOUT      = 12.0
+PHASE0_TIMEOUT     = 5.0    # Agents rapides (self_improvement, code_fixer, drawdown_guard)
+PHASE0_HTTP_TIMEOUT = 12.0  # BUG FIX: news_event & funding_rate font des requêtes HTTP > 5s
 
 
 async def _safe_call(agent: BaseAgent, question: str, context: dict, timeout: float = AGENT_TIMEOUT) -> Dict[str, Any]:
@@ -140,7 +141,13 @@ class Orchestrator:
         """
         Vérifications de sécurité en PARALLÈLE.
         Retourne (veto, veto_response) si un veto est déclenché.
+        Cache le résultat 25s pour éviter 3-4 appels HTTP par cycle.
         """
+        import time as _tp
+        _now = _tp.time()
+        if _now - self._phase0_cache_ts < self.PHASE0_CACHE_TTL and self._phase0_cache:
+            return self._phase0_cache["veto"], self._phase0_cache["veto_resp"]
+
         q_immune  = "monitor health"
         q_code    = "code diagnostic health"
         q_guard   = "circuit breaker drawdown guard"
@@ -149,15 +156,20 @@ class Orchestrator:
 
         # ── Exécution PARALLÈLE des 5 vérifications ───────────────────────
         results = await asyncio.gather(
-            _safe_call(self.self_improvement,  q_immune,  context, PHASE0_TIMEOUT),
-            _safe_call(self.code_fixer,        q_code,    context, PHASE0_TIMEOUT),
-            _safe_call(self.drawdown_guard,    q_guard,   context, PHASE0_TIMEOUT),
-            _safe_call(self.news_event,        q_news,    context, PHASE0_TIMEOUT),
-            _safe_call(self.funding_rate,      q_funding, context, PHASE0_TIMEOUT),
+            _safe_call(self.self_improvement,  q_immune,  context, PHASE0_TIMEOUT),      # ≤5s (aucun HTTP)
+            _safe_call(self.code_fixer,        q_code,    context, PHASE0_TIMEOUT),      # ≤5s (aucun HTTP)
+            _safe_call(self.drawdown_guard,    q_guard,   context, PHASE0_TIMEOUT),      # ≤5s (aucun HTTP)
+            _safe_call(self.news_event,        q_news,    context, PHASE0_HTTP_TIMEOUT), # BUG FIX: était 5s, RSS+NewsAPI ~6-10s
+            _safe_call(self.funding_rate,      q_funding, context, PHASE0_HTTP_TIMEOUT), # BUG FIX: était 5s, Binance HTTP ~6-8s
             return_exceptions=False
         )
 
         immune_resp, code_resp, guard_resp, news_resp, funding_resp = results
+
+        # ── Pas de veto → cache le résultat OK et enrichir le contexte ──────
+        _no_veto_resp = {"recommendation": "OK", "confidence": 0.0}
+        self._phase0_cache    = {"veto": False, "veto_resp": _no_veto_resp}
+        self._phase0_cache_ts = _now
 
         # Enrichir le contexte
         context["immune_health"] = immune_resp.get("score", 100)
@@ -168,12 +180,18 @@ class Orchestrator:
 
         # ── Vérifier vetos ────────────────────────────────────────────────
         # DrawdownGuard : veto absolu (non contournable)
+        # ── Mise à jour du cache Phase 0 ─────────────────────────────────────
+        def _cache_and_return(veto: bool, resp: dict):
+            self._phase0_cache    = {"veto": veto, "veto_resp": resp}
+            self._phase0_cache_ts = _now
+            return veto, resp
+
         if guard_resp.get("veto"):
             logger.warning(f"[ORCH V7] 🛑 VETO DrawdownGuard: {guard_resp.get('veto_reason')}")
-            return True, {
+            return _cache_and_return(True, {
                 "agent": "orchestrator", "summary": guard_resp.get("summary", "Circuit breaker"),
                 "confidence": 1.0, "recommendation": "NO TRADE", "veto_source": "drawdown_guard",
-            }
+            })
 
         # News : veto sur événement macro critique
         if news_resp.get("veto"):
@@ -182,10 +200,11 @@ class Orchestrator:
             if _now_veto - self._last_news_veto_ts > 60:
                 logger.warning(f"[ORCH V7] 📰 VETO News: {news_resp.get('summary', '')[:60]}")
                 self._last_news_veto_ts = _now_veto
-            return True, {
+            return _cache_and_return(True, {
                 "agent": "orchestrator", "summary": news_resp.get("summary", "Pause événement macro"),
                 "confidence": 1.0, "recommendation": "NO TRADE", "veto_source": "news_event",
-            }
+                "pause_minutes": news_resp.get("pause_minutes", 0),
+            })
 
         # Funding rate trop élevé
         if funding_resp.get("veto"):
@@ -194,10 +213,10 @@ class Orchestrator:
             if _now_veto2 - self._last_funding_veto_ts > 60:
                 logger.warning(f"[ORCH V7] 💰 VETO FundingRate: {funding_resp.get('summary', '')[:60]}")
                 self._last_funding_veto_ts = _now_veto2
-            return True, {
+            return _cache_and_return(True, {
                 "agent": "orchestrator", "summary": funding_resp.get("summary", "Funding rate trop élevé"),
                 "confidence": 1.0, "recommendation": "NO TRADE", "veto_source": "funding_rate",
-            }
+            })
 
         return False, {}
 
@@ -376,10 +395,17 @@ class Orchestrator:
     def _compute_global_score(self, outputs: List[Dict]) -> float:
         """Score global pondéré sur tous les agents."""
         WEIGHTS = {
-            "analyst": 0.20, "risk": 0.18, "quant_ml": 0.12,
-            "order_book": 0.10, "trader": 0.15, "research": 0.08,
-            "social_listener": 0.05, "hedging": 0.05,
-            "knowledge_specialist": 0.04, "wallet_copier": 0.03,
+            # Agents core
+            "analyst":              0.18, "risk":                0.16,
+            "quant_ml":             0.11, "order_book":          0.09,
+            "trader":               0.13, "research":            0.07,
+            "social_listener":      0.04, "hedging":             0.04,
+            "knowledge_specialist": 0.03, "wallet_copier":       0.02,
+            # BUG FIX: Agents V8/V9 manquants (ils avaient le fallback 0.02)
+            "polymarket_trader":    0.07, # edge élevé → poids significatif
+            "polymarket_arb":       0.05,
+            "event_sniper":         0.05,
+            "sports_arb":           0.04, # arb garanti → signal fiable
         }
         total_w, weighted_sum = 0.0, 0.0
         for out in outputs:
