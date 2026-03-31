@@ -122,6 +122,8 @@ class Orchestrator:
         self.sports_arb         = SportsArbAgent()           # Sports latency arbitrage
 
         self.debate_rounds = 0
+        self._poly_arb_cache   = {}
+        self._sniper_cache     = {}
         self._polytrader_cache = {}
         self._sportsarb_cache  = {}
         self._last_news_veto_ts    = 0.0   # Debounce : log VETO News max 1x/60s
