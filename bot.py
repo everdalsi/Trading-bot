@@ -242,7 +242,7 @@ MODE_CONFIG = {
 }
 
 MAIN_OBJECTIVE = "Maximiser le nombre de trades simulés pour accumuler un maximum d'expérience et améliorer le winrate le plus rapidement possible"
-EXTREME_LEARNING_MODE = True
+EXTREME_LEARNING_MODE = False  # FIX V6.0: désactivé par défaut — danger contourne RiskAgent
 LEARN_MODE_ENABLED    = True
 LEARN_MODE_CONF_MIN   = 10
 LEARN_MODE_MAX_PCT    = 0.48
@@ -311,7 +311,7 @@ PROMO_EXCHANGES = [
 
 # ═══════════════════════════════════════════════════════════════
 #  CLIENTS
-# ═══════════════════════════════════════════════════════════════
+# ═════════��═════════════════════════════════════════════════════
 if not GROQ_KEY:
     raise RuntimeError("[FATAL] GROQ_API_KEY est absent du .env — le bot ne peut pas démarrer sans clé IA.")
 groq_client = Groq(api_key=GROQ_KEY)
@@ -903,7 +903,7 @@ def dynamic_position_size(confidence: int, market: str, symbol: str) -> float:
     elif fg < 40:
         fg_mult = 0.75   # Fear → -25%
     elif fg > 80:
-        fg_mult = 1.20   # Greed extrême → légère réduction aussi
+        fg_mult = 0.90   # FIX V6.0: Greed extrême → réduire la taille (marché suracheté)
     elif fg > 65:
         fg_mult = 1.10   # Greed modéré → légère hausse
     macro_mult = 1.0
@@ -1416,7 +1416,7 @@ def open_micro_trade(symbol: str, price: float, signal: dict, send_fn) -> dict |
     fg = get_fear_greed_value()
     macro = get_macro_trend()
     night_factor = 0.7 if is_night_time() else 1.0
-    fg_mult = 1.45 if fg < 25 else 1.25 if fg < 40 else 0.65 if fg > 75 else 0.85
+    fg_mult = 0.55 if fg < 25 else 0.75 if fg < 40 else 1.15 if fg > 75 else 1.00  # FIX V6.0: inversé — peur extrême → taille réduite (était BUG: 1.45)
     macro_mult = 1.35 if macro == "BULL" else 0.65 if macro == "BEAR" else 1.0
     amount = sim["cash"] * MICRO_MAX_PCT * fg_mult * macro_mult * night_factor
     qty = amount / price
@@ -3385,7 +3385,7 @@ async def cmd_help(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         f"/signaux — Signaux traders pros\n\n"
         f"🌍 **Opportunités**\n"
         f"/marches — Prix live (crypto/actions/forex)\n"
-        f"/memes — Memecoins trending\n"
+        f"/memes ��� Memecoins trending\n"
         f"/arbitrage — Opportunités arbitrage\n"
         f"/polymarket — Polymarket inefficiencies\n"
         f"/pool — Statut AI Pool\n\n"
