@@ -62,13 +62,12 @@ class PolymarketTraderAgent(BaseAgent):
     def __init__(self):
         super().__init__(
             name="polymarket_trader",
-            role="Polymarket Direct Trader",
-            goal=(
-                "Scanner les marchés de prédiction Polymarket, calculer la fair value "
-                "via données CEX + news + momentum, et signaler les positions YES/NO "
-                "quand l'edge dépasse 4%."
+            role=(
+                "Polymarket Direct Trader — Scanner les marchés binaires crypto, "
+                "calculer la fair value via données CEX + news + momentum, "
+                "et signaler les positions YES/NO quand l'edge dépasse 4%."
             ),
-            backstory=(
+            description=(
                 "Inspiré du bot viral qui a généré +1322% sur Polymarket en 11 jours "
                 "en exploitant le mispricing des marchés binaires crypto par rapport "
                 "aux prix réels sur les exchanges centralisés."
