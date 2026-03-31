@@ -4357,22 +4357,30 @@ async def run_telegram():
         await _app.shutdown()
 
 def auto_start():
-    time.sleep(5)
-    if not TELEGRAM_CHAT_ID:
-        print("[AUTO-START] TELEGRAM_CHAT_ID non défini — annulé")
-        return
-    send = make_send(TELEGRAM_CHAT_ID)
+    """Démarrage automatique au lancement Railway — sans dépendance Telegram."""
+    time.sleep(5)  # Attendre que le serveur HTTP soit prêt
+    global _agent_running
     if bot_state["running"]:
+        print("[AUTO-START] Bot déjà en cours — ignoré")
         return
+    # Telegram optionnel : on notifie si disponible, mais ça ne bloque PLUS le démarrage
+    send = make_send(TELEGRAM_CHAT_ID) if TELEGRAM_CHAT_ID else (lambda msg: print(f"[BOT] {msg}"))
     kelly_func = safe_get("kelly_criterion", lambda: 0.10)
     kelly = kelly_func() if callable(kelly_func) else 0.10
+    # ── Démarrage bot trading ──────────────────────────────────────────────
     bot_state.update({
         "running": True, "trades_today": 0, "cycle_count": 0,
         "last_heartbeat": None, "last_monitor": 0, "last_micro": 0,
         "last_scalp": 0, "last_deep": 0, "last_status": 0,
         "last_meme": 0, "last_epargne": 0, "daily_stopped": False
     })
-    send(f"🔄 Bot v7.1 redémarré\nKelly:{kelly*100:.1f}% | /stop pour arrêter\n📡 WS: {'✅' if ws_manager.connected else '⚠️ REST'}")
+    # ── Démarrage agents IA ────────────────────────────────────────────────
+    _agent_running = True
+    print(f"[AUTO-START] ✅ Bot démarré automatiquement — Kelly:{kelly*100:.1f}% | Agents IA: ON")
+    try:
+        send(f"🚀 Bot V9 démarré automatiquement\nKelly:{kelly*100:.1f}% | /stop pour arrêter\n📡 WS: {'✅' if ws_manager.connected else '⚠️ REST'}")
+    except Exception:
+        pass  # Telegram optionnel
     threading.Thread(target=trading_loop,  args=(send,), daemon=True).start()
     threading.Thread(target=watchdog,      args=(send,), daemon=True).start()
     threading.Thread(target=daily_summary, args=(send,), daemon=True).start()
