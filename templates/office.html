@@ -1,173 +1,920 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-theme="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Claude Office • Tradbot</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-        body { font-family: 'Press Start 2P', system-ui; background: #0a0a0a; color: #c9d1d9; }
-        .agent-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .agent-card:hover { transform: translateY(-4px) scale(1.03); box-shadow: 0 0 25px rgba(88,166,255,0.6); }
-        .modal { animation: modalPop 0.3s ease-out; }
-        @keyframes modalPop { from { opacity:0; transform:scale(0.9); } to { opacity:1; transform:scale(1); } }
-        .chat-bubble { max-width: 80%; padding: 14px 20px; border-radius: 20px; }
-        .sidebar { background: linear-gradient(180deg, #161b22, #0f131a); }
-    </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Trading Office</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --bg2: #0f0f17;
+    --bg3: #13131e;
+    --border: #1e1e2e;
+    --border2: #2a2a3e;
+    --text: #e2e2f0;
+    --text2: #8888aa;
+    --text3: #5555777;
+    --accent: #58a6ff;
+    --accent2: #1a3a5c;
+    --green: #3fb950;
+    --green2: #0d2e12;
+    --red: #f85149;
+    --red2: #2e0d0d;
+    --yellow: #d29922;
+    --yellow2: #2e220d;
+    --purple: #bc8cff;
+    --purple2: #1e0a3c;
+    --teal: #39d0b8;
+    --orange: #ff8c42;
+    --font: 'Courier New', 'Consolas', monospace;
+    --radius: 6px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.6);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 12px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  a { color: var(--accent); text-decoration: none; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg2); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* HEADER */
+  #header {
+    position: sticky; top: 0; z-index: 100;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 0 16px;
+    height: 52px;
+    display: flex; align-items: center; gap: 16px;
+    box-shadow: var(--shadow);
+  }
+  .logo { font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: 2px; white-space: nowrap; }
+  .logo span { color: var(--text2); font-size: 10px; display: block; letter-spacing: 1px; }
+  .header-sep { width: 1px; height: 28px; background: var(--border); flex-shrink: 0; }
+  .stat-pill {
+    display: flex; flex-direction: column; align-items: center;
+    padding: 2px 10px; border-radius: var(--radius);
+    background: var(--bg3); border: 1px solid var(--border);
+    min-width: 80px;
+  }
+  .stat-pill .label { font-size: 9px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; }
+  .stat-pill .value { font-size: 12px; font-weight: 700; }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    display: inline-block; margin-right: 4px;
+  }
+  .dot-green { background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2s infinite; }
+  .dot-red { background: var(--red); }
+  .dot-yellow { background: var(--yellow); }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+  .btn {
+    padding: 5px 12px; border-radius: var(--radius); border: 1px solid var(--border2);
+    background: var(--bg3); color: var(--text); font-family: var(--font); font-size: 11px;
+    cursor: pointer; transition: all 0.15s; white-space: nowrap;
+  }
+  .btn:hover { background: var(--border); }
+  .btn-red { background: #2e0d0d; border-color: var(--red); color: var(--red); }
+  .btn-red:hover { background: var(--red); color: #fff; }
+  .btn-green { background: #0d2e12; border-color: var(--green); color: var(--green); }
+  .btn-green:hover { background: var(--green); color: #000; }
+  .btn-accent { background: var(--accent2); border-color: var(--accent); color: var(--accent); }
+  .btn-accent:hover { background: var(--accent); color: #000; }
+  .header-spacer { flex: 1; }
+
+  /* LAYOUT */
+  #app {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    grid-template-rows: auto;
+    gap: 0;
+    height: calc(100vh - 52px);
+    overflow: hidden;
+  }
+  #main { overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+  #sidebar { overflow-y: auto; border-left: 1px solid var(--border); padding: 12px; display: flex; flex-direction: column; gap: 12px; background: var(--bg2); }
+
+  /* PANEL */
+  .panel {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden;
+  }
+  .panel-header {
+    padding: 8px 12px; background: var(--bg3); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .panel-title {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 2px; color: var(--text2);
+  }
+  .panel-body { padding: 10px; }
+  .panel-badge {
+    font-size: 9px; padding: 2px 7px; border-radius: 10px;
+    background: var(--accent2); color: var(--accent); border: 1px solid var(--accent);
+    letter-spacing: 1px;
+  }
+  .panel-badge-green { background: var(--green2); color: var(--green); border-color: var(--green); }
+  .panel-badge-red { background: var(--red2); color: var(--red); border-color: var(--red); }
+
+  /* AGENT FLOOR */
+  #agent-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+    gap: 8px;
+    padding: 10px;
+  }
+  .agent-card {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 10px;
+    cursor: pointer; transition: all 0.15s;
+    position: relative; overflow: hidden;
+  }
+  .agent-card:hover { border-color: var(--accent); box-shadow: 0 0 12px rgba(88,166,255,0.1); }
+  .agent-card.active { border-left: 2px solid var(--green); }
+  .agent-card.idle { border-left: 2px solid var(--border2); opacity: 0.75; }
+  .agent-card.error { border-left: 2px solid var(--red); }
+  .agent-card .agent-name { font-size: 11px; font-weight: 700; color: var(--text); }
+  .agent-card .agent-role { font-size: 9px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+  .agent-card .agent-meta { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
+  .agent-card .agent-activity {
+    font-size: 8px; padding: 2px 6px; border-radius: 3px; text-transform: uppercase; letter-spacing: 1px;
+  }
+  .act-working { background: var(--accent2); color: var(--accent); }
+  .act-analyzing { background: var(--purple2); color: var(--purple); }
+  .act-learning { background: #1e2e0d; color: #7ee787; }
+  .act-meeting { background: var(--yellow2); color: var(--yellow); }
+  .act-resting { background: var(--bg); color: var(--text2); }
+  .agent-card .agent-conf { font-size: 10px; font-weight: 700; color: var(--accent); }
+  .agent-card .agent-action { font-size: 9px; color: var(--text2); margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .agent-card .agent-location { font-size: 8px; color: var(--text3); margin-top: 2px; }
+
+  /* PORTFOLIO GRID */
+  .portfolio-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 10px; }
+  .port-stat { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; }
+  .port-stat .ps-label { font-size: 9px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; }
+  .port-stat .ps-value { font-size: 16px; font-weight: 700; margin-top: 3px; }
+  .port-stat .ps-sub { font-size: 9px; color: var(--text2); margin-top: 2px; }
+
+  /* TABLE */
+  .tbl { width: 100%; border-collapse: collapse; }
+  .tbl th { font-size: 9px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; padding: 6px 8px; border-bottom: 1px solid var(--border); text-align: left; }
+  .tbl td { padding: 7px 8px; border-bottom: 1px solid var(--border); font-size: 11px; }
+  .tbl tr:last-child td { border-bottom: none; }
+  .tbl tr:hover td { background: var(--bg3); }
+  .badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+  .badge-win { background: var(--green2); color: var(--green); border: 1px solid var(--green); }
+  .badge-loss { background: var(--red2); color: var(--red); border: 1px solid var(--red); }
+  .badge-long { background: var(--accent2); color: var(--accent); border: 1px solid var(--accent); }
+  .badge-short { background: var(--red2); color: var(--red); border: 1px solid var(--red); }
+  .pos { color: var(--green); }
+  .neg { color: var(--red); }
+  .neutral { color: var(--text2); }
+
+  /* STATS */
+  .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
+  .stat-box { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; text-align: center; }
+  .stat-box .sb-val { font-size: 20px; font-weight: 700; }
+  .stat-box .sb-label { font-size: 9px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; }
+  .pattern-row { display: flex; align-items: center; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--border); }
+  .pattern-row:last-child { border-bottom: none; }
+  .pattern-name { font-size: 10px; flex: 1; }
+  .pattern-bar-wrap { width: 60px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 8px; }
+  .pattern-bar { height: 100%; border-radius: 2px; }
+  .pattern-wr { font-size: 10px; font-weight: 700; width: 32px; text-align: right; }
+
+  /* MARKET */
+  .market-hero { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 10px; }
+  .mh-card { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; text-align: center; }
+  .mh-card .mh-label { font-size: 9px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; }
+  .mh-card .mh-val { font-size: 18px; font-weight: 700; margin-top: 4px; }
+  .mh-card .mh-sub { font-size: 9px; color: var(--text2); margin-top: 2px; }
+  .regime-BULL { color: var(--green); }
+  .regime-BEAR { color: var(--red); }
+  .regime-SIDEWAYS { color: var(--yellow); }
+  .regime-VOLATILE { color: var(--orange); }
+  .regime-NEUTRAL { color: var(--text2); }
+  .prices-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 0 10px 10px; }
+  .price-item { display: flex; justify-content: space-between; align-items: center; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 7px 9px; }
+  .price-sym { font-size: 10px; font-weight: 700; color: var(--text); }
+  .price-val { font-size: 11px; font-weight: 700; }
+  .price-chg { font-size: 9px; margin-top: 1px; }
+
+  /* COMLINK / CHAT */
+  #chat-messages {
+    height: 320px; overflow-y: auto; padding: 8px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .msg { max-width: 90%; padding: 7px 10px; border-radius: var(--radius); font-size: 11px; line-height: 1.5; }
+  .msg-user { align-self: flex-end; background: var(--accent2); border: 1px solid var(--accent); color: var(--text); }
+  .msg-agent { align-self: flex-start; background: var(--bg3); border: 1px solid var(--border); color: var(--text); }
+  .msg-agent .msg-from { font-size: 9px; color: var(--accent); font-weight: 700; margin-bottom: 3px; text-transform: uppercase; letter-spacing: 1px; }
+  #chat-input-row { display: flex; gap: 6px; padding: 8px; border-top: 1px solid var(--border); }
+  #chat-agent-select { background: var(--bg3); border: 1px solid var(--border); color: var(--text); font-family: var(--font); font-size: 11px; padding: 5px 8px; border-radius: var(--radius); }
+  #chat-input {
+    flex: 1; background: var(--bg3); border: 1px solid var(--border); color: var(--text);
+    font-family: var(--font); font-size: 11px; padding: 5px 8px; border-radius: var(--radius);
+    outline: none;
+  }
+  #chat-input:focus { border-color: var(--accent); }
+  #chat-send { padding: 5px 12px; background: var(--accent2); border: 1px solid var(--accent); color: var(--accent); font-family: var(--font); font-size: 11px; border-radius: var(--radius); cursor: pointer; }
+  #chat-send:hover { background: var(--accent); color: #000; }
+
+  /* LOADER SKELETON */
+  .skeleton { background: linear-gradient(90deg, var(--bg3) 25%, var(--border) 50%, var(--bg3) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: var(--radius); }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+  /* FOOTER */
+  #footer { padding: 6px 16px; background: var(--bg2); border-top: 1px solid var(--border); font-size: 9px; color: var(--text2); display: flex; justify-content: space-between; align-items: center; }
+
+  /* TABS */
+  .tabs { display: flex; gap: 2px; padding: 8px 10px 0; border-bottom: 1px solid var(--border); }
+  .tab { padding: 5px 12px; font-size: 10px; font-family: var(--font); cursor: pointer; border-bottom: 2px solid transparent; color: var(--text2); background: none; border-top: none; border-left: none; border-right: none; text-transform: uppercase; letter-spacing: 1px; transition: all 0.15s; }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab:hover { color: var(--text); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* BOT CONTROLS */
+  .controls-row { display: flex; gap: 6px; flex-wrap: wrap; padding: 10px; }
+
+  /* NOTIFICATIONS */
+  #notif-area { position: fixed; bottom: 24px; right: 24px; z-index: 999; display: flex; flex-direction: column; gap: 8px; }
+  .notif { padding: 10px 14px; border-radius: var(--radius); font-size: 11px; min-width: 220px; border: 1px solid; animation: slideIn 0.3s ease; }
+  .notif-success { background: var(--green2); border-color: var(--green); color: var(--green); }
+  .notif-error { background: var(--red2); border-color: var(--red); color: var(--red); }
+  .notif-info { background: var(--accent2); border-color: var(--accent); color: var(--accent); }
+  @keyframes slideIn { from { transform: translateX(40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+  @media (max-width: 900px) {
+    #app { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+    #sidebar { border-left: none; border-top: 1px solid var(--border); max-height: 50vh; }
+    .portfolio-grid { grid-template-columns: repeat(2, 1fr); }
+    .market-hero { grid-template-columns: repeat(2, 1fr); }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
 </head>
-<body class="min-h-screen p-4 md:p-6">
-    <div class="max-w-7xl mx-auto">
-        <!-- Header -->
-        <div class="flex flex-wrap items-center justify-between gap-4 mb-8">
-            <div class="flex items-center gap-4">
-                <div class="text-5xl">🏢</div>
-                <div>
-                    <h1 class="text-5xl font-bold text-[#58a6ff]">Claude Office</h1>
-                    <p class="text-[#8b949e] text-sm">Tradbot • LIVE • EXTREME LEARNING</p>
-                </div>
-            </div>
-            <div class="flex gap-3 flex-wrap">
-                <button onclick="quickCommand('force_max_trades')" class="bg-green-500 hover:bg-green-600 px-6 py-3 rounded-2xl text-sm font-bold">🚀 MAX TRADES</button>
-                <button onclick="quickCommand('reset_equity')" class="bg-yellow-500 hover:bg-yellow-600 px-6 py-3 rounded-2xl text-sm font-bold">🔄 Reset Equity</button>
-                <button onclick="quickCommand('conservative_mode')" class="bg-blue-500 hover:bg-blue-600 px-6 py-3 rounded-2xl text-sm font-bold">🛡️ Mode Conservateur</button>
-            </div>
-        </div>
+<body>
 
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <!-- Agents + Chat (gauche) -->
-            <div class="lg:col-span-8">
-                <!-- Agents Grid -->
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-6 mb-8" id="agents-grid"></div>
+<!-- HEADER -->
+<div id="header">
+  <div class="logo">TRADING OFFICE<span>Multi-Agent Command Center</span></div>
+  <div class="header-sep"></div>
+  <div id="hdr-status" class="stat-pill">
+    <span class="label">Status</span>
+    <span class="value"><span class="status-dot dot-yellow" id="status-dot"></span><span id="status-text">Connecting</span></span>
+  </div>
+  <div id="hdr-mode" class="stat-pill">
+    <span class="label">Mode</span>
+    <span class="value" id="hdr-mode-val">--</span>
+  </div>
+  <div id="hdr-cycle" class="stat-pill">
+    <span class="label">Cycle</span>
+    <span class="value" id="hdr-cycle-val">--</span>
+  </div>
+  <div class="stat-pill">
+    <span class="label">Equity</span>
+    <span class="value" id="hdr-equity" style="color:var(--accent)">--</span>
+  </div>
+  <div class="stat-pill">
+    <span class="label">P&L Day</span>
+    <span class="value" id="hdr-pnl">--</span>
+  </div>
+  <div class="header-spacer"></div>
+  <button class="btn" onclick="controlBot('force_max_trades')" title="Force maximum trade count">Max Trades</button>
+  <button class="btn" onclick="controlBot('conservative_mode')" title="Enable conservative mode">Conservative</button>
+  <button class="btn" onclick="controlBot('reset_equity')" title="Reset equity tracking">Reset Eq.</button>
+  <button class="btn btn-red" id="btn-toggle" onclick="toggleBot()">Stop</button>
+</div>
 
-                <!-- Chat amélioré -->
-                <div class="bg-[#161b22] rounded-3xl p-6">
-                    <h2 class="text-[#58a6ff] text-xl mb-4 flex items-center gap-2">💬 OFFICE CHAT • Agents en direct</h2>
-                    <div id="chat-window" class="h-80 md:h-96 overflow-y-auto space-y-5 pr-4 mb-6"></div>
-                    <div class="flex gap-3">
-                        <input id="chat-input" type="text" placeholder="Parle aux agents..." 
-                               class="flex-1 bg-[#21262d] rounded-2xl px-6 py-5 focus:outline-none text-white">
-                        <button onclick="sendChatMessage()" class="bg-[#58a6ff] hover:bg-[#1f8cff] px-10 rounded-2xl font-bold">ENVOYER</button>
-                    </div>
-                </div>
-            </div>
+<!-- NOTIFICATION AREA -->
+<div id="notif-area"></div>
 
-            <!-- Panneau droit : INFOS IMPORTANTES (plus jamais vide) -->
-            <div class="lg:col-span-4 bg-[#161b22] rounded-3xl p-6 sidebar h-fit sticky top-6">
-                <h2 class="text-[#58a6ff] text-lg mb-6">📊 INFOS EN DIRECT</h2>
-                <div id="live-info" class="space-y-6"></div>
-            </div>
-        </div>
+<!-- MAIN APP LAYOUT -->
+<div id="app">
+
+  <!-- MAIN CONTENT -->
+  <div id="main">
+
+    <!-- AGENT FLOOR -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Agent Floor</span>
+        <span class="panel-badge" id="agents-count-badge">-- Active</span>
+      </div>
+      <div id="agent-grid">
+        <!-- Populated by JS -->
+      </div>
     </div>
 
-    <!-- Modal -->
-    <div id="agent-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-        <div class="modal bg-[#161b22] rounded-3xl p-8 max-w-md w-full">
-            <div id="modal-content"></div>
-            <button onclick="closeModal()" class="mt-8 w-full py-4 text-red-400 font-bold text-lg">Fermer</button>
+    <!-- PORTFOLIO + TRADES TABS -->
+    <div class="panel">
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab(this,'tab-portfolio')">Portfolio</button>
+        <button class="tab" onclick="switchTab(this,'tab-positions')">Positions</button>
+        <button class="tab" onclick="switchTab(this,'tab-trades')">Trade Feed</button>
+        <button class="tab" onclick="switchTab(this,'tab-stats')">Stats</button>
+      </div>
+
+      <!-- PORTFOLIO -->
+      <div id="tab-portfolio" class="tab-content active">
+        <div class="portfolio-grid">
+          <div class="port-stat">
+            <div class="ps-label">Total Equity</div>
+            <div class="ps-value" id="pt-total" style="color:var(--accent)">--</div>
+            <div class="ps-sub" id="pt-total-eur">-- EUR</div>
+          </div>
+          <div class="port-stat">
+            <div class="ps-label">Cash / Crypto</div>
+            <div class="ps-value" id="pt-cash">--</div>
+            <div class="ps-sub" id="pt-crypto">-- crypto</div>
+          </div>
+          <div class="port-stat">
+            <div class="ps-label">Total P&L</div>
+            <div class="ps-value" id="pt-pnl">--</div>
+            <div class="ps-sub" id="pt-daily-pnl">-- today</div>
+          </div>
+          <div class="port-stat">
+            <div class="ps-label">Drawdown</div>
+            <div class="ps-value" id="pt-dd" style="color:var(--red)">--</div>
+            <div class="ps-sub" id="pt-peak">Peak: --</div>
+          </div>
         </div>
+      </div>
+
+      <!-- POSITIONS -->
+      <div id="tab-positions" class="tab-content">
+        <div style="overflow-x:auto; padding: 8px;">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>Symbol</th><th>Side</th><th>Size</th><th>Entry</th><th>Current</th><th>P&L</th><th>Opened</th>
+              </tr>
+            </thead>
+            <tbody id="positions-tbody">
+              <tr><td colspan="7" style="text-align:center;color:var(--text2);padding:20px">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TRADES -->
+      <div id="tab-trades" class="tab-content">
+        <div style="overflow-x:auto; padding: 8px;">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>Time</th><th>Symbol</th><th>Side</th><th>Result</th><th>Entry</th><th>Exit</th><th>P&L</th><th>Pattern</th>
+              </tr>
+            </thead>
+            <tbody id="trades-tbody">
+              <tr><td colspan="8" style="text-align:center;color:var(--text2);padding:20px">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- STATS -->
+      <div id="tab-stats" class="tab-content">
+        <div style="padding:10px">
+          <div class="stats-grid">
+            <div class="stat-box">
+              <div class="sb-val pos" id="st-wr">--</div>
+              <div class="sb-label">Win Rate</div>
+            </div>
+            <div class="stat-box">
+              <div class="sb-val" id="st-pf" style="color:var(--accent)">--</div>
+              <div class="sb-label">Profit Factor</div>
+            </div>
+            <div class="stat-box">
+              <div class="sb-val" id="st-sharpe" style="color:var(--purple)">--</div>
+              <div class="sb-label">Sharpe Ratio</div>
+            </div>
+            <div class="stat-box">
+              <div class="sb-val pos" id="st-trades">--</div>
+              <div class="sb-label">Total Trades</div>
+            </div>
+            <div class="stat-box">
+              <div class="sb-val" id="st-lessons" style="color:var(--yellow)">--</div>
+              <div class="sb-label">Lessons Learned</div>
+            </div>
+            <div class="stat-box">
+              <div class="sb-val pos" id="st-pnl">--</div>
+              <div class="sb-label">Total P&L $</div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">
+            <div>
+              <div style="font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Best Patterns</div>
+              <div id="best-patterns"></div>
+            </div>
+            <div>
+              <div style="font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Worst Patterns</div>
+              <div id="worst-patterns"></div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <script>
-        const agents = [
-            {id:"reflection", name:"Reflection", emoji:"🧠", color:"cyan", role:"Analyse les cycles"},
-            {id:"permission", name:"Permission", emoji:"🔒", color:"yellow", role:"Classifie les risques"},
-            {id:"improver", name:"Improver", emoji:"🛠️", color:"purple", role:"Construit & applique patches"},
-            {id:"trader", name:"Trader", emoji:"📈", color:"green", role:"Décide des entrées"},
-            {id:"risk", name:"Risk", emoji:"🛡️", color:"red", role:"Surveille le risque"},
-            {id:"supervisor", name:"Supervisor", emoji:"👑", color:"amber", role:"Décision finale"}
-        ];
+  </div><!-- /main -->
 
-        function renderAgents() {
-            const grid = document.getElementById('agents-grid');
-            grid.innerHTML = agents.map(a => `
-                <div onclick="openAgentPanel('${a.id}')" class="agent-card bg-[#161b22] rounded-3xl p-6 cursor-pointer border border-[#21262d]">
-                    <div class="text-7xl mb-4 text-center">${a.emoji}</div>
-                    <div class="text-2xl font-bold text-center">${a.name}</div>
-                    <div class="text-center text-sm text-${a.color}-400 mt-1">${a.role}</div>
-                </div>
-            `).join('');
-        }
+  <!-- SIDEBAR -->
+  <div id="sidebar">
 
-        function openAgentPanel(id) {
-            const agent = agents.find(a => a.id === id);
-            let buttonsHTML = '';
-            // Boutons spécifiques par rôle (priorité définie ci-dessous)
-            if (id === 'trader') buttonsHTML = `<button onclick="sendAgentCommand('${id}','force_trade')" class="bg-green-500 w-full py-4 rounded-2xl mb-3">Force un trade</button><button onclick="sendAgentCommand('${id}','analyze_symbol')" class="bg-blue-500 w-full py-4 rounded-2xl">Analyser symbole</button>`;
-            else if (id === 'risk') buttonsHTML = `<button onclick="sendAgentCommand('${id}','adjust_risk')" class="bg-yellow-500 w-full py-4 rounded-2xl mb-3">Ajuster risque global</button><button onclick="sendAgentCommand('${id}','show_status')" class="bg-red-500 w-full py-4 rounded-2xl">Statut risque complet</button>`;
-            else if (id === 'improver') buttonsHTML = `<button onclick="sendAgentCommand('${id}','build_patch')" class="bg-purple-500 w-full py-4 rounded-2xl mb-3">Construire patch</button><button onclick="sendAgentCommand('${id}','optimize_code')" class="bg-indigo-500 w-full py-4 rounded-2xl">Optimiser code</button>`;
-            else if (id === 'reflection') buttonsHTML = `<button onclick="sendAgentCommand('${id}','analyze_cycles')" class="bg-cyan-500 w-full py-4 rounded-2xl mb-3">Analyser cycles</button><button onclick="sendAgentCommand('${id}','find_patterns')" class="bg-teal-500 w-full py-4 rounded-2xl">Meilleurs patterns</button>`;
-            else if (id === 'permission') buttonsHTML = `<button onclick="sendAgentCommand('${id}','check_risk')" class="bg-yellow-500 w-full py-4 rounded-2xl mb-3">Vérifier risque</button><button onclick="sendAgentCommand('${id}','classify_patch')" class="bg-amber-500 w-full py-4 rounded-2xl">Classer patch</button>`;
-            else if (id === 'supervisor') buttonsHTML = `<button onclick="sendAgentCommand('${id}','final_decision')" class="bg-amber-500 w-full py-4 rounded-2xl mb-3">Décision finale</button><button onclick="sendAgentCommand('${id}','orchestrate')" class="bg-orange-500 w-full py-4 rounded-2xl">Orchestrer agents</button>`;
+    <!-- MARKET CONTEXT -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Market Context</span>
+        <span id="regime-badge" class="panel-badge">--</span>
+      </div>
+      <div class="market-hero">
+        <div class="mh-card">
+          <div class="mh-label">Regime</div>
+          <div class="mh-val" id="mkt-regime">--</div>
+        </div>
+        <div class="mh-card">
+          <div class="mh-label">Fear &amp; Greed</div>
+          <div class="mh-val" id="mkt-fg">--</div>
+          <div class="mh-sub" id="mkt-fg-label">--</div>
+        </div>
+        <div class="mh-card">
+          <div class="mh-label">BTC Dom</div>
+          <div class="mh-val" id="mkt-btcdom">--</div>
+          <div class="mh-sub" id="mkt-btcchg">--</div>
+        </div>
+      </div>
+      <div style="padding:0 10px 8px;font-size:9px;color:var(--text2);line-height:1.5;border-top:1px solid var(--border);padding-top:8px;margin:0 10px" id="mkt-macro">--</div>
+      <div class="prices-grid" id="prices-grid"></div>
+    </div>
 
-            document.getElementById('modal-content').innerHTML = `
-                <div class="text-center">
-                    <div class="text-8xl mb-6">${agent.emoji}</div>
-                    <h2 class="text-4xl font-bold">${agent.name}</h2>
-                    <p class="text-gray-400 mb-8">${agent.role}</p>
-                    ${buttonsHTML}
-                    <input id="agent-input" placeholder="Message personnalisé..." class="w-full mt-8 bg-[#21262d] rounded-2xl px-6 py-4 text-sm">
-                    <button onclick="sendCustomAgentMessage('${id}')" class="mt-4 w-full bg-[#58a6ff] py-5 rounded-2xl font-bold">Envoyer message personnalisé</button>
-                </div>
-            `;
-            document.getElementById('agent-modal').classList.remove('hidden');
-        }
+    <!-- COMLINK (CHAT) -->
+    <div class="panel" style="flex:1;display:flex;flex-direction:column;min-height:0">
+      <div class="panel-header">
+        <span class="panel-title">Comlink</span>
+        <span id="chat-agent-status" class="panel-badge">Select Agent</span>
+      </div>
+      <div id="chat-messages"></div>
+      <div id="chat-input-row">
+        <select id="chat-agent-select" onchange="updateChatAgent()">
+          <option value="">-- Agent --</option>
+          <option value="orchestrator">Orchestrator</option>
+          <option value="analyst">Analyst</option>
+          <option value="trader">Trader</option>
+          <option value="risk">Risk Manager</option>
+          <option value="quantml">QuantML</option>
+          <option value="learning">Learning</option>
+          <option value="researcher">Researcher</option>
+          <option value="walletcopier">Wallet Copier</option>
+          <option value="supervisor">Supervisor</option>
+        </select>
+        <input id="chat-input" type="text" placeholder="Message..." onkeydown="if(event.key==='Enter') sendChat()"/>
+        <button id="chat-send" onclick="sendChat()">Send</button>
+      </div>
+    </div>
 
-        function closeModal() { document.getElementById('agent-modal').classList.add('hidden'); }
+  </div><!-- /sidebar -->
+</div><!-- /app -->
 
-        async function quickCommand(cmd) {
-            await fetch('/api/quick_command', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({command:cmd})});
-            alert('✅ Commande envoyée au bot !');
-        }
+<div id="footer">
+  <span>Trading Office v2.0 — Multi-Agent Orchestrator</span>
+  <span id="footer-time">--</span>
+</div>
 
-        async function sendAgentCommand(agentId, action) {
-            await fetch('/api/agent_command', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({agent:agentId, action:action})});
-            alert(`✅ Ordre envoyé à ${agentId}`);
-            closeModal();
-        }
+<script>
+// =========================================================
+// CONFIG — adjust base URL if needed
+// =========================================================
+const API_BASE = '';  // empty = same origin. E.g. 'https://yourbot.railway.app'
+const REFRESH_INTERVAL = 5000;
+const AGENT_LIST = [
+  {id:'orchestrator',name:'Orchestrator',role:'Command & Control'},
+  {id:'analyst',name:'Analyst',role:'Market Analysis'},
+  {id:'trader',name:'Trader',role:'Order Execution'},
+  {id:'risk',name:'Risk Manager',role:'Capital Protection'},
+  {id:'supervisor',name:'Supervisor',role:'Strategy Oversight'},
+  {id:'quantml',name:'QuantML',role:'Regime Detection'},
+  {id:'learning',name:'Learning',role:'Memory & Lessons'},
+  {id:'research',name:'Researcher',role:'Deep Dives'},
+  {id:'walletcopier',name:'Wallet Copier',role:'Whale Tracking'},
+  {id:'yieldstaking',name:'Yield Farmer',role:'Passive Yield'},
+  {id:'hedging',name:'Hedger',role:'Risk Hedging'},
+  {id:'sociallistener',name:'Social Intel',role:'Sentiment'},
+  {id:'codefixer',name:'Code Doctor',role:'Self-Repair'},
+  {id:'evolution',name:'Evolver',role:'Strategy Evolution'},
+  {id:'portfolio',name:'Portfolio Mgr',role:'Allocation'},
+];
 
-        async function sendCustomAgentMessage(agentId) {
-            const msg = document.getElementById('agent-input').value.trim();
-            if (!msg) return;
-            await fetch('/api/agent_command', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({agent:agentId, message:msg})});
-            closeModal();
-        }
+// =========================================================
+// STATE
+// =========================================================
+let state = {
+  botRunning: false,
+  agents: [],
+  portfolio: null,
+  positions: [],
+  trades: [],
+  tradeStats: null,
+  market: null,
+  prices: []
+};
 
-        async function sendChatMessage() {
-            const input = document.getElementById('chat-input');
-            const msg = input.value.trim();
-            if (!msg) return;
-            const chat = document.getElementById('chat-window');
-            chat.innerHTML += `<div class="chat-bubble ml-auto bg-[#58a6ff] text-white">${msg}</div>`;
-            chat.scrollTop = chat.scrollHeight;
-            input.value = '';
+// =========================================================
+// HELPERS
+// =========================================================
+async function api(path) {
+  try {
+    const r = await fetch(API_BASE + path);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return await r.json();
+  } catch(e) {
+    console.warn(`API ${path} failed:`, e.message);
+    return null;
+  }
+}
 
-            // Simulation agents qui parlent (en attendant le backend complet)
-            setTimeout(() => {
-                chat.innerHTML += `<div class="chat-bubble mr-auto bg-[#21262d]"><span class="text-[#58a6ff] font-bold">Improver :</span> Patch prêt à appliquer sur bot.py</div>`;
-                chat.scrollTop = chat.scrollHeight;
-            }, 1200);
-        }
+async function apiPost(path, body) {
+  try {
+    const r = await fetch(API_BASE + path, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return await r.json();
+  } catch(e) {
+    console.warn(`POST ${path} failed:`, e.message);
+    return null;
+  }
+}
 
-        async function loadLiveData() {
-            // Simulation en attendant les vraies routes Flask
-            document.getElementById('live-info').innerHTML = `
-                <div class="bg-[#21262d] p-5 rounded-2xl text-sm">
-                    <div class="flex justify-between"><span class="text-gray-400">Leçons DB</span><span class="text-green-400">1 247</span></div>
-                    <div class="flex justify-between"><span class="text-gray-400">Trades simulés</span><span class="text-cyan-400">80</span></div>
-                    <div class="flex justify-between"><span class="text-gray-400">Winrate</span><span class="text-yellow-400">21.4 %</span></div>
-                    <div class="flex justify-between"><span class="text-gray-400">Capital</span><span class="text-[#58a6ff]">$1 000.00</span></div>
-                    <div class="flex justify-between"><span class="text-gray-400">Risque actuel</span><span class="text-green-400">LOW</span></div>
-                    <div class="text-xs text-gray-500 mt-4">Dernier trade : LONG MEME 5m (+0.8%)</div>
-                </div>
-            `;
-        }
+function fmt(n, decimals=2) {
+  if (n == null || isNaN(n)) return '--';
+  return Number(n).toLocaleString('en-US', {minimumFractionDigits:decimals,maximumFractionDigits:decimals});
+}
+function fmtUsd(n) { return n != null ? '$' + fmt(n) : '--'; }
+function fmtPct(n) { return n != null ? (n >= 0 ? '+' : '') + fmt(n) + '%' : '--'; }
+function ago(iso) {
+  if (!iso) return '--';
+  const d = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (d < 60) return d + 's ago';
+  if (d < 3600) return Math.floor(d/60) + 'm ago';
+  if (d < 86400) return Math.floor(d/3600) + 'h ago';
+  return Math.floor(d/86400) + 'd ago';
+}
+function colorPct(v) {
+  if (v == null) return 'neutral';
+  return v >= 0 ? 'pos' : 'neg';
+}
+function notify(msg, type='info') {
+  const el = document.createElement('div');
+  el.className = `notif notif-${type}`;
+  el.textContent = msg;
+  document.getElementById('notif-area').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
 
-        window.onload = () => {
-            renderAgents();
-            loadLiveData();
-            setInterval(loadLiveData, 8000);
-        };
-    </script>
+// =========================================================
+// FETCH ALL DATA
+// =========================================================
+async function fetchAll() {
+  const [botStatus, agents, portfolio, positions, trades, tradeStats, market, prices] = await Promise.all([
+    api('/api/bot/status'),
+    api('/api/agents'),
+    api('/api/portfolio'),
+    api('/api/portfolio/positions'),
+    api('/api/trades?limit=20'),
+    api('/api/trades/stats'),
+    api('/api/market/overview'),
+    api('/api/market/prices'),
+  ]);
+
+  if (botStatus) renderHeader(botStatus);
+  if (agents) { state.agents = agents; renderAgents(agents); }
+  if (portfolio) { state.portfolio = portfolio; renderPortfolio(portfolio); }
+  if (positions) { state.positions = positions; renderPositions(positions); }
+  if (trades) { state.trades = trades; renderTrades(trades); }
+  if (tradeStats) { state.tradeStats = tradeStats; renderStats(tradeStats); }
+  if (market) { state.market = market; renderMarket(market); }
+  if (prices) { state.prices = prices; renderPrices(prices); }
+
+  document.getElementById('footer-time').textContent = 'Last update: ' + new Date().toLocaleTimeString();
+}
+
+// =========================================================
+// RENDER HEADER
+// =========================================================
+function renderHeader(s) {
+  state.botRunning = s.running;
+  const dot = document.getElementById('status-dot');
+  const text = document.getElementById('status-text');
+  const btn = document.getElementById('btn-toggle');
+  if (s.running) {
+    dot.className = 'status-dot dot-green';
+    text.textContent = 'ONLINE';
+    btn.className = 'btn btn-red';
+    btn.textContent = 'Stop';
+  } else {
+    dot.className = 'status-dot dot-red';
+    text.textContent = 'OFFLINE';
+    btn.className = 'btn btn-green';
+    btn.textContent = 'Start';
+  }
+  document.getElementById('hdr-mode-val').textContent = (s.testnetMode ? '[TESTNET] ' : '[LIVE] ') + (s.mode || '--');
+  document.getElementById('hdr-cycle-val').textContent = s.cycleCount || '--';
+}
+
+function renderHeaderPortfolio(p) {
+  if (!p) return;
+  const eq = document.getElementById('hdr-equity');
+  const pnl = document.getElementById('hdr-pnl');
+  eq.textContent = fmtUsd(p.totalValueUsd);
+  pnl.textContent = fmtPct(p.dailyPnlPct);
+  pnl.className = 'value ' + colorPct(p.dailyPnlPct);
+}
+
+// =========================================================
+// RENDER AGENTS
+// =========================================================
+function renderAgents(agents) {
+  const grid = document.getElementById('agent-grid');
+  const activeCount = agents.filter(a => a.status === 'active').length;
+  document.getElementById('agents-count-badge').textContent = activeCount + ' Active';
+
+  // Merge with AGENT_LIST to ensure all agents shown
+  const all = AGENT_LIST.map(meta => {
+    const live = agents.find(a => a.id === meta.id);
+    return live || { ...meta, activity: 'resting', status: 'idle', lastAction: 'Awaiting data...', confidence: null, location: 'desk' };
+  });
+
+  grid.innerHTML = all.map(a => `
+    <div class="agent-card ${a.status || 'idle'}" onclick="selectChatAgent('${a.id}')" title="Click to chat with ${a.name}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="agent-name">${a.name}</div>
+          <div class="agent-role">${a.role}</div>
+        </div>
+        ${a.confidence != null ? `<div class="agent-conf">${Math.round(a.confidence*100)}%</div>` : ''}
+      </div>
+      <div class="agent-meta" style="margin-top:6px">
+        <span class="agent-activity act-${a.activity || 'resting'}">${a.activity || 'idle'}</span>
+        <span style="font-size:8px;color:var(--text3)">@${(a.location||'desk').replace('_',' ').toUpperCase()}</span>
+      </div>
+      <div class="agent-action">${a.lastAction || '--'}</div>
+    </div>
+  `).join('');
+}
+
+// =========================================================
+// RENDER PORTFOLIO
+// =========================================================
+function renderPortfolio(p) {
+  renderHeaderPortfolio(p);
+  document.getElementById('pt-total').textContent = fmtUsd(p.totalValueUsd);
+  document.getElementById('pt-total-eur').textContent = fmtUsd(p.totalValueEur) + ' EUR';
+  document.getElementById('pt-cash').textContent = fmtUsd(p.cashUsd);
+  document.getElementById('pt-crypto').textContent = fmtUsd(p.cryptoValueUsd) + ' crypto';
+
+  const pnlEl = document.getElementById('pt-pnl');
+  pnlEl.textContent = fmtPct(p.totalPnlPct);
+  pnlEl.className = 'ps-value ' + colorPct(p.totalPnlPct);
+
+  const dailyEl = document.getElementById('pt-daily-pnl');
+  dailyEl.textContent = fmtPct(p.dailyPnlPct) + ' today';
+  dailyEl.className = 'ps-sub ' + colorPct(p.dailyPnlPct);
+
+  document.getElementById('pt-dd').textContent = '-' + fmt(p.drawdown) + '%';
+  document.getElementById('pt-peak').textContent = 'Peak: ' + fmtUsd(p.peakEquity);
+}
+
+// =========================================================
+// RENDER POSITIONS
+// =========================================================
+function renderPositions(positions) {
+  const tbody = document.getElementById('positions-tbody');
+  if (!positions.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text2);padding:20px">No open positions</td></tr>';
+    return;
+  }
+  tbody.innerHTML = positions.map(p => `
+    <tr>
+      <td><strong>${p.symbol}</strong></td>
+      <td><span class="badge badge-${p.side}">${p.side.toUpperCase()}</span></td>
+      <td>${fmt(p.size, 4)}</td>
+      <td>${fmt(p.entryPrice)}</td>
+      <td>${fmt(p.currentPrice)}</td>
+      <td class="${colorPct(p.pnl)}">${fmtUsd(p.pnl)} <span style="font-size:9px">(${fmtPct(p.pnlPct)})</span></td>
+      <td style="color:var(--text2)">${ago(p.openedAt)}</td>
+    </tr>
+  `).join('');
+}
+
+// =========================================================
+// RENDER TRADES
+// =========================================================
+function renderTrades(trades) {
+  const tbody = document.getElementById('trades-tbody');
+  if (!trades.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text2);padding:20px">No trades</td></tr>';
+    return;
+  }
+  tbody.innerHTML = trades.map(t => `
+    <tr>
+      <td style="color:var(--text2)">${ago(t.closedAt)}</td>
+      <td><strong>${t.symbol}</strong></td>
+      <td><span class="badge badge-${t.side}">${t.side.toUpperCase()}</span></td>
+      <td><span class="badge badge-${t.result}">${t.result.toUpperCase()}</span></td>
+      <td>${fmt(t.entryPrice)}</td>
+      <td>${fmt(t.exitPrice)}</td>
+      <td class="${t.result === 'win' ? 'pos' : 'neg'}">${fmtUsd(t.pnl)} <span style="font-size:9px">(${fmtPct(t.pnlPct)})</span></td>
+      <td style="color:var(--text2);font-size:10px">${t.pattern || '--'}</td>
+    </tr>
+  `).join('');
+}
+
+// =========================================================
+// RENDER STATS
+// =========================================================
+function renderStats(s) {
+  document.getElementById('st-wr').textContent = fmt(s.winRate * 100, 1) + '%';
+  document.getElementById('st-pf').textContent = fmt(s.profitFactor);
+  document.getElementById('st-sharpe').textContent = fmt(s.sharpeRatio);
+  document.getElementById('st-trades').textContent = s.totalTrades;
+  document.getElementById('st-lessons').textContent = s.lessonsCount.toLocaleString();
+  document.getElementById('st-pnl').textContent = fmtUsd(s.totalPnl);
+
+  document.getElementById('best-patterns').innerHTML = (s.bestPatterns || []).map(p => `
+    <div class="pattern-row">
+      <span class="pattern-name">${p.pattern}</span>
+      <div class="pattern-bar-wrap"><div class="pattern-bar" style="width:${p.winRate*100}%;background:var(--green)"></div></div>
+      <span class="pattern-wr pos">${Math.round(p.winRate*100)}%</span>
+    </div>
+  `).join('');
+
+  document.getElementById('worst-patterns').innerHTML = (s.worstPatterns || []).map(p => `
+    <div class="pattern-row">
+      <span class="pattern-name">${p.pattern}</span>
+      <div class="pattern-bar-wrap"><div class="pattern-bar" style="width:${p.winRate*100}%;background:var(--red)"></div></div>
+      <span class="pattern-wr neg">${Math.round(p.winRate*100)}%</span>
+    </div>
+  `).join('');
+}
+
+// =========================================================
+// RENDER MARKET
+// =========================================================
+function renderMarket(m) {
+  const regime = m.regime || 'NEUTRAL';
+  document.getElementById('mkt-regime').textContent = regime;
+  document.getElementById('mkt-regime').className = `mh-val regime-${regime}`;
+  document.getElementById('regime-badge').textContent = regime;
+  document.getElementById('regime-badge').className = `panel-badge regime-badge-${regime}`;
+
+  const fg = m.fearGreedIndex;
+  const fgEl = document.getElementById('mkt-fg');
+  fgEl.textContent = fg;
+  fgEl.style.color = fg < 25 ? 'var(--red)' : fg < 45 ? 'var(--yellow)' : fg < 75 ? 'var(--green)' : 'var(--accent)';
+  document.getElementById('mkt-fg-label').textContent = m.fearGreedLabel || '--';
+
+  const btcChg = document.getElementById('mkt-btcchg');
+  document.getElementById('mkt-btcdom').textContent = fmt(m.btcDominance, 1) + '%';
+  btcChg.textContent = fmtPct(m.btcChange24h);
+  btcChg.className = 'mh-sub ' + colorPct(m.btcChange24h);
+
+  document.getElementById('mkt-macro').textContent = m.macro || '--';
+}
+
+// =========================================================
+// RENDER PRICES
+// =========================================================
+function renderPrices(prices) {
+  const grid = document.getElementById('prices-grid');
+  grid.innerHTML = prices.map(p => `
+    <div class="price-item">
+      <div>
+        <div class="price-sym">${p.symbol.replace('/USDT','')}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="price-val">${fmt(p.price, p.price > 100 ? 2 : 4)}</div>
+        <div class="price-chg ${colorPct(p.change24h)}">${fmtPct(p.change24h)}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// =========================================================
+// BOT CONTROLS
+// =========================================================
+async function toggleBot() {
+  const action = state.botRunning ? 'stop' : 'start';
+  const result = await apiPost('/api/bot/control', { action });
+  if (result) {
+    renderHeader(result);
+    notify(action === 'start' ? 'Bot started' : 'Bot stopped', action === 'start' ? 'success' : 'info');
+  }
+}
+
+async function controlBot(action) {
+  const labels = {
+    force_max_trades: 'Max Trades mode activated',
+    conservative_mode: 'Conservative mode enabled',
+    reset_equity: 'Equity tracking reset'
+  };
+  const result = await apiPost('/api/bot/control', { action });
+  if (result) {
+    renderHeader(result);
+    notify(labels[action] || action, 'info');
+  }
+}
+
+// =========================================================
+// TABS
+// =========================================================
+function switchTab(btn, id) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(id).classList.add('active');
+}
+
+// =========================================================
+// CHAT (COMLINK)
+// =========================================================
+function updateChatAgent() {
+  const sel = document.getElementById('chat-agent-select').value;
+  const badge = document.getElementById('chat-agent-status');
+  if (sel) {
+    const agent = state.agents.find(a => a.id === sel);
+    badge.textContent = agent ? agent.name + ' — ' + (agent.activity || 'idle') : sel;
+    badge.className = 'panel-badge';
+  } else {
+    badge.textContent = 'Select Agent';
+    badge.className = 'panel-badge';
+  }
+}
+
+function selectChatAgent(agentId) {
+  const sel = document.getElementById('chat-agent-select');
+  sel.value = agentId;
+  updateChatAgent();
+  document.getElementById('chat-input').focus();
+  notify('Chat: ' + agentId + ' selected', 'info');
+}
+
+async function sendChat() {
+  const agentId = document.getElementById('chat-agent-select').value;
+  const input = document.getElementById('chat-input');
+  const msg = input.value.trim();
+  if (!agentId || !msg) return;
+
+  appendMessage('user', null, msg);
+  input.value = '';
+
+  const thinkingId = 'thinking-' + Date.now();
+  appendMessage('agent', agentId, '...', thinkingId);
+
+  const result = await apiPost(`/api/agents/${agentId}/command`, { command: msg, params: {} });
+  const el = document.getElementById(thinkingId);
+  if (el) el.remove();
+
+  if (result && result.response) {
+    appendMessage('agent', agentId, result.response);
+  } else {
+    appendMessage('agent', agentId, 'No response. Make sure the bot is running and connected.');
+  }
+}
+
+function appendMessage(type, agentId, text, id) {
+  const container = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'msg msg-' + type;
+  if (id) div.id = id;
+  if (type === 'agent') {
+    const agent = AGENT_LIST.find(a => a.id === agentId) || { name: agentId };
+    div.innerHTML = `<div class="msg-from">${agent.name}</div>${escapeHtml(text)}`;
+  } else {
+    div.textContent = text;
+  }
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// =========================================================
+// INIT
+// =========================================================
+fetchAll();
+setInterval(fetchAll, REFRESH_INTERVAL);
+</script>
 </body>
 </html>
