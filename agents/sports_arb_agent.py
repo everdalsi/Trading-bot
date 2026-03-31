@@ -71,12 +71,8 @@ class SportsArbAgent(BaseAgent):
     def __init__(self):
         super().__init__(
             name="sports_arb",
-            role="Sports Latency Arbitrage Engine",
-            goal=(
-                "Scanner les cotes de paris sportifs sur 10+ bookmakers "
-                "simultanément et détecter les fenêtres d'arbitrage (profit garanti)."
-            ),
-            backstory=(
+            role="Sports Latency Arbitrage Engine — Scanner les cotes sur 10+ bookmakers et détecter les arbitrages garantis (NBA, EPL, NFL, Tennis)",
+            description=(
                 "Réplique de la stratégie 'Claude Bot Sport Latency ARB v3.2' qui "
                 "a généré $238,000 en 11 jours avec un win rate de 62% en exploitant "
                 "les différences de cotes entre bookmakers sur NBA, EPL, NFL, Tennis."
