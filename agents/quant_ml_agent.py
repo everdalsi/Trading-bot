@@ -18,7 +18,7 @@ import asyncio
 import requests
 import time
 import numpy as np
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 from agents.base_agent import BaseAgent
 from logging_config import logger
 
