@@ -299,16 +299,16 @@ class Orchestrator:
         context["sportsarb_total"]       = sportsarb_resp.get("total_found", 0)
         _sarb_opps = sportsarb_resp.get("opportunities", [])
         context["sportsarb_best_profit"] = _sarb_opps[0].get("profit_pct", 0.0) if _sarb_opps else 0.0
-        if polytrader_resp.get("signal") != "HOLD":
-            logger.info(f"[ORCH V9] 🎯 PolyTrader: {polytrader_resp['signal']} edge={context['polytrader_edge']:.1f}%")
-        if sportsarb_resp.get("signal") != "HOLD":
-            logger.info(f"[ORCH V9] ⚡ SportsArb: {sportsarb_resp['signal']} profit={context['sportsarb_best_profit']:.2f}%")
+        if polytrader_resp.get("signal", "HOLD") != "HOLD":
+            logger.info(f"[ORCH V9] 🎯 PolyTrader: {polytrader_resp.get('signal','HOLD')} edge={context['polytrader_edge']:.1f}%")
+        if sportsarb_resp.get("signal", "HOLD") != "HOLD":
+            logger.info(f"[ORCH V9] ⚡ SportsArb: {sportsarb_resp.get('signal','HOLD')} profit={context['sportsarb_best_profit']:.2f}%")
 
         # Log si edge actif
-        if poly_arb_resp.get("signal") != "HOLD":
-            logger.info(f"[ORCH V8] 🏦 PolyArb signal: {poly_arb_resp['signal']} spread={context['poly_arb_spread']:.2f}%")
+        if poly_arb_resp.get("signal", "HOLD") != "HOLD":
+            logger.info(f"[ORCH V8] 🏦 PolyArb signal: {poly_arb_resp.get('signal','HOLD')} spread={context['poly_arb_spread']:.2f}%")
         if sniper_resp.get("should_emit"):
-            logger.info(f"[ORCH V8] 🎯 Sniper signal: {sniper_resp['signal']} conf={sniper_resp['confidence']:.0%}")
+            logger.info(f"[ORCH V8] 🎯 Sniper signal: {sniper_resp.get('signal','HOLD')} conf={sniper_resp.get('confidence',0):.0%}")
 
         # ── Phase 2 : agents de risque et de décision PARALLÈLES ──────────
         group_b = await asyncio.gather(
