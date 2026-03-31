@@ -882,24 +882,30 @@ def kelly_criterion(n_recent: int=30) -> float:
     kelly = (p*b - q) / b
     base = round(max(0.03, min(MAX_PCT_PER_TRADE, kelly/4)), 3)
     fg = get_fear_greed_value()
+    # FIX: Fear extrême = réduire les mises (pas augmenter)
     if fg < 25:
-        base = min(0.25, base * 1.3)
+        base = max(0.03, base * 0.60)  # Panique totale → taille réduite de 40%
+    elif fg < 40:
+        base = max(0.03, base * 0.80)  # Fear → légère réduction
     return base
 
 def dynamic_position_size(confidence: int, market: str, symbol: str) -> float:
     base        = kelly_criterion(30)
-    conf_mult   = 0.5 + (confidence-55)/90
+    # FIX: recalibré pour MICRO_CONF_MIN=12 (ancienne formule donnait ~0.02 à conf=12)
+    # Nouvelle formule: 0.3 à conf=12, 1.0 à conf=70, 1.3 max
+    conf_mult = max(0.30, min(1.30, 0.30 + (confidence - 12) / 60))
     fg = get_fear_greed_value()
     macro = get_macro_trend()
+    # FIX: Fear extrême doit RÉDUIRE la taille, pas l'augmenter
     fg_mult = 1.0
     if fg < 25:
-        fg_mult = 1.45
+        fg_mult = 0.50   # Panique totale → -50%
     elif fg < 40:
-        fg_mult = 1.25
-    elif fg > 75:
-        fg_mult = 0.65
+        fg_mult = 0.75   # Fear → -25%
+    elif fg > 80:
+        fg_mult = 1.20   # Greed extrême → légère réduction aussi
     elif fg > 65:
-        fg_mult = 0.80
+        fg_mult = 1.10   # Greed modéré → légère hausse
     macro_mult = 1.0
     if macro == "BULL":
         macro_mult = 1.35
