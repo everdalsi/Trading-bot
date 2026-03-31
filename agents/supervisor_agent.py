@@ -233,6 +233,23 @@ class SupervisorAgent(BaseAgent):
 
         net = vote["net_score"] + ob_boost
 
+        # ── Edge agents boost ─────────────────────────────────────────────
+        # PolyTrader et SportsArb peuvent déclencher des trades sans consensus
+        polytrader_edge   = float(context.get("polytrader_edge", 0.0))
+        polytrader_signal = str(context.get("polytrader_signal", "HOLD")).upper()
+        sportsarb_signal  = str(context.get("sportsarb_signal",  "HOLD")).upper()
+        sportsarb_profit  = float(context.get("sportsarb_best_profit", 0.0))
+        edge_boost = 0.0
+        if polytrader_edge > 0.25 and "BUY" in polytrader_signal:
+            edge_boost += min(0.35, polytrader_edge / 100.0 * 0.8)   # 44% edge → +0.35
+        elif polytrader_edge > 0.25 and ("SELL" in polytrader_signal or "NO" in polytrader_signal):
+            edge_boost -= min(0.35, polytrader_edge / 100.0 * 0.8)
+        if "ARB" in sportsarb_signal and sportsarb_profit > 0.40:
+            edge_boost += min(0.20, sportsarb_profit / 100.0 * 0.8)  # 0.85% profit → +0.0068
+        if abs(edge_boost) > 0.0:
+            logger.info(f"[SUPERVISOR] 🎯 Edge boost: {edge_boost:+.3f} (poly={polytrader_edge:.1f}% arb={sportsarb_profit:.2f}%)")
+        net += edge_boost
+
         # ── Décision finale ─────────────────────────────────────────────
         # Seuils : BUY > 0.15, SELL < -0.15, reste HOLD
         if net > 0.15:
@@ -252,6 +269,11 @@ class SupervisorAgent(BaseAgent):
         elif abs(net) > 0.35 and "SELL" in trader_dec and final_decision == "HOLD":
             final_decision = "SELL"
             reason += " | Override trader fort"
+
+        # Confidence floor pour les trades déclenchés par edge agents
+        if final_decision != "HOLD" and consensus_conf < 0.35:
+            consensus_conf = max(0.35, abs(edge_boost) * 2.0 + consensus_conf)
+            consensus_conf = min(0.90, consensus_conf)
 
         suggested_size = self._compute_suggested_size(context, final_decision)
 
