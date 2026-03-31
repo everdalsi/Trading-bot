@@ -43,8 +43,8 @@ RSS_FEEDS = [
 ]
 
 # Cooldown après détection d'un événement (secondes)
-PRE_EVENT_PAUSE  = 30 * 60   # 30 min avant
-POST_EVENT_PAUSE = 30 * 60   # 30 min après
+PRE_EVENT_PAUSE  = 10 * 60   # 10 min avant
+POST_EVENT_PAUSE = 10 * 60   # 10 min après (réduit: faux positifs positifs comme powell sooths market)
 
 
 class NewsEventAgent(BaseAgent):
@@ -138,7 +138,7 @@ class NewsEventAgent(BaseAgent):
         headlines = self._fetch_rss_headlines() + self._fetch_newsapi_headlines()
         critical  = self._detect_critical_events(headlines)
 
-        if critical:
+        if len(critical) >= 2:  # FIX: ≥2 headlines pour éviter faux positifs (ex: powell positive news)
             self._detected_events = critical[:5]
             # Si pas déjà en pause, déclencher la pause
             if not self._is_paused():
