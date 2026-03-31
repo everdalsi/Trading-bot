@@ -410,7 +410,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
             <div class="kpi">
               <div class="k-label">Equity Total</div>
               <div class="k-val" id="kpi-equity" style="color:var(--accent)">--</div>
-              <div class="k-sub" id="kpi-equity-eur">-- EUR</div>
+              <div class="k-sub" id="kpi-equity-eur">-- initial</div>
             </div>
             <div class="kpi">
               <div class="k-label">P&L Total</div>
@@ -420,7 +420,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
             <div class="kpi">
               <div class="k-label">Cash</div>
               <div class="k-val" id="kpi-cash" style="font-size:17px">--</div>
-              <div class="k-sub" id="kpi-crypto">-- crypto</div>
+              <div class="k-sub" id="kpi-crypto">-- positions</div>
             </div>
             <div class="kpi">
               <div class="k-label">Drawdown</div>
@@ -1046,30 +1046,53 @@ function renderTopBar(s) {
 // RENDER: PORTFOLIO
 // ═══════════════════════════════════════════════════════════════
 function renderPortfolio(p) {
-  const eq = document.getElementById('kpi-equity');
-  eq.textContent = usd(p.totalValueUsd);
+  // Mapping des clés API réelles → ex: p.capital, p.pnl_today, p.pnl_total, p.drawdown, p.peak
+  const capital   = parseFloat(p.capital   || p.totalValueUsd || 0);
+  const initial   = parseFloat(p.initial   || 1000);
+  const pnlDay    = parseFloat(p.pnl_today || p.dailyPnl || 0);
+  const pnlTotal  = parseFloat(p.pnl_total || p.totalPnl || 0);
+  const drawdown  = parseFloat(p.drawdown  || 0);
+  const peak      = parseFloat(p.peak      || p.peakEquity || capital);
+  const openTrad  = parseInt(p.open_trades || 0);
+  const totalPnlPct  = initial > 0 ? (pnlTotal / initial * 100) : 0;
+  const dailyPnlPct  = capital > 0 ? (pnlDay   / capital * 100) : 0;
 
-  document.getElementById('kpi-equity-eur').textContent = usd(p.totalValueEur) + ' EUR';
-  document.getElementById('topbar-eq').textContent = usd(p.totalValueUsd);
+  const eq = document.getElementById('kpi-equity');
+  eq.textContent = usd(capital);
+
+  // Afficher "USDT" (pas EUR) et le montant initial comme contexte
+  const eurEl = document.getElementById('kpi-equity-eur');
+  if(eurEl) eurEl.textContent = usd(initial) + ' initial';
+
+  const topbarEq = document.getElementById('topbar-eq');
+  if(topbarEq) topbarEq.textContent = usd(capital);
 
   const pnlEl = document.getElementById('kpi-pnl');
-  pnlEl.textContent = pct(p.totalPnlPct);
-  pnlEl.className = 'k-val ' + cls(p.totalPnlPct);
+  if(pnlEl){ pnlEl.textContent = (pnlTotal>=0?'+':'')+usd(pnlTotal); pnlEl.className = 'k-val ' + cls(totalPnlPct); }
 
   const dayEl = document.getElementById('kpi-pnl-day');
-  dayEl.textContent = pct(p.dailyPnlPct) + ' today';
-  dayEl.className = 'k-sub ' + cls(p.dailyPnlPct);
+  if(dayEl){ dayEl.textContent = (pnlDay>=0?'+':'')+usd(pnlDay)+' today'; dayEl.className = 'k-sub ' + cls(dailyPnlPct); }
 
   const pnlTopEl = document.getElementById('topbar-pnl');
-  pnlTopEl.textContent = pct(p.dailyPnlPct);
-  pnlTopEl.className = cls(p.dailyPnlPct);
+  if(pnlTopEl){ pnlTopEl.textContent = (dailyPnlPct>=0?'+':'')+fmt(dailyPnlPct)+'%'; pnlTopEl.className = cls(dailyPnlPct); }
 
-  document.getElementById('kpi-cash').textContent = usd(p.cashUsd);
-  document.getElementById('kpi-crypto').textContent = usd(p.cryptoValueUsd) + ' crypto';
-  document.getElementById('kpi-dd').textContent = '-' + fmt(p.drawdown) + '%';
-  document.getElementById('kpi-peak').textContent = 'Peak: ' + usd(p.peakEquity);
-  document.getElementById('dd-badge').textContent = 'DD: -' + fmt(p.drawdown) + '%';
-  document.getElementById('dd-badge').className = 'badge ' + (p.drawdown > 10 ? 'badge-red' : p.drawdown > 5 ? 'badge-yellow' : 'badge-green');
+  const cashEl = document.getElementById('kpi-cash');
+  if(cashEl) cashEl.textContent = usd(capital);
+
+  const cryptoEl = document.getElementById('kpi-crypto');
+  if(cryptoEl) cryptoEl.textContent = openTrad + ' positions';
+
+  const ddEl = document.getElementById('kpi-dd');
+  if(ddEl) ddEl.textContent = '-' + fmt(drawdown) + '%';
+
+  const peakEl = document.getElementById('kpi-peak');
+  if(peakEl) peakEl.textContent = 'Peak: ' + usd(peak);
+
+  const ddBadge = document.getElementById('dd-badge');
+  if(ddBadge){
+    ddBadge.textContent = 'DD: -' + fmt(drawdown) + '%';
+    ddBadge.className = 'badge ' + (drawdown > 10 ? 'badge-red' : drawdown > 5 ? 'badge-yellow' : 'badge-green');
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
