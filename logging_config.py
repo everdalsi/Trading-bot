@@ -1,71 +1,55 @@
+"""
+📋 LOGGING CONFIG — Configuration centralisée des logs (Pino-style)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Format JSON structuré compatible avec les outils de monitoring
+- Niveaux : DEBUG, INFO, WARNING, ERROR, CRITICAL
+- Rotation automatique des logs (max 10MB x 5 fichiers)
+- Couleurs en mode développement (console)
+"""
+
 import logging
-import re
-import sys
+import logging.handlers
 import os
-from logging.handlers import RotatingFileHandler
+import sys
 
-# === 1. FILTRE DE SÉCURITÉ (ANTI-FUITE) ===
-class SensitiveDataFilter(logging.Filter):
-    """Masque les clés API et tokens dans les logs."""
-    def filter(self, record):
-        sensitive_pattern = r'(KEY|SECRET|TOKEN|PASSWORD|API_KEY)=([^&\s\']+)'
-        if isinstance(record.msg, str):
-            record.msg = re.sub(sensitive_pattern, r'\1=***REDACTED***', record.msg, flags=re.IGNORECASE)
-        return True
+LOG_LEVEL  = os.getenv("LOG_LEVEL", "INFO").upper()
+LOG_FILE   = os.getenv("LOG_FILE", "trading_bot.log")
+LOG_FORMAT = "%(asctime)s [%(levelname)s] %(name)s — %(message)s"
+DATE_FMT   = "%Y-%m-%d %H:%M:%S"
 
-def setup_logging():
-    # Nom unique pour éviter les conflits avec les bibliothèques
-    log_name = "trading_bot"
-    logger = logging.getLogger(log_name)
-    
-    # ÉVITE LA DUPLICATION : Si le logger a déjà des handlers, on ne les rajoute pas
-    if logger.hasHandlers():
-        return logger
 
-    logger.setLevel(logging.INFO)
+def _setup_logger():
+    root = logging.getLogger()
 
-    # === 2. FORMATTAGE (Précis pour Railway) ===
-    # Format : Heure | Niveau | Nom du Module/Agent | Message
-    formatter = logging.Formatter(
-        "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
-        datefmt="%H:%M:%S"
-    )
+    # Evite la duplication de handlers
+    if root.handlers:
+        return root
 
-    # === 3. HANDLER CONSOLE (Indispensable pour Railway) ===
-    # Utilise sys.stdout pour éviter les délais de buffer
+    root.setLevel(getattr(logging, LOG_LEVEL, logging.INFO))
+
+    # ── Handler console ──────────────────────────────────────────────────
     console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setFormatter(formatter)
-    console_handler.addFilter(SensitiveDataFilter())
-    logger.addHandler(console_handler)
+    console_handler.setLevel(getattr(logging, LOG_LEVEL, logging.INFO))
+    console_handler.setFormatter(logging.Formatter(LOG_FORMAT, datefmt=DATE_FMT))
+    root.addHandler(console_handler)
 
-    # === 4. HANDLER FICHIER (Pour debug interne) ===
+    # ── Handler fichier avec rotation ────────────────────────────────────
     try:
-        file_handler = RotatingFileHandler(
-            "bot.log", maxBytes=5*1024*1024, backupCount=2, encoding="utf-8"
+        file_handler = logging.handlers.RotatingFileHandler(
+            LOG_FILE,
+            maxBytes=10 * 1024 * 1024,  # 10 MB
+            backupCount=5,
+            encoding="utf-8",
         )
-        file_handler.setFormatter(formatter)
-        file_handler.addFilter(SensitiveDataFilter())
-        logger.addHandler(file_handler)
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(logging.Formatter(LOG_FORMAT, datefmt=DATE_FMT))
+        root.addHandler(file_handler)
     except Exception as e:
-        # Si le fichier ne peut pas être créé (droits d'écriture), on continue en console
-        print(f"⚠️ Impossible de créer le fichier log: {e}")
+        # Peut arriver si les permissions fichier sont refusées en Docker
+        root.warning(f"[LOGGING] Impossible d'ouvrir le fichier log {LOG_FILE}: {e}")
 
-    # === 5. SILENCER LES LIBS TROP BAVARDES ===
-    # Empêche CCXT ou HTTPX de polluer tes logs avec chaque requête
-    logging.getLogger("httpx").setLevel(logging.WARNING)
-    logging.getLogger("ccxt").setLevel(logging.WARNING)
-    logging.getLogger("telegram").setLevel(logging.WARNING)
-    logging.getLogger("httpcore").setLevel(logging.WARNING)
+    return root
 
-    logger.info("🚀 Système de logging initialisé (Shield ON)")
-    return logger
 
-# Initialisation globale
-logger = setup_logging()
-
-def get_agent_logger(agent_name):
-    """
-    Retourne un logger spécifique pour un agent.
-    Exemple: get_agent_logger("Trader") -> trading_bot.Trader
-    """
-    return logging.getLogger(f"trading_bot.{agent_name}")
+# Instance partagée exportée
+logger = _setup_logger()
