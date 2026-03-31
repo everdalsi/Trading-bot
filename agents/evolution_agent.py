@@ -78,11 +78,23 @@ class GitPushTool:
             )
             if "nothing to commit" in commit.stdout:
                 return "ℹ️ Rien à committer"
+            # FIX: Vérification minimale avant push
+            # Refus si le message de commit contient des patterns dangereux
+            DANGEROUS_PATTERNS = [
+                "EXTREME_LEARNING", "bypass", "veto ignoré",
+                "disable risk", "force_max", "kelly = 1.0",
+            ]
+            commit_lower = commit_message.lower()
+            if any(p.lower() in commit_lower for p in DANGEROUS_PATTERNS):
+                logger.warning(f"[EVOLUTION] 🛑 Push bloqué — pattern dangereux détecté: {commit_message[:80]}")
+                return f"🛑 Push bloqué (pattern risqué): {commit_message[:80]}"
+
             push = subprocess.run(
                 ["git", "push"],
                 capture_output=True, text=True, timeout=30
             )
             if push.returncode == 0:
+                logger.info(f"[EVOLUTION] ✅ Push validé: {commit_message[:80]}")
                 return f"✅ Push réussi : {commit_message}"
             return f"⚠️ Push échoué: {push.stderr[:100]}"
         except Exception as e:
