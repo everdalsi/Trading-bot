@@ -19,19 +19,27 @@ class SupervisorAgent(BaseAgent):
 
     # Poids de chaque agent dans la décision finale
     AGENT_WEIGHTS = {
-        "trader":               0.25,
-        "risk":                 0.20,
-        "analyst":              0.18,
-        "quant_ml":             0.12,
-        "research":             0.10,
-        "knowledge_specialist": 0.08,
-        "social_listener":      0.05,
+        # ── Core agents ────────────────────────────────────────────────
+        "trader":               0.22,
+        "risk":                 0.18,
+        "analyst":              0.16,
+        "quant_ml":             0.11,
+        "research":             0.09,
+        "knowledge_specialist": 0.07,
+        "social_listener":      0.04,
         "hedging":              0.02,
-        # Nouveaux V6
-        "order_book":           0.08,   # signal direct bid/ask
+        "order_book":           0.07,   # signal direct bid/ask
         "funding_rate":         0.03,
         "correlation_watcher":  0.02,
+        # ── BUG FIX V8/V9 : agents edge arbitrage manquants ──────────────
+        # Avaient seulement 0.03 fallback malgré des edges de 30-50%!
+        "polymarket_trader":    0.08,   # edge direct Polymarket — très fiable
+        "polymarket_arb":       0.06,   # arb cross-exchange
+        "event_sniper":         0.06,   # liquidations + OI spikes — signal court terme
+        "sports_arb":           0.05,   # arb garanti multi-bookmaker
     }
+    # Boost dynamique : si PolyTrader edge > 25% → multiplier son poids par 2x
+    EDGE_BOOST_THRESHOLD = 0.25  # edge_pct > 25% → boost poids polymarket_trader
     # Agents pouvant opposer un veto (ignoré par vote pondéré si veto)
     VETO_AGENTS = {"risk", "drawdown_guard", "news_event", "funding_rate"}
 
@@ -72,6 +80,16 @@ class SupervisorAgent(BaseAgent):
             reco = str(resp.get("recommendation", resp.get("decision", "HOLD"))).upper()
             weight = self.AGENT_WEIGHTS.get(agent_name, 0.03)
 
+            # BUG FIX/AMÉLIORATION: Boost dynamique pour signaux edge élevé
+            if agent_name == "polymarket_trader":
+                edge_pct = float(resp.get("avg_edge_pct", resp.get("edge_pct", 0))) / 100.0
+                if edge_pct >= self.EDGE_BOOST_THRESHOLD:
+                    weight = min(weight * 2.0, 0.20)  # max 20% du vote
+            elif agent_name == "sports_arb" and "ARB" in reco:
+                weight = min(weight * 1.5, 0.12)  # arb garanti → boost modéré
+            elif agent_name == "event_sniper" and confidence > 0.7:
+                weight = min(weight * 1.3, 0.10)  # liquidation cascade → boost
+
             direction = 0.0
             if any(x in reco for x in ["BUY", "LONG", "BULLISH", "HAUSSE"]):
                 direction = 1.0
@@ -106,10 +124,13 @@ class SupervisorAgent(BaseAgent):
         }
 
     def _compute_consensus_confidence(self, vote_result: Dict, agent_outputs: List[Dict]) -> float:
-        """Confiance basée sur le degré de consensus entre agents."""
+        """Confiance basée sur le degré de consensus entre agents.
+        Pour HOLD : plancher de 35% (le bot est certain de ne pas trader, pas 0%).
+        Pour BUY/SELL : confiance = convergence des agents × avg_confidence.
+        """
         agents = vote_result.get("agents", [])
         if not agents:
-            return 0.5
+            return 0.35
         # Convergence : proportion d'agents dans la même direction que la décision
         net = vote_result["net_score"]
         same_dir = sum(1 for a in agents if (a["direction"] > 0 and net > 0) or (a["direction"] < 0 and net < 0))
