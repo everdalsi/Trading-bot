@@ -4,8 +4,7 @@ UPGRADES intégrées (sans rien supprimer de l’original) :
 - memory forcé en classe
 - PerformanceTracker + export_dashboard compatible
 - Dashboard envoyé en parse_mode='HTML' (plus de HTML brut)
-- Orchestrator V5 + shared_glossary prêt
-- yield_staking / execution_engine en global
+- Orchestrator V5 + shared_glossary 
 - FIX CRITIQUE : coroutine never awaited sur YieldStakingAgent
 - FIX : trading_loop exécute vraiment les trades quand l’orchestrator décide
 - Singleton KB + réduction massive des get_glossary()
