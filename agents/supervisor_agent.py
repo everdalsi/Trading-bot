@@ -1,16 +1,6 @@
 """
-🎯 SUPERVISOR AGENT V5 — GOAT de la synthèse finale + Cerveau commun parfait + Spécialisation stricte
-"""
-🎯 SUPERVISOR AGENT V5 — GOAT de la synthèse finale + Cerveau commun parfait + Spécialisation stricte
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-UPGRADES AJOUTÉES (sans rien supprimer de l’original V4) :
-- Héritage complet de BaseAgent V3 (safe_respond, _is_in_my_domain, explain_term)
-- Glossaire partagé forcé pour zéro malentendu avec tous les autres agents
-- Vérification stricte de spécialisation (ne répond jamais hors de son rôle)
-- Utilisation systématique de explain_term + shared_glossary
-- Commentaires détaillés ajoutés partout pour plus de clarté et plus de lignes
-- Summary encore plus alignée avec le cerveau collectif
-- FIX 4 : _is_in_my_domain élargi pour participer au débat collectif (synthèse, final decision, vote…)
+SUPERVISOR AGENT V5 - GOAT de la synthese finale + Cerveau commun parfait
+Specialisation stricte + Glossaire partage + Arbitrage final
 """
 
 from typing import Dict, Any
