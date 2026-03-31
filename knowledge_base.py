@@ -128,7 +128,7 @@ class KnowledgeBase:
 
     def get_glossary(self) -> str:
         """Compatibilité V8 — Ancienne méthode get_glossary() pour Orchestrator V5"""
-        logger.info("[KNOWLEDGE-BASE] get_glossary() appelée → fallback contexte agent")
+        logger.debug("[KNOWLEDGE-BASE] get_glossary() appelée → fallback contexte agent")
         context = self.get_context_for_agent(
             "Glossaire complet trading : définitions, stratégies, risk management, Wyckoff, VSA, Kelly Criterion, etc.",
             max_results=6

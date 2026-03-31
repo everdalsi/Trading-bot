@@ -2660,8 +2660,9 @@ def trading_loop(send_fn):
         if now - last_status >= 60:
             last_status = now
             try:
-                send_fn(generate_dashboard(), parse_mode='HTML')
-                performance_tracker.export_dashboard()
+                send_fn(generate_telegram_status())
+                _mem_dict = memory.data if hasattr(memory, "data") else (memory if isinstance(memory, dict) else {})
+                performance_tracker.export_dashboard(_mem_dict)
                 if hasattr(memory, "cache_set"):
                     memory.cache_set("last_equity", equity)
                     memory.cache_set("last_price_BTC", current_price)
@@ -2767,6 +2768,33 @@ def self_ping():
         except Exception: 
             pass
         time.sleep(270)
+
+def generate_telegram_status() -> str:
+    """Génère un message texte court pour Telegram (sans HTML brut ni DOCTYPE)."""
+    equity = get_equity_safe()
+    pnl = equity - sim["initial"]
+    pct = pnl / sim["initial"] * 100 if sim["initial"] > 0 else 0
+    status = "🟢 BOT ACTIF" if bot_state["running"] else "🔴 ARRÊTÉ"
+    if bot_state.get("daily_stopped"):
+        status = "🛑 STOP JOUR"
+    regime = bot_state.get("market_regime", "NEUTRAL")
+    regime_emoji = "🐂" if regime == "BULL" else "🐻" if regime == "BEAR" else "🐢"
+    stats = get_stats()
+    open_pos = len(sim.get("positions", {}))
+    prices = get_prices_batch()
+    btc = prices.get("BTCUSDT", 0)
+    eth = prices.get("ETHUSDT", 0)
+    return (
+        f"{status} — {regime_emoji} {regime}\n"
+        f"━━━━━━━━━━━━━━━━━━━\n"
+        f"💰 Capital : ${equity:,.2f} ({pct:+.1f}%)\n"
+        f"📈 PnL tot : ${pnl:+.2f}\n"
+        f"🎯 WR      : {stats.get('win_rate', 0):.1f}% ({stats.get('total', 0)} trades)\n"
+        f"📍 Pos ouv : {open_pos}\n"
+        f"₿ BTC: ${btc:,.0f} | Ξ ETH: ${eth:,.0f}\n"
+        f"⏰ {time.strftime('%H:%M:%S UTC', time.gmtime())}"
+    )
+
 
 def generate_dashboard() -> str:
     equity = get_equity_safe()

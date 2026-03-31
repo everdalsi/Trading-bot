@@ -36,6 +36,18 @@ AGENTS_DIR   = "agents"
 BUG_REPORT   = "bug_report.md"
 REQUIRED_KEYS = {"agent", "summary", "confidence", "recommendation"}
 
+# Modules installés via requirements.txt mais non trouvables sans env Python complet
+# → exclus du scan statique pour éviter les faux positifs
+_KNOWN_THIRD_PARTY = {
+    "langchain_groq", "langchain", "crewai", "crewai_tools",
+    "vectorbt", "ccxt", "groq", "openai", "litellm",
+    "chromadb", "pypdf", "pdfminer",
+    "feedparser", "praw", "telegram", "flask",
+    "redis", "quantstats", "backtrader", "pyfolio",
+    "ta", "scipy", "matplotlib", "pandas", "numpy",
+    "cryptography", "newsapi",
+}
+
 
 class CodeFixerAgent(BaseAgent):
     """
@@ -71,19 +83,31 @@ class CodeFixerAgent(BaseAgent):
     # SCAN D'AGENTS
     # ────────────────────────────────────────────────────────────────────────
 
+    # Fichiers du dossier agents/ qui ne sont pas des agents (pas de respond())
+    _NON_AGENT_FILES = {"config.py", "tools.py", "base_agent.py", "__init__.py"}
+
     def _list_agent_files(self) -> List[str]:
-        """Liste tous les fichiers Python d'agents."""
+        """Liste tous les fichiers Python d'agents (exclut les helpers non-agents)."""
         try:
             files = [
                 f for f in os.listdir(AGENTS_DIR)
                 if f.endswith(".py") and not f.startswith("__")
+                and f not in self._NON_AGENT_FILES
             ]
             return [os.path.join(AGENTS_DIR, f) for f in files]
         except Exception:
             return []
 
+    def _is_known_third_party(self, module: str) -> bool:
+        """Retourne True si le module est une dépendance tierce connue (dans requirements.txt)."""
+        root = module.split(".")[0]
+        return root in _KNOWN_THIRD_PARTY
+
     def _parse_imports(self, filepath: str) -> Tuple[List[str], List[str]]:
-        """Parse les imports d'un fichier Python et retourne (imports_ok, imports_suspect)."""
+        """Parse les imports d'un fichier Python et retourne (imports_ok, imports_suspect).
+        Les modules tiers connus (dans _KNOWN_THIRD_PARTY) sont exclus du scan pour éviter
+        les faux positifs dans les environnements sans installation complète.
+        """
         imports_ok: List[str] = []
         imports_suspect: List[str] = []
         try:
@@ -95,7 +119,10 @@ class CodeFixerAgent(BaseAgent):
                     if isinstance(node, ast.ImportFrom):
                         module = node.module or ""
                         names  = [alias.name for alias in node.names]
-                        # Vérifie si le module existe
+                        # Ignore les modules tiers connus (faux positifs)
+                        if self._is_known_third_party(module):
+                            imports_ok.append(f"from {module} import {', '.join(names)}")
+                            continue
                         try:
                             importlib.import_module(module)
                             imports_ok.append(f"from {module} import {', '.join(names)}")
@@ -105,6 +132,9 @@ class CodeFixerAgent(BaseAgent):
                             imports_ok.append(f"from {module} import {', '.join(names)}")
                     elif isinstance(node, ast.Import):
                         for alias in node.names:
+                            if self._is_known_third_party(alias.name):
+                                imports_ok.append(f"import {alias.name}")
+                                continue
                             try:
                                 importlib.import_module(alias.name)
                                 imports_ok.append(f"import {alias.name}")
