@@ -51,8 +51,8 @@ from logging_config import logger
 # Timeout par agent (secondes)
 AGENT_TIMEOUT      = 12.0
 PHASE0_TIMEOUT     = 5.0    # Agents rapides (self_improvement, code_fixer, drawdown_guard)
-PHASE0_HTTP_TIMEOUT  = 12.0  # BUG FIX: news_event & funding_rate font des requêtes HTTP > 5s
-PHASE0_CACHE_TTL     = 25.0  # Cache résultat Phase0 pour éviter appels HTTP répétés (25s)
+PHASE0_HTTP_TIMEOUT  = 12.0
+PHASE0_CACHE_TTL     = 25.0  # Cache Phase0 (25s TTL)
 
 
 async def _safe_call(agent: BaseAgent, question: str, context: dict, timeout: float = AGENT_TIMEOUT) -> Dict[str, Any]:
