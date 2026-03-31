@@ -1,4 +1,4 @@
-# --- Dépendances critiques ---
+# --- Dépendancescritiques ---
 sgmllib3k
 feedparser>=6.0.10
 pydantic>=2.4.1
