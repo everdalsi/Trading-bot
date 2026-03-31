@@ -864,119 +864,97 @@ function sigClass(sig) {
 function renderDebate(feed) {
   const terminal = document.getElementById('debate-terminal');
   if (!terminal) return;
-  const cycle = feed.cycle || {};
-  const agents = cycle.agents || [];
-  const log    = feed.log    || [];
 
-  // Rien encore
-  if (!cycle.cycle_id) {
-    terminal.innerHTML = '<div class="idle-state"><div class="idle-icon">🤖</div><div class="idle-msg">En attente du premier cycle…</div></div>';
+  if (!feed) {
+    terminal.innerHTML = `<div class="idle-state">
+      <div class="idle-icon" style="font-size:36px">⏳</div>
+      <div class="idle-msg">Connexion au serveur…</div>
+    </div>`;
     return;
   }
 
-  const dec       = (cycle.decision || 'HOLD').toUpperCase();
-  const conf      = cycle.confidence || 0;
-  const veto      = cycle.veto;
-  const vetoMins  = cycle.veto_minutes || 0;
-  const symbols   = (cycle.symbols || []).join(', ');
-  const bestSym   = cycle.best || '—';
-  const kelly     = ((cycle.kelly || 0) * 100).toFixed(1);
-  const regime    = cycle.regime || 'NEUTRAL';
-  const cycleId   = cycle.cycle_id || 0;
-  const ts        = cycle.ts ? new Date(cycle.ts * 1000).toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '--';
+  const cycle  = feed.cycle  || {};
+  const agents = cycle.agents || [];
+  const log    = feed.log    || [];
 
-  // Classe principale
-  const mainClass = veto ? 'veto' : sigClass(dec);
-
-  let html = '';
-
-  // ── Cycle Header ──────────────────────────────────────────────────────────
-  const statusIcon = veto ? '⛔' : dec === 'HOLD' ? '⏸' : dec.includes('BUY') ? '▲' : '▼';
-  const statusClass = veto ? 'veto' : dec === 'HOLD' ? 'hold' : dec.includes('BUY') ? 'buy' : 'sell';
-  html += '<div class="cycle-header">'
-    + '<div><div class="cycle-id">Cycle #' + cycleId + ' · ' + ts + '</div><div class="cycle-sym">' + esc(symbols) + '</div></div>'
-    + '<div class="cycle-status ' + statusClass + '">' + statusIcon + ' ' + dec + ' ' + Math.round(conf * 100) + '%</div>'
-    + '</div>';
-
-  // ── Veto Banner ───────────────────────────────────────────────────────────
-  if (veto) {
-    const vetoSrc = veto.replace(/_/g, ' ').toUpperCase();
-    html += '<div class="veto-banner">'
-      + '<span class="veto-icon">⛔</span>'
-      + '<div><div class="veto-text">VETO ' + esc(vetoSrc) + '</div>'
-      + (vetoMins > 0 ? '<div class="veto-detail">' + vetoMins + ' min de pause restante</div>' : '')
-      + '</div></div>';
+  if (!cycle.cycle_id) {
+    terminal.innerHTML = `<div class="idle-state">
+      <div class="idle-icon" style="font-size:40px;animation:pulse 2s infinite">🤖</div>
+      <div class="idle-msg">Agents prêts — attente du premier cycle</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:6px">Le bot analyse les marchés en continu…</div>
+    </div>`;
+    return;
   }
 
-  // ── Phase Strip ───────────────────────────────────────────────────────────
-  html += '<div class="phase-strip">'
-    + '<div class="phase-pill done">Phase 0<br>Sécurité</div>'
-    + '<div class="phase-pill ' + (veto ? 'veto' : (agents.length > 0 ? 'done' : 'active')) + '">Phase 1<br>Analyse</div>'
-    + '<div class="phase-pill ' + (veto ? 'veto' : (conf > 0 ? 'done' : 'active')) + '">Phase 2<br>Risque</div>'
-    + '<div class="phase-pill ' + (veto ? 'veto' : (conf > 0 ? 'done' : '')) + '">Phase 4<br>Verdict</div>'
-    + '</div>';
+  const dec      = (cycle.decision || 'HOLD').toUpperCase();
+  const conf     = cycle.confidence || 0;
+  const veto     = cycle.veto;
+  const syms     = (cycle.symbols || []).join(', ');
+  const best     = cycle.best || '—';
+  const kellyPct = ((cycle.kelly || 0) * 100).toFixed(1);
+  const regime   = cycle.regime || 'NEUTRAL';
+  const confPct  = Math.round(conf * 100);
 
-  // ── Agent Cards Grid ──────────────────────────────────────────────────────
-  if (agents.length > 0) {
-    html += '<div class="agent-debate-grid">';
+  const decColor = dec === 'BUY' || dec === 'LONG' ? 'var(--green)' :
+                   dec === 'SELL'|| dec === 'SHORT' ? 'var(--red)' :
+                   dec === 'NO TRADE' ? 'var(--purple)' : 'var(--yellow)';
+
+  let parts = [];
+
+  parts.push(`<div style="background:var(--bg4);border-radius:10px;padding:10px 12px;margin-bottom:10px;border:1px solid var(--border2)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span style="font-size:10px;color:var(--text3);letter-spacing:1px">CYCLE #${cycle.cycle_id}</span>
+      <span style="font-size:10px;color:var(--accent)">${esc(regime)}</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:26px;font-weight:800;color:${decColor}">${dec}</span>
+      <div style="text-align:right">
+        <div style="font-size:15px;font-weight:700;color:${decColor}">${confPct}% confiance</div>
+        <div style="font-size:10px;color:var(--text3)">Kelly ${kellyPct}% · ${esc(best)}</div>
+      </div>
+    </div>
+    ${veto ? `<div style="margin-top:6px;padding:4px 8px;background:var(--red2);border-radius:6px;font-size:10px;color:var(--red)">🛑 VETO: ${esc(veto)}</div>` : ''}
+  </div>`);
+
+  if (agents.length) {
+    parts.push(`<div style="font-size:9px;color:var(--text3);margin-bottom:6px;letter-spacing:1.5px">VOTES DES AGENTS (${agents.length})</div>`);
     agents.forEach(a => {
-      const meta = AGENT_META_DB[a.agent] || {icon:'🔹', name: a.agent || '?'};
-      const sc   = sigClass(a.signal);
-      const confPct = Math.round((a.confidence || 0) * 100);
-      const isAnalyzing = false;
-      html += '<div class="agent-card-v2 ' + sc + '">'
-        + '<div class="ac2-top">'
-        + '<span class="ac2-icon">' + meta.icon + '</span>'
-        + '<div><div class="ac2-name">' + meta.name + '</div><div class="ac2-status">' + esc(a.symbol || '') + '</div></div>'
-        + '<span class="ac2-signal ' + sc + '">' + esc(a.signal || 'HOLD').replace('NO TRADE','NO') + '</span>'
-        + '</div>'
-        + '<div class="ac2-conf-bar"><div class="ac2-conf-fill ' + sc + '" style="width:' + confPct + '%"></div></div>'
-        + '<div class="ac2-summary">' + esc((a.summary || '—').slice(0,80)) + '</div>'
-        + '</div>';
+      const m   = AGENT_META_DB[a.agent] || {icon:'🤖', name: a.agent||'Agent'};
+      const sc  = sigClass(a.signal);
+      const acc = sc==='buy'?'var(--green)':sc==='sell'?'var(--red)':sc==='veto'?'var(--purple)':'var(--text3)';
+      const cP  = Math.min(100, Math.round((a.confidence||0)*100));
+      parts.push(`<div style="background:var(--bg3);border-radius:8px;padding:6px 8px;margin-bottom:4px;border-left:3px solid ${acc}">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:12px;font-weight:600">${m.icon} ${esc(m.name)}</span>
+          <span style="font-size:11px;font-weight:700;color:${acc}">${esc((a.signal||'HOLD').slice(0,20))}</span>
+        </div>
+        ${a.summary?`<div style="font-size:10px;color:var(--text3);margin:2px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(a.summary.slice(0,80))}</div>`:''}
+        <div style="background:var(--bg4);border-radius:3px;height:2px;margin-top:4px;overflow:hidden">
+          <div style="width:${cP}%;height:100%;background:${acc};transition:width .4s"></div>
+        </div>
+      </div>`);
     });
-    html += '</div>';
   }
 
-  // ── Debate Log (derniers 12 messages) ─────────────────────────────────────
-  const recentLog = log.slice(-12).reverse();
-  if (recentLog.length > 0) {
-    html += '<div class="debate-log">'
-      + '<div class="debate-log-header"><span class="debate-log-title">📋 Journal de débat</span><span style="font-size:10px;color:var(--text3)">' + log.length + ' entrées</span></div>'
-      + '<div class="debate-feed">';
-    recentLog.forEach(entry => {
-      const meta = AGENT_META_DB[entry.agent] || {icon:'🔹', name: entry.agent || '?'};
-      const sc   = sigClass(entry.signal);
-      const confPct = Math.round((entry.confidence || 0) * 100);
-      const t = entry.ts ? new Date(entry.ts * 1000).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '';
-      html += '<div class="debate-entry">'
-        + '<span class="de-agent">' + meta.icon + ' ' + meta.name + '</span>'
-        + '<span class="de-signal ' + sc + '">' + esc(entry.signal || 'HOLD').replace('NO TRADE','NO') + '</span>'
-        + '<span class="de-text">' + esc((entry.summary || '—').slice(0,60)) + '</span>'
-        + '<span class="de-conf">' + confPct + '%</span>'
-        + '</div>';
+  if (log.length) {
+    parts.push(`<div style="font-size:9px;color:var(--text3);margin:10px 0 6px;letter-spacing:1.5px">HISTORIQUE (${log.length} entrées)</div>`);
+    log.slice(-8).reverse().forEach(e => {
+      const m   = AGENT_META_DB[e.agent] || {icon:'🤖', name: e.agent||'?'};
+      const sc  = sigClass(e.signal);
+      const acc = sc==='buy'?'var(--green)':sc==='sell'?'var(--red)':'var(--text2)';
+      const ts  = e.ts ? new Date(e.ts*1000).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '';
+      parts.push(`<div style="display:flex;gap:6px;align-items:center;padding:4px 6px;background:var(--bg3);border-radius:6px;margin-bottom:3px">
+        <span style="font-size:9px;color:var(--text3);flex-shrink:0">${ts}</span>
+        <span style="font-size:11px;flex-shrink:0">${m.icon} ${esc(m.name)}</span>
+        <span style="font-size:10px;font-weight:700;color:${acc};flex-shrink:0">${esc((e.signal||'HOLD').slice(0,12))}</span>
+        <span style="font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${esc((e.summary||'').slice(0,55))}</span>
+      </div>`);
     });
-    html += '</div></div>';
   }
 
-  // ── Verdict Final ─────────────────────────────────────────────────────────
-  const verdictIcon = veto ? '⛔' : dec.includes('BUY') ? '▲' : dec.includes('SELL') ? '▼' : '⏸';
-  const verdictColor = veto ? 'var(--red)' : dec.includes('BUY') ? 'var(--green)' : dec.includes('SELL') ? 'var(--red)' : 'var(--text2)';
-  html += '<div class="verdict-panel ' + mainClass + '">'
-    + '<div class="verdict-body">'
-    + '<div class="verdict-top">'
-    + '<span class="verdict-icon">' + verdictIcon + '</span>'
-    + '<div><div class="verdict-decision" style="color:' + verdictColor + '">' + (veto ? 'VETO' : dec) + '</div>'
-    + '<div class="verdict-sub">Signal · ' + esc(bestSym) + '</div></div>'
-    + '</div>'
-    + '<div class="verdict-meta">'
-    + '<div class="vm-item"><div class="vm-val" style="color:' + verdictColor + '">' + Math.round(conf*100) + '%</div><div class="vm-label">Confiance</div></div>'
-    + '<div class="vm-item"><div class="vm-val" style="color:var(--accent)">' + kelly + '%</div><div class="vm-label">Kelly</div></div>'
-    + '<div class="vm-item"><div class="vm-val" style="color:var(--purple)">' + esc(regime) + '</div><div class="vm-label">Régime</div></div>'
-    + '<div class="vm-item"><div class="vm-val" style="color:var(--yellow)">' + agents.length + '</div><div class="vm-label">Agents</div></div>'
-    + '</div></div></div>';
-
-  terminal.innerHTML = html;
+  terminal.innerHTML = parts.join('');
 }
+
 
 // ═══════════════════════════════════════════════════════════════
 // FETCH ALL
@@ -999,8 +977,8 @@ async function fetchAll() {
   ]);
 
   if (botSt)    { S.running = botSt.running; renderTopBar(botSt); }
-  if (agents)   { S.agents = agents; renderAgents(agents); pushActivity(agents); }
-  if (feed)     { S.feed = feed; renderDebate(feed); }
+  if (agents)   { S.agents = agents; renderAgents(agents); }
+  renderDebate(feed);
   if (portfolio){ S.portfolio = portfolio; renderPortfolio(portfolio); }
   if (positions){ S.positions = positions; renderPositions(positions); }
   if (trades)   { S.trades = trades; renderTrades(trades); }
@@ -1037,16 +1015,29 @@ function renderTopBar(s) {
     btn.textContent = 'Start';
     btn.className = 'toggle-btn toggle-stop';
   }
-  document.getElementById('sc-mode').textContent = (s.testnetMode ? 'TESTNET' : 'LIVE') + (s.mode ? ' · '+s.mode : '');
-  document.getElementById('sc-cycle').textContent = s.cycleCount || '0';
-  document.getElementById('sc-ws').textContent = s.wsConnected ? '✅' : '⚠️ REST';
+  // FIX: correct API keys (ws_connected, total_trades, mode)
+  document.getElementById('sc-mode').textContent = s.mode || (s.testnetMode ? 'TESTNET' : 'LIVE');
+  document.getElementById('sc-cycle').textContent = (s.total_trades ?? s.cycleCount ?? 0) + ' trades';
+  document.getElementById('sc-ws').textContent = (s.ws_connected ?? s.wsConnected) ? '🟢 WS' : '⚠️ REST';
+  // FIX: topbar equity + PnL (never updated before)
+  const eqEl  = document.getElementById('topbar-eq');
+  const pnlEl = document.getElementById('topbar-pnl');
+  if (eqEl)  eqEl.textContent = s.balance != null ? usd(s.balance) : '--';
+  if (pnlEl) {
+    const pd = s.pnl_today ?? 0;
+    pnlEl.textContent = (pd >= 0 ? '+' : '') + usd(pd);
+    pnlEl.className   = pd >= 0 ? 'pos' : 'neg';
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
 // RENDER: PORTFOLIO
 // ═══════════════════════════════════════════════════════════════
 function renderPortfolio(p) {
-  // Mapping des clés API réelles → ex: p.capital, p.pnl_today, p.pnl_total, p.drawdown, p.peak
+  if (!p) return;
+  const posEl = document.getElementById('sc-pos');
+  if (posEl) posEl.textContent = p.open_trades ?? 0;
+  // Mapping des clés API réelles
   const capital   = parseFloat(p.capital   || p.totalValueUsd || 0);
   const initial   = parseFloat(p.initial   || 1000);
   const pnlDay    = parseFloat(p.pnl_today || p.dailyPnl || 0);
@@ -1225,12 +1216,14 @@ function renderPrices(prices) {
 // RENDER: AGENTS
 // ═══════════════════════════════════════════════════════════════
 function renderAgents(agentsData) {
-  const activeN = agentsData.filter(a => a.status === 'active').length;
+  const agentsArr = Array.isArray(agentsData) ? agentsData : (agentsData?.agents || []);
+  const activeN = agentsArr.filter(a => a.status === 'active').length;
   document.getElementById('agents-badge').textContent = activeN + ' actifs';
-  document.getElementById('active-count-badge').textContent = activeN + ' actifs';
+  const abEl = document.getElementById('active-count-badge');
+  if (abEl) abEl.textContent = activeN + ' actifs';
 
   const all = AGENTS.map(meta => {
-    const live = agentsData.find(a => a.id === meta.id);
+    const live = agentsArr.find(a => a.id === meta.id);
     return live ? {...meta, ...live} : {...meta, activity:'resting', status:'idle', lastAction:'En attente...', confidence:null};
   });
 
