@@ -65,17 +65,55 @@ class RiskAgent(BaseAgent):
         # UPGRADE ÉTAPE 2 : ce bloc est maintenant désactivé automatiquement en strict_veto_mode
         learning_mode = any(word in question.lower() for word in ["max de trade", "apprenez", "affûtez", "apprendre", "max trade", "beaucoup de trades", "vrai argent"])
         if (learning_mode or extreme_learning) and not strict_veto_mode:
+            # FIX: Garde-fous minimaux même en mode apprentissage
+            # Drawdown > 15% = stop absolu même en EXTREME_LEARNING
+            if drawdown <= -0.15:
+                return {
+                    "agent": self.name,
+                    "summary": f"🛑 STOP APPRENTISSAGE — Drawdown critique {drawdown*100:.1f}% > 15%",
+                    "arguments": ["Circuit breaker: drawdown max même en learning mode"],
+                    "risks": ["Drawdown critique"],
+                    "confidence": 1.0,
+                    "recommendation": "NO TRADE — Drawdown trop élevé, pause obligatoire",
+                    "kelly_adjusted": 0.0,
+                    "risk_level": "CRITICAL",
+                }
+            # Streak de 5 pertes consécutives = pause même en EXTREME_LEARNING
+            if streak_type == "loss" and streak_count >= 5:
+                return {
+                    "agent": self.name,
+                    "summary": f"⚠️ PAUSE APPRENTISSAGE — {streak_count} pertes consécutives",
+                    "arguments": ["Circuit breaker: 5 pertes consécutives"],
+                    "risks": ["Streak de pertes"],
+                    "confidence": 1.0,
+                    "recommendation": "NO TRADE — Pause 15min après 5 pertes d'affilée",
+                    "kelly_adjusted": 0.0,
+                    "risk_level": "HIGH",
+                }
+            # Nuit UTC (2h-6h) = pas de trading même en learning
+            if is_night:
+                return {
+                    "agent": self.name,
+                    "summary": "🌙 PAUSE NUIT — Trading suspendu 2h-6h UTC même en learning",
+                    "arguments": ["Liquidité réduite la nuit"],
+                    "risks": ["Liquidité faible"],
+                    "confidence": 0.9,
+                    "recommendation": "NO TRADE — Nuit UTC",
+                    "kelly_adjusted": 0.0,
+                    "risk_level": "MEDIUM",
+                }
+            # Sinon: learning mode autorisé avec kelly réduit à 50%
             risk_level = "LOW"
-            recommendation = "FORCE MAX TRADES — Apprentissage prioritaire (veto ignoré)"
-            kelly_adjust = 1.0
+            recommendation = "LEARNING MODE — Trades autorisés (garde-fous actifs)"
+            kelly_adjust = 0.5  # FIX: Kelly réduit de 50% en learning pour limiter les pertes
             return {
                 "agent": self.name,
-                "summary": f"Risk: {risk_level} | Kelly: {kelly*100:.1f}% → {kelly*100:.1f}% | DD: {drawdown*100:.1f}% | Sharpe: {sharpe:.2f}",
-                "arguments": ["Apprentissage forcé — volume max activé"],
+                "summary": f"Risk: {risk_level} | Kelly: {kelly*100:.1f}% → {kelly*50:.1f}% | DD: {drawdown*100:.1f}% | Sharpe: {sharpe:.2f}",
+                "arguments": ["Apprentissage autorisé — volume modéré (50% Kelly)"],
                 "risks": risks_list,
-                "confidence": 0.95,
+                "confidence": 0.80,
                 "recommendation": recommendation,
-                "kelly_adjusted": kelly,
+                "kelly_adjusted": kelly * 0.5,
                 "risk_level": risk_level,
             }
 
