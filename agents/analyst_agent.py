@@ -1,15 +1,6 @@
 """
-📊 ANALYST AGENT V4 — GOAT de l'analyse stats + Cerveau commun parfait + Spécialisation stricte
-"""
-📊 ANALYST AGENT V4 — GOAT de l’analyse stats + Cerveau commun parfait + Spécialisation stricte
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-UPGRADES AJOUTÉES (sans rien supprimer de V3) :
-- Héritage complet de BaseAgent V3 (safe_respond, _is_in_my_domain, explain_term)
-- Glossaire partagé forcé pour zéro malentendu avec tous les autres agents
-- Vérification stricte de spécialisation (ne répond jamais hors de son rôle)
-- Utilisation systématique de explain_term + shared_glossary
-- Commentaires détaillés ajoutés partout pour plus de clarté et plus de lignes
-- Summary encore plus alignée avec le cerveau collectif
+ANALYST AGENT V4 - GOAT de l'analyse stats + Cerveau commun parfait
+Specialisation stricte + Glossaire partage + Stats temps reel
 """
 
 from agents.base_agent import BaseAgent
