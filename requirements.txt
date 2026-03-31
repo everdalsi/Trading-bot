@@ -29,7 +29,7 @@ httpx
 websocket-client
 aiohttp
 
-# ── Réseau & Bot Telegram ──────────────────────────────────────
+# ── Réseau & Bot Telegram ─────────────────────────────���────────
 python-telegram-bot>=21.0
 flask
 prometheus-client
@@ -61,5 +61,8 @@ ta                # Technical Analysis library (RSI, MACD, BB, etc.)
 # Note : pandas_ta retiré car conflits de wheels Docker
 # VectorBT + ta couvrent largement les besoins
 
-# ── Sécurité & Monitoring ──────────────────────────────────────
+# ── Sécurité & Monitoring ───────────────────���──────────────────
 cryptography
+
+# ── Nouveaux agents V6.0 ──────────────────────────────────────────────
+newsapi-python       # NewsEventAgent — flux actualités macro/crypto
