@@ -125,6 +125,8 @@ class Orchestrator:
         self._sportsarb_cache  = {}
         self._last_news_veto_ts    = 0.0   # Debounce : log VETO News max 1x/60s
         self._last_funding_veto_ts = 0.0   # Debounce : log VETO Funding max 1x/60s
+        self._phase0_cache         = {}    # BUG FIX: cache résultat Phase0 (25s TTL)
+        self._phase0_cache_ts      = 0.0  # Timestamp dernier cache Phase0
         logger.info("[ORCHESTRATOR V9] ✅ 14 agents initialisés — Mode PARALLÈLE activé (+ PolyTrader + SportsArb)")
 
     def get_backtest_validator(self) -> BacktestValidatorAgent:
