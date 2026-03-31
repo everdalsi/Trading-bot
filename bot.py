@@ -362,6 +362,9 @@ _main_loop  = None
 _app        = None
 _start_ts   = time.time()
 _agent_running = False
+_agent_activity_log = []   # Feed temps réel
+_last_debate_cycle   = {}  # Dernier cycle complet
+_debate_cycle_id     = 0   # Compteur de cycle
 _signal_cache:   set  = set()
 _price_cache:    dict = {}
 _yahoo_cache:    dict = {}
@@ -2682,6 +2685,41 @@ def trading_loop(send_fn):
 
                 decision = best_decision
                 micro_ctx["symbol"] = best_symbol
+
+                # ── Capture débat pour le dashboard /office ────────────────────
+                try:
+                    global _last_debate_cycle, _debate_cycle_id, _agent_activity_log
+                    _debate_cycle_id += 1
+                    _now_ts = int(time.time())
+                    _all_agents_this_cycle = []
+                    for _s, _sd in multi_results.items():
+                        for _out in (_sd.get("outputs") or []):
+                            if isinstance(_out, dict):
+                                _all_agents_this_cycle.append({
+                                    "agent":      _out.get("agent", _out.get("id", "?")),
+                                    "signal":     str(_out.get("recommendation", _out.get("decision", "HOLD"))).upper(),
+                                    "confidence": round(float(_out.get("confidence", 0)), 2),
+                                    "summary":    str(_out.get("summary", ""))[:120],
+                                    "symbol":     _s,
+                                    "ts":         _now_ts,
+                                })
+                    _agent_activity_log = (_agent_activity_log + _all_agents_this_cycle)[-100:]
+                    _last_debate_cycle = {
+                        "cycle_id":     _debate_cycle_id,
+                        "symbols":      list(multi_results.keys()),
+                        "best":         best_symbol,
+                        "decision":     str(decision.get("recommendation", decision.get("decision", "HOLD"))).upper(),
+                        "confidence":   round(float(decision.get("confidence", 0)), 2),
+                        "kelly":        round(float(decision.get("kelly_adjusted", 0.05)), 3),
+                        "regime":       micro_ctx.get("market_regime", "NEUTRAL"),
+                        "agents":       _all_agents_this_cycle,
+                        "veto":         decision.get("veto_source", None),
+                        "veto_minutes": decision.get("pause_minutes", 0),
+                        "ts":           _now_ts,
+                    }
+                except Exception:
+                    pass
+                # ──────────────────────────────────────────────────────────────────
                 logger.info(
                     f"[MICRO V7] 🔀 {len(multi_results)} symboles analysés en parallèle → "
                     f"meilleur: {best_symbol} | "
@@ -3219,6 +3257,13 @@ class BotHandler(BaseHTTPRequestHandler):
                 "volume_ratio":  cache.get("volume_ratio", 1.0),
                 "stats":         cache.get("stats", {}),
                 "updated_at":    cache.get("updated_at", 0),
+            })
+
+        elif path == "/api/agent/feed":
+            self._send_json({
+                "cycle":    _last_debate_cycle,
+                "log":      _agent_activity_log[-40:],
+                "cycle_id": _debate_cycle_id,
             })
 
         else:
