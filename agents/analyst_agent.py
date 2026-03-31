@@ -1,14 +1,5 @@
 """
-📊 ANALYST AGENT V3 — Analyse enrichie + mémoire infinie
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Améliorations vs V2 :
-
-- Utilise LearningAgent DB pour les stats (mémoire infinie)
-- Intègre le PerformanceTracker pour stats temps réel
-- Détecte les tendances de performance (amélioration / dégradation)
-- Recommandations basées sur les insights compressés
-"""
-
+📊 ANALYST AGENT V4 — GOAT de l'analyse stats + Cerveau commun parfait + Spécialisation stricte
 """
 📊 ANALYST AGENT V4 — GOAT de l’analyse stats + Cerveau commun parfait + Spécialisation stricte
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
