@@ -1,5 +1,5 @@
 """
-🔍 KNOWLEDGE BASE V1.3 — Version Intégrale Stable + AUTO-LOAD + get_glossary
+🔍 KNOWLEDGE BASEV1.3 — Version Intégrale Stable + AUTO-LOAD + get_glossary
 """
 
 import os
