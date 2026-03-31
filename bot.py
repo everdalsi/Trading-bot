@@ -3104,26 +3104,36 @@ class BotHandler(BaseHTTPRequestHandler):
     def _handle_api_get(self):
         global _agent_running, _bot_mode, sim_portfolio, orchestrator
         path = self.path.split("?")[0]
-        sim  = load_json("sim_portfolio_v7.json", {})
+        _raw  = load_json("sim_portfolio_v7.json", {})
+        # BUG FIX: le JSON est sauvé sous {"sim": {...}, "memory":...}
+        # mais le code lisait directement "capital" sur le niveau racine → toujours 0
+        sim   = _raw.get("sim", _raw) if isinstance(_raw, dict) else {}
+        # Helpers pour calculer PnL/drawdown depuis les bonnes clés
+        _cash   = float(sim.get("cash",   sim.get("capital",   CAPITAL_INITIAL)))
+        _init   = float(sim.get("initial", CAPITAL_INITIAL))
+        _peak   = float(sim.get("peak_equity", max(_cash, _init)))
+        _daily  = float(sim.get("daily_start_equity", _init))
+        _pnl_d  = round(_cash - _daily, 2)
+        _pnl_t  = round(_cash - _init,  2)
+        _dd     = round((_peak - _cash) / _peak * 100, 2) if _peak > 0 else 0.0
+        _trades = sim.get("trades", [])
+        _pos    = sim.get("positions", [])
+        _pos    = list(_pos.values()) if isinstance(_pos, dict) else (_pos if isinstance(_pos, list) else [])
 
         if path == "/api/bot/status":
             mode    = "TESTNET" if TESTNET_MODE else "LIVE"
-            balance = sim.get("capital", 0.0)
-            pnl_d   = sim.get("pnl_today", 0.0)
-            pnl_t   = sim.get("pnl_total", 0.0)
-            trades  = sim.get("trades", [])
-            wins    = sum(1 for t in trades if t.get("pnl", 0) > 0)
-            losses  = sum(1 for t in trades if t.get("pnl", 0) < 0)
+            wins    = sum(1 for t in _trades if t.get("pnl", 0) > 0)
+            losses  = sum(1 for t in _trades if t.get("pnl", 0) < 0)
             wr      = (wins / max(1, wins + losses)) * 100
             self._send_json({
                 "running":          _agent_running,
                 "mode":             mode,
-                "balance":          balance,
-                "pnl_today":        pnl_d,
-                "pnl_total":        pnl_t,
+                "balance":          round(_cash, 2),
+                "pnl_today":        _pnl_d,
+                "pnl_total":        _pnl_t,
                 "win_rate":         round(wr, 1),
-                "total_trades":     len(trades),
-                "version":          "V8",
+                "total_trades":     len(_trades),
+                "version":          "V9",
                 "uptime_h":         round((time.time() - _start_ts) / 3600, 1) if '_start_ts' in globals() else 0,
                 "ws_connected":     ws_manager.connected if ws_manager else False,
             })
@@ -3147,33 +3157,31 @@ class BotHandler(BaseHTTPRequestHandler):
 
         elif path == "/api/portfolio":
             self._send_json({
-                "capital":       sim.get("capital", 0.0),
-                "pnl_today":     sim.get("pnl_today", 0.0),
-                "pnl_total":     sim.get("pnl_total", 0.0),
-                "drawdown":      sim.get("max_drawdown", 0.0),
-                "kelly":         sim.get("kelly", 0.22),
-                "open_trades":   sim.get("open_trades", 0),
+                "capital":       round(_cash, 2),
+                "initial":       round(_init, 2),
+                "pnl_today":     _pnl_d,
+                "pnl_total":     _pnl_t,
+                "drawdown":      _dd,
+                "peak":          round(_peak, 2),
+                "kelly":         round(float(sim.get("kelly", 0.22)), 3),
+                "open_trades":   len(_pos),
                 "mode":          "TESTNET" if TESTNET_MODE else "LIVE",
             })
 
         elif path == "/api/portfolio/positions":
-            positions = sim.get("positions", [])
-            if not isinstance(positions, list):
-                positions = []
-            self._send_json({"positions": positions})
+            self._send_json({"positions": _pos})
 
         elif path.startswith("/api/trades"):
             from urllib.parse import urlparse, parse_qs
             qs     = parse_qs(urlparse(self.path).query)
             limit  = int(qs.get("limit", ["25"])[0])
-            trades = list(reversed(sim.get("trades", [])))[:limit]
-            self._send_json({"trades": trades, "total": len(sim.get("trades", []))})
+            trades_paged = list(reversed(_trades))[:limit]
+            self._send_json({"trades": trades_paged, "total": len(_trades)})
 
         elif path == "/api/trades/stats":
-            trades = sim.get("trades", [])
-            wins   = [t for t in trades if t.get("pnl", 0) > 0]
-            losses = [t for t in trades if t.get("pnl", 0) < 0]
-            pnls   = [t.get("pnl", 0) for t in trades]
+            wins   = [t for t in _trades if t.get("pnl", 0) > 0]
+            losses = [t for t in _trades if t.get("pnl", 0) < 0]
+            pnls   = [t.get("pnl", 0) for t in _trades]
             self._send_json({
                 "total":          len(trades),
                 "wins":           len(wins),
