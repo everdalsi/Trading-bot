@@ -262,6 +262,90 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .log-entry:last-child{border-bottom:none;}
 .log-entry .le-time{color:var(--text3);margin-right:6px;}
 .log-entry .le-agent{color:var(--accent);font-weight:700;margin-right:4px;}
+
+/* ══ DEBATE TERMINAL ════════════════════════════════════════════════ */
+.debate-terminal{display:flex;flex-direction:column;gap:8px;padding:2px 0;}
+.cycle-header{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r-sm);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;}
+.cycle-id{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1.5px;}
+.cycle-sym{font-size:14px;font-weight:800;color:var(--accent);letter-spacing:.5px;}
+.cycle-status{font-size:10px;letter-spacing:1px;font-weight:700;text-transform:uppercase;}
+.cycle-status.analyzing{color:var(--yellow);animation:pulse 1.2s infinite;}
+.cycle-status.hold{color:var(--text2);}
+.cycle-status.buy{color:var(--green);}
+.cycle-status.sell{color:var(--red);}
+
+/* ── Phase indicator ── */
+.phase-strip{display:flex;gap:4px;padding:2px 0;}
+.phase-pill{flex:1;padding:4px 6px;border-radius:4px;font-size:9px;text-align:center;text-transform:uppercase;letter-spacing:.8px;font-weight:700;background:var(--bg3);border:1px solid var(--border);color:var(--text3);}
+.phase-pill.active{background:var(--accent2);border-color:var(--accent);color:var(--accent);}
+.phase-pill.veto{background:var(--red2);border-color:var(--red);color:var(--red);}
+.phase-pill.done{background:var(--green2);border-color:var(--green);color:var(--green);}
+
+/* ── Agent grid compact ── */
+.agent-debate-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.agent-card-v2{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);padding:8px 10px;position:relative;overflow:hidden;}
+.agent-card-v2.buy{border-color:rgba(63,185,80,.4);background:rgba(63,185,80,.05);}
+.agent-card-v2.sell{border-color:rgba(248,81,73,.4);background:rgba(248,81,73,.05);}
+.agent-card-v2.hold{border-color:var(--border);}
+.agent-card-v2.analyzing::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(74,158,255,.06),transparent);animation:shimmer 1.5s infinite;}
+@keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+.ac2-top{display:flex;align-items:center;gap:6px;margin-bottom:5px;}
+.ac2-icon{font-size:16px;flex-shrink:0;}
+.ac2-name{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text2);line-height:1;}
+.ac2-status{font-size:8px;color:var(--text3);display:block;margin-top:1px;}
+.ac2-signal{margin-left:auto;font-size:10px;font-weight:800;padding:2px 7px;border-radius:10px;letter-spacing:.5px;}
+.ac2-signal.buy{background:var(--green2);color:var(--green);}
+.ac2-signal.sell{background:var(--red2);color:var(--red);}
+.ac2-signal.hold{background:var(--bg4);color:var(--text2);}
+.ac2-signal.veto{background:var(--red2);color:var(--red);}
+.ac2-signal.neutral{background:var(--bg4);color:var(--text3);}
+.ac2-conf-bar{height:3px;background:var(--border);border-radius:2px;margin-bottom:4px;}
+.ac2-conf-fill{height:100%;border-radius:2px;transition:width .5s ease;}
+.ac2-conf-fill.buy{background:var(--green);}
+.ac2-conf-fill.sell{background:var(--red);}
+.ac2-conf-fill.hold{background:var(--text3);}
+.ac2-summary{font-size:10px;color:var(--text2);line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+
+/* ── Debate Log ── */
+.debate-log{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden;}
+.debate-log-header{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--border);background:var(--bg3);}
+.debate-log-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text2);}
+.debate-feed{max-height:180px;overflow-y:auto;padding:6px 10px;display:flex;flex-direction:column;gap:4px;}
+.debate-entry{display:flex;gap:8px;align-items:flex-start;padding:4px 0;border-bottom:1px solid var(--border);font-size:11px;line-height:1.4;}
+.debate-entry:last-child{border-bottom:none;}
+.de-agent{flex-shrink:0;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;min-width:60px;color:var(--text2);padding-top:1px;}
+.de-signal{flex-shrink:0;font-size:9px;font-weight:700;padding:1px 5px;border-radius:6px;margin-right:4px;}
+.de-signal.buy{background:var(--green2);color:var(--green);}
+.de-signal.sell{background:var(--red2);color:var(--red);}
+.de-signal.hold{background:var(--bg4);color:var(--text3);}
+.de-text{flex:1;color:var(--text2);}
+.de-conf{font-size:9px;color:var(--text3);flex-shrink:0;}
+
+/* ── Verdict Panel ── */
+.verdict-panel{border-radius:var(--r);overflow:hidden;border:1px solid var(--border2);}
+.verdict-panel.buy{border-color:var(--green);background:linear-gradient(135deg,var(--green2),var(--bg3));}
+.verdict-panel.sell{border-color:var(--red);background:linear-gradient(135deg,var(--red2),var(--bg3));}
+.verdict-panel.hold{border-color:var(--border2);background:var(--bg3);}
+.verdict-panel.veto{border-color:var(--red);background:linear-gradient(135deg,var(--red2),var(--bg3));}
+.verdict-body{padding:12px 14px;}
+.verdict-top{display:flex;align-items:center;gap:12px;}
+.verdict-icon{font-size:28px;}
+.verdict-decision{font-size:22px;font-weight:800;letter-spacing:1px;line-height:1;}
+.verdict-sub{font-size:11px;color:var(--text2);margin-top:2px;}
+.verdict-meta{display:flex;gap:12px;margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,.06);}
+.vm-item{text-align:center;flex:1;}
+.vm-val{font-size:14px;font-weight:700;}
+.vm-label{font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-top:2px;}
+
+/* ── Veto banner ── */
+.veto-banner{background:var(--red2);border:1px solid var(--red);border-radius:var(--r-sm);padding:8px 12px;display:flex;align-items:center;gap:8px;}
+.veto-icon{font-size:16px;}
+.veto-text{font-size:11px;font-weight:700;color:var(--red);}
+.veto-detail{font-size:10px;color:var(--red);opacity:.7;}
+.idle-state{padding:30px 20px;text-align:center;color:var(--text3);}
+.idle-icon{font-size:36px;margin-bottom:8px;}
+.idle-msg{font-size:12px;letter-spacing:.5px;}
+
 </style>
 </head>
 <body>
@@ -467,11 +551,19 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 
     <!-- ══════════════ PAGE: AGENTS ══════════════ -->
     <div class="page" id="page-agents">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 2px 6px">
-        <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Agent Floor</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 2px 8px">
+        <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Agent Debate Terminal</div>
         <span class="badge badge-accent" id="agents-badge">-- actifs</span>
       </div>
-      <div class="agent-list" id="agent-grid"></div>
+
+      <!-- Terminal de débat — mis à jour via /api/agent/feed -->
+      <div class="debate-terminal" id="debate-terminal">
+        <div class="idle-state">
+          <div class="idle-icon">🤖</div>
+          <div class="idle-msg">En attente du premier cycle d'analyse…</div>
+        </div>
+      </div>
+
       <div class="page-pad"></div>
     </div>
 
@@ -754,11 +846,143 @@ function notify(msg, type='info') {
   setTimeout(() => el.remove(), 3000);
 }
 
+
+// ═══════════════════════════════════════════════════════════════
+// RENDER: DEBATE TERMINAL
+// ═══════════════════════════════════════════════════════════════
+const AGENT_META_DB = {"analyst":{"icon":"📊","name":"Analyst"},"quant_ml":{"icon":"🧠","name":"QuantML"},"risk":{"icon":"⚠️","name":"Risk Mgr"},"trader":{"icon":"⚡","name":"Trader"},"order_book":{"icon":"📖","name":"OrderBook"},"social_listener":{"icon":"📡","name":"Social"},"research":{"icon":"🔬","name":"Research"},"knowledge_specialist":{"icon":"📚","name":"Knowledge"},"wallet_copier":{"icon":"🐳","name":"Whale"},"correlation_watcher":{"icon":"🔗","name":"Corr."},"polymarket_arb":{"icon":"🏦","name":"PolyArb"},"event_sniper":{"icon":"🎯","name":"Sniper"},"polymarket_trader":{"icon":"🎰","name":"PolyTrade"},"sports_arb":{"icon":"⚽","name":"SportsArb"},"supervisor":{"icon":"👁","name":"Supervisor"},"orchestrator":{"icon":"🎯","name":"Orchestratr"},"hedging":{"icon":"🛡","name":"Hedger"},"drawdown_guard":{"icon":"🛑","name":"DrawGuard"},"news_event":{"icon":"📰","name":"NewsEvent"},"funding_rate":{"icon":"💰","name":"Funding"}};
+
+function sigClass(sig) {
+  if (!sig) return 'hold';
+  const s = sig.toUpperCase();
+  if (s.includes('BUY') || s.includes('LONG') || s.includes('ARB')) return 'buy';
+  if (s.includes('SELL') || s.includes('SHORT')) return 'sell';
+  if (s.includes('NO')) return 'veto';
+  return 'hold';
+}
+
+function renderDebate(feed) {
+  const terminal = document.getElementById('debate-terminal');
+  if (!terminal) return;
+  const cycle = feed.cycle || {};
+  const agents = cycle.agents || [];
+  const log    = feed.log    || [];
+
+  // Rien encore
+  if (!cycle.cycle_id) {
+    terminal.innerHTML = '<div class="idle-state"><div class="idle-icon">🤖</div><div class="idle-msg">En attente du premier cycle…</div></div>';
+    return;
+  }
+
+  const dec       = (cycle.decision || 'HOLD').toUpperCase();
+  const conf      = cycle.confidence || 0;
+  const veto      = cycle.veto;
+  const vetoMins  = cycle.veto_minutes || 0;
+  const symbols   = (cycle.symbols || []).join(', ');
+  const bestSym   = cycle.best || '—';
+  const kelly     = ((cycle.kelly || 0) * 100).toFixed(1);
+  const regime    = cycle.regime || 'NEUTRAL';
+  const cycleId   = cycle.cycle_id || 0;
+  const ts        = cycle.ts ? new Date(cycle.ts * 1000).toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '--';
+
+  // Classe principale
+  const mainClass = veto ? 'veto' : sigClass(dec);
+
+  let html = '';
+
+  // ── Cycle Header ──────────────────────────────────────────────────────────
+  const statusIcon = veto ? '⛔' : dec === 'HOLD' ? '⏸' : dec.includes('BUY') ? '▲' : '▼';
+  const statusClass = veto ? 'veto' : dec === 'HOLD' ? 'hold' : dec.includes('BUY') ? 'buy' : 'sell';
+  html += '<div class="cycle-header">'
+    + '<div><div class="cycle-id">Cycle #' + cycleId + ' · ' + ts + '</div><div class="cycle-sym">' + esc(symbols) + '</div></div>'
+    + '<div class="cycle-status ' + statusClass + '">' + statusIcon + ' ' + dec + ' ' + Math.round(conf * 100) + '%</div>'
+    + '</div>';
+
+  // ── Veto Banner ───────────────────────────────────────────────────────────
+  if (veto) {
+    const vetoSrc = veto.replace(/_/g, ' ').toUpperCase();
+    html += '<div class="veto-banner">'
+      + '<span class="veto-icon">⛔</span>'
+      + '<div><div class="veto-text">VETO ' + esc(vetoSrc) + '</div>'
+      + (vetoMins > 0 ? '<div class="veto-detail">' + vetoMins + ' min de pause restante</div>' : '')
+      + '</div></div>';
+  }
+
+  // ── Phase Strip ───────────────────────────────────────────────────────────
+  html += '<div class="phase-strip">'
+    + '<div class="phase-pill done">Phase 0<br>Sécurité</div>'
+    + '<div class="phase-pill ' + (veto ? 'veto' : (agents.length > 0 ? 'done' : 'active')) + '">Phase 1<br>Analyse</div>'
+    + '<div class="phase-pill ' + (veto ? 'veto' : (conf > 0 ? 'done' : 'active')) + '">Phase 2<br>Risque</div>'
+    + '<div class="phase-pill ' + (veto ? 'veto' : (conf > 0 ? 'done' : '')) + '">Phase 4<br>Verdict</div>'
+    + '</div>';
+
+  // ── Agent Cards Grid ──────────────────────────────────────────────────────
+  if (agents.length > 0) {
+    html += '<div class="agent-debate-grid">';
+    agents.forEach(a => {
+      const meta = AGENT_META_DB[a.agent] || {icon:'🔹', name: a.agent || '?'};
+      const sc   = sigClass(a.signal);
+      const confPct = Math.round((a.confidence || 0) * 100);
+      const isAnalyzing = false;
+      html += '<div class="agent-card-v2 ' + sc + '">'
+        + '<div class="ac2-top">'
+        + '<span class="ac2-icon">' + meta.icon + '</span>'
+        + '<div><div class="ac2-name">' + meta.name + '</div><div class="ac2-status">' + esc(a.symbol || '') + '</div></div>'
+        + '<span class="ac2-signal ' + sc + '">' + esc(a.signal || 'HOLD').replace('NO TRADE','NO') + '</span>'
+        + '</div>'
+        + '<div class="ac2-conf-bar"><div class="ac2-conf-fill ' + sc + '" style="width:' + confPct + '%"></div></div>'
+        + '<div class="ac2-summary">' + esc((a.summary || '—').slice(0,80)) + '</div>'
+        + '</div>';
+    });
+    html += '</div>';
+  }
+
+  // ── Debate Log (derniers 12 messages) ─────────────────────────────────────
+  const recentLog = log.slice(-12).reverse();
+  if (recentLog.length > 0) {
+    html += '<div class="debate-log">'
+      + '<div class="debate-log-header"><span class="debate-log-title">📋 Journal de débat</span><span style="font-size:10px;color:var(--text3)">' + log.length + ' entrées</span></div>'
+      + '<div class="debate-feed">';
+    recentLog.forEach(entry => {
+      const meta = AGENT_META_DB[entry.agent] || {icon:'🔹', name: entry.agent || '?'};
+      const sc   = sigClass(entry.signal);
+      const confPct = Math.round((entry.confidence || 0) * 100);
+      const t = entry.ts ? new Date(entry.ts * 1000).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '';
+      html += '<div class="debate-entry">'
+        + '<span class="de-agent">' + meta.icon + ' ' + meta.name + '</span>'
+        + '<span class="de-signal ' + sc + '">' + esc(entry.signal || 'HOLD').replace('NO TRADE','NO') + '</span>'
+        + '<span class="de-text">' + esc((entry.summary || '—').slice(0,60)) + '</span>'
+        + '<span class="de-conf">' + confPct + '%</span>'
+        + '</div>';
+    });
+    html += '</div></div>';
+  }
+
+  // ── Verdict Final ─────────────────────────────────────────────────────────
+  const verdictIcon = veto ? '⛔' : dec.includes('BUY') ? '▲' : dec.includes('SELL') ? '▼' : '⏸';
+  const verdictColor = veto ? 'var(--red)' : dec.includes('BUY') ? 'var(--green)' : dec.includes('SELL') ? 'var(--red)' : 'var(--text2)';
+  html += '<div class="verdict-panel ' + mainClass + '">'
+    + '<div class="verdict-body">'
+    + '<div class="verdict-top">'
+    + '<span class="verdict-icon">' + verdictIcon + '</span>'
+    + '<div><div class="verdict-decision" style="color:' + verdictColor + '">' + (veto ? 'VETO' : dec) + '</div>'
+    + '<div class="verdict-sub">Signal · ' + esc(bestSym) + '</div></div>'
+    + '</div>'
+    + '<div class="verdict-meta">'
+    + '<div class="vm-item"><div class="vm-val" style="color:' + verdictColor + '">' + Math.round(conf*100) + '%</div><div class="vm-label">Confiance</div></div>'
+    + '<div class="vm-item"><div class="vm-val" style="color:var(--accent)">' + kelly + '%</div><div class="vm-label">Kelly</div></div>'
+    + '<div class="vm-item"><div class="vm-val" style="color:var(--purple)">' + esc(regime) + '</div><div class="vm-label">Régime</div></div>'
+    + '<div class="vm-item"><div class="vm-val" style="color:var(--yellow)">' + agents.length + '</div><div class="vm-label">Agents</div></div>'
+    + '</div></div></div>';
+
+  terminal.innerHTML = html;
+}
+
 // ═══════════════════════════════════════════════════════════════
 // FETCH ALL
 // ═══════════════════════════════════════════════════════════════
 async function fetchAll() {
-  const [botSt, agents, portfolio, positions, trades, stats, market, prices, spread, sniper, polybet, sportsarb] = await Promise.all([
+  const [botSt, agents, portfolio, positions, trades, stats, market, prices, spread, sniper, polybet, sportsarb, feed] = await Promise.all([
     api('/api/bot/status'),
     api('/api/agents'),
     api('/api/portfolio'),
@@ -771,10 +995,12 @@ async function fetchAll() {
     api('/api/edge/sniper'),
     api('/api/edge/polybet'),
     api('/api/edge/sportsarb'),
+    api('/api/agent/feed'),
   ]);
 
   if (botSt)    { S.running = botSt.running; renderTopBar(botSt); }
   if (agents)   { S.agents = agents; renderAgents(agents); pushActivity(agents); }
+  if (feed)     { S.feed = feed; renderDebate(feed); }
   if (portfolio){ S.portfolio = portfolio; renderPortfolio(portfolio); }
   if (positions){ S.positions = positions; renderPositions(positions); }
   if (trades)   { S.trades = trades; renderTrades(trades); }
