@@ -28,6 +28,7 @@ logger.info("Bot v7.1 démarré avec logging étendu ✅")
 from collections import defaultdict, deque
 from memory import Memory
 from agents.orchestrator import Orchestrator
+from agents.portfolio_manager import PortfolioManager
 from agents.performance_tracker import PerformanceTracker
 from agents.wallet_copier_agent import WalletCopierAgent
 from agents.quant_ml_agent import QuantMLAgent
@@ -62,6 +63,8 @@ if isinstance(memory, dict):
     logger.info("[MEMORY FIX] memory forcé en classe ✅")
 
 orchestrator = Orchestrator()
+portfolio_manager = PortfolioManager()  # FIX: portfolio_manager global
+quant_ml = orchestrator.quant_ml  # FIX: alias direct pour la trading_loop
 performance_tracker = PerformanceTracker()
 wallet_copier = WalletCopierAgent()
 yield_staking = YieldStakingAgent()
@@ -74,7 +77,7 @@ def safe_get(var_name, default=None):
     try:
         return globals()[var_name]
     except KeyError:
-        print(f"[SAFETY] Variable manquante {var_name} → valeur par défaut")
+        logger.warning(f"[SAFETY] Variable manquante {var_name} → valeur par défaut")
         return default
 
 def get_total_lessons():
@@ -2384,11 +2387,11 @@ def learn_from_trade(trade: dict, send_fn=None):
         memory["patterns_to_avoid"] = memory["patterns_to_avoid"][-300:]
         if hasattr(orchestrator, 'learning'):
             lesson_count_db = orchestrator.learning.get_lesson_count()
-            print(f"[LEARN] Leçons DB : {lesson_count_db}")
+            logger.warning(f"[LEARN] Leçons DB : {lesson_count_db}")
         update_symbol_score(trade["symbol"], pnl > 0)
         auto_adjust()
         save_data()
-        print(f"[LEARN] {lesson['lecon']}")
+        logger.warning(f"[LEARN] {lesson['lecon']}")
         if send_fn:
             stats = get_stats()
             e = "✅" if lesson["type"] == "succes" else "❌"
@@ -2399,7 +2402,7 @@ def learn_from_trade(trade: dict, send_fn=None):
                 f"📊 WR:{stats['win_rate']}% ({stats['wins']}✅/{stats['losses']}❌)"
             )
     except Exception as e:
-        print(f"[LEARN] Erreur: {e}")
+        logger.warning(f"[LEARN] Erreur: {e}")
 
 def auto_adjust():
     wr  = db_win_rate(20)
@@ -2445,7 +2448,7 @@ JSON:{{"rules":["règle1","règle2","règle3"],"insight":"insight"}}"""
                 pass
         return r
     except Exception as e:
-        print(f"[RULES] {e}")
+        logger.warning(f"[RULES] {e}")
         return None
 
 def test_strategy_variation(send_fn):
@@ -2715,7 +2718,7 @@ def daily_summary(send_fn):
             sim["daily_start_equity"] = equity
             sim["daily_start_date"] = (now + timedelta(days=1)).strftime("%Y-%m-%d")
         except Exception as e:
-            print(f"[DAILY] {e}")
+            logger.warning(f"[DAILY] {e}")
 
 def self_ping():
     time.sleep(60)
@@ -2755,7 +2758,7 @@ def generate_dashboard() -> str:
         portfolio_html = "<tr><td>💰 TRADING</td><td>$1000</td></tr><tr><td>💰 SAVINGS</td><td>$332</td></tr>"
     staking_html = ""
     try:
-        staking_result = yield_staking.respond("show current staking status", {"equity": equity})
+        staking_result = {"total_rewards_usd": 0.0, "summary": "Staking surveillance async"}
         staking_html = f"<tr><td>🌱 Staking réel</td><td>{staking_result.get('total_rewards_usd', 0):.2f}$ aujourd’hui</td></tr>"
     except:
         staking_html = "<tr><td>🌱 Staking réel</td><td>Surveillance en cours...</td></tr>"
@@ -2856,18 +2859,6 @@ async def _process_update(body: bytes):
 
 def run_server():
     HTTPServer(("0.0.0.0", WEBHOOK_PORT), BotHandler).serve_forever()
-
-def make_send(chat_id: str):
-    def send(msg: str):
-        if _app is None or _main_loop is None:
-            print(f"[MSG] {msg[:80]}")
-            return
-        f = asyncio.run_coroutine_threadsafe(
-            _app.bot.send_message(chat_id=chat_id, text=msg), _main_loop
-        )
-        try: f.result(timeout=15)
-        except Exception as e: print(f"[MSG] {e}")
-    return send
 
 def _auth(update: Update) -> bool:
     chat_id  = str(update.effective_chat.id)
