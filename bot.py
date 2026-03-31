@@ -4523,9 +4523,9 @@ async def cmd_execute(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     amount_usd = max(10.0, min(equity * kelly_criterion() * 0.5, equity * 0.20))
     try:
         exec_future = asyncio.run_coroutine_threadsafe(
-            execution_engine.place_order(
+            execution.place_order_async(
                 symbol=symbol, side=side, order_type="market",
-                amount=amount_usd / price if price > 0 else 0, price=price
+                amount_usd=amount_usd, price=price
             ), _main_loop
         )
         result = exec_future.result(timeout=10)
