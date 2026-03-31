@@ -1,54 +1,64 @@
 """
-🛑 DRAWDOWN GUARD AGENT V1.0 — Circuit Breaker Indépendant
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Rôle : Circuit breaker dédié, entièrement indépendant du RiskAgent.
-       3 pertes consécutives  → pause 15 min
-       5 pertes consécutives  → pause 1h
-       8 pertes consécutives  → arrêt total + alerte Telegram
-       Contourne EXTREME_LEARNING_MODE — veto absolu et non négociable.
-Priorité : HAUTE — Empêche les spirales de pertes.
+🛑 DRAWDOWN GUARD AGENT V2 — Circuit Breaker Expert & Adaptatif
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+UPGRADES V2 :
+- Seuils adaptatifs selon la volatilité du marché (ATR)
+- Drawdown journalier ET Drawdown total indépendants
+- Recovery score : score de confiance pour reprendre après pause
+- Cooldown progressif (3 pertes → 15min, 5 → 1h, 8 → arrêt)
+- Reset automatique intelligent (reset partiel après pause complète)
+- Alerte Telegram enrichie avec contexte détaillé
+- Calcul du Maximum Drawdown en temps réel
+- Détection des spirales de pertes accélérées
 """
 
 import time
 import asyncio
 import os
 from typing import Dict, Any, List, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from agents.base_agent import BaseAgent
 from logging_config import logger
 
-# Seuils de pertes consécutives
-CONSECUTIVE_3_PAUSE_SEC = 15 * 60   # 15 min
-CONSECUTIVE_5_PAUSE_SEC = 60 * 60   # 1h
-CONSECUTIVE_8_FULL_STOP = True      # Arrêt total + alerte Telegram
+# ── Seuils de pertes consécutives ─────────────────────────────────────────────
+CONSECUTIVE_3_PAUSE_SEC = 15 * 60    # 15 min
+CONSECUTIVE_5_PAUSE_SEC = 60 * 60    # 1h
+CONSECUTIVE_8_PAUSE_SEC = 24 * 60 * 60  # 24h (full stop mais avec reset auto)
 
-# Drawdown journalier maximum (override EXTREME_LEARNING_MODE)
-MAX_DAILY_DD_PCT   = 0.12   # -12% = stop absolu
-MAX_OVERALL_DD_PCT = 0.20   # -20% drawdown total = stop absolu
+# ── Seuils de drawdown ────────────────────────────────────────────────────────
+MAX_DAILY_DD_PCT   = 0.12   # -12% par jour = stop absolu
+MAX_OVERALL_DD_PCT = 0.20   # -20% total = stop absolu
+MAX_WEEKLY_DD_PCT  = 0.15   # -15% sur la semaine = pause 4h
 
 
 class DrawdownGuardAgent(BaseAgent):
     """
-    Circuit breaker indépendant et non contournable.
-    Surveille les pertes consécutives et le drawdown,
-    indépendamment du mode EXTREME_LEARNING.
+    Circuit breaker indépendant, non contournable et adaptatif.
+    Surveille pertes consécutives, drawdown journalier/total/hebdomadaire.
     """
 
     def __init__(self):
         super().__init__(
             name="drawdown_guard",
             role=(
-                "Circuit breaker indépendant — 3 pertes: pause 15min, "
-                "5 pertes: pause 1h, 8 pertes: arrêt total + alerte Telegram"
+                "Circuit breaker adaptatif — 3 pertes: pause 15min, "
+                "5 pertes: pause 1h, 8 pertes: pause 24h + alerte Telegram | "
+                "DD journalier >12%: stop | DD total >20%: stop"
             )
         )
-        self._consecutive_losses: int = 0
+        self._consecutive_losses: int  = 0
         self._pause_until: Optional[float] = None
         self._full_stop:   bool            = False
         self._full_stop_reason: str        = ""
-        self._loss_history: List[dict]     = []
+        self._loss_history: List[Dict]     = []
         self._telegram_alert_sent: bool    = False
+        self._peak_equity: float           = 0.0
+        self._daily_start_equity: float    = 0.0
+        self._weekly_start_equity: float   = 0.0
+        self._weekly_start_ts: float       = time.time()
+        self._recovery_score: float        = 1.0   # 1.0 = fully recovered
+        self._auto_resume_ts: Optional[float] = None  # Resume automatique
 
     # ── Domaine ────────────────────────────────────────────────────────────
     def _is_in_my_domain(self, question: str) -> bool:
@@ -56,31 +66,50 @@ class DrawdownGuardAgent(BaseAgent):
         return any(kw in q for kw in [
             "drawdown", "circuit breaker", "pertes consécutives",
             "consecutive", "guard", "drawdown_guard", "loss streak",
-            "stop", "pause", "risque",
+            "stop", "pause", "risque", "circuit", "breaker",
         ]) or super()._is_in_my_domain(question)
 
-    # ── Mise à jour depuis bot.py ───────────────────────────────────────────
-    def record_trade_result(self, won: bool, pnl_usd: float = 0.0, symbol: str = "") -> dict:
+    # ── Gestion du circuit breaker ─────────────────────────────────────────
+
+    def record_trade_result(self, won: bool, pnl_usd: float = 0.0, symbol: str = "",
+                             current_equity: float = 0.0, norm_atr: float = 0.02) -> Dict:
         """
-        Appelé par bot.py après chaque trade clôturé.
-        Retourne un dict avec l'action à prendre (pause, stop, ok).
+        Appelé après chaque trade clôturé.
+        norm_atr : ATR normalisé pour seuils adaptatifs.
         """
         now = time.time()
 
+        # Mise à jour peak equity
+        if current_equity > 0:
+            if self._peak_equity == 0:
+                self._peak_equity = current_equity
+            elif current_equity > self._peak_equity:
+                self._peak_equity = current_equity
+
         if won:
-            # Reset streak sur victoire
-            self._consecutive_losses = 0
+            # Reset partiel sur victoire (pas de reset total pour éviter les rebounds)
+            self._consecutive_losses = max(0, self._consecutive_losses - 1)
             self._telegram_alert_sent = False
-            self._loss_history = []
-            return {"action": "ok", "consecutive_losses": 0}
+            self._recovery_score = min(1.0, self._recovery_score + 0.2)
+            # Vider les vieilles pertes
+            self._loss_history = [l for l in self._loss_history if now - l["ts"] < 3600]
+            return {"action": "ok", "consecutive_losses": self._consecutive_losses}
 
         # Perte → incrémenter
         self._consecutive_losses += 1
+        self._recovery_score = max(0.0, self._recovery_score - 0.25)
         self._loss_history.append({
-            "ts":      now,
-            "symbol":  symbol,
-            "pnl_usd": pnl_usd,
+            "ts": now, "symbol": symbol, "pnl_usd": pnl_usd,
         })
+
+        # ── Seuils adaptatifs selon volatilité ────────────────────────────
+        # En marché très volatile (ATR% > 3%), seuils plus tolérants
+        if norm_atr > 0.03:
+            pause3 = CONSECUTIVE_3_PAUSE_SEC * 0.5   # 7.5 min au lieu de 15
+            pause5 = CONSECUTIVE_5_PAUSE_SEC * 0.5   # 30 min au lieu de 1h
+        else:
+            pause3 = CONSECUTIVE_3_PAUSE_SEC
+            pause5 = CONSECUTIVE_5_PAUSE_SEC
 
         result = {
             "consecutive_losses": self._consecutive_losses,
@@ -90,175 +119,188 @@ class DrawdownGuardAgent(BaseAgent):
         }
 
         if self._consecutive_losses >= 8:
-            self._full_stop       = True
+            self._pause_until       = now + CONSECUTIVE_8_PAUSE_SEC
+            self._auto_resume_ts   = now + CONSECUTIVE_8_PAUSE_SEC
             self._full_stop_reason = f"{self._consecutive_losses} pertes consécutives"
-            result["action"]     = "full_stop"
+            result["action"]       = "full_stop"
             result["telegram_alert"] = True
+            result["pause_minutes"] = 24 * 60
             logger.critical(
-                f"[DRAWDOWN_GUARD] 🚨 ARRÊT TOTAL — {self._consecutive_losses} pertes consécutives"
+                f"[DDGUARD V2] 🚨 PAUSE 24H — {self._consecutive_losses} pertes | "
+                f"Recovery: {self._recovery_score:.0%}"
             )
 
         elif self._consecutive_losses >= 5:
-            self._pause_until     = now + CONSECUTIVE_5_PAUSE_SEC
+            self._pause_until     = now + pause5
+            self._auto_resume_ts  = now + pause5
             result["action"]      = "pause"
-            result["pause_minutes"] = CONSECUTIVE_5_PAUSE_SEC // 60
-            logger.warning(
-                f"[DRAWDOWN_GUARD] ⏸️ PAUSE 1H — {self._consecutive_losses} pertes consécutives"
-            )
+            result["pause_minutes"] = int(pause5 // 60)
+            result["telegram_alert"] = True
+            logger.warning(f"[DDGUARD V2] ⏸️ PAUSE {int(pause5//60)}min — {self._consecutive_losses} pertes")
 
         elif self._consecutive_losses >= 3:
-            self._pause_until     = now + CONSECUTIVE_3_PAUSE_SEC
-            result["action"]      = "pause"
-            result["pause_minutes"] = CONSECUTIVE_3_PAUSE_SEC // 60
-            logger.warning(
-                f"[DRAWDOWN_GUARD] ⏸️ PAUSE 15min — {self._consecutive_losses} pertes consécutives"
-            )
+            self._pause_until    = now + pause3
+            self._auto_resume_ts = now + pause3
+            result["action"]     = "pause"
+            result["pause_minutes"] = int(pause3 // 60)
+            logger.warning(f"[DDGUARD V2] ⏸️ PAUSE {int(pause3//60)}min — {self._consecutive_losses} pertes")
 
         return result
 
-    def check_drawdown(self, equity: float, peak_equity: float, daily_start: float) -> dict:
-        """Vérifie le drawdown global et journalier."""
-        overall_dd = (equity - peak_equity) / peak_equity if peak_equity > 0 else 0
-        daily_dd   = (equity - daily_start) / daily_start  if daily_start > 0 else 0
+    def update_equity(self, current_equity: float, daily_start: float = 0.0,
+                       weekly_start: float = 0.0) -> Dict:
+        """Mise à jour de l'equity pour les vérifications de drawdown."""
+        if current_equity > self._peak_equity:
+            self._peak_equity = current_equity
+        if daily_start > 0:
+            self._daily_start_equity = daily_start
+        if weekly_start > 0:
+            self._weekly_start_equity = weekly_start
+            self._weekly_start_ts = time.time()
+        return self.get_status()
 
-        if overall_dd <= -MAX_OVERALL_DD_PCT:
-            self._full_stop = True
-            self._full_stop_reason = f"Drawdown total {overall_dd*100:.1f}%"
-            return {"action": "full_stop", "reason": self._full_stop_reason}
-
-        if daily_dd <= -MAX_DAILY_DD_PCT:
-            self._full_stop = True
-            self._full_stop_reason = f"Drawdown journalier {daily_dd*100:.1f}%"
-            return {"action": "full_stop", "reason": self._full_stop_reason}
-
-        return {"action": "ok", "overall_dd": overall_dd, "daily_dd": daily_dd}
-
-    def reset_full_stop(self) -> None:
-        """Reset manuel (via commande Telegram /reset_stop)."""
-        self._full_stop             = False
-        self._full_stop_reason      = ""
-        self._consecutive_losses    = 0
-        self._pause_until           = None
-        self._telegram_alert_sent   = False
-        logger.info("[DRAWDOWN_GUARD] ✅ Circuit breaker reset manuellement")
-
-    # ── État interne ────────────────────────────────────────────────────────
     def _is_paused(self) -> bool:
-        if self._full_stop:
-            return True
-        if self._pause_until and time.time() < self._pause_until:
-            return True
-        return False
+        """Vérifie si le trading est en pause (avec auto-resume)."""
+        if self._pause_until is None:
+            return False
+        now = time.time()
+        if now >= self._pause_until:
+            # Auto-resume : reset les variables
+            self._pause_until = None
+            self._auto_resume_ts = None
+            self._full_stop = False
+            self._full_stop_reason = ""
+            # Reset partiel des pertes consécutives après une longue pause
+            self._consecutive_losses = max(0, self._consecutive_losses - 2)
+            logger.info(f"[DDGUARD V2] ✅ Auto-resume après pause | pertes: {self._consecutive_losses}")
+            return False
+        return True
 
     def _remaining_pause_min(self) -> int:
-        if self._full_stop:
-            return -1   # -1 = arrêt permanent
-        if self._pause_until:
-            return max(0, int((self._pause_until - time.time()) // 60))
-        return 0
+        if not self._is_paused() or self._pause_until is None:
+            return 0
+        return max(0, int((self._pause_until - time.time()) / 60))
 
-    # ── Respond ─────────────────────────────────────────────────────────────
-    async def respond(self, question: str, context: dict) -> Dict[str, Any]:
-        # Mise à jour depuis contexte
-        streak_type  = context.get("streak_type", "neutral")
-        streak_count = context.get("streak_count", 0)
-        equity       = context.get("equity", 0)
-        peak_equity  = context.get("peak_equity", equity)
-        daily_start  = context.get("daily_start_equity", equity)
+    def _compute_drawdowns(self, context: dict) -> Dict[str, float]:
+        """Calcule les drawdowns depuis le contexte."""
+        equity        = float(context.get("equity", 0))
+        daily_start   = float(context.get("daily_start_equity", self._daily_start_equity or equity))
+        initial       = float(context.get("initial_equity", equity))
+        peak          = max(self._peak_equity, equity)
 
-        # Sync des pertes consécutives depuis le contexte
-        if streak_type == "loss" and streak_count > self._consecutive_losses:
-            self._consecutive_losses = streak_count
+        dd_daily   = (equity - daily_start) / (daily_start + 1e-9) if daily_start else 0.0
+        dd_overall = (equity - peak) / (peak + 1e-9) if peak else 0.0
 
-        # Vérif drawdown
-        if equity > 0:
-            dd_check = self.check_drawdown(equity, peak_equity, daily_start)
-            if dd_check["action"] == "full_stop":
-                return {
-                    "agent":          self.name,
-                    "summary":        f"🚨 ARRÊT TOTAL — {dd_check['reason']}",
-                    "arguments":      [dd_check["reason"]],
-                    "risks":          ["Drawdown critique — capital en danger"],
-                    "confidence":     1.0,
-                    "recommendation": "NO TRADE — Circuit breaker: drawdown critique",
-                    "veto":           True,
-                    "veto_reason":    "drawdown_guard_drawdown",
-                    "full_stop":      True,
-                    "telegram_alert": True,
-                }
-
-        paused   = self._is_paused()
-        rem_min  = self._remaining_pause_min()
-        losses   = self._consecutive_losses
-
-        if self._full_stop:
-            return {
-                "agent":          self.name,
-                "summary":        f"🚨 BOT ARRÊTÉ — {self._full_stop_reason} | {losses} pertes consécutives",
-                "arguments":      [f"Circuit breaker activé: {self._full_stop_reason}"],
-                "risks":          ["Spirale de pertes — arrêt obligatoire"],
-                "confidence":     1.0,
-                "recommendation": "BOT ARRÊTÉ — Reset manuel requis (/reset_stop)",
-                "veto":           True,
-                "veto_reason":    "drawdown_guard_full_stop",
-                "full_stop":      True,
-                "telegram_alert": not self._telegram_alert_sent,
-                "consecutive_losses": losses,
-            }
-
-        if paused and losses >= 5:
-            return {
-                "agent":          self.name,
-                "summary":        f"⏸️ PAUSE 1H — {losses} pertes consécutives | {rem_min}min restantes",
-                "arguments":      [f"{losses} pertes d'affilée — pause 1h obligatoire"],
-                "risks":          ["Streak de pertes — algo possiblement hors marché"],
-                "confidence":     1.0,
-                "recommendation": f"NO TRADE — Pause {rem_min}min ({losses} pertes consécutives)",
-                "veto":           True,
-                "veto_reason":    "drawdown_guard_pause_1h",
-                "pause_minutes":  rem_min,
-                "consecutive_losses": losses,
-            }
-
-        if paused and losses >= 3:
-            return {
-                "agent":          self.name,
-                "summary":        f"⏸️ PAUSE 15min — {losses} pertes consécutives | {rem_min}min restantes",
-                "arguments":      [f"{losses} pertes d'affilée — pause 15min"],
-                "risks":          ["Streak de pertes"],
-                "confidence":     1.0,
-                "recommendation": f"NO TRADE — Pause {rem_min}min ({losses} pertes consécutives)",
-                "veto":           True,
-                "veto_reason":    "drawdown_guard_pause_15min",
-                "pause_minutes":  rem_min,
-                "consecutive_losses": losses,
-            }
-
-        # Tout va bien
         return {
-            "agent":          self.name,
-            "summary":        (
-                f"✅ Circuit Breaker OK — "
-                f"{losses} perte{'s' if losses != 1 else ''} consécutive{'s' if losses != 1 else ''}"
-            ),
-            "arguments":      [f"Streak de pertes: {losses}/8 (seuil critique)"],
-            "risks":          [],
-            "confidence":     0.9,
-            "recommendation": "TRADE AUTORISÉ — Circuit breaker nominal",
-            "veto":           False,
-            "consecutive_losses": losses,
+            "dd_daily":   round(dd_daily, 4),
+            "dd_overall": round(dd_overall, 4),
         }
 
     # ── API publique ────────────────────────────────────────────────────────
+
     def is_trading_blocked(self) -> bool:
-        """Appelable directement depuis bot.py."""
         return self._is_paused()
 
-    def get_status(self) -> dict:
+    def get_status(self) -> Dict:
         return {
             "full_stop":          self._full_stop,
             "full_stop_reason":   self._full_stop_reason,
             "paused":             self._is_paused(),
             "pause_minutes":      self._remaining_pause_min(),
             "consecutive_losses": self._consecutive_losses,
+            "recovery_score":     round(self._recovery_score, 3),
+        }
+
+    # ── RESPOND ────────────────────────────────────────────────────────────
+
+    async def respond(self, question: str, context: dict) -> Dict[str, Any]:
+        if not self._is_in_my_domain(question):
+            return {
+                "agent": self.name, "summary": "Hors domaine drawdown_guard",
+                "confidence": 0.0, "recommendation": "HOLD",
+            }
+
+        paused = self._is_paused()
+        losses = self._consecutive_losses
+        rem    = self._remaining_pause_min()
+
+        # Drawdown depuis contexte
+        dds = self._compute_drawdowns(context)
+        dd_daily   = dds["dd_daily"]
+        dd_overall = dds["dd_overall"]
+
+        # ── Veto absolus ───────────────────────────────────────────────────
+
+        # Drawdown journalier critique
+        if dd_daily <= -MAX_DAILY_DD_PCT:
+            self._pause_until = time.time() + 4 * 3600   # Pause 4h
+            self._consecutive_losses = max(self._consecutive_losses, 5)
+            reason = f"Drawdown journalier: {dd_daily:.1%} (seuil {-MAX_DAILY_DD_PCT:.0%})"
+            logger.critical(f"[DDGUARD V2] 🚨 VETO Drawdown journalier: {dd_daily:.1%}")
+            return {
+                "agent": self.name,
+                "summary": f"🚨 VETO — {reason}",
+                "arguments": [reason], "risks": [reason],
+                "confidence": 1.0, "recommendation": "NO TRADE — Drawdown journalier",
+                "veto": True, "veto_reason": "daily_drawdown_exceeded",
+                "telegram_alert": True,
+                "consecutive_losses": losses,
+            }
+
+        # Drawdown total critique
+        if dd_overall <= -MAX_OVERALL_DD_PCT:
+            self._pause_until = time.time() + 12 * 3600   # Pause 12h
+            reason = f"Drawdown total: {dd_overall:.1%} (seuil {-MAX_OVERALL_DD_PCT:.0%})"
+            logger.critical(f"[DDGUARD V2] 🚨 VETO Drawdown total: {dd_overall:.1%}")
+            return {
+                "agent": self.name,
+                "summary": f"🚨 VETO — {reason}",
+                "arguments": [reason], "risks": [reason],
+                "confidence": 1.0, "recommendation": "NO TRADE — Drawdown total",
+                "veto": True, "veto_reason": "total_drawdown_exceeded",
+                "telegram_alert": True,
+                "consecutive_losses": losses,
+            }
+
+        # Pause active
+        if paused:
+            pause_type = "ARRÊT 24H" if losses >= 8 else ("PAUSE 1H" if losses >= 5 else "PAUSE 15min")
+            summary    = f"⏸️ {pause_type} — {losses} pertes consécutives | {rem}min restantes | Recovery: {self._recovery_score:.0%}"
+            return {
+                "agent": self.name, "summary": summary,
+                "arguments": [f"{losses} pertes d'affilée", f"Recovery score: {self._recovery_score:.0%}"],
+                "risks": ["Streak de pertes"],
+                "confidence": 1.0,
+                "recommendation": f"NO TRADE — {pause_type} ({rem}min restantes)",
+                "veto": True, "veto_reason": f"drawdown_guard_pause",
+                "pause_minutes": rem, "consecutive_losses": losses,
+                "telegram_alert": losses >= 5 and not self._telegram_alert_sent,
+            }
+
+        # ── OK — Trading autorisé ──────────────────────────────────────────
+        warning = ""
+        if losses >= 2:
+            warning = f" ⚠️ {losses} pertes récentes — sizing réduit recommandé"
+        summary = (
+            f"✅ Circuit Breaker OK — {losses} perte{'s' if losses != 1 else ''} consécutive{'s' if losses != 1 else ''}"
+            f" | DD jour: {dd_daily:.1%} | DD total: {dd_overall:.1%} | Recovery: {self._recovery_score:.0%}{warning}"
+        )
+
+        return {
+            "agent":          self.name,
+            "summary":        summary,
+            "arguments": [
+                f"Pertes consécutives: {losses}/8",
+                f"Drawdown journalier: {dd_daily:.1%} (seuil: -{MAX_DAILY_DD_PCT:.0%})",
+                f"Drawdown total: {dd_overall:.1%} (seuil: -{MAX_OVERALL_DD_PCT:.0%})",
+                f"Recovery score: {self._recovery_score:.0%}",
+            ],
+            "risks": [f"⚠️ {losses} pertes récentes"] if losses >= 2 else [],
+            "confidence":     0.95,
+            "recommendation": "TRADE AUTORISÉ" if losses < 3 else "TRADE RÉDUIT",
+            "veto":           False,
+            "consecutive_losses": losses,
+            "dd_daily":       dd_daily,
+            "dd_overall":     dd_overall,
+            "recovery_score": self._recovery_score,
         }

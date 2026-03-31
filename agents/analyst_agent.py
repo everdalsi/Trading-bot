@@ -1,25 +1,44 @@
 """
-📊 ANALYST AGENT V5 — Expert en Analyse Technique + Divergences + Multi-Timeframe
+📊 ANALYST AGENT V7 — Expert Analyse Technique Professionnelle
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-AMÉLIORATIONS V5 :
-- Calcul RSI divergences haussières/baissières (indicateur en or ignoré en V4)
-- Bollinger Bands : squeeze + breakout (momentum explosion imminent)
-- MACD : histogramme direction + crossover signal
-- Volume confirmation : volume > SMA20 volume = signal fort
-- Structure de marché : HH/HL (uptrend) vs LH/LL (downtrend)
-- Score composite pondéré 8 facteurs (était juste lecture WR context)
-- Cache Binance 60s par symbole pour vitesse
+UPGRADES V7 (expert-level) :
+- Wilder RSI (EMA smoothed) — plus précis que la moyenne simple
+- ATR (Average True Range) — volatilité réelle pour stops et sizing
+- VWAP (Volume Weighted Average Price) — niveau clé institutionnel
+- Ichimoku Cloud (Tenkan/Kijun/Senkou A&B/Chikou) — système complet
+- Stochastic RSI — suracheté/survendu avec plus de sensibilité
+- Williams %R — momentum intraday
+- Fibonacci retracements (23.6/38.2/50/61.8/78.6%) — niveaux de support/résistance
+- Divergences RSI / prix (haussières ET baissières confirmées)
+- Multi-timeframe confluence : 5m + 15m + 1h + 4h
+- Heikin Ashi : filtre de tendance anti-bruit
+- Score composite 12 facteurs pondérés par régime de marché
+- Cache intelligent par (symbole, intervalle)
 """
 
 import time
 import requests
 import numpy as np
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any, List, Tuple, Optional
 from agents.base_agent import BaseAgent
 from logging_config import logger
 
-
 BINANCE_BASE = "https://api.binance.com"
+
+# ── Poids par facteur (total = 1.0) ──────────────────────────────────────────
+FACTOR_WEIGHTS = {
+    "rsi":          0.14,
+    "stoch_rsi":    0.08,
+    "macd":         0.12,
+    "bb":           0.08,
+    "vwap":         0.10,
+    "ichimoku":     0.10,
+    "volume":       0.08,
+    "structure":    0.10,
+    "divergence":   0.10,
+    "williams_r":   0.05,
+    "fibonacci":    0.05,
+}
 
 
 class AnalystAgent(BaseAgent):
@@ -27,422 +46,704 @@ class AnalystAgent(BaseAgent):
     def __init__(self):
         super().__init__(
             name="analyst",
-            description="Analyse technique avancée : indicateurs, divergences, structure de marché, confirmations volume",
-            role="Analyse technique experte — RSI, MACD, BB, Volume, Divergences, Structure de marché"
+            description=(
+                "Expert Analyse Technique : Wilder RSI, ATR, VWAP, Ichimoku, "
+                "StochRSI, Williams %R, Fibonacci, divergences, multi-timeframe"
+            ),
+            role=(
+                "Analyse technique professionnelle — 11 indicateurs + multi-timeframe "
+                "confluence — score composite pondéré"
+            )
         )
         self._klines_cache: Dict[str, Dict] = {}
-        self._cache_ttl = 60
+        self._cache_ttl_map = {
+            "1m": 30, "3m": 60, "5m": 60, "15m": 120,
+            "30m": 180, "1h": 300, "2h": 600, "4h": 900, "1d": 3600,
+        }
 
-    # ────────────────────────────────────────────────────────────────────────
-    # COLLECTE DONNÉES RÉELLES
-    # ────────────────────────────────────────────────────────────────────────
+    # ──────────────────────────────────────────────────────────────────────────
+    # COLLECTE DONNÉES — Cache par (symbole, intervalle)
+    # ──────────────────────────────────────────────────────────────────────────
 
-    def _get_klines(self, symbol: str, interval: str = "5m", limit: int = 100) -> Tuple[List[float], List[float], List[float], List[float]]:
-        """Retourne (closes, highs, lows, volumes) depuis Binance avec cache 60s."""
+    def _get_klines(
+        self, symbol: str, interval: str = "5m", limit: int = 200
+    ) -> Tuple[List[float], List[float], List[float], List[float], List[float]]:
+        """Retourne (opens, closes, highs, lows, volumes) depuis Binance."""
         key = f"{symbol}_{interval}"
         now = time.time()
+        ttl = self._cache_ttl_map.get(interval, 60)
         cached = self._klines_cache.get(key)
-        if cached and now - cached["ts"] < self._cache_ttl:
+        if cached and now - cached["ts"] < ttl:
             return cached["data"]
-
-        # Essai DataHandler en premier
-        try:
-            from data_handler import DataHandler
-            dh = DataHandler()
-            closes = list(dh.get_klines(symbol, interval, limit))
-            if closes and len(closes) >= 20:
-                # Fallback: highs/lows/volumes approximés si DataHandler ne les retourne pas
-                result = (closes, closes, closes, [0.0] * len(closes))
-                self._klines_cache[key] = {"data": result, "ts": now}
-                return result
-        except Exception:
-            pass
 
         try:
             r = requests.get(
                 f"{BINANCE_BASE}/api/v3/klines",
                 params={"symbol": symbol.upper(), "interval": interval, "limit": limit},
-                timeout=8
+                timeout=8,
             )
             if r.status_code == 200:
                 raw = r.json()
+                opens   = [float(c[1]) for c in raw]
                 closes  = [float(c[4]) for c in raw]
                 highs   = [float(c[2]) for c in raw]
                 lows    = [float(c[3]) for c in raw]
                 volumes = [float(c[5]) for c in raw]
-                result = (closes, highs, lows, volumes)
+                result = (opens, closes, highs, lows, volumes)
                 self._klines_cache[key] = {"data": result, "ts": now}
                 return result
         except Exception as e:
-            logger.warning(f"[AnalystAgent] klines {symbol}: {e}")
+            logger.warning(f"[AnalystV7] klines {symbol}/{interval}: {e}")
 
-        return ([], [], [], [])
+        empty: Tuple[List, List, List, List, List] = ([], [], [], [], [])
+        return empty
 
-    # ────────────────────────────────────────────────────────────────────────
-    # INDICATEURS TECHNIQUES
-    # ─────────────────────────────────────────────────────────────────��──────
+    # ──────────────────────────────────────────────────────────────────────────
+    # INDICATEURS — Implémentations numériques précises
+    # ──────────────────────────────────────────────────────────────────────────
 
     @staticmethod
-    def _rsi(closes: List[float], period: int = 14) -> float:
+    def _wilder_rsi(closes: List[float], period: int = 14) -> float:
+        """RSI avec lissage de Wilder (EMA récursive) — plus précis que la moyenne simple."""
         if len(closes) < period + 1:
             return 50.0
-        gains, losses = [], []
-        for i in range(1, len(closes)):
-            d = closes[i] - closes[i - 1]
-            gains.append(max(d, 0))
-            losses.append(max(-d, 0))
-        avg_gain = np.mean(gains[-period:])
-        avg_loss = np.mean(losses[-period:])
+        deltas = np.diff(closes)
+        gains  = np.where(deltas > 0, deltas, 0.0)
+        losses = np.where(deltas < 0, -deltas, 0.0)
+        # Initialisation Wilder
+        avg_gain = np.mean(gains[:period])
+        avg_loss = np.mean(losses[:period])
+        for g, l in zip(gains[period:], losses[period:]):
+            avg_gain = (avg_gain * (period - 1) + g) / period
+            avg_loss = (avg_loss * (period - 1) + l) / period
         if avg_loss == 0:
             return 100.0
         rs = avg_gain / avg_loss
-        return round(100 - 100 / (1 + rs), 2)
+        return round(100.0 - 100.0 / (1.0 + rs), 2)
 
     @staticmethod
-    def _rsi_series(closes: List[float], period: int = 14) -> List[float]:
-        """Série RSI complète pour calcul divergence."""
-        if len(closes) < period + 2:
-            return [50.0] * len(closes)
-        result = [50.0] * period
-        gains = [max(closes[i] - closes[i-1], 0) for i in range(1, len(closes))]
-        losses = [max(closes[i-1] - closes[i], 0) for i in range(1, len(closes))]
-        avg_g = np.mean(gains[:period])
-        avg_l = np.mean(losses[:period])
-        for i in range(period, len(closes) - 1):
-            avg_g = (avg_g * (period - 1) + gains[i]) / period
-            avg_l = (avg_l * (period - 1) + losses[i]) / period
-            rs = avg_g / avg_l if avg_l > 0 else 100
-            result.append(round(100 - 100 / (1 + rs), 2))
-        return result
-
-    @staticmethod
-    def _macd(closes: List[float], fast: int = 12, slow: int = 26, signal: int = 9) -> Dict[str, float]:
-        """MACD line, Signal line, Histogramme."""
-        if len(closes) < slow + signal:
-            return {"macd": 0.0, "signal": 0.0, "hist": 0.0, "cross": "NONE"}
-        # Calcul EMA manuel (Wilder/standard)
-        def calc_ema(data, n):
-            k = 2 / (n + 1)
-            ema_val = data[0]
-            result = [ema_val]
-            for v in data[1:]:
-                ema_val = v * k + ema_val * (1 - k)
-                result.append(ema_val)
-            return result
-        ema_fast   = calc_ema(closes, fast)
-        ema_slow   = calc_ema(closes, slow)
-        macd_line  = [ema_fast[i] - ema_slow[i] for i in range(len(closes))]
-        sig_line   = calc_ema(macd_line[-signal*3:], signal)
-        hist       = macd_line[-1] - sig_line[-1]
-        # Crossover : macd_line[-1] vs [-2] relative to signal
-        cross = "NONE"
-        if len(macd_line) >= 2 and len(sig_line) >= 2:
-            ml_prev = macd_line[-2]
-            sl_prev = sig_line[-min(2, len(sig_line))]
-            if ml_prev < sl_prev and macd_line[-1] > sig_line[-1]:
-                cross = "BULL_CROSS"
-            elif ml_prev > sl_prev and macd_line[-1] < sig_line[-1]:
-                cross = "BEAR_CROSS"
-        return {
-            "macd":   round(macd_line[-1], 6),
-            "signal": round(sig_line[-1], 6),
-            "hist":   round(hist, 6),
-            "cross":  cross
-        }
-
-    @staticmethod
-    def _bollinger_bands(closes: List[float], period: int = 20, k: float = 2.0) -> Dict[str, float]:
-        if len(closes) < period:
-            mid = closes[-1] if closes else 0
-            return {"upper": mid * 1.02, "mid": mid, "lower": mid * 0.98,
-                    "width": 0.04, "pct_b": 0.5, "squeeze": False}
-        window = closes[-period:]
-        mid    = np.mean(window)
-        std    = np.std(window, ddof=1)
-        upper  = mid + k * std
-        lower  = mid - k * std
-        width  = (upper - lower) / mid if mid > 0 else 0
-        price  = closes[-1]
-        pct_b  = (price - lower) / (upper - lower) if (upper - lower) > 0 else 0.5
-        squeeze = width < 0.03   # squeeze si bandes très serrées
-        return {
-            "upper": round(upper, 4), "mid": round(mid, 4), "lower": round(lower, 4),
-            "width": round(width, 4), "pct_b": round(pct_b, 3), "squeeze": squeeze
-        }
-
-    @staticmethod
-    def _detect_divergence(closes: List[float], rsi_series: List[float], lookback: int = 20) -> str:
-        """
-        Divergences RSI — le signal le plus fiable en trading :
-        - Haussière : prix fait lower low MAIS RSI fait higher low → retournement probable
-        - Baissière : prix fait higher high MAIS RSI fait lower high → sommet probable
-        """
-        if len(closes) < lookback or len(rsi_series) < lookback:
-            return "NONE"
-        p  = closes[-lookback:]
-        r  = rsi_series[-lookback:]
-        # Recherche pivot bas (creux)
-        price_lower_low = p[-1] < min(p[:-1])
-        rsi_higher_low  = r[-1] > min(r[:-1])
-        # Recherche pivot haut (sommet)
-        price_higher_high = p[-1] > max(p[:-1])
-        rsi_lower_high    = r[-1] < max(r[:-1])
-
-        if price_lower_low and rsi_higher_low:
-            return "BULL_DIVERGENCE"    # 🟢 signal achat fort
-        elif price_higher_high and rsi_lower_high:
-            return "BEAR_DIVERGENCE"    # 🔴 signal vente fort
-        return "NONE"
-
-    @staticmethod
-    def _market_structure(highs: List[float], lows: List[float], n: int = 5) -> str:
-        """Structure de marché : HH+HL = uptrend, LH+LL = downtrend."""
-        if len(highs) < n * 2 or len(lows) < n * 2:
-            return "UNDEFINED"
-        recent_h = highs[-n:]
-        prev_h   = highs[-n*2:-n]
-        recent_l = lows[-n:]
-        prev_l   = lows[-n*2:-n]
-        hh = max(recent_h) > max(prev_h)
-        hl = min(recent_l) > min(prev_l)
-        lh = max(recent_h) < max(prev_h)
-        ll = min(recent_l) < min(prev_l)
-        if hh and hl:
-            return "UPTREND"
-        elif lh and ll:
-            return "DOWNTREND"
-        elif not hh and not ll:
-            return "RANGE"
-        return "TRANSITION"
-
-    @staticmethod
-    def _volume_score(volumes: List[float], period: int = 20) -> float:
-        """Score volume : > 1.5x SMA = conviction forte."""
-        if len(volumes) < period or volumes[-1] == 0:
-            return 0.5
-        sma_vol = np.mean(volumes[-period:])
-        return min(volumes[-1] / sma_vol, 3.0) / 3.0 if sma_vol > 0 else 0.5
+    def _stoch_rsi(closes: List[float], rsi_period: int = 14, stoch_period: int = 14) -> Tuple[float, float]:
+        """Stochastic RSI — %K et %D."""
+        if len(closes) < rsi_period + stoch_period + 5:
+            return 50.0, 50.0
+        # Série de RSI glissants
+        rsi_values = []
+        for i in range(stoch_period, len(closes)):
+            rsi_values.append(AnalystAgent._wilder_rsi(closes[max(0, i - rsi_period - 10): i + 1], rsi_period))
+        if len(rsi_values) < stoch_period:
+            return 50.0, 50.0
+        recent_rsi = rsi_values[-stoch_period:]
+        min_rsi = min(recent_rsi)
+        max_rsi = max(recent_rsi)
+        if max_rsi == min_rsi:
+            return 50.0, 50.0
+        k = 100.0 * (rsi_values[-1] - min_rsi) / (max_rsi - min_rsi)
+        d = np.mean([100.0 * (r - min_rsi) / (max_rsi - min_rsi) for r in recent_rsi[-3:]])
+        return round(k, 2), round(d, 2)
 
     @staticmethod
     def _atr(highs: List[float], lows: List[float], closes: List[float], period: int = 14) -> float:
-        """Average True Range — mesure la volatilité réelle."""
+        """Average True Range — volatilité réelle."""
         if len(closes) < period + 1:
             return 0.0
         trs = []
         for i in range(1, len(closes)):
-            tr = max(
-                highs[i] - lows[i],
-                abs(highs[i] - closes[i-1]),
-                abs(lows[i] - closes[i-1])
-            )
-            trs.append(tr)
-        return round(np.mean(trs[-period:]), 6)
+            h, l, pc = highs[i], lows[i], closes[i - 1]
+            trs.append(max(h - l, abs(h - pc), abs(l - pc)))
+        if not trs:
+            return 0.0
+        # Wilder smoothing
+        atr = np.mean(trs[:period])
+        for tr in trs[period:]:
+            atr = (atr * (period - 1) + tr) / period
+        return round(atr, 6)
 
-    # ────────────────────────────────────────────────────────────────────────
-    # SCORE COMPOSITE
-    # ────────────────────────────────────────────���───────────────────────────
+    @staticmethod
+    def _ema(values: List[float], period: int) -> float:
+        """EMA sur une liste de valeurs."""
+        if len(values) < period:
+            return float(np.mean(values)) if values else 0.0
+        k = 2.0 / (period + 1)
+        ema = np.mean(values[:period])
+        for v in values[period:]:
+            ema = v * k + ema * (1 - k)
+        return round(ema, 6)
 
-    def _compute_technical_score(
-        self, closes: List[float], highs: List[float], lows: List[float], volumes: List[float]
+    @staticmethod
+    def _macd(closes: List[float], fast: int = 12, slow: int = 26, signal: int = 9) -> Tuple[float, float, float]:
+        """MACD line, Signal line, Histogram."""
+        if len(closes) < slow + signal:
+            return 0.0, 0.0, 0.0
+        ema_fast = AnalystAgent._ema(closes, fast)
+        ema_slow = AnalystAgent._ema(closes, slow)
+        macd_line = ema_fast - ema_slow
+        # Signal : EMA du MACD
+        macd_series = []
+        for i in range(slow, len(closes)):
+            ef = AnalystAgent._ema(closes[:i + 1], fast)
+            es = AnalystAgent._ema(closes[:i + 1], slow)
+            macd_series.append(ef - es)
+        if len(macd_series) < signal:
+            return round(macd_line, 6), 0.0, round(macd_line, 6)
+        signal_line = AnalystAgent._ema(macd_series, signal)
+        histogram = macd_line - signal_line
+        return round(macd_line, 6), round(signal_line, 6), round(histogram, 6)
+
+    @staticmethod
+    def _bollinger(closes: List[float], period: int = 20, std_mult: float = 2.0) -> Tuple[float, float, float, bool, bool]:
+        """Bollinger Bands — retourne (upper, mid, lower, squeeze, breakout_up)."""
+        if len(closes) < period:
+            m = closes[-1] if closes else 0.0
+            return m, m, m, False, False
+        window = closes[-period:]
+        mid   = float(np.mean(window))
+        std   = float(np.std(window))
+        upper = mid + std_mult * std
+        lower = mid - std_mult * std
+        width = (upper - lower) / mid if mid != 0 else 0
+        # Squeeze : bandes très serrées (< 2% du prix)
+        squeeze = width < 0.02
+        price   = closes[-1]
+        breakout_up = price > upper
+        return round(upper, 6), round(mid, 6), round(lower, 6), squeeze, breakout_up
+
+    @staticmethod
+    def _vwap(highs: List[float], lows: List[float], closes: List[float], volumes: List[float]) -> float:
+        """Volume Weighted Average Price — référence institutionnelle."""
+        if not volumes or sum(volumes) == 0:
+            return closes[-1] if closes else 0.0
+        typical_prices = [(h + l + c) / 3 for h, l, c in zip(highs, lows, closes)]
+        vwap = sum(tp * v for tp, v in zip(typical_prices, volumes)) / sum(volumes)
+        return round(vwap, 6)
+
+    @staticmethod
+    def _ichimoku(
+        highs: List[float], lows: List[float], closes: List[float],
+        tenkan_period: int = 9, kijun_period: int = 26, senkou_b_period: int = 52
+    ) -> Dict[str, float]:
+        """Ichimoku Cloud complet."""
+        def mid_line(h_list, l_list, n):
+            if len(h_list) < n:
+                return (max(h_list) + min(l_list)) / 2 if h_list and l_list else 0.0
+            return (max(h_list[-n:]) + min(l_list[-n:])) / 2
+
+        tenkan  = mid_line(highs, lows, tenkan_period)
+        kijun   = mid_line(highs, lows, kijun_period)
+        senkou_a = (tenkan + kijun) / 2
+        senkou_b = mid_line(highs, lows, senkou_b_period)
+        chikou  = closes[-1] if closes else 0.0
+        price   = closes[-1] if closes else 0.0
+
+        above_cloud = price > max(senkou_a, senkou_b)
+        below_cloud = price < min(senkou_a, senkou_b)
+        in_cloud    = not above_cloud and not below_cloud
+        bullish_cross = tenkan > kijun  # TK Cross haussier
+
+        return {
+            "tenkan": round(tenkan, 6),
+            "kijun":  round(kijun,  6),
+            "senkou_a": round(senkou_a, 6),
+            "senkou_b": round(senkou_b, 6),
+            "chikou":   round(chikou, 6),
+            "above_cloud": above_cloud,
+            "below_cloud": below_cloud,
+            "in_cloud":    in_cloud,
+            "bullish_cross": bullish_cross,
+        }
+
+    @staticmethod
+    def _williams_r(highs: List[float], lows: List[float], closes: List[float], period: int = 14) -> float:
+        """Williams %R — oscillateur momentum."""
+        if len(closes) < period:
+            return -50.0
+        h_max = max(highs[-period:])
+        l_min = min(lows[-period:])
+        if h_max == l_min:
+            return -50.0
+        wr = -100.0 * (h_max - closes[-1]) / (h_max - l_min)
+        return round(wr, 2)
+
+    @staticmethod
+    def _fibonacci_levels(highs: List[float], lows: List[float], lookback: int = 50) -> Dict[str, Any]:
+        """Niveaux Fibonacci sur le dernier swing significatif."""
+        if len(highs) < lookback:
+            return {}
+        h = max(highs[-lookback:])
+        l = min(lows[-lookback:])
+        diff = h - l
+        price = highs[-1] if highs else 0.0
+        levels = {
+            "0.0":   round(l, 6),
+            "23.6":  round(l + diff * 0.236, 6),
+            "38.2":  round(l + diff * 0.382, 6),
+            "50.0":  round(l + diff * 0.500, 6),
+            "61.8":  round(l + diff * 0.618, 6),
+            "78.6":  round(l + diff * 0.786, 6),
+            "100.0": round(h, 6),
+        }
+        # Niveau Fibonacci le plus proche du prix actuel
+        closest = min(levels.items(), key=lambda x: abs(x[1] - price), default=("50.0", price))
+        return {"levels": levels, "closest_level": closest[0], "closest_price": closest[1]}
+
+    @staticmethod
+    def _detect_divergences(closes: List[float], period: int = 14, lookback: int = 50) -> Dict[str, bool]:
+        """
+        Détecte les divergences RSI / prix :
+        - Divergence haussière : prix fait un nouveau bas, RSI ne confirme pas
+        - Divergence baissière : prix fait un nouveau haut, RSI ne confirme pas
+        """
+        if len(closes) < lookback + period:
+            return {"bullish_div": False, "bearish_div": False}
+
+        # RSI sur chaque point
+        rsi_series = []
+        for i in range(lookback, len(closes)):
+            rsi_series.append(AnalystAgent._wilder_rsi(closes[max(0, i - period - 5): i + 1], period))
+
+        if len(rsi_series) < 10:
+            return {"bullish_div": False, "bearish_div": False}
+
+        price_recent = closes[-10:]
+        rsi_recent   = rsi_series[-10:]
+
+        # Cherche divergence haussière (prix bas vs RSI plus haut)
+        price_min_idx = int(np.argmin(price_recent))
+        rsi_at_price_min = rsi_recent[price_min_idx]
+        rsi_min = min(rsi_recent)
+        bullish_div = (price_recent[price_min_idx] <= min(price_recent) and
+                       rsi_at_price_min > rsi_min + 3)
+
+        # Cherche divergence baissière (prix haut vs RSI plus bas)
+        price_max_idx = int(np.argmax(price_recent))
+        rsi_at_price_max = rsi_recent[price_max_idx]
+        rsi_max = max(rsi_recent)
+        bearish_div = (price_recent[price_max_idx] >= max(price_recent) and
+                       rsi_at_price_max < rsi_max - 3)
+
+        return {"bullish_div": bullish_div, "bearish_div": bearish_div}
+
+    @staticmethod
+    def _market_structure(highs: List[float], lows: List[float], closes: List[float]) -> Dict[str, Any]:
+        """
+        Analyse de structure de marché : Higher Highs/Higher Lows (uptrend)
+        vs Lower Highs/Lower Lows (downtrend).
+        Détecte aussi les cassures de structure (Break of Structure).
+        """
+        if len(closes) < 20:
+            return {"trend": "neutral", "bos": False, "choch": False, "strength": 0.5}
+
+        n = min(30, len(closes))
+        h_slice = highs[-n:]
+        l_slice = lows[-n:]
+        c_slice = closes[-n:]
+
+        # Pivots highs et lows (simples)
+        hh = sum(1 for i in range(1, n - 1) if h_slice[i] > h_slice[i - 1] and h_slice[i] > h_slice[i + 1])
+        ll = sum(1 for i in range(1, n - 1) if l_slice[i] < l_slice[i - 1] and l_slice[i] < l_slice[i + 1])
+
+        # Direction globale
+        slope = (c_slice[-1] - c_slice[0]) / (n * c_slice[0] + 1e-9)
+        recent_high = max(h_slice[-5:])
+        prev_high   = max(h_slice[-10:-5]) if len(h_slice) >= 10 else recent_high
+        recent_low  = min(l_slice[-5:])
+        prev_low    = min(l_slice[-10:-5]) if len(l_slice) >= 10 else recent_low
+
+        if slope > 0.002 and recent_high > prev_high and recent_low > prev_low:
+            trend = "uptrend"
+            strength = min(1.0, 0.6 + slope * 10)
+        elif slope < -0.002 and recent_high < prev_high and recent_low < prev_low:
+            trend = "downtrend"
+            strength = max(0.0, 0.4 - abs(slope) * 10)
+        else:
+            trend = "ranging"
+            strength = 0.5
+
+        # Break of Structure (BOS) : cassure du dernier pivot
+        bos = c_slice[-1] > max(h_slice[-10:-1]) or c_slice[-1] < min(l_slice[-10:-1])
+        # Change of Character (CHoCH)
+        choch = (trend == "downtrend" and recent_low > prev_low)
+
+        return {
+            "trend": trend, "slope": round(slope, 5),
+            "bos": bos, "choch": choch, "strength": round(strength, 3),
+            "higher_highs": hh, "lower_lows": ll,
+        }
+
+    @staticmethod
+    def _heikin_ashi(
+        opens: List[float], closes: List[float], highs: List[float], lows: List[float]
     ) -> Dict[str, Any]:
         """
-        Score composite [-1, +1] pondéré par 8 signaux techniques.
-        Positif = bullish, négatif = bearish.
+        Heikin Ashi : filtre de tendance anti-bruit.
+        Retourne la couleur (bull/bear) et la force de la bougie.
         """
-        if not closes or len(closes) < 26:
-            return {"score": 0.0, "signals": {}, "confidence": 0.3}
-
-        rsi_val  = self._rsi(closes)
-        rsi_ser  = self._rsi_series(closes)
-        macd_d   = self._macd(closes)
-        bb       = self._bollinger_bands(closes)
-        div      = self._detect_divergence(closes, rsi_ser)
-        struct   = self._market_structure(highs, lows)
-        vol_sc   = self._volume_score(volumes)
-        atr      = self._atr(highs, lows, closes)
-
-        # 1. RSI [-1, +1]
-        rsi_signal = (rsi_val - 50) / 50.0
-
-        # 2. MACD histogram
-        macd_signal = 1.0 if macd_d["cross"] == "BULL_CROSS" else \
-                      -1.0 if macd_d["cross"] == "BEAR_CROSS" else \
-                      (1.0 if macd_d["hist"] > 0 else -1.0) * min(abs(macd_d["hist"]) * 1000, 1.0)
-
-        # 3. Bollinger position
-        bb_signal = (bb["pct_b"] - 0.5) * 2   # 0 = lower band, 1 = upper band → [-1, +1]
-        if bb["squeeze"]:
-            bb_signal *= 1.3  # boost squeeze (breakout imminent)
-
-        # 4. Divergence (très fort signal)
-        div_signal = 1.0 if div == "BULL_DIVERGENCE" else -1.0 if div == "BEAR_DIVERGENCE" else 0.0
-
-        # 5. Structure de marché
-        struct_signal = 1.0 if struct == "UPTREND" else -1.0 if struct == "DOWNTREND" else 0.0
-
-        # 6. Volume (amplificateur ≠ directionnel)
-        vol_boost = 0.8 + vol_sc * 0.4  # [0.8, 1.2]
-
-        # 7. Momentum (variation 5 dernières bougies)
-        momentum = (closes[-1] - closes[-6]) / closes[-6] * 10 if len(closes) >= 6 and closes[-6] > 0 else 0
-        momentum = max(-1.0, min(1.0, momentum))
-
-        # Score composite pondéré
-        raw_score = (
-            0.22 * rsi_signal +
-            0.18 * macd_signal +
-            0.15 * bb_signal +
-            0.20 * div_signal +       # divergence = signal premium
-            0.15 * struct_signal +
-            0.10 * momentum
-        ) * vol_boost
-
-        score = max(-1.0, min(1.0, raw_score))
-
-        # Confiance basée sur convergence des signaux
-        signals_dir = [rsi_signal, macd_signal, struct_signal, momentum]
-        positive = sum(1 for s in signals_dir if s > 0.1)
-        negative = sum(1 for s in signals_dir if s < -0.1)
-        convergence = abs(positive - negative) / len(signals_dir)
-        confidence = 0.50 + convergence * 0.40
-
-        return {
-            "score":     round(score, 3),
-            "confidence": round(confidence, 2),
-            "rsi":        rsi_val,
-            "macd":       macd_d,
-            "bb":         bb,
-            "divergence": div,
-            "structure":  struct,
-            "volume_score": round(vol_sc, 2),
-            "atr":        atr,
-            "momentum":   round(momentum, 3),
-            "signals": {
-                "rsi":       round(rsi_signal, 2),
-                "macd":      round(macd_signal, 2),
-                "bollinger": round(bb_signal, 2),
-                "divergence": div_signal,
-                "structure": struct_signal,
-                "momentum":  round(momentum, 2),
-                "volume_boost": round(vol_boost, 2),
-            }
-        }
-
-    # ────────────────────────────────────────────────────────────────────────
-    # PERFORMANCE STATS (depuis context)
-    # ────────────────────────────────────────────────────────────────────────
-
-    def _read_context_stats(self, context: dict) -> Dict[str, Any]:
-        wr_live     = context.get("wr_live")
-        wins_live   = context.get("wins_live")
-        losses_live = context.get("losses_live")
-        total_live  = context.get("total_trades")
-        sharpe_live = context.get("sharpe")
-        pf_live     = context.get("profit_factor")
-        return {
-            "wr_live": wr_live, "wins": wins_live, "losses": losses_live,
-            "total": total_live, "sharpe": sharpe_live, "pf": pf_live
-        }
-
-    # ────────────────────────────────────────────────────────────────────────
-    # RÉPONSE PRINCIPALE
-    # ────────────────────────────────────────────────────────────────────────
-
-    def _is_in_my_domain(self, question: str) -> bool:
-        q = question.lower()
-        keywords = [
-            "analyse", "analyst", "technique", "rsi", "macd", "bollinger",
-            "performance", "winrate", "stat", "score", "synthèse", "débat",
-            "raffine", "cerveau collectif", "trade ou no trade", "analyse collective",
+        if len(closes) < 3:
+            return {"color": "neutral", "strength": 0.5, "doji": False}
+        ha_closes, ha_opens = [], []
+        for i in range(len(closes)):
+            ha_c = (opens[i] + highs[i] + lows[i] + closes[i]) / 4
+            ha_o = (opens[i - 1] + closes[i - 1]) / 2 if i > 0 else (opens[i] + closes[i]) / 2
+            ha_closes.append(ha_c)
+            ha_opens.append(ha_o)
+        last_ha_c = ha_closes[-1]
+        last_ha_o = ha_opens[-1]
+        body_size = abs(last_ha_c - last_ha_o)
+        total_size = max(highs[-1] - lows[-1], 1e-9)
+        strength = body_size / total_size
+        # Tendance Heikin Ashi : 3 bougies consécutives de même couleur
+        last3_colors = [
+            "bull" if ha_closes[i] > ha_opens[i] else "bear"
+            for i in range(-3, 0)
         ]
-        return any(kw in q for kw in keywords)
+        if all(c == "bull" for c in last3_colors):
+            color = "bull_strong"
+        elif all(c == "bear" for c in last3_colors):
+            color = "bear_strong"
+        elif last3_colors[-1] == "bull":
+            color = "bull"
+        else:
+            color = "bear"
+        doji = strength < 0.1
+        return {"color": color, "strength": round(strength, 3), "doji": doji}
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # ANALYSE MULTI-TIMEFRAME
+    # ──────────────────────────────────────────────────────────────────────────
+
+    def _analyze_timeframe(self, symbol: str, interval: str, limit: int = 200) -> Dict[str, Any]:
+        """Analyse complète sur un timeframe donné."""
+        opens, closes, highs, lows, volumes = self._get_klines(symbol, interval, limit)
+        if len(closes) < 30:
+            return {"valid": False, "score": 0.5, "signal": "NEUTRAL", "interval": interval}
+
+        rsi        = self._wilder_rsi(closes)
+        stoch_k, stoch_d = self._stoch_rsi(closes)
+        macd_line, macd_signal, macd_hist = self._macd(closes)
+        bb_upper, bb_mid, bb_lower, bb_squeeze, bb_breakout = self._bollinger(closes)
+        vwap_val   = self._vwap(highs, lows, closes, volumes)
+        ichimoku   = self._ichimoku(highs, lows, closes)
+        atr        = self._atr(highs, lows, closes)
+        wr         = self._williams_r(highs, lows, closes)
+        struct     = self._market_structure(highs, lows, closes)
+        div        = self._detect_divergences(closes)
+        fib        = self._fibonacci_levels(highs, lows)
+        ha         = self._heikin_ashi(opens, closes, highs, lows)
+
+        price = closes[-1]
+        vol_sma20 = np.mean(volumes[-20:]) if len(volumes) >= 20 else 1.0
+        vol_ratio = volumes[-1] / vol_sma20 if vol_sma20 > 0 else 1.0
+
+        # ── Scoring par facteur ────────────────────────────────────────────
+
+        # RSI : suracheté/survendu, zones de momentum
+        if rsi < 30:
+            rsi_score = 0.85  # Survendu → achat
+        elif rsi < 45:
+            rsi_score = 0.65
+        elif rsi < 55:
+            rsi_score = 0.50
+        elif rsi < 70:
+            rsi_score = 0.35
+        else:
+            rsi_score = 0.15  # Suracheté → vente
+
+        # Stochastic RSI
+        if stoch_k < 20 and stoch_d < 20:
+            stoch_score = 0.85
+        elif stoch_k < 40:
+            stoch_score = 0.65
+        elif stoch_k > 80 and stoch_d > 80:
+            stoch_score = 0.15
+        elif stoch_k > 60:
+            stoch_score = 0.35
+        else:
+            stoch_score = 0.50
+        # Croisement K/D
+        if stoch_k > stoch_d and stoch_k < 50:
+            stoch_score = min(1.0, stoch_score + 0.15)
+        elif stoch_k < stoch_d and stoch_k > 50:
+            stoch_score = max(0.0, stoch_score - 0.15)
+
+        # MACD
+        macd_score = 0.50
+        if macd_hist > 0:
+            macd_score = 0.70
+        if macd_hist < 0:
+            macd_score = 0.30
+        if macd_line > macd_signal and macd_hist > 0:
+            macd_score = 0.80  # Croisement haussier
+        if macd_line < macd_signal and macd_hist < 0:
+            macd_score = 0.20  # Croisement baissier
+
+        # Bollinger Bands
+        if bb_squeeze:
+            bb_score = 0.55  # Squeeze → explosion imminente (neutre)
+        elif bb_breakout:
+            bb_score = 0.80 if macd_hist > 0 else 0.25
+        elif price < bb_lower:
+            bb_score = 0.80  # Prix sous la bande basse → rebond potentiel
+        elif price > bb_upper:
+            bb_score = 0.20  # Prix au-dessus de la bande haute → suracheté
+        else:
+            bb_score = 0.50 + (bb_mid - price) / (bb_upper - bb_mid + 1e-9) * 0.1
+
+        # VWAP
+        if price > vwap_val * 1.005:
+            vwap_score = 0.65  # Au-dessus VWAP
+        elif price < vwap_val * 0.995:
+            vwap_score = 0.35  # Sous VWAP
+        else:
+            vwap_score = 0.50  # VWAP zone
+
+        # Ichimoku
+        if ichimoku["above_cloud"] and ichimoku["bullish_cross"]:
+            ichi_score = 0.85
+        elif ichimoku["above_cloud"]:
+            ichi_score = 0.70
+        elif ichimoku["below_cloud"] and not ichimoku["bullish_cross"]:
+            ichi_score = 0.15
+        elif ichimoku["below_cloud"]:
+            ichi_score = 0.30
+        else:
+            ichi_score = 0.50  # Dans le cloud
+
+        # Volume
+        if vol_ratio > 2.0:
+            vol_score = 0.80 if macd_hist > 0 else 0.20
+        elif vol_ratio > 1.5:
+            vol_score = 0.65 if macd_hist > 0 else 0.35
+        elif vol_ratio < 0.5:
+            vol_score = 0.45  # Volume faible → signal moins fiable
+        else:
+            vol_score = 0.55
+
+        # Structure de marché
+        if struct["trend"] == "uptrend":
+            struct_score = 0.75
+            if struct["choch"]:
+                struct_score = 0.85
+        elif struct["trend"] == "downtrend":
+            struct_score = 0.25
+        else:
+            struct_score = 0.50
+        if struct["bos"]:
+            struct_score = min(1.0, struct_score + 0.10)
+
+        # Divergences
+        if div["bullish_div"]:
+            div_score = 0.85
+        elif div["bearish_div"]:
+            div_score = 0.15
+        else:
+            div_score = 0.50
+
+        # Williams %R
+        if wr < -80:
+            wr_score = 0.80  # Survendu
+        elif wr < -50:
+            wr_score = 0.60
+        elif wr > -20:
+            wr_score = 0.20  # Suracheté
+        else:
+            wr_score = 0.40
+
+        # Fibonacci
+        fib_score = 0.50
+        if fib.get("closest_level"):
+            cl = float(fib["closest_level"])
+            if cl in [38.2, 50.0, 61.8]:
+                # Niveau Fib clé → support/résistance potentiel
+                fib_score = 0.65 if struct["trend"] == "uptrend" else 0.35
+
+        # ── Score composite pondéré ────────────────────────────────────────
+        scores = {
+            "rsi":       rsi_score,
+            "stoch_rsi": stoch_score,
+            "macd":      macd_score,
+            "bb":        bb_score,
+            "vwap":      vwap_score,
+            "ichimoku":  ichi_score,
+            "volume":    vol_score,
+            "structure": struct_score,
+            "divergence": div_score,
+            "williams_r": wr_score,
+            "fibonacci":  fib_score,
+        }
+        composite = sum(scores[k] * FACTOR_WEIGHTS[k] for k in scores)
+
+        # ── Signal ────────────────────────────────────────────────────────
+        if composite >= 0.70:
+            signal = "STRONG_BUY"
+        elif composite >= 0.60:
+            signal = "BUY"
+        elif composite >= 0.55:
+            signal = "WEAK_BUY"
+        elif composite <= 0.30:
+            signal = "STRONG_SELL"
+        elif composite <= 0.40:
+            signal = "SELL"
+        elif composite <= 0.45:
+            signal = "WEAK_SELL"
+        else:
+            signal = "NEUTRAL"
+
+        return {
+            "valid":      True,
+            "interval":   interval,
+            "signal":     signal,
+            "score":      round(composite, 4),
+            "rsi":        rsi,
+            "stoch_k":    stoch_k,
+            "stoch_d":    stoch_d,
+            "macd_hist":  macd_hist,
+            "bb_squeeze": bb_squeeze,
+            "vwap":       vwap_val,
+            "price":      price,
+            "vwap_diff":  round((price - vwap_val) / vwap_val * 100, 3) if vwap_val else 0,
+            "atr":        atr,
+            "atr_pct":    round(atr / price * 100, 3) if price else 0,
+            "ichimoku":   ichimoku,
+            "williams_r": wr,
+            "struct":     struct,
+            "divergence": div,
+            "fibonacci":  fib,
+            "ha_color":   ha["color"],
+            "vol_ratio":  round(vol_ratio, 2),
+            "scores_detail": scores,
+        }
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # RESPOND — Point d'entrée principal
+    # ──────────────────────────────────────────────────────────────────────────
 
     async def respond(self, question: str, context: dict) -> Dict[str, Any]:
         if not self._is_in_my_domain(question):
             return {
-                "agent": self.name, "summary": "⚠️ Hors domaine analyst",
-                "confidence": 0.0, "recommendation": "HOLD"
+                "agent": self.name, "summary": "Hors domaine analyst",
+                "confidence": 0.0, "recommendation": "HOLD",
             }
 
         symbol = context.get("symbol", "BTCUSDT")
-        shared_glossary = context.get("shared_glossary", {})
+        regime = context.get("market_regime", "NEUTRAL")
 
-        # ── Analyse technique réelle ─────────────────────────────────────
-        closes, highs, lows, volumes = self._get_klines(symbol, "5m", 100)
+        # ── Analyse multi-timeframe (4 TF) ────────────────────────────────
+        tf_5m  = self._analyze_timeframe(symbol, "5m",  100)
+        tf_15m = self._analyze_timeframe(symbol, "15m", 150)
+        tf_1h  = self._analyze_timeframe(symbol, "1h",  200)
+        tf_4h  = self._analyze_timeframe(symbol, "4h",  200)
 
-        # Multi-timeframe : récupérer aussi le 1h pour structure HTF
-        closes_1h, highs_1h, lows_1h, _ = self._get_klines(symbol, "1h", 50)
+        # Poids TF : 4h domine (tendance principale)
+        tf_weights = {"5m": 0.15, "15m": 0.25, "1h": 0.35, "4h": 0.25}
+        composite_mtf = 0.50
+        valid_tfs = [tf for tf in [tf_5m, tf_15m, tf_1h, tf_4h] if tf.get("valid")]
+        if valid_tfs:
+            weighted_sum = sum(
+                tf["score"] * tf_weights.get(tf["interval"], 0.25)
+                for tf in valid_tfs
+            )
+            total_w = sum(tf_weights.get(tf["interval"], 0.25) for tf in valid_tfs)
+            composite_mtf = weighted_sum / total_w if total_w > 0 else 0.50
 
-        tech = self._compute_technical_score(closes, highs, lows, volumes)
-        tech_1h = self._compute_technical_score(closes_1h, highs_1h, lows_1h, [])
+        # ── Confluence multi-timeframe ─────────────────────────────────────
+        signals = [tf["signal"] for tf in valid_tfs]
+        buy_signals  = sum(1 for s in signals if "BUY"  in s)
+        sell_signals = sum(1 for s in signals if "SELL" in s)
+        n_tfs = len(valid_tfs)
+        confluence_bonus = 0.0
+        if n_tfs >= 3:
+            if buy_signals >= 3:
+                confluence_bonus = 0.08   # Forte confluence haussière
+            elif sell_signals >= 3:
+                confluence_bonus = -0.08  # Forte confluence baissière
+        composite_mtf = max(0.0, min(1.0, composite_mtf + confluence_bonus))
 
-        score = tech["score"]
-        # Alignement multi-timeframe bonus
-        if tech_1h["score"] * score > 0:
-            score = score * 1.1   # même direction 5m + 1h = +10%
+        # ── Ajustement régime ─────────────────────────────────────────────
+        if regime == "BULL":
+            composite_mtf = min(1.0, composite_mtf * 1.05)
+        elif regime == "BEAR":
+            composite_mtf = max(0.0, composite_mtf * 0.95)
 
-        score = max(-1.0, min(1.0, score))
-
-        # ── Stats performance depuis contexte ───────────────────────────
-        stats = self._read_context_stats(context)
-        wr = stats["wr_live"]
-
-        # ── Décision ─────────────────────���──────────────────────────────
-        if score > 0.35:
-            reco = "BUY"
-            summary_direction = "🟢 Signal BULLISH technique confirmé"
-        elif score < -0.35:
-            reco = "SELL"
-            summary_direction = "🔴 Signal BEARISH technique détecté"
+        # ── Signal final ──────────────────────────────────────────────────
+        if composite_mtf >= 0.72:
+            recommendation = "STRONG_BUY"
+        elif composite_mtf >= 0.62:
+            recommendation = "BUY"
+        elif composite_mtf >= 0.55:
+            recommendation = "WEAK_BUY"
+        elif composite_mtf <= 0.28:
+            recommendation = "STRONG_SELL"
+        elif composite_mtf <= 0.38:
+            recommendation = "SELL"
+        elif composite_mtf <= 0.45:
+            recommendation = "WEAK_SELL"
         else:
-            reco = "HOLD"
-            summary_direction = "🟡 Signal NEUTRE — attendre confirmation"
+            recommendation = "NEUTRAL"
 
-        # Divergence override
-        if tech["divergence"] == "BULL_DIVERGENCE":
-            summary_direction += " | 🔔 DIVERGENCE HAUSSIÈRE RSI détectée (signal fort)"
-        elif tech["divergence"] == "BEAR_DIVERGENCE":
-            summary_direction += " | ⚠️ DIVERGENCE BAISSIÈRE RSI détectée (signal fort)"
+        # ── Niveaux de stop-loss / take-profit via ATR ────────────────────
+        ref_tf = tf_1h if tf_1h.get("valid") else tf_5m
+        price  = ref_tf.get("price", context.get("price", 0.0))
+        atr    = ref_tf.get("atr", 0.0)
+        stop_loss   = round(price - atr * 1.5, 6) if price and atr else None
+        take_profit = round(price + atr * 2.5, 6) if price and atr else None
+        rr_ratio    = round(atr * 2.5 / (atr * 1.5), 2) if atr else 1.67
 
-        # Squeeze Bollinger
-        if tech["bb"]["squeeze"]:
-            summary_direction += " | 💥 SQUEEZE BB — explosion imminent"
-
-        arguments = [
-            f"RSI 5m: {tech['rsi']:.1f} | Structure: {tech['structure']} | Divergence: {tech['divergence']}",
-            f"MACD histogramme: {tech['macd']['hist']:+.6f} | Cross: {tech['macd']['cross']}",
-            f"Bollinger %B: {tech['bb']['pct_b']:.2f} | Squeeze: {'OUI' if tech['bb']['squeeze'] else 'non'} | Bandes: {tech['bb']['width']:.3%}",
-            f"Volume score: {tech['volume_score']:.2f}x SMA20 | ATR: {tech['atr']:.4f}",
-            f"Momentum 5 bougies: {tech['momentum']:+.3f} | Score 1h: {tech_1h['score']:+.3f}",
-        ]
-        if isinstance(wr, (int, float)):
-            arguments.append(f"WR live: {wr:.1f}% sur {stats['total'] or '?'} trades")
-
-        full_summary = (
-            f"📊 Analyst V5 — {symbol} | Score technique: {score:+.3f} | "
-            f"RSI: {tech['rsi']:.1f} | Div: {tech['divergence']} | "
-            f"BB squeeze: {tech['bb']['squeeze']} | Struct: {tech['structure']} | {summary_direction}"
+        # ── Summary ───────────────────────────────────────────────────────
+        rsi_5m  = tf_5m.get("rsi", 50.0) if tf_5m.get("valid") else 50.0
+        rsi_1h  = tf_1h.get("rsi", 50.0) if tf_1h.get("valid") else 50.0
+        ichi    = ref_tf.get("ichimoku", {})
+        cloud   = "Au-dessus" if ichi.get("above_cloud") else ("Sous" if ichi.get("below_cloud") else "Dans")
+        ha_color = ref_tf.get("ha_color", "neutral")
+        div_str = "DIV HAUSSIÈRE ✅" if ref_tf.get("divergence", {}).get("bullish_div") else (
+            "DIV BAISSIÈRE ⚠️" if ref_tf.get("divergence", {}).get("bearish_div") else "Pas de divergence"
         )
 
-        confidence = tech["confidence"]
-        if tech["divergence"] != "NONE":
-            confidence = min(0.95, confidence + 0.10)
+        summary = (
+            f"[AnalystV7] {symbol} | Score MTF: {composite_mtf:.2%} | {recommendation} | "
+            f"RSI 5m:{rsi_5m:.0f} 1h:{rsi_1h:.0f} | MACD hist:{ref_tf.get('macd_hist', 0):.4f} | "
+            f"VWAP diff:{ref_tf.get('vwap_diff', 0):+.2f}% | Ichimoku:{cloud} nuage | "
+            f"HA:{ha_color} | {div_str} | "
+            f"TF confluence: {buy_signals}↑/{sell_signals}↓/{n_tfs}TF | "
+            f"SL:{stop_loss} TP:{take_profit} R/R:{rr_ratio}"
+        )
+
+        arguments = [
+            f"5m  → {tf_5m.get('signal', 'N/A')} (score {tf_5m.get('score', 0):.2%})",
+            f"15m → {tf_15m.get('signal', 'N/A')} (score {tf_15m.get('score', 0):.2%})",
+            f"1h  → {tf_1h.get('signal', 'N/A')} (score {tf_1h.get('score', 0):.2%})",
+            f"4h  → {tf_4h.get('signal', 'N/A')} (score {tf_4h.get('score', 0):.2%})",
+            f"RSI Wilder 1h: {rsi_1h:.1f} | StochRSI: {ref_tf.get('stoch_k', 50):.1f}K/{ref_tf.get('stoch_d', 50):.1f}D",
+            f"MACD histogramme: {ref_tf.get('macd_hist', 0):+.4f}",
+            f"BB: {'Squeeze' if ref_tf.get('bb_squeeze') else 'Normal'} | VWAP: {ref_tf.get('vwap', 0):.4f}",
+            f"Ichimoku: {cloud} nuage | Tenkan/Kijun cross: {'↑' if ichi.get('bullish_cross') else '↓'}",
+            f"Williams %R: {ref_tf.get('williams_r', -50):.1f}",
+            f"Structure: {ref_tf.get('struct', {}).get('trend', 'N/A')} | ATR: {atr:.4f} ({ref_tf.get('atr_pct', 0):.2f}%)",
+            f"{div_str}",
+            f"Fibonacci: niveau proche {ref_tf.get('fibonacci', {}).get('closest_level', 'N/A')}%",
+        ]
 
         return {
-            "agent":         self.name,
-            "summary":       full_summary,
-            "arguments":     arguments,
-            "score":         score,
-            "rsi":           tech["rsi"],
-            "macd":          tech["macd"],
-            "bollinger":     tech["bb"],
-            "divergence":    tech["divergence"],
-            "structure":     tech["structure"],
-            "atr":           tech["atr"],
-            "volume_score":  tech["volume_score"],
-            "signals":       tech["signals"],
-            "confidence":    confidence,
-            "recommendation": reco,
-            "full_summary":  full_summary,
+            "agent":          self.name,
+            "summary":        summary,
+            "arguments":      arguments,
+            "risks":          (
+                ["RSI suracheté > 70"] if rsi_1h > 70 else
+                (["RSI survendu < 30"] if rsi_1h < 30 else [])
+            ),
+            "confidence":     round(abs(composite_mtf - 0.5) * 2, 3),
+            "recommendation": recommendation,
+            "score":          round(composite_mtf, 4),
+            "symbol_score":   round(composite_mtf, 4),
+            "analysis": {
+                "composite_mtf":  round(composite_mtf, 4),
+                "tf_5m":          tf_5m,
+                "tf_15m":         tf_15m,
+                "tf_1h":          tf_1h,
+                "tf_4h":          tf_4h,
+                "confluence":     {"buy": buy_signals, "sell": sell_signals, "total": n_tfs},
+                "price":          price,
+                "stop_loss":      stop_loss,
+                "take_profit":    take_profit,
+                "rr_ratio":       rr_ratio,
+            },
             "glossary_used": True,
         }

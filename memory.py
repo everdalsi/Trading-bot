@@ -13,6 +13,7 @@ from typing import Dict, Any, List
 import sqlite3
 import json
 import os
+import threading
 from datetime import datetime
 import logging
 
@@ -30,6 +31,9 @@ except ImportError:
 class Memory:
 
     def __init__(self):
+        # === Thread safety — RLock (réentrant, supporte les appels imbriqués) ===
+        self._lock = threading.RLock()
+
         # === Dictionnaire de compatibilité (requis par bot.py) ===
         self.data: Dict[str, Any] = {
             "lessons":             [],
@@ -42,7 +46,7 @@ class Memory:
             "confidence_threshold": 65,
         }
 
-        # === SQLite ===
+        # === SQLite — check_same_thread=False + RLock pour la sécurité thread ===
         self.conn = sqlite3.connect("trading_memory.db", check_same_thread=False)
         self._init_db()
 
@@ -85,16 +89,19 @@ class Memory:
         return self.data[key]
 
     def __setitem__(self, key, value):
-        self.data[key] = value
+        with self._lock:
+            self.data[key] = value
 
     def __contains__(self, key):
         return key in self.data
 
     def items(self):
-        return self.data.items()
+        with self._lock:
+            return list(self.data.items())
 
     def update(self, other_dict):
-        self.data.update(other_dict)
+        with self._lock:
+            self.data.update(other_dict)
 
     # ── Gestion des symboles ──────────────────────────────────────────────────
 
@@ -234,35 +241,53 @@ class Memory:
         confidence: float,
         lesson: str,
     ):
-        self.conn.execute(
-            """INSERT INTO lessons
-               (timestamp, symbol, action, outcome, pnl, confidence, lesson_text)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
-            (datetime.utcnow().isoformat(), symbol, action, outcome, pnl, confidence, lesson),
-        )
-        self.conn.commit()
+        with self._lock:
+            try:
+                self.conn.execute(
+                    """INSERT INTO lessons
+                       (timestamp, symbol, action, outcome, pnl, confidence, lesson_text)
+                       VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                    (datetime.utcnow().isoformat(), symbol, action, outcome, pnl, confidence, lesson),
+                )
+                self.conn.commit()
+            except Exception as e:
+                logger.warning(f"[MEMORY] save_lesson error: {e}")
 
     def get_recent_lessons(self, limit: int = 50) -> List[Dict]:
-        cursor = self.conn.execute(
-            "SELECT * FROM lessons ORDER BY timestamp DESC LIMIT ?", (limit,)
-        )
-        cols = [col[0] for col in cursor.description]
-        return [dict(zip(cols, row)) for row in cursor.fetchall()]
+        with self._lock:
+            try:
+                cursor = self.conn.execute(
+                    "SELECT * FROM lessons ORDER BY timestamp DESC LIMIT ?", (limit,)
+                )
+                cols = [col[0] for col in cursor.description]
+                return [dict(zip(cols, row)) for row in cursor.fetchall()]
+            except Exception as e:
+                logger.warning(f"[MEMORY] get_recent_lessons error: {e}")
+                return []
 
     def save_position(
         self, symbol: str, side: str, amount: float, entry_price: float
     ):
-        self.conn.execute(
-            """REPLACE INTO positions (symbol, side, amount, entry_price, timestamp)
-               VALUES (?, ?, ?, ?, ?)""",
-            (symbol, side, amount, entry_price, datetime.utcnow().isoformat()),
-        )
-        self.conn.commit()
+        with self._lock:
+            try:
+                self.conn.execute(
+                    """REPLACE INTO positions (symbol, side, amount, entry_price, timestamp)
+                       VALUES (?, ?, ?, ?, ?)""",
+                    (symbol, side, amount, entry_price, datetime.utcnow().isoformat()),
+                )
+                self.conn.commit()
+            except Exception as e:
+                logger.warning(f"[MEMORY] save_position error: {e}")
 
     def get_positions(self) -> Dict:
-        cursor = self.conn.execute("SELECT * FROM positions")
-        cols   = ["symbol", "side", "amount", "entry_price", "timestamp"]
-        return {row[0]: dict(zip(cols, row)) for row in cursor.fetchall()}
+        with self._lock:
+            try:
+                cursor = self.conn.execute("SELECT * FROM positions")
+                cols   = ["symbol", "side", "amount", "entry_price", "timestamp"]
+                return {row[0]: dict(zip(cols, row)) for row in cursor.fetchall()}
+            except Exception as e:
+                logger.warning(f"[MEMORY] get_positions error: {e}")
+                return {}
 
     # ── Redis cache ───────────────────────────────────────────────────────────
 

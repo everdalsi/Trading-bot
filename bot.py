@@ -1060,6 +1060,65 @@ def scan_market() -> list:
     opps.sort(key=lambda x: abs(x["score"]), reverse=True)
     return opps[:15]
 
+
+# ═══════════════════════════════════════════════════════════════
+#  SCAN MARCHÉ PARALLÈLE V7 — asyncio.gather() sur N symboles
+# ═══════════════════════════════════════════════════════════════
+
+async def _analyze_symbol_quick(symbol: str, prices: dict) -> dict:
+    """Analyse rapide et non-bloquante d'un symbole (pour le scan parallèle)."""
+    try:
+        if is_blacklisted(symbol):
+            return {}
+        price = prices.get(symbol, 0)
+        if not price:
+            return {}
+        closes = get_klines_5m_cached(symbol)
+        if len(closes) < 27:
+            return {}
+        ind = compute_indicators(closes)
+        if not ind:
+            return {}
+        score = 0
+        rsi = ind.get("rsi", 50)
+        macd_h = ind.get("macd_h", 0)
+        mom5 = ind.get("mom5", 0)
+        ema_cross = ind.get("ema_cross", "NEUTRAL")
+        if rsi < 35: score += 3
+        elif rsi < 45: score += 1
+        if rsi > 70: score -= 3
+        elif rsi > 60: score -= 1
+        if macd_h > 0: score += 2
+        else: score -= 1
+        if mom5 > 1: score += 2
+        elif mom5 < -1: score -= 2
+        if ema_cross == "BULL": score += 1
+        else: score -= 1
+        score += get_symbol_confidence_bonus(symbol) // 5
+        return {
+            "market": "crypto", "symbol": symbol, "price": price,
+            "score": score, "direction": "BUY" if score > 0 else "SELL",
+            "ind": ind, "patterns": [],
+        }
+    except Exception as e:
+        logger.debug(f"[scan_parallel] {symbol}: {e}")
+        return {}
+
+
+async def scan_market_parallel() -> list:
+    """
+    Version PARALLÈLE de scan_market() — ×10-20 plus rapide.
+    asyncio.gather() sur TOUS les symboles simultanément.
+    """
+    prices = get_prices_batch()
+    tasks = [_analyze_symbol_quick(sym, prices) for sym in CRYPTO_SYMBOLS]
+    results_raw = await asyncio.gather(*tasks, return_exceptions=False)
+    opps = [r for r in results_raw if r and isinstance(r, dict) and r.get("score", 0) != 0]
+    opps.sort(key=lambda x: abs(x.get("score", 0)), reverse=True)
+    logger.info(f"[scan_parallel] ✅ {len(opps)} opportunités / {len(CRYPTO_SYMBOLS)} symboles")
+    return opps[:15]
+
+
 # ═══════════════════════════════════════════════════════════════
 #  ANALYSE COMPLÈTE
 # ═══════════════════════════════════════════════════════════════
@@ -2551,53 +2610,113 @@ def trading_loop(send_fn):
         if now - last_micro >= CYCLE_MICRO:
             last_micro = now
             performance_tracker.update_trade_results(memory, current_price)
-            micro_ctx = {
-                "symbol": "BTCUSDT",
-                "shared_glossary": shared_glossary if 'shared_glossary' in globals() else {},
-                "equity": equity,
-                "market_regime": bot_state.get("market_regime", "NEUTRAL"),
-                "confidence_threshold": memory.get("confidence_threshold", CONFIDENCE_BASE)
-            }
+
+            # ── Scan parallèle pour trouver les meilleurs symboles ─────────
+            top_symbols = ["BTCUSDT", "ETHUSDT"]
             try:
-                future = asyncio.run_coroutine_threadsafe(
-                    orchestrator.ask_all("analyse micro et donne TRADE ou NO TRADE", micro_ctx),
+                scan_future = asyncio.run_coroutine_threadsafe(
+                    scan_market_parallel(), _main_loop
+                )
+                top_opps = scan_future.result(timeout=25)
+                top_symbols = [o["symbol"] for o in top_opps[:5] if abs(o.get("score", 0)) >= 3]
+                if not top_symbols:
+                    top_symbols = ["BTCUSDT"]
+                logger.info(f"[MICRO V7] 🔍 Top symboles (parallèle): {top_symbols[:3]}")
+            except Exception as scan_e:
+                logger.debug(f"[MICRO] scan_market_parallel fallback: {scan_e}")
+
+            micro_ctx = {
+                "symbol":           top_symbols[0],
+                "symbols":          top_symbols,
+                "shared_glossary":  shared_glossary if 'shared_glossary' in globals() else {},
+                "equity":           equity,
+                "market_regime":    bot_state.get("market_regime", "NEUTRAL"),
+                "confidence_threshold": memory.get("confidence_threshold", CONFIDENCE_BASE),
+                "open_positions":   len(sim.get("positions", {})),
+                "max_positions":    3,
+                "daily_start_equity": sim.get("daily_start_equity", equity),
+            }
+
+            try:
+                # ── Analyse parallèle sur les 3 meilleurs symboles ──────────
+                multi_future = asyncio.run_coroutine_threadsafe(
+                    orchestrator.analyze_symbols_parallel(
+                        top_symbols[:3], micro_ctx
+                    ),
                     _main_loop
                 )
-                results, decision = future.result(timeout=15)
-                if decision.get("decision") == "TRADE" and decision.get("confidence", 0) >= 0.85:
-                    exec_ctx = {**micro_ctx, "side": decision.get("side", "BUY"), "amount_usd": decision.get("amount_usd", 150)}
+                multi_results = multi_future.result(timeout=35)
+
+                # Choisir le meilleur signal parmi les symboles analysés
+                best_symbol   = top_symbols[0]
+                best_decision = {"recommendation": "HOLD", "confidence": 0.0}
+                for sym, sym_data in multi_results.items():
+                    sym_final = sym_data.get("final", {})
+                    sym_conf  = float(sym_final.get("confidence", 0))
+                    best_conf = float(best_decision.get("confidence", 0))
+                    reco      = str(sym_final.get("recommendation", sym_final.get("decision", "HOLD"))).upper()
+                    if sym_conf > best_conf and any(x in reco for x in ["BUY", "SELL", "TRADE"]):
+                        best_symbol   = sym
+                        best_decision = sym_final
+
+                decision = best_decision
+                micro_ctx["symbol"] = best_symbol
+                logger.info(
+                    f"[MICRO V7] 🔀 {len(multi_results)} symboles analysés en parallèle → "
+                    f"meilleur: {best_symbol} | "
+                    f"décision: {decision.get('recommendation', decision.get('decision', 'HOLD'))} "
+                    f"({float(decision.get('confidence', 0)):.0%})"
+                )
+
+                # ── Exécution du trade ────────────────────────────────────
+                reco_str  = str(decision.get("recommendation", decision.get("decision", "HOLD"))).upper()
+                trade_conf = float(decision.get("confidence", 0))
+                if trade_conf >= 0.80 and any(x in reco_str for x in ["BUY", "SELL", "TRADE", "LONG", "SHORT"]):
+                    trade_side = "BUY" if any(x in reco_str for x in ["BUY", "LONG"]) else "SELL"
+                    trade_price = get_current_price(best_symbol) or current_price
+                    amount_usd  = decision.get("amount_usd", equity * float(decision.get("kelly_adjusted", 0.05)))
+                    amount_usd  = max(10.0, min(amount_usd, equity * 0.10))
                     try:
                         exec_future = asyncio.run_coroutine_threadsafe(
-                            execution_engine.place_order(
-                                symbol="BTCUSDT",
-                                side=decision.get("side", "BUY"),
-                                order_type="market",
-                                amount=decision.get("amount_usd", 150) / current_price if current_price > 0 else 0,
-                                price=current_price
+                            execution_engine.place_order_async(
+                                symbol     = best_symbol,
+                                side       = trade_side,
+                                order_type = "market",
+                                amount_usd = amount_usd,
+                                stop_loss  = decision.get("analysis", {}).get("stop_loss"),
+                                take_profit = decision.get("analysis", {}).get("take_profit"),
                             ), _main_loop
                         )
-                        exec_result = exec_future.result(timeout=10)
-                        logger.info(f"🚀 AUTO TRADE exécuté via ExecutionEngine : {exec_result}")
+                        exec_result = exec_future.result(timeout=12)
+                        logger.info(f"🚀 AUTO TRADE {best_symbol} {trade_side} ${amount_usd:.2f} → {exec_result.get('fill_price', '?')}")
                         if hasattr(memory, "save_lesson"):
                             memory.save_lesson(
-                                symbol="BTCUSDT",
-                                action=decision.get("side", "BUY"),
-                                outcome="pending",
-                                pnl=0.0,
-                                confidence=decision.get("confidence", 0.85),
-                                lesson="Micro trade exécuté par orchestreur collectif"
+                                symbol     = best_symbol,
+                                action     = trade_side,
+                                outcome    = "pending",
+                                pnl        = 0.0,
+                                confidence = trade_conf,
+                                lesson     = f"Multi-symbol parallel trade | conf={trade_conf:.0%}"
                             )
-                        if hasattr(memory, "save_position"):
+                        if hasattr(memory, "save_position") and exec_result.get("success"):
                             memory.save_position(
-                                "BTCUSDT",
-                                decision.get("side", "BUY").lower(),
-                                decision.get("amount_usd", 150) / current_price if current_price > 0 else 0,
-                                current_price
+                                best_symbol, trade_side.lower(),
+                                amount_usd / (trade_price or 1), trade_price
                             )
                     except Exception as exec_e:
-                        logger.warning(f"ExecutionEngine error: {exec_e}")
+                        logger.warning(f"[MICRO] ExecutionEngine error {best_symbol}: {exec_e}")
+
             except Exception as e:
-                logger.warning(f"Micro cycle error: {e}")
+                logger.warning(f"[MICRO V7] Cycle error: {e}")
+                # Fallback : analyse simple BTC uniquement
+                try:
+                    fallback_future = asyncio.run_coroutine_threadsafe(
+                        orchestrator.ask_all("analyse micro et donne TRADE ou NO TRADE", micro_ctx),
+                        _main_loop
+                    )
+                    _, decision = fallback_future.result(timeout=15)
+                except Exception as fb_e:
+                    logger.debug(f"[MICRO] Fallback error: {fb_e}")
 
         if now - last_meme >= CYCLE_MEME:
             last_meme = now
@@ -2612,19 +2731,21 @@ def trading_loop(send_fn):
                 _, decision = future.result(timeout=12)
                 if decision.get("decision") == "TRADE":
                     try:
+                        meme_sym = decision.get("symbol", "BTCUSDT")
+                        meme_price = get_current_price(meme_sym) or 1
                         exec_future = asyncio.run_coroutine_threadsafe(
-                            execution_engine.place_order(
-                                symbol=decision.get("symbol", "BTCUSDT"),
-                                side=decision.get("side", "BUY"),
-                                order_type="market",
-                                amount=decision.get("amount", 100) / (get_current_price(decision.get("symbol", "BTCUSDT")) or 1)
+                            execution_engine.place_order_async(
+                                symbol     = meme_sym,
+                                side       = decision.get("side", "BUY"),
+                                order_type = "market",
+                                amount_usd = decision.get("amount", 100),
                             ), _main_loop
                         )
                         exec_future.result(timeout=10)
-                    except:
-                        pass
-            except:
-                pass
+                    except Exception as meme_exec_e:
+                        logger.debug(f"[MEME] Exec error: {meme_exec_e}")
+            except Exception as meme_e:
+                logger.debug(f"[MEME] Cycle skipped: {meme_e}")
 
         if now - last_epargne >= CYCLE_EPARGNE:
             last_epargne = now
@@ -2650,12 +2771,13 @@ def trading_loop(send_fn):
                 )
                 regime = future.result(timeout=10)
                 bot_state["market_regime"] = regime.get("regime", "NEUTRAL")
+                logger.info(f"[REGIME V7] Régime: {regime.get('regime', '?')} | conf: {regime.get('confidence', 0):.0%}")
                 hedge_future = asyncio.run_coroutine_threadsafe(
                     orchestrator.hedging.respond("check hedging needed", regime_ctx), _main_loop
                 )
                 hedge_future.result(timeout=8)
-            except:
-                pass
+            except Exception as regime_e:
+                logger.debug(f"[REGIME] Mise à jour ignorée: {regime_e}")
 
         if now - last_status >= 60:
             last_status = now
