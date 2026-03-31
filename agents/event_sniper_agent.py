@@ -633,6 +633,34 @@ class EventSniperAgent(BaseAgent):
                 "veto":       False,
             }
 
+    # ── Interface BaseAgent (requis) ─────────────────────────────────────────
+    async def respond(self, question: str, context: dict) -> Dict[str, Any]:
+        """Implémentation de l'abstract method BaseAgent.respond."""
+        symbol = context.get("symbol", "BTCUSDT").upper().replace("/", "")
+        if not symbol.endswith("USDT"):
+            symbol = symbol + "USDT"
+        result = await self.analyze(symbol, {}, context)
+        sig    = result.get("signal", "HOLD")
+        conf   = result.get("confidence", 0.0)
+        events = result.get("events", [])
+        liq_l  = result.get("liq_long_usd", 0)
+        liq_s  = result.get("liq_short_usd", 0)
+        if sig != "HOLD" and conf >= 0.45:
+            top_ev = events[0]["type"] if events else "signal"
+            rec = (
+                f"{sig} — {top_ev} | Liq Long=${liq_l/1e6:.1f}M "
+                f"Short=${liq_s/1e6:.1f}M | Conf={conf:.0%}"
+            )
+        else:
+            rec = "HOLD — Pas d'événement snipe actif"
+        return {
+            **result,
+            "agent":          "event_sniper",
+            "recommendation": rec,
+            "summary":        result.get("summary", f"Sniper: {sig} | conf={conf:.0%}"),
+            "confidence":     conf,
+        }
+
     # ── Commande texte ───────────────────────────────────────────────────────
     async def answer(self, question: str, context: Dict[str, Any]) -> str:
         result = await self.analyze("BTC/USDT", {}, context)

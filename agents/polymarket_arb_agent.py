@@ -384,6 +384,29 @@ class PolymarketArbAgent(BaseAgent):
                 "veto":      False,
             }
 
+    # ── Interface BaseAgent (requis) ─────────────────────────────────────────
+    async def respond(self, question: str, context: dict) -> Dict[str, Any]:
+        """Implémentation de l'abstract method BaseAgent.respond."""
+        symbol = context.get("symbol", "BTCUSDT").upper().replace("/", "")
+        if not symbol.endswith("USDT"):
+            symbol = symbol + "USDT"
+        result = await self.analyze(symbol, {}, context)
+        sig    = result.get("signal", "HOLD")
+        conf   = result.get("confidence", 0.0)
+        best   = result.get("best_spread")
+        spread_pct = best.get("price_gap_pct", 0.0) if best else 0.0
+        if sig != "HOLD":
+            rec = f"{sig} — Spread Polymarket {spread_pct:.2f}% (lag oracle 15-20s)"
+        else:
+            rec = "HOLD — Pas de spread significatif détecté"
+        return {
+            **result,
+            "agent":          "polymarket_arb",
+            "recommendation": rec,
+            "summary":        result.get("summary", f"PolyArb: {sig} | Spread={spread_pct:.2f}%"),
+            "confidence":     conf,
+        }
+
     # ── Commande texte ───────────────────────────────────────────────────────
     async def answer(self, question: str, context: Dict[str, Any]) -> str:
         result = await self.analyze("BTCUSDT", {}, context)
