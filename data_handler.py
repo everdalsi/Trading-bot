@@ -1,12 +1,12 @@
 """
-📊 DATA HANDLER V3 — Données marché temps réel + FIX fonctions manquantes
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-FIXES V3 :
-- Ajout get_fear_greed_value() réelle (Alternative.me)
-- Ajout get_liquidations() réelle (Coinglass/Binance)
-- Ajout get_volume_data() réelle (Binance 24h ticker)
-- Ajout get_klines_5m_cached() alias pour compatibilité imports legacy
-- compute_indicators() complété avec Bollinger Bands
+DATA HANDLER V4 - Donnees marche temps reel
+FIX CRITIQUE V4:
+- Export de l'instance 'data_handler' au niveau module (bot.py l'importe directement)
+- get_prices_batch() au niveau module
+- get_klines_1m_cached(symbol) au niveau module
+- get_volume_data(symbol, interval, count) prend 3 arguments
+- get_klines_5m_cached(symbol) alias legacy
+- compute_indicators() avec Bollinger Bands
 """
 
 import requests
@@ -17,39 +17,41 @@ from collections import deque
 from datetime import datetime
 from logging_config import logger
 
-BINANCE_BASE   = "https://api.binance.com"
-BINANCE_FAPI   = "https://fapi.binance.com"
+BINANCE_BASE = "https://api.binance.com"
+BINANCE_FAPI = "https://fapi.binance.com"
 
 
 class DataHandler:
 
     def __init__(self):
-        self.price_cache     = {}
-        self.kline_cache_1m  = {}
-        self.kline_cache_5m  = {}
-        self.cache_ttl       = 30
+        self.price_cache    = {}
+        self.kline_cache_1m = {}
+        self.kline_cache_5m = {}
+        self.cache_ttl      = 30
+
+    # ── Prix ──────────────────────────────────────────────────────────────
 
     def get_current_price(self, symbol: str) -> float | None:
-        now = time.time()
-        cached = self.price_cache.get(symbol.upper())
+        now    = time.time()
+        sym    = symbol.upper()
+        cached = self.price_cache.get(sym)
         if cached and now - cached["ts"] < self.cache_ttl:
             return cached["price"]
         try:
             r = requests.get(
                 f"{BINANCE_BASE}/api/v3/ticker/price",
-                params={"symbol": symbol.upper()},
-                timeout=5
+                params={"symbol": sym}, timeout=5
             )
             r.raise_for_status()
             price = float(r.json()["price"])
-            self.price_cache[symbol.upper()] = {"price": price, "ts": now}
+            self.price_cache[sym] = {"price": price, "ts": now}
             return price
         except Exception as e:
-            logger.error(f"[DATA] Erreur prix {symbol}: {e}")
+            logger.debug(f"[DATA] Prix {sym}: {e}")
             return None
 
     def get_prices_batch(self, symbols: list = None) -> dict:
-        now = time.time()
+        now    = time.time()
         result = {}
         for sym, cached in list(self.price_cache.items()):
             if now - cached["ts"] < self.cache_ttl:
@@ -69,11 +71,13 @@ class DataHandler:
                 except Exception:
                     pass
         except Exception as e:
-            logger.error(f"[DATA] Erreur batch prices: {e}")
+            logger.debug(f"[DATA] Batch prices: {e}")
         return result
 
+    # ── Klines ────────────────────────────────────────────────────────────
+
     def prefill_caches(self, symbols):
-        logger.info(f"[DATA] Pré-remplissage caches pour {len(symbols)} symboles")
+        logger.info(f"[DATA] Pre-remplissage caches pour {len(symbols)} symboles")
         for sym in symbols[:8]:
             sym = sym.upper()
             try:
@@ -86,12 +90,13 @@ class DataHandler:
                 closes = [float(c[4]) for c in r.json()]
                 self.kline_cache_1m[sym] = deque(closes, maxlen=60)
             except Exception as e:
-                logger.warning(f"[DATA] Impossible de pré-remplir {sym}: {e}")
+                logger.debug(f"[DATA] Prefill {sym}: {e}")
             time.sleep(0.3)
-        logger.info("[DATA] Pré-remplissage terminé ✅")
+        logger.info("[DATA] Pre-remplissage termine")
 
     def get_klines(self, symbol: str, interval: str = "1m", limit: int = 100) -> pd.Series:
         symbol = symbol.upper()
+        # Essai WebSocket d'abord
         try:
             from websocket_manager import ws_manager
             ws_data = ws_manager.get_klines(symbol, interval)
@@ -99,15 +104,17 @@ class DataHandler:
                 return pd.Series(list(ws_data), dtype=float)
         except Exception:
             pass
+        # Cache 1m
         if interval == "1m" and symbol in self.kline_cache_1m:
             cached = list(self.kline_cache_1m[symbol])
             if len(cached) >= 14:
                 return pd.Series(cached, dtype=float)
+        # Cache 5m
         if interval in ("5m", "5") and symbol in self.kline_cache_5m:
             cached = list(self.kline_cache_5m[symbol])
             if len(cached) >= 14:
                 return pd.Series(cached, dtype=float)
-        # Fallback API directe
+        # Fallback API
         try:
             r = requests.get(
                 f"{BINANCE_BASE}/api/v3/klines",
@@ -123,30 +130,79 @@ class DataHandler:
                     self.kline_cache_5m[symbol] = deque(closes, maxlen=60)
                 return series
         except Exception as e:
-            logger.warning(f"[DATA] Klines fallback error {symbol}/{interval}: {e}")
+            logger.debug(f"[DATA] Klines {symbol}/{interval}: {e}")
         return pd.Series([], dtype=float)
 
+    def update_kline(self, symbol: str, close: float, interval: str = "1m"):
+        symbol = symbol.upper()
+        if interval == "1m":
+            if symbol not in self.kline_cache_1m:
+                self.kline_cache_1m[symbol] = deque(maxlen=60)
+            self.kline_cache_1m[symbol].append(close)
+        elif interval == "5m":
+            if symbol not in self.kline_cache_5m:
+                self.kline_cache_5m[symbol] = deque(maxlen=60)
+            self.kline_cache_5m[symbol].append(close)
 
-# ────────────────────────────────────────────────────────────────────────────
-# FONCTIONS MODULE-LEVEL (utilisées par les agents via import direct)
-# ────────────────────────────────────────────────────────────────────────────
 
-_dh_instance = None
+# ─────────────────────────────────────────────────────────────────────────────
+# SINGLETON MODULE-LEVEL (bot.py fait: from data_handler import data_handler)
+# ─────────────────────────────────────────────────────────────────────────────
 
-def _get_dh() -> DataHandler:
-    global _dh_instance
-    if _dh_instance is None:
-        _dh_instance = DataHandler()
-    return _dh_instance
+data_handler = DataHandler()  # Instance exportee au niveau module
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# FONCTIONS MODULE-LEVEL (importees directement par bot.py)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def get_prices_batch(symbols: list = None) -> dict:
+    """Retourne les prix batch depuis le singleton."""
+    return data_handler.get_prices_batch(symbols)
+
+
+def get_klines_1m_cached(symbol: str) -> pd.Series:
+    """Retourne les klines 1m depuis le cache."""
+    return data_handler.get_klines(symbol, "1m", 60)
 
 
 def get_klines_5m_cached(symbol: str, limit: int = 100) -> pd.Series:
-    """Alias pour compatibilité legacy — certains agents importaient cette fonction."""
-    return _get_dh().get_klines(symbol, "5m", limit)
+    """Alias legacy pour compatibilite imports."""
+    return data_handler.get_klines(symbol, "5m", limit)
+
+
+def get_volume_data(symbol: str, interval: str = "1", count: int = 10) -> list:
+    """
+    Retourne les volumes des dernieres `count` bougies sur l'intervalle donne.
+    Signature: get_volume_data(symbol, interval, count) -> list[float]
+    Compatible avec l'appel: get_volume_data(symbol, "1", 10)
+    """
+    interval_map = {
+        "1": "1m", "3": "3m", "5": "5m", "15": "15m",
+        "30": "30m", "60": "1h", "120": "2h", "240": "4h",
+        "1m": "1m", "5m": "5m", "15m": "15m", "1h": "1h",
+    }
+    bi_interval = interval_map.get(str(interval), "1m")
+    try:
+        r = requests.get(
+            f"{BINANCE_BASE}/api/v3/klines",
+            params={"symbol": symbol.upper(), "interval": bi_interval, "limit": count},
+            timeout=6
+        )
+        if r.status_code == 200:
+            return [float(c[5]) for c in r.json()]  # volume en base asset
+    except Exception as e:
+        logger.debug(f"[DATA] Volume data {symbol}: {e}")
+    return [0.0] * count
+
+
+def get_current_price(symbol: str) -> float | None:
+    """Wrapper module-level pour compatibilite."""
+    return data_handler.get_current_price(symbol)
 
 
 def get_fear_greed_value() -> int:
-    """Récupère le Fear & Greed Index en temps réel (Alternative.me)."""
+    """Fear & Greed Index en temps reel (Alternative.me)."""
     try:
         r = requests.get(
             "https://api.alternative.me/fng/?limit=1&format=json",
@@ -155,15 +211,12 @@ def get_fear_greed_value() -> int:
         if r.status_code == 200:
             return int(r.json()["data"][0]["value"])
     except Exception as e:
-        logger.warning(f"[DATA] Fear&Greed error: {e}")
+        logger.debug(f"[DATA] Fear&Greed: {e}")
     return 50
 
 
 def get_liquidations() -> dict:
-    """
-    Récupère les données de liquidation depuis Binance Futures.
-    Retourne les sommes longues/courtes liquidées dans les dernières 24h.
-    """
+    """Donnees de liquidation Binance Futures."""
     try:
         r = requests.get(
             f"{BINANCE_FAPI}/fapi/v1/forceOrders",
@@ -178,38 +231,12 @@ def get_liquidations() -> dict:
                            for o in orders if o.get("side") == "SELL")
             return {"long_liq": long_liq, "short_liq": short_liq}
     except Exception as e:
-        logger.debug(f"[DATA] Liquidations fetch error: {e}")
+        logger.debug(f"[DATA] Liquidations: {e}")
     return {"long_liq": 0, "short_liq": 0}
 
 
-def get_volume_data(symbol: str) -> dict:
-    """Récupère les données de volume 24h depuis Binance."""
-    try:
-        r = requests.get(
-            f"{BINANCE_BASE}/api/v3/ticker/24hr",
-            params={"symbol": symbol.upper()},
-            timeout=6
-        )
-        if r.status_code == 200:
-            d = r.json()
-            vol   = float(d.get("volume", 0))
-            qvol  = float(d.get("quoteVolume", 0))
-            # Volume spike = volume 24h > moyenne estimée (heuristique)
-            spike = qvol > 5_000_000  # > 5M USDT de volume → spike
-            return {
-                "volume_24h":    vol,
-                "quote_volume":  qvol,
-                "volume_spike":  spike,
-                "change_pct":    float(d.get("priceChangePercent", 0)),
-                "trades_count":  int(d.get("count", 0)),
-            }
-    except Exception as e:
-        logger.debug(f"[DATA] Volume data error {symbol}: {e}")
-    return {"volume_24h": 0, "quote_volume": 0, "volume_spike": False, "change_pct": 0}
-
-
 def get_order_book(symbol: str) -> dict:
-    """Order book simplifié depuis Binance."""
+    """Order book simplifie depuis Binance."""
     try:
         r = requests.get(
             f"{BINANCE_BASE}/api/v3/depth",
@@ -228,66 +255,60 @@ def get_order_book(symbol: str) -> dict:
                 "depth_ratio": round(ratio, 3),
             }
     except Exception as e:
-        logger.debug(f"[DATA] Order book error {symbol}: {e}")
+        logger.debug(f"[DATA] Order book {symbol}: {e}")
     return {"pressure": "neutre", "ratio": 1.0, "wall_size": 0, "depth_ratio": 1.0}
 
 
 def get_whale_alerts() -> list:
-    """Alertes whales — placeholder (API Whale Alert nécessite clé payante)."""
     return []
-
 
 def get_mev_alerts(symbol: str) -> list:
-    """MEV alerts — placeholder."""
     return []
-
 
 def get_flashbots_alerts(symbol: str) -> list:
-    """Flashbots alerts — placeholder."""
     return []
-
 
 def get_sandwich_alerts(symbol: str) -> list:
-    """Sandwich alerts — placeholder."""
     return []
 
-
-# ────────────────────────────────────────────────────────────────────────────
-# COMPUTE INDICATORS
-# ────────────────────────────────────────────────────────────────────────────
 
 def compute_indicators(closes: list) -> dict:
     """Calcule RSI + MACD + Bollinger Bands."""
     if len(closes) < 14:
         return {"rsi": 50.0, "macd_h": 0.0, "macd": 0.0, "bb_upper": 0.0, "bb_lower": 0.0}
 
-    closes_series = pd.Series(closes, dtype=float)
+    s = pd.Series(closes, dtype=float)
 
     # RSI
-    delta = closes_series.diff()
-    gain  = delta.where(delta > 0, 0).rolling(window=14).mean()
-    loss  = -delta.where(delta < 0, 0).rolling(window=14).mean()
-    rs    = gain / loss
-    rsi   = 100 - (100 / (1 + rs))
+    delta = s.diff()
+    gain  = delta.where(delta > 0, 0).rolling(14).mean()
+    loss  = -delta.where(delta < 0, 0).rolling(14).mean()
+    rsi   = 100 - (100 / (1 + gain / loss))
 
     # MACD
-    ema12 = closes_series.ewm(span=12, adjust=False).mean()
-    ema26 = closes_series.ewm(span=26, adjust=False).mean()
-    macd_line   = ema12 - ema26
-    signal_line = macd_line.ewm(span=9, adjust=False).mean()
-    macd_hist   = macd_line - signal_line
+    ema12      = s.ewm(span=12, adjust=False).mean()
+    ema26      = s.ewm(span=26, adjust=False).mean()
+    macd_line  = ema12 - ema26
+    signal     = macd_line.ewm(span=9, adjust=False).mean()
+    macd_hist  = macd_line - signal
 
-    # Bollinger Bands (20, 2)
-    ma20    = closes_series.rolling(window=20).mean()
-    std20   = closes_series.rolling(window=20).std()
-    bb_up   = ma20 + 2 * std20
-    bb_down = ma20 - 2 * std20
+    # Bollinger Bands 20
+    ma20  = s.rolling(20).mean()
+    std20 = s.rolling(20).std()
+    bb_up = ma20 + 2 * std20
+    bb_dn = ma20 - 2 * std20
+
+    def safe(v):
+        try:
+            return round(float(v.iloc[-1]), 6) if not np.isnan(float(v.iloc[-1])) else 0.0
+        except Exception:
+            return 0.0
 
     return {
         "rsi":      round(float(rsi.iloc[-1]), 2),
-        "macd":     round(float(macd_line.iloc[-1]), 6),
-        "macd_h":   round(float(macd_hist.iloc[-1]), 6),
-        "bb_upper": round(float(bb_up.iloc[-1]), 6) if not np.isnan(bb_up.iloc[-1]) else 0.0,
-        "bb_lower": round(float(bb_down.iloc[-1]), 6) if not np.isnan(bb_down.iloc[-1]) else 0.0,
-        "ma20":     round(float(ma20.iloc[-1]), 6) if not np.isnan(ma20.iloc[-1]) else 0.0,
+        "macd":     safe(macd_line),
+        "macd_h":   safe(macd_hist),
+        "bb_upper": safe(bb_up),
+        "bb_lower": safe(bb_dn),
+        "ma20":     safe(ma20),
     }
