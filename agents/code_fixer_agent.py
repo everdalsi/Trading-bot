@@ -287,7 +287,7 @@ class CodeFixerAgent(BaseAgent):
             f"Total: {len(bugs)} bugs détectés | Bug report: {BUG_REPORT}"
         )
 
-        logger.info(f"[CODE_FIXER] Scan terminé: {len(bugs)} bugs | Health: {health_score}/100")
+        logger.debug(f"[CODE_FIXER] Scan terminé: {len(bugs)} bugs | Health: {health_score}/100")
 
         return {
             "agent":          self.name,
