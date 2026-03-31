@@ -3658,95 +3658,95 @@ async def cmd_sniper(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 
 
-  async def cmd_polybet(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-      """Trading direct Polymarket — edge BTC/ETH binaires + marchés macro."""
-      if not _auth(update): return
-      await update.message.reply_text("🎯 Scan Polymarket en cours...")
-      try:
-          result = await orchestrator.polymarket_trader.analyze("BTCUSDT", {}, {})
-          opps   = result.get("opportunities", [])
-          stats  = result.get("stats", {})
-          btc_px = result.get("btc_price", 0)
-          eth_px = result.get("eth_price", 0)
-          t1h    = result.get("trend_1h", 0)
-          t24h   = result.get("trend_24h", 0)
+async def cmd_polybet(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Trading direct Polymarket — edge BTC/ETH binaires + marchés macro."""
+    if not _auth(update): return
+    await update.message.reply_text("🎯 Scan Polymarket en cours...")
+    try:
+        result = await orchestrator.polymarket_trader.analyze("BTCUSDT", {}, {})
+        opps   = result.get("opportunities", [])
+        stats  = result.get("stats", {})
+        btc_px = result.get("btc_price", 0)
+        eth_px = result.get("eth_price", 0)
+        t1h    = result.get("trend_1h", 0)
+        t24h   = result.get("trend_24h", 0)
 
-          lines = [
-              f"🎯 POLYMARKET DIRECT TRADER\n"
-              f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-              f"BTC: ${btc_px:,.0f} ({t1h*100:+.2f}% 1h | {t24h*100:+.2f}% 24h)\n"
-              f"ETH: ${eth_px:,.0f}\n"
-              f"Marchés scannés: {result.get('markets_scanned',0)} | "
-              f"Avec edge: {result.get('markets_with_edge',0)}\n"
-          ]
-          if not opps:
-              lines.append("✅ Aucune opportunité >4% détectée.\nPolymarket correctement pricé.")
-          else:
-              lines.append(f"{len(opps)} opportunité(s) :\n")
-              for i, o in enumerate(opps[:5], 1):
-                  conf_e = "🔥" if o["edge_pct"] >= 8 else "⚡" if o["edge_pct"] >= 6 else "💡"
-                  lines.append(
-                      f"{i}. {conf_e} {o['direction']} | {o['asset']}\n"
-                      f"   Edge: {o['edge_pct']:.1f}% | Poly: {o['price_yes']:.0%} → Fair: {o['fair_prob']:.0%}\n"
-                      f"   Kelly: {o['kelly_frac']:.1f}% | Vol: ${o['volume_24h']:,.0f}\n"
-                      f"   _{o['question'][:80]}_\n"
-                  )
-          lines.append(
-              f"\n📊 Session: {stats.get('total_signals',0)} signaux | "
-              f"Edge moy: {result.get('avg_edge_pct',0):.1f}%\n"
-              f"💡 Stratégie: mispricing oracle lag 15-30s | Kelly 25% | Min edge 4%"
-          )
-          await update.message.reply_text("\n".join(lines))
-      except Exception as e:
-          await update.message.reply_text(f"⚠️ Erreur polybet: {e}")
+        lines = [
+            f"🎯 POLYMARKET DIRECT TRADER\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"BTC: ${btc_px:,.0f} ({t1h*100:+.2f}% 1h | {t24h*100:+.2f}% 24h)\n"
+            f"ETH: ${eth_px:,.0f}\n"
+            f"Marchés scannés: {result.get('markets_scanned',0)} | "
+            f"Avec edge: {result.get('markets_with_edge',0)}\n"
+        ]
+        if not opps:
+            lines.append("✅ Aucune opportunité >4% détectée.\nPolymarket correctement pricé.")
+        else:
+            lines.append(f"{len(opps)} opportunité(s) :\n")
+            for i, o in enumerate(opps[:5], 1):
+                conf_e = "🔥" if o["edge_pct"] >= 8 else "⚡" if o["edge_pct"] >= 6 else "💡"
+                lines.append(
+                    f"{i}. {conf_e} {o['direction']} | {o['asset']}\n"
+                    f"   Edge: {o['edge_pct']:.1f}% | Poly: {o['price_yes']:.0%} → Fair: {o['fair_prob']:.0%}\n"
+                    f"   Kelly: {o['kelly_frac']:.1f}% | Vol: ${o['volume_24h']:,.0f}\n"
+                    f"   _{o['question'][:80]}_\n"
+                )
+        lines.append(
+            f"\n📊 Session: {stats.get('total_signals',0)} signaux | "
+            f"Edge moy: {result.get('avg_edge_pct',0):.1f}%\n"
+            f"💡 Stratégie: mispricing oracle lag 15-30s | Kelly 25% | Min edge 4%"
+        )
+        await update.message.reply_text("\n".join(lines))
+    except Exception as e:
+        await update.message.reply_text(f"⚠️ Erreur polybet: {e}")
 
 
-  async def cmd_sportsarb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-      """Sports Latency Arb — scan multi-bookmakers pour arbitrage garanti."""
-      if not _auth(update): return
-      await update.message.reply_text("⚡ Scan sports arb en cours...")
-      try:
-          result = await orchestrator.sports_arb.analyze("BTCUSDT", {}, {})
-          opps   = result.get("opportunities", [])
-          stats  = result.get("stats", {})
-          lat    = result.get("avg_latency_ms", 15)
-          mode   = "🔴 LIVE" if result.get("has_api_key") else "🟡 DÉMO"
+async def cmd_sportsarb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Sports Latency Arb — scan multi-bookmakers pour arbitrage garanti."""
+    if not _auth(update): return
+    await update.message.reply_text("⚡ Scan sports arb en cours...")
+    try:
+        result = await orchestrator.sports_arb.analyze("BTCUSDT", {}, {})
+        opps   = result.get("opportunities", [])
+        stats  = result.get("stats", {})
+        lat    = result.get("avg_latency_ms", 15)
+        mode   = "🔴 LIVE" if result.get("has_api_key") else "🟡 DÉMO"
 
-          lines = [
-              f"⚡ SPORTS LATENCY ARB ENGINE\n"
-              f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-              f"Mode: {mode} | Latence: {lat:.1f}ms | Books: {result.get('books_monitored',0)}\n"
-          ]
-          if not opps:
-              lines.append("✅ Aucun arb détecté — marchés efficients.")
-          else:
-              lines.append(f"{len(opps)} fenêtre(s) d'arbitrage :\n")
-              for i, o in enumerate(opps[:4], 1):
-                  e = "🔥" if o["profit_pct"] >= 2 else "⚡"
-                  odds_str = " | ".join(
-                      f"{name} @ {info['odds']:.2f} ({info['book']})"
-                      for name, info in o.get("best_odds", {}).items()
-                  )
-                  stakes_str = " | ".join(
-                      f"{name}: ${s:.0f}"
-                      for name, s in o.get("stakes_per_1k", {}).items()
-                  )
-                  lines.append(
-                      f"{i}. {e} {o['sport']} — {o['match']}\n"
-                      f"   Profit garanti: {o['profit_pct']:.2f}%\n"
-                      f"   {odds_str}\n"
-                      f"   Mises/$1000: {stakes_str}\n"
-                  )
-          lines.append(
-              f"\n📊 Arbs trouvés: {stats.get('total_arbs_found',0)} | "
-              f"Best: {stats.get('best_profit_pct',0):.2f}%\n"
-              f"🔑 Ajoutez ODDS_API_KEY pour données live (the-odds-api.com)"
-          )
-          await update.message.reply_text("\n".join(lines))
-      except Exception as e:
-          await update.message.reply_text(f"⚠️ Erreur sportsarb: {e}")
+        lines = [
+            f"⚡ SPORTS LATENCY ARB ENGINE\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"Mode: {mode} | Latence: {lat:.1f}ms | Books: {result.get('books_monitored',0)}\n"
+        ]
+        if not opps:
+            lines.append("✅ Aucun arb détecté — marchés efficients.")
+        else:
+            lines.append(f"{len(opps)} fenêtre(s) d'arbitrage :\n")
+            for i, o in enumerate(opps[:4], 1):
+                e = "🔥" if o["profit_pct"] >= 2 else "⚡"
+                odds_str = " | ".join(
+                    f"{name} @ {info['odds']:.2f} ({info['book']})"
+                    for name, info in o.get("best_odds", {}).items()
+                )
+                stakes_str = " | ".join(
+                    f"{name}: ${s:.0f}"
+                    for name, s in o.get("stakes_per_1k", {}).items()
+                )
+                lines.append(
+                    f"{i}. {e} {o['sport']} — {o['match']}\n"
+                    f"   Profit garanti: {o['profit_pct']:.2f}%\n"
+                    f"   {odds_str}\n"
+                    f"   Mises/$1000: {stakes_str}\n"
+                )
+        lines.append(
+            f"\n📊 Arbs trouvés: {stats.get('total_arbs_found',0)} | "
+            f"Best: {stats.get('best_profit_pct',0):.2f}%\n"
+            f"🔑 Ajoutez ODDS_API_KEY pour données live (the-odds-api.com)"
+        )
+        await update.message.reply_text("\n".join(lines))
+    except Exception as e:
+        await update.message.reply_text(f"⚠️ Erreur sportsarb: {e}")
 
-  
+
 async def cmd_epargne(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
     await update.message.reply_text(get_epargne_info())
