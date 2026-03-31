@@ -80,7 +80,7 @@ class AnalystAgent(BaseAgent):
 
     # ────────────────────────────────────────────────────────────────────────
     # INDICATEURS TECHNIQUES
-    # ────────────────────────────────────────────────────────────────────────
+    # ─────────────────────────────────────────────────────────────────��──────
 
     @staticmethod
     def _rsi(closes: List[float], period: int = 14) -> float:
@@ -120,8 +120,7 @@ class AnalystAgent(BaseAgent):
         """MACD line, Signal line, Histogramme."""
         if len(closes) < slow + signal:
             return {"macd": 0.0, "signal": 0.0, "hist": 0.0, "cross": "NONE"}
-        ema = lambda data, n: pd.Series_ema(data, n)
-        # Calcul EMA manuel
+        # Calcul EMA manuel (Wilder/standard)
         def calc_ema(data, n):
             k = 2 / (n + 1)
             ema_val = data[0]
@@ -138,9 +137,11 @@ class AnalystAgent(BaseAgent):
         # Crossover : macd_line[-1] vs [-2] relative to signal
         cross = "NONE"
         if len(macd_line) >= 2 and len(sig_line) >= 2:
-            if macd_line[-2] < sig_line[-2] and macd_line[-1] > sig_line[-1]:
+            ml_prev = macd_line[-2]
+            sl_prev = sig_line[-min(2, len(sig_line))]
+            if ml_prev < sl_prev and macd_line[-1] > sig_line[-1]:
                 cross = "BULL_CROSS"
-            elif macd_line[-2] > sig_line[-2] and macd_line[-1] < sig_line[-1]:
+            elif ml_prev > sl_prev and macd_line[-1] < sig_line[-1]:
                 cross = "BEAR_CROSS"
         return {
             "macd":   round(macd_line[-1], 6),
@@ -239,7 +240,7 @@ class AnalystAgent(BaseAgent):
 
     # ────────────────────────────────────────────────────────────────────────
     # SCORE COMPOSITE
-    # ────────────────────────────────────────────────────────────────────────
+    # ────────────────────────────────────────────���───────────────────────────
 
     def _compute_technical_score(
         self, closes: List[float], highs: List[float], lows: List[float], volumes: List[float]
@@ -386,7 +387,7 @@ class AnalystAgent(BaseAgent):
         stats = self._read_context_stats(context)
         wr = stats["wr_live"]
 
-        # ── Décision ────────────────────────────────────────────────────
+        # ── Décision ─────────────────────���──────────────────────────────
         if score > 0.35:
             reco = "BUY"
             summary_direction = "🟢 Signal BULLISH technique confirmé"
