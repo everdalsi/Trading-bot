@@ -1,8 +1,11 @@
 """
-🎯 ORCHESTRATOR V5.1 — Cerveau Collectif Parfait + Zéro Malentendu + Spécialisation Forcée
+🎯 ORCHESTRATOR V5.2 — Cerveau Collectif Parfait + Zéro Malentendu + Spécialisation Forcée
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Upgrade BaseAgent V3 + glossaire partagé + safe_respond partout + vérif rôle stricte
-+ Intégration QuantML / ExecutionEngine / YieldStaking / Hedging dans le débat collectif
+FIX V5.2 :
+- final_responses initialisé avant la boucle (NameError impossible)
+- PortfolioManager instancié une seule fois (plus de doublon module-level)
+- SelfImprovementAgent importé depuis self_improvement (agent correcte)
+- Timeout global debug message plus précis
 """
 
 import asyncio
@@ -15,13 +18,14 @@ from agents.risk_agent import RiskAgent
 from agents.trader_agent import TraderAgent
 from knowledge_base import KnowledgeBase
 from agents.portfolio_manager import PortfolioManager
-portfolio_manager = PortfolioManager()
 from agents.supervisor_agent import SupervisorAgent
 from agents.learning_agent import LearningAgent
 from agents.performance_tracker import PerformanceTracker
 from agents.research_agent import ResearchAgent
 from agents.knowledge_specialist_agent import KnowledgeSpecialistAgent
-from agents.evolution_agent import EvolutionAgent as SelfImprovementEngineer
+from agents.evolution_agent import EvolutionAgent
+# FIX V5.2 : import du bon agent SelfImprovement (plus le copié-collé de LearningAgent)
+from agents.self_improvement import SelfImprovementAgent
 from agents.wallet_copier_agent import WalletCopierAgent
 from agents.social_listener_agent import SocialListenerAgent
 
@@ -31,32 +35,33 @@ from agents.execution_engine_agent import ExecutionEngineAgent
 from agents.yield_staking_agent import YieldStakingAgent
 from agents.hedging_agent import HedgingAgent
 
-# ======================== PATCH ORCHESTRATOR V5.1 ========================
-# Utilisation du KnowledgeBase Singleton (créé dans base_agent.py)
-# → Supprime définitivement les multiples "ChromaDB initialisée"
+# ======================== PATCH ORCHESTRATOR V5.2 ========================
 from agents.base_agent import _KnowledgeBaseSingleton
 # ===========================================================================
+
 
 class Orchestrator:
 
     def __init__(self):
         # ======================== PATCH SINGLETON KB ========================
-        # On utilise le singleton au lieu de KnowledgeBase() direct
         self.kb = _KnowledgeBaseSingleton.get_instance()
-        # ===========================================================================
+        # ====================================================================
 
-        self.analyst    = AnalystAgent()
-        self.risk       = RiskAgent()
-        self.trader     = TraderAgent()
-        self.supervisor = SupervisorAgent()
-        self.learning   = LearningAgent()
-        self.performance = PerformanceTracker()
-        self.research   = ResearchAgent()
+        self.analyst              = AnalystAgent()
+        self.risk                 = RiskAgent()
+        self.trader               = TraderAgent()
+        self.supervisor           = SupervisorAgent()
+        self.learning             = LearningAgent()
+        self.performance          = PerformanceTracker()
+        self.research             = ResearchAgent()
         self.knowledge_specialist = KnowledgeSpecialistAgent()
-        self.self_improvement = SelfImprovementEngineer(orchestrator=self)
-        self.wallet_copier = WalletCopierAgent()
-        self.portfolio_manager = PortfolioManager()
-        self.social_listener = SocialListenerAgent()
+        self.evolution            = EvolutionAgent(orchestrator=self)
+        # FIX V5.2 : self_improvement utilise maintenant le bon agent (SelfImprovementAgent)
+        self.self_improvement     = SelfImprovementAgent(orchestrator=self)
+        self.wallet_copier        = WalletCopierAgent()
+        # FIX V5.2 : PortfolioManager instancié une seule fois ici (supprimé au niveau module)
+        self.portfolio_manager    = PortfolioManager()
+        self.social_listener      = SocialListenerAgent()
 
         self.quant_ml           = QuantMLAgent()
         self.execution_engine   = ExecutionEngineAgent()
@@ -68,12 +73,12 @@ class Orchestrator:
     async def ask_all(
         self, question: str, context: dict
     ) -> Tuple[List[Dict], Dict]:
-        print(f"[ORCHESTRATOR V5.1] 🚀 Démarrage analyse collective → {question[:80]}...")
+        print(f"[ORCHESTRATOR V5.2] 🚀 Analyse collective → {question[:80]}...")
 
-        # === UPGRADE : Glossaire commun forcé pour zéro malentendu ===
+        # === Glossaire commun forcé pour zéro malentendu ===
         context["shared_glossary"] = self.kb.get_glossary()
 
-        # === UPGRADE : Vérification santé du système avec safe_respond ===
+        # === Vérification santé système ===
         immune_status = await self.self_improvement.safe_respond("monitor health", context)
         context["immune_health"] = immune_status.get("score", 100)
 
@@ -101,17 +106,14 @@ class Orchestrator:
             self.portfolio_manager.safe_respond(question, enriched_ctx),
         ]
 
-        # ======================== PATCH TIMEOUT GATHER ========================
-        # Timeout global de 15 secondes pour tout le débat collectif
         try:
             results = await asyncio.wait_for(
                 asyncio.gather(*tasks, return_exceptions=True),
                 timeout=15.0
             )
         except asyncio.TimeoutError:
-            print("[ORCHESTRATOR V5.1] ⚠️ Timeout global du débat collectif → fallback NO TRADE")
-            return [], {"decision": "NO TRADE", "reason": "Timeout Orchestrator", "score": 0.0}
-        # =========================================================================
+            print("[ORCHESTRATOR V5.2] ⚠️ Timeout global Phase 1 → fallback NO TRADE")
+            return [], {"decision": "NO TRADE", "reason": "Timeout Orchestrator Phase 1", "score": 0.0}
 
         responses = []
         agent_names = [
@@ -121,30 +123,30 @@ class Orchestrator:
             "yield_staking", "hedging", "portfolio_manager"
         ]
 
-        # ======================== PATCH DÉBAT COLLECTIF (renforcé) ========================
-        # On autorise TOUS les agents dès qu’il s’agit d’un débat ou d’une analyse micro/meme
         q_lower = question.lower()
         is_debate = any(kw in q_lower for kw in [
             "débat", "synthétise", "synthèse", "collective", "final decision",
             "verdict", "trade ou no trade", "analyse micro", "décision finale",
             "cerveau collectif", "orchestrator", "ask_all", "round", "micro", "meme"
         ])
-        # =========================================================================
 
         for i, res in enumerate(results):
-            if isinstance(res, Exception) or "error" in str(res):
+            if isinstance(res, Exception):
                 responses.append({
-                    "agent": agent_names[i],
-                    "summary": f"Erreur interne: {str(res)[:100]}",
+                    "agent": agent_names[i] if i < len(agent_names) else f"agent_{i}",
+                    "summary": f"Exception interne: {str(res)[:100]}",
                     "confidence": 0.0,
                     "recommendation": "Vérifier rôle",
                 })
             else:
-                # On ne skip plus les agents pendant un débat collectif
                 if res.get("warning") and not is_debate:
-                    print(f"[ORCHESTRATOR V5.1] ⚠️ {res.get('agent', 'unknown')} hors domaine → ignoré")
+                    print(f"[ORCHESTRATOR V5.2] ⚠️ {res.get('agent', 'unknown')} hors domaine → ignoré")
                     continue
                 responses.append(res)
+
+        # FIX V5.2 : final_responses initialisé AVANT la boucle pour éviter NameError
+        # si la boucle while fait un break avant d'assigner final_responses
+        final_responses: List[Dict] = list(responses)
 
         # === PHASE DÉBAT COLLECTIF ===
         current_confidence = 0.0
@@ -153,68 +155,88 @@ class Orchestrator:
 
         while current_confidence < 0.99 and self.debate_rounds < max_rounds:
             self.debate_rounds += 1
-            print(f"[ORCHESTRATOR V5.1] 🔥 Débat round {self.debate_rounds}/7 — confiance {current_confidence:.2f}")
+            print(
+                f"[ORCHESTRATOR V5.2] 🔥 Débat round {self.debate_rounds}/{max_rounds} "
+                f"— confiance {current_confidence:.2f}"
+            )
 
             collaboration_ctx = {
                 **enriched_ctx,
-                "agent_outputs": responses,
-                "previous_round": responses,
-                "debate_round": self.debate_rounds,
+                "agent_outputs":   responses,
+                "previous_round":  responses,
+                "debate_round":    self.debate_rounds,
                 "target_confidence": 0.99,
                 "strict_veto_mode": True,
-                "shared_glossary": self.kb.get_glossary(),
+                "shared_glossary":  self.kb.get_glossary(),
             }
 
             collab_tasks = [
-                self.analyst.safe_respond(f"Raffine ton analyse en tenant compte des autres agents (utilise le glossaire commun) et vise ≥ 99 %", collaboration_ctx),
-                self.risk.safe_respond(f"Raffine ton analyse en tenant compte des autres agents (utilise le glossaire commun) et vise ≥ 99 %", collaboration_ctx),
-                self.trader.safe_respond(f"Raffine ton analyse en tenant compte des autres agents (utilise le glossaire commun) et vise ≥ 99 %", collaboration_ctx),
-                self.learning.safe_respond(f"Raffine ton analyse en tenant compte des autres agents (utilise le glossaire commun) et vise ≥ 99 %", collaboration_ctx),
-                self.research.safe_respond(f"Raffine ton analyse en tenant compte des autres agents (utilise le glossaire commun) et vise ≥ 99 %", collaboration_ctx),
-                self.knowledge_specialist.safe_respond(f"Raffine ton analyse en tenant compte des autres agents (utilise le glossaire commun) et vise ≥ 99 %", collaboration_ctx),
-                self.wallet_copier.safe_respond(f"Raffine ton analyse en tenant compte des autres agents (utilise le glossaire commun) et vise ≥ 99 %", collaboration_ctx),
-                self.social_listener.safe_respond(f"Raffine ton analyse en tenant compte des autres agents (utilise le glossaire commun) et vise ≥ 99 %", collaboration_ctx),
-                self.self_improvement.safe_respond(f"Raffine ton analyse en tenant compte des autres agents (utilise le glossaire commun) et vise ≥ 99 %", collaboration_ctx),
-                self.quant_ml.safe_respond(f"Raffine ton analyse en tenant compte des autres agents (utilise le glossaire commun) et vise ≥ 99 %", collaboration_ctx),
-                self.execution_engine.safe_respond(f"Raffine ton analyse en tenant compte des autres agents (utilise le glossaire commun) et vise ≥ 99 %", collaboration_ctx),
-                self.yield_staking.safe_respond(f"Raffine ton analyse en tenant compte des autres agents (utilise le glossaire commun) et vise ≥ 99 %", collaboration_ctx),
-                self.hedging.safe_respond(f"Raffine ton analyse en tenant compte des autres agents (utilise le glossaire commun) et vise ≥ 99 %", collaboration_ctx),
-                self.portfolio_manager.safe_respond(f"Raffine ton analyse en tenant compte des autres agents (utilise le glossaire commun) et vise ≥ 99 %", collaboration_ctx),
+                self.analyst.safe_respond("Raffine ton analyse (glossaire commun) et vise ≥ 99%", collaboration_ctx),
+                self.risk.safe_respond("Raffine ton analyse (glossaire commun) et vise ≥ 99%", collaboration_ctx),
+                self.trader.safe_respond("Raffine ton analyse (glossaire commun) et vise ≥ 99%", collaboration_ctx),
+                self.learning.safe_respond("Raffine ton analyse (glossaire commun) et vise ≥ 99%", collaboration_ctx),
+                self.research.safe_respond("Raffine ton analyse (glossaire commun) et vise ≥ 99%", collaboration_ctx),
+                self.knowledge_specialist.safe_respond("Raffine ton analyse (glossaire commun) et vise ≥ 99%", collaboration_ctx),
+                self.wallet_copier.safe_respond("Raffine ton analyse (glossaire commun) et vise ≥ 99%", collaboration_ctx),
+                self.social_listener.safe_respond("Raffine ton analyse (glossaire commun) et vise ≥ 99%", collaboration_ctx),
+                self.self_improvement.safe_respond("Raffine ton analyse (glossaire commun) et vise ≥ 99%", collaboration_ctx),
+                self.quant_ml.safe_respond("Raffine ton analyse (glossaire commun) et vise ≥ 99%", collaboration_ctx),
+                self.execution_engine.safe_respond("Raffine ton analyse (glossaire commun) et vise ≥ 99%", collaboration_ctx),
+                self.yield_staking.safe_respond("Raffine ton analyse (glossaire commun) et vise ≥ 99%", collaboration_ctx),
+                self.hedging.safe_respond("Raffine ton analyse (glossaire commun) et vise ≥ 99%", collaboration_ctx),
+                self.portfolio_manager.safe_respond("Raffine ton analyse (glossaire commun) et vise ≥ 99%", collaboration_ctx),
             ]
 
-            # ======================== PATCH TIMEOUT COLLAB ========================
             try:
                 collab_results = await asyncio.wait_for(
                     asyncio.gather(*collab_tasks, return_exceptions=True),
                     timeout=12.0
                 )
             except asyncio.TimeoutError:
-                print("[ORCHESTRATOR V5.1] ⚠️ Timeout durant le débat round → sortie avec décision actuelle")
+                print(
+                    f"[ORCHESTRATOR V5.2] ⚠️ Timeout round {self.debate_rounds} "
+                    "→ sortie avec décision actuelle"
+                )
                 break
-            # =========================================================================
 
-            # Veto dur
-            risk_resp = next((r for r in collab_results if isinstance(r, dict) and r.get("agent") == "risk"), {})
-            learn_resp = next((r for r in collab_results if isinstance(r, dict) and r.get("agent") == "learning"), {})
+            # Veto dur Risk / Learning
+            risk_resp = next(
+                (r for r in collab_results if isinstance(r, dict) and r.get("agent") == "risk"), {}
+            )
+            learn_resp = next(
+                (r for r in collab_results if isinstance(r, dict) and r.get("agent") == "learning"), {}
+            )
 
-            if risk_resp.get("risk_level") in ["CRITICAL", "HIGH"] or "STOP" in str(risk_resp.get("recommendation", "")).upper():
+            if (
+                risk_resp.get("risk_level") in ["CRITICAL", "HIGH"]
+                or "STOP" in str(risk_resp.get("recommendation", "")).upper()
+            ):
                 return responses, {"decision": "NO TRADE", "reason": "VETO RISK TOTAL", "score": 0.0}
 
             if learn_resp.get("blacklist", False):
                 return responses, {"decision": "NO TRADE", "reason": "VETO LEARNING", "score": 0.0}
 
+            # FIX V5.2 : mise à jour de final_responses à chaque round réussi
             final_responses = [r for r in collab_results if not isinstance(r, Exception)]
-            current_confidence = max((r.get("confidence", 0) for r in final_responses), default=0.0)
+            current_confidence = max(
+                (r.get("confidence", 0) for r in final_responses), default=0.0
+            )
 
         # Décision finale via Supervisor
-        final = await self.supervisor.respond("Synthétise tout avec le glossaire commun et donne décision finale claire : TRADE ou NO TRADE", {
-            **enriched_ctx,
-            "agent_outputs": final_responses,
-            "final_confidence": current_confidence,
-            "debate_rounds": self.debate_rounds
-        })
+        final = await self.supervisor.respond(
+            "Synthétise tout avec le glossaire commun et donne décision finale claire : TRADE ou NO TRADE",
+            {
+                **enriched_ctx,
+                "agent_outputs":    final_responses,
+                "final_confidence": current_confidence,
+                "debate_rounds":    self.debate_rounds,
+            }
+        )
 
-        print(f"[ORCHESTRATOR V5.1] Terminé après {self.debate_rounds} rounds → confiance {current_confidence:.2f}")
+        print(
+            f"[ORCHESTRATOR V5.2] ✅ Terminé après {self.debate_rounds} rounds "
+            f"→ confiance {current_confidence:.2f}"
+        )
         return final_responses, final
 
     def _enrich_context(self, context: dict) -> dict:
@@ -222,27 +244,33 @@ class Orchestrator:
         return {**context, "shared_glossary": self.kb.get_glossary()}
 
     def _check_for_crash_flag(self):
-        """Méthode originale conservée"""
+        """Détecte un flag de crash lors du démarrage précédent."""
+        flag_file = ".crash_flag"
+        if os.path.exists(flag_file):
+            try:
+                with open(flag_file, "r") as f:
+                    reason = f.read().strip()
+                os.remove(flag_file)
+                return reason
+            except Exception:
+                pass
         return None
 
     async def run(self, market_data: dict, memory: dict) -> Dict[str, Any]:
         symbol = market_data.get("symbol", "UNKNOWN")
-
         context = {
-            "market_data": market_data,
-            "memory": memory,
-            "symbol": symbol,
-            "shared_glossary": self.kb.get_glossary()
+            "market_data":    market_data,
+            "memory":         memory,
+            "symbol":         symbol,
+            "shared_glossary": self.kb.get_glossary(),
         }
-
         responses, final = await self.ask_all(
             f"Analyse complète du marché {symbol} et propose une décision de trade",
             context
         )
-
         return {
-            "responses": responses,
+            "responses":      responses,
             "final_decision": final,
-            "debate_rounds": self.debate_rounds,
-            "status": "ok"
+            "debate_rounds":  self.debate_rounds,
+            "status":         "ok",
         }
