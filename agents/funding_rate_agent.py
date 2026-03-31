@@ -23,7 +23,7 @@ FUNDING_NEUTRAL_LOW   = 0.0001   # Neutre entre -0.01% et +0.01%
 FUNDING_NEUTRAL_HIGH  = -0.0001
 
 BINANCE_BASE = "https://fapi.binance.com"
-CACHE_TTL    = 300.0   # 5 min (le funding se calcule toutes les 8h)
+CACHE_TTL    = 480.0   # 8 min (aligné sur le cycle de calcul Binance = 8h)
 
 
 class FundingRateAgent(BaseAgent):
@@ -69,7 +69,7 @@ class FundingRateAgent(BaseAgent):
         try:
             url    = f"{BINANCE_BASE}/fapi/v1/premiumIndex"
             params = {"symbol": sym}
-            resp   = requests.get(url, params=params, timeout=6)
+            resp   = requests.get(url, params=params, timeout=4)  # BUG FIX: était 6s > PHASE0_TIMEOUT=5s
             if resp.status_code != 200:
                 return None
             data          = resp.json()
@@ -91,7 +91,7 @@ class FundingRateAgent(BaseAgent):
         """Récupère tous les funding rates de la watchlist d'un coup."""
         try:
             url  = f"{BINANCE_BASE}/fapi/v1/premiumIndex"
-            resp = requests.get(url, timeout=8)
+            resp = requests.get(url, timeout=4)  # BUG FIX: était 8s > PHASE0_TIMEOUT=5s
             if resp.status_code != 200:
                 return {}
             all_data = resp.json()
