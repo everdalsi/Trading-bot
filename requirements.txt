@@ -1,9 +1,13 @@
-# --- Dépendancescritiques ---
+# ═══════════════════════════════════════════════════════════════
+# TRADING BOT MULTI-AGENT — requirements.txt v2 (stable & complet)
+# ═══════════════════════════════════════════════════════════════
+
+# ── Flux RSS & parsing ──────────────────────────────────────────
 sgmllib3k
 feedparser>=6.0.10
 pydantic>=2.4.1
 
-# --- Intelligence & Agents ---
+# ── Intelligence & Agents ──────────────────────────────────────
 crewai>=1.11.0
 crewai-tools
 langchain-groq
@@ -11,40 +15,51 @@ litellm
 openai
 groq
 
-# --- Base de données ---
+# ── Base de données & Vector DB ────────────────────────────────
 chromadb
 pypdf
 pdfminer.six
 
-# --- Trading & Data ---
-ccxt
+# ── Trading & Data ──────────────────────────────────────────────
+ccxt>=4.3.0
 pandas
 numpy
 requests
 httpx
 websocket-client
+aiohttp
 
-# --- Réseau & Bot ---
+# ── Réseau & Bot Telegram ──────────────────────────────────────
 python-telegram-bot>=21.0
 flask
 prometheus-client
 
-# --- Utilitaires ---
+# ── Utilitaires ────────────────────────────────────────────────
 python-dotenv
 gitpython
 praw
 matplotlib
+scipy
 
-# =================================================================
-# === UPGRADES PHASE 1 (version finale build-stable) ==============
-# =================================================================
-vectorbt>=0.26.0          # Backtester vectorisé ultra-rapide (SMA, RSI, Bollinger, etc. intégrés)
-backtrader                # Backtester classique de secours
-pyfolio-reloaded          # Analyse performance pro (VaR, drawdown) – version maintenue
-quantstats                # Alternative légère et très stable à pyfolio
-redis                     # Cache hot data + positions
-ccxt>=4.3.0               # Version plus récente pour OCO / reduce-only
-aiohttp                   # Async pour WS & execution pro
+# ── Backtesting & Performance ──────────────────────────────────
+vectorbt>=0.26.0
+backtrader
+quantstats
+pyfolio-reloaded
 
-# Note : pandas_ta a été retiré car il cause des conflits de wheels dans Docker.
-# VectorBT + quantstats couvrent largement tes besoins en backtest et analyse de performance.
+# ── Cache & Sessions ───────────────────────────────────────────
+redis
+
+# ── Social Media parsing ───────────────────────────────────────
+# praw déjà inclus (Reddit API)
+# feedparser déjà inclus (Nitter RSS)
+# Note : Twitter/X API officielle nécessite un compte développeur
+# On utilise Nitter RSS comme alternative gratuite
+
+# ── Analyse technique supplémentaire ──────────────────────────
+ta                # Technical Analysis library (RSI, MACD, BB, etc.)
+# Note : pandas_ta retiré car conflits de wheels Docker
+# VectorBT + ta couvrent largement les besoins
+
+# ── Sécurité & Monitoring ──────────────────────────────────────
+cryptography
