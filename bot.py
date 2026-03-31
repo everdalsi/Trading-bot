@@ -311,8 +311,8 @@ PROMO_EXCHANGES = [
 #  CLIENTS
 # ═══════════════════════════════════════════════════════════════
 if not GROQ_KEY:
-      raise RuntimeError("[FATAL] GROQ_API_KEY est absent du .env — le bot ne peut pas démarrer sans clé IA.")
-  groq_client = Groq(api_key=GROQ_KEY)
+    raise RuntimeError("[FATAL] GROQ_API_KEY est absent du .env — le bot ne peut pas démarrer sans clé IA.")
+groq_client = Groq(api_key=GROQ_KEY)
 
 def get_binance_client():
     exchange = ccxt.binance({
