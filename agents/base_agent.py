@@ -1,5 +1,5 @@
 """
-🧠 BASE AGENT V3.2 — Cerveau commun + Spécialisation stricte + Zéro malentendu
+🧠 BASE AGENT V4.0 — Cerveau commun + Personnalités OHMO.AI + Spécialisation
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 FIX V3.2 :
 - domain_keywords complété : supervisor, wallet_copier, social_listener,
@@ -7,6 +7,12 @@ FIX V3.2 :
   → plus aucun agent exclu du débat collectif par défaut
 - Mots-clés "débat collectif" ajoutés à TOUS les agents via default_debate_keywords
 - Timeout safe_respond étendu à 10s (8s trop court pour certaines analyses)
+
+UPGRADE V4.0 — Système de personnalités (inspiré OHMO.AI) :
+- RETAIL       : panic buy/sell, FOMO, sur-réaction aux news
+- INSTITUTIONAL: fade moves, patience, contre-tendance, smart money
+- LEADER       : attente de confirmation, haute conviction requise
+Chaque personnalité biaise légèrement confidence + comportement rapporté.
 """
 
 from abc import ABC, abstractmethod
@@ -27,6 +33,84 @@ class _KnowledgeBaseSingleton:
 # =========================================================================
 
 
+# ======================== SYSTÈME DE PERSONNALITÉS V4.0 ==================
+PERSONALITY_RETAIL        = "RETAIL"
+PERSONALITY_INSTITUTIONAL = "INSTITUTIONAL"
+PERSONALITY_LEADER        = "LEADER"
+
+# Mapping agent → personnalité (comportement naturel de chaque profil)
+AGENT_PERSONALITY_MAP: Dict[str, str] = {
+    # RETAIL : réactif aux news, sentiment, FOMO, sur-réaction
+    "social_listener":      PERSONALITY_RETAIL,
+    "fear_greed":           PERSONALITY_RETAIL,
+    "news_event":           PERSONALITY_RETAIL,
+    "sentiment_aggregator": PERSONALITY_RETAIL,
+    "polymarket_arb":       PERSONALITY_RETAIL,
+    "event_sniper":         PERSONALITY_RETAIL,
+    "sports_arb":           PERSONALITY_RETAIL,
+
+    # INSTITUTIONAL : smart money, patience, fade the move, contre-tendanciel
+    "risk":                 PERSONALITY_INSTITUTIONAL,
+    "hedging":              PERSONALITY_INSTITUTIONAL,
+    "correlation_watcher":  PERSONALITY_INSTITUTIONAL,
+    "wallet_copier":        PERSONALITY_INSTITUTIONAL,
+    "whale_tracker":        PERSONALITY_INSTITUTIONAL,
+    "drawdown_guard":       PERSONALITY_INSTITUTIONAL,
+    "derivatives":          PERSONALITY_INSTITUTIONAL,
+    "exchange_flow":        PERSONALITY_INSTITUTIONAL,
+    "cross_asset":          PERSONALITY_INSTITUTIONAL,
+    "regulatory_monitor":   PERSONALITY_INSTITUTIONAL,
+    "on_chain":             PERSONALITY_INSTITUTIONAL,
+    "blockchain_health":    PERSONALITY_INSTITUTIONAL,
+    "token_unlock":         PERSONALITY_INSTITUTIONAL,
+    "defi_monitor":         PERSONALITY_INSTITUTIONAL,
+
+    # LEADER : attente de confirmation, haute conviction, décision finale
+    "analyst":              PERSONALITY_LEADER,
+    "trader":               PERSONALITY_LEADER,
+    "supervisor":           PERSONALITY_LEADER,
+    "quant_ml":             PERSONALITY_LEADER,
+    "regime_detector":      PERSONALITY_LEADER,
+    "macro_regime":         PERSONALITY_LEADER,
+    "quantum_risk":         PERSONALITY_LEADER,
+    "vol_regime":           PERSONALITY_LEADER,
+    "portfolio_manager":    PERSONALITY_LEADER,
+    "pattern_recognition":  PERSONALITY_LEADER,
+    "macro_calendar":       PERSONALITY_LEADER,
+    "arbitrage_scanner":    PERSONALITY_LEADER,
+    "options_flow":         PERSONALITY_LEADER,
+    "grid_strategy":        PERSONALITY_LEADER,
+    "liquidation_tracker":  PERSONALITY_LEADER,
+    "scenario_injector":    PERSONALITY_LEADER,
+}
+
+# Profils de comportement par personnalité
+PERSONALITY_PROFILES: Dict[str, Dict] = {
+    PERSONALITY_RETAIL: {
+        "label":            "🔴 RETAIL",
+        "confidence_boost": +0.05,   # Sur-confiant, amplifie les tendances
+        "min_threshold":    0.30,    # Signale facilement (seuil bas)
+        "behavior":         "panic_buy_sell",
+        "description":      "Réactif aux news, FOMO, sur-réaction aux tendances",
+    },
+    PERSONALITY_INSTITUTIONAL: {
+        "label":            "🔵 INSTITUTIONAL",
+        "confidence_boost": -0.05,   # Conservateur, fade les moves
+        "min_threshold":    0.55,    # Difficile à déclencher
+        "behavior":         "fade_moves",
+        "description":      "Smart money, patient, contre-tendanciel",
+    },
+    PERSONALITY_LEADER: {
+        "label":            "🟡 LEADER",
+        "confidence_boost": 0.0,     # Neutre — attend les données
+        "min_threshold":    0.60,    # Haute conviction requise avant signal
+        "behavior":         "wait_confirm",
+        "description":      "Attente de confirmation, haute conviction requise",
+    },
+}
+# =========================================================================
+
+
 # Mots-clés de débat collectif → tous les agents y participent
 _DEBATE_KEYWORDS = [
     "synthèse", "synthétise", "débat", "cerveau collectif",
@@ -38,7 +122,7 @@ _DEBATE_KEYWORDS = [
 
 class BaseAgent(ABC):
     """
-    BASE AGENT V3.2 — Cerveau commun + Spécialisation stricte + Zéro malentendu
+    BASE AGENT V4.0 — Cerveau commun + Personnalités OHMO.AI + Spécialisation
     """
 
     def __init__(self, name: str, role: str = None, description: str = None):
@@ -47,17 +131,39 @@ class BaseAgent(ABC):
         self.description = description or role
         self.kb          = _KnowledgeBaseSingleton.get_instance()
 
+        # V4.0 : Personnalité assignée automatiquement selon le nom de l'agent
+        _p_key                   = AGENT_PERSONALITY_MAP.get(name, PERSONALITY_INSTITUTIONAL)
+        self.personality         = _p_key
+        self.personality_profile = PERSONALITY_PROFILES[_p_key]
+
     @abstractmethod
     async def respond(self, question: str, context: dict) -> Dict[str, Any]:
         """Chaque agent doit retourner EXACTEMENT ce format."""
         pass
 
+    def _apply_personality_bias(self, result: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        V4.0 : Applique le biais de personnalité sur la confiance du résultat.
+        - RETAIL      : +0.05 confiance (sur-réactif, amplifie signal)
+        - INSTITUTIONAL: -0.05 confiance (conservateur, fade the move)
+        - LEADER      : neutre, exige haute conviction externe
+        Ajoute les champs 'personality' et 'behavior_type' à la réponse.
+        """
+        profile   = self.personality_profile
+        raw_conf  = result.get("confidence", 0.0)
+        new_conf  = max(0.0, min(1.0, raw_conf + profile["confidence_boost"]))
+
+        result["confidence"]    = new_conf
+        result["personality"]   = profile["label"]
+        result["behavior_type"] = profile["behavior"]
+        return result
+
     async def safe_respond(self, question: str, context: dict) -> Dict[str, Any]:
-        """Version ultra-sécurisée avec timeout + garde-fou exception."""
+        """Version ultra-sécurisée avec timeout + garde-fou exception + biais personnalité."""
         try:
             result = await asyncio.wait_for(
                 self.respond(question, context),
-                timeout=10.0   # FIX V3.2 : 10s au lieu de 8s
+                timeout=10.0
             )
             required_keys = {"agent", "summary", "confidence", "recommendation"}
             if not all(k in result for k in required_keys):
@@ -72,7 +178,10 @@ class BaseAgent(ABC):
                 result["warning"] = (
                     f"{self.name} a répondu hors de sa spécialité → ignoré par orchestreur"
                 )
+            # V4.0 : biais de personnalité appliqué sur chaque réponse valide
+            result = self._apply_personality_bias(result)
             return result
+
         except asyncio.TimeoutError:
             return {
                 "agent":          self.name,
@@ -80,6 +189,8 @@ class BaseAgent(ABC):
                 "confidence":     0.0,
                 "recommendation": "HOLD - Timeout",
                 "error":          "timeout",
+                "personality":    self.personality_profile["label"],
+                "behavior_type":  self.personality_profile["behavior"],
             }
         except Exception as e:
             return {
@@ -88,6 +199,8 @@ class BaseAgent(ABC):
                 "confidence":     0.0,
                 "recommendation": "Vérifier logs",
                 "risks":          ["Exception"],
+                "personality":    self.personality_profile["label"],
+                "behavior_type":  self.personality_profile["behavior"],
             }
 
     def _is_in_my_domain(self, question: str) -> bool:
@@ -166,6 +279,10 @@ class BaseAgent(ABC):
             "knowledge_specialist": [
                 "knowledge", "connaissance", "pdf", "wyckoff",
                 "livre", "stratégie", "méthode", "vsa", "cfa",
+            ],
+            "scenario_injector": [
+                "scenario", "scénario", "inject", "simulate", "polymarket",
+                "pre-price", "before price", "priced in", "opportunity",
             ],
             # ── Fallback ─────────────────────────────────────────────────────
             "default": list(_DEBATE_KEYWORDS),
