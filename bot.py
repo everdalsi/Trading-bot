@@ -1189,7 +1189,6 @@ def detect_patterns(symbol: str, ind: dict, vols: list) -> list:
 def scan_market() -> list:
     opps = []
     prices = get_prices_batch()
-    for symbol in CRYPTO_SYMBOLS:
     for symbol in get_scan_symbols():
         price = prices.get(symbol, 0)
         if not price: continue
