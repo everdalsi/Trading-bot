@@ -1,5 +1,5 @@
 """
-📦 agents/__init__.py — Registre central V10 — 50 agents
+📦 agents/__init__.py — Registre central V10.1 — 51 agents + ScenarioInjector
 """
 
 from agents.base_agent import BaseAgent, _KnowledgeBaseSingleton
@@ -67,6 +67,9 @@ from agents.regulatory_monitor_agent import RegulatoryMonitorAgent
 from agents.grid_strategy_agent import GridStrategyAgent
 from agents.token_unlock_agent import TokenUnlockAgent
 
+# ── V10.1 : Scenario Injector (OHMO.AI pre-discovery) ────────────────────────
+from agents.scenario_injector_agent import ScenarioInjectorAgent
+
 __all__ = [
     "BaseAgent", "_KnowledgeBaseSingleton", "Orchestrator",
     # Core
@@ -91,4 +94,6 @@ __all__ = [
     "OptionsFlowAgent", "CrossAssetAgent", "VolRegimeAgent",
     "SentimentAggregatorAgent", "WhaleTrackerAgent", "RegulatoryMonitorAgent",
     "GridStrategyAgent", "TokenUnlockAgent",
+    # V10.1
+    "ScenarioInjectorAgent",
 ]
