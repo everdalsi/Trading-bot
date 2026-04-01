@@ -24,6 +24,11 @@ except ImportError:
     _SOUL_AVAILABLE = False
     logger.info("[SOUL] soul_agent.py non disponible → fonctionnalité désactivée")
 from dotenv import load_dotenv
+from ai_engine import (
+    ask_ai, vote, _can_call_ai, ask_model_single, get_pool_status,
+    _get_cached_ai, _set_cached_ai, _pool_stats
+)
+from indicators import compute_indicators, detect_patterns
 
 load_dotenv()
 
@@ -2759,7 +2764,7 @@ def trading_loop(send_fn):
                            f"Max DD: {backtest_stats.get('max_drawdown', 0):.2%} | "
                            f"Win Rate: {backtest_stats.get('win_rate', 0):.2%}")
             except Exception as bt_e:
-                logger.warning(f"Backtest error (non blocking): {type(bt_e).__name__}: {bt_e or "timeout"}")
+                logger.warning(f"Backtest error (non blocking): {type(bt_e).__name__}: {bt_e or 'timeout'}")
 
         if now - last_risk_check >= 300:
             last_risk_check = now
@@ -3065,7 +3070,7 @@ def trading_loop(send_fn):
                         _bg = orchestrator._bg_cache
                         logger.info(f"[HOLD] 📊 BG bias: {_bg.get('pre_bias','?')} | BUY:{_bg.get('pre_buy',0)} SELL:{_bg.get('pre_sell',0)}")
             except Exception as e:
-                logger.warning(f"[MICRO V7] Cycle error: {type(e).__name__}: {e or "timeout"}")
+                logger.warning(f"[MICRO V7] Cycle error: {type(e).__name__}: {e or 'timeout'}")
                 # Fallback : analyse simple BTC uniquement
                 try:
                     fallback_future = asyncio.run_coroutine_threadsafe(
@@ -3118,7 +3123,7 @@ def trading_loop(send_fn):
                     if hasattr(memory, "save_lesson"):
                         memory.save_lesson("USDT", "STAKING", "executed", 0.0, 0.95, staking_result.get("summary", ""))
             except Exception as e:
-                logger.warning(f"Staking auto error: {type(e).__name__}: {e or "timeout"}")
+                logger.warning(f"Staking auto error: {type(e).__name__}: {e or 'timeout'}")
 
         if now - last_regime >= 300:
             last_regime = now
@@ -3489,7 +3494,8 @@ class BotHandler(BaseHTTPRequestHandler):
                 "training_mode":    BOT_TRAINING_MODE,
                 "training_win_target": int(TRAINING_WIN_TARGET * 100),
                 "market_universe":   {"hot": len(_HOT_SYMBOLS), "warm": len(_WARM_SYMBOLS), "cold": len(_COLD_SYMBOLS), "total": len(_ALL_DISCOVERED) or len(CRYPTO_SYMBOLS)},
-                "live_ready":       not BOT_TRAINING_MODE or (wr >= TRAINING_WIN_TARGET * 100 and len(_trades) >= TRAINI
+                "live_ready":       not BOT_TRAINING_MODE or (wr >= TRAINING_WIN_TARGET * 100 and len(_trades) >= TRAINING_MIN_TRADES),
+            })
 
         elif path in ("/api/soul", "/api/soul/state"):
             if _soul:
@@ -5054,7 +5060,7 @@ async def _aegis_tool_list_github_files(directory: str = "") -> str:
             items = json.loads(r.read())
         if isinstance(items, dict):
             return f"Ceci est un fichier, pas un dossier. Utilise read_github_file pour le lire."
-        out = [f"Fichiers dans /{path or "racine"}:"]
+        out = [f"Fichiers dans /{path or 'racine'}:"]
         for item in sorted(items, key=lambda x: (x["type"]=="file", x["name"])):
             icon = "folder" if item["type"] == "dir" else "file"
             size = f" ({item.get('size', 0)} bytes)" if item["type"] == "file" else ""
