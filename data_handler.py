@@ -1,13 +1,4 @@
-"""
-DATA HANDLER V4 - Donnees marche temps reel
-FIX CRITIQUE V4:
-- Export de l'instance 'data_handler' au niveau module (bot.py l'importe directement)
-- get_prices_batch() au niveau module
-- get_klines_1m_cached(symbol) au niveau module
-- get_volume_data(symbol, interval, count) prend 3 arguments
-- get_klines_5m_cached(symbol) alias legacy
-- compute_indicators() avec Bollinger Bands
-"""
+"""Market data fetching and caching utilities."""
 
 import requests
 import time
@@ -20,7 +11,6 @@ from logging_config import logger
 BINANCE_BASE = "https://api.binance.com"
 BINANCE_FAPI = "https://fapi.binance.com"
 
-
 class DataHandler:
 
     def __init__(self):
@@ -28,8 +18,6 @@ class DataHandler:
         self.kline_cache_1m = {}
         self.kline_cache_5m = {}
         self.cache_ttl      = 30
-
-    # ── Prix ──────────────────────────────────────────────────────────────
 
     def get_current_price(self, symbol: str) -> float | None:
         now    = time.time()
@@ -73,8 +61,6 @@ class DataHandler:
         except Exception as e:
             logger.debug(f"[DATA] Batch prices: {e}")
         return result
-
-    # ── Klines ────────────────────────────────────────────────────────────
 
     def prefill_caches(self, symbols):
         logger.info(f"[DATA] Pre-remplissage caches pour {len(symbols)} symboles")
@@ -144,32 +130,23 @@ class DataHandler:
                 self.kline_cache_5m[symbol] = deque(maxlen=60)
             self.kline_cache_5m[symbol].append(close)
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # SINGLETON MODULE-LEVEL (bot.py fait: from data_handler import data_handler)
-# ─────────────────────────────────────────────────────────────────────────────
 
 data_handler = DataHandler()  # Instance exportee au niveau module
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 # FONCTIONS MODULE-LEVEL (importees directement par bot.py)
-# ─────────────────────────────────────────────────────────────────────────────
 
 def get_prices_batch(symbols: list = None) -> dict:
     """Retourne les prix batch depuis le singleton."""
     return data_handler.get_prices_batch(symbols)
 
-
 def get_klines_1m_cached(symbol: str) -> pd.Series:
     """Retourne les klines 1m depuis le cache."""
     return data_handler.get_klines(symbol, "1m", 60)
 
-
 def get_klines_5m_cached(symbol: str, limit: int = 100) -> pd.Series:
     """Alias legacy pour compatibilite imports."""
     return data_handler.get_klines(symbol, "5m", limit)
-
 
 def get_volume_data(symbol: str, interval: str = "1", count: int = 10) -> list:
     """
@@ -195,11 +172,9 @@ def get_volume_data(symbol: str, interval: str = "1", count: int = 10) -> list:
         logger.debug(f"[DATA] Volume data {symbol}: {e}")
     return [0.0] * count
 
-
 def get_current_price(symbol: str) -> float | None:
     """Wrapper module-level pour compatibilite."""
     return data_handler.get_current_price(symbol)
-
 
 def get_fear_greed_value() -> int:
     """Fear & Greed Index en temps reel (Alternative.me)."""
@@ -213,7 +188,6 @@ def get_fear_greed_value() -> int:
     except Exception as e:
         logger.debug(f"[DATA] Fear&Greed: {e}")
     return 50
-
 
 def get_liquidations() -> dict:
     """Donnees de liquidation Binance Futures."""
@@ -233,7 +207,6 @@ def get_liquidations() -> dict:
     except Exception as e:
         logger.debug(f"[DATA] Liquidations: {e}")
     return {"long_liq": 0, "short_liq": 0}
-
 
 def get_order_book(symbol: str) -> dict:
     """Order book simplifie depuis Binance."""
@@ -258,7 +231,6 @@ def get_order_book(symbol: str) -> dict:
         logger.debug(f"[DATA] Order book {symbol}: {e}")
     return {"pressure": "neutre", "ratio": 1.0, "wall_size": 0, "depth_ratio": 1.0}
 
-
 def get_whale_alerts() -> list:
     return []
 
@@ -270,7 +242,6 @@ def get_flashbots_alerts(symbol: str) -> list:
 
 def get_sandwich_alerts(symbol: str) -> list:
     return []
-
 
 def compute_indicators(closes: list) -> dict:
     """Calcule RSI + MACD + Bollinger Bands."""
