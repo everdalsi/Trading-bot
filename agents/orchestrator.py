@@ -1,15 +1,4 @@
-"""
-🎯 ORCHESTRATOR V7 — PARALLÉLISME TOTAL + Cerveau Collectif Expert
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-UPGRADES V7 (critique pour la vitesse) :
-- asyncio.gather() sur TOUS les agents indépendants (×4-6 plus rapide)
-- Timeout individuel par agent (évite le blocage global)
-- Multi-symbol : analyse en parallèle sur N symboles simultanément
-- Circuit breakers en Phase 0 (veto instantané avant le débat)
-- Consensus bayésien amélioré avec poids dynamiques par régime
-- Retry automatique sur agents défaillants
-- Agrégation des résultats en temps réel (stream-style)
-"""
+"""Orchestrator V10 — 50 parallel trading agents with Bayesian consensus."""
 
 import asyncio
 from typing import Dict, Any, List, Tuple, Optional
@@ -46,7 +35,6 @@ from agents.event_sniper_agent import EventSniperAgent
 from agents.polymarket_trader_agent import PolymarketTraderAgent
 from agents.sports_arb_agent import SportsArbAgent
 
-# ── Nouveaux agents V10 (20 agents) ─────────────────────────────────────
 from agents.quantum_risk_agent import QuantumRiskAgent
 from agents.macro_regime_agent import MacroRegimeAgent
 from agents.on_chain_agent import OnChainAgent
@@ -78,7 +66,6 @@ PHASE0_TIMEOUT     = 5.0    # Agents rapides (self_improvement, code_fixer, draw
 PHASE0_HTTP_TIMEOUT  = 12.0
 PHASE0_CACHE_TTL     = 25.0  # Cache Phase0 (25s TTL)
 
-
 async def _safe_call(agent: BaseAgent, question: str, context: dict, timeout: float = AGENT_TIMEOUT) -> Dict[str, Any]:
     """
     Appelle un agent avec timeout et gestion d'erreur.
@@ -102,14 +89,12 @@ async def _safe_call(agent: BaseAgent, question: str, context: dict, timeout: fl
             "confidence": 0.0, "recommendation": "HOLD", "error": str(e)
         }
 
-
 class Orchestrator:
 
     def __init__(self):
         # Singleton KB — partagé par TOUS les agents
         self.kb = _KnowledgeBaseSingleton.get_instance()
 
-        # ── Agents cœur ──────────────────────────────────────────────────
         self.analyst              = AnalystAgent()
         self.risk                 = RiskAgent()
         self.trader               = TraderAgent()
@@ -124,14 +109,12 @@ class Orchestrator:
         self.wallet_copier        = WalletCopierAgent()
         self.social_listener      = SocialListenerAgent()
 
-        # ── Agents spécialisés V5 ────────────────────────────────────────
         self.quant_ml           = QuantMLAgent()
         self.execution_engine   = ExecutionEngineAgent()
         self.yield_staking      = YieldStakingAgent()
         self.hedging            = HedgingAgent()
         self.code_fixer         = CodeFixerAgent()
 
-        # ── Agents V6.0 — Sécurité & Signal ─────────────────────────────
         self.news_event          = NewsEventAgent()
         self.order_book          = OrderBookAgent()
         self.funding_rate        = FundingRateAgent()
@@ -139,13 +122,11 @@ class Orchestrator:
         self.correlation_watcher = CorrelationWatcherAgent()
         self.backtest_validator  = BacktestValidatorAgent()
 
-        # ── Agents V8 — Edge Arbitrage & Snipe ───────────────────────────
         self.polymarket_arb  = PolymarketArbAgent()    # Spread Polymarket vs CEX
         self.event_sniper    = EventSniperAgent()       # Liquidations/OI/funding/volume
         self.polymarket_trader  = PolymarketTraderAgent()    # Direct Polymarket trading
         self.sports_arb         = SportsArbAgent()           # Sports latency arbitrage
 
-        # ── Agents V10 — Expansion 30→50 ─────────────────────────────────────
         self.quantum_risk          = QuantumRiskAgent()
         self.macro_regime          = MacroRegimeAgent()
         self.on_chain              = OnChainAgent()
@@ -186,9 +167,7 @@ class Orchestrator:
     def get_drawdown_guard(self) -> DrawdownGuardAgent:
         return self.drawdown_guard
 
-    # ────────────────────────────────────────────────────────────────────────
     # PHASE 0 : VÉRIFICATIONS DE SÉCURITÉ (parallèles, veto instantané)
-    # ────────────────────────────────────────────────────────────────────────
 
     async def _phase0_security(self, context: dict) -> Tuple[bool, Dict[str, Any]]:
         """
@@ -207,7 +186,6 @@ class Orchestrator:
         q_news    = "news event macro critical"
         q_funding = "funding rate check"
 
-        # ── Exécution PARALLÈLE des 5 vérifications ───────────────────────
         results = await asyncio.gather(
             _safe_call(self.self_improvement,  q_immune,  context, PHASE0_TIMEOUT),      # ≤5s (aucun HTTP)
             _safe_call(self.code_fixer,        q_code,    context, PHASE0_TIMEOUT),      # ≤5s (aucun HTTP)
@@ -219,7 +197,6 @@ class Orchestrator:
 
         immune_resp, code_resp, guard_resp, news_resp, funding_resp = results
 
-        # ── Pas de veto → cache le résultat OK et enrichir le contexte ──────
         _no_veto_resp = {"recommendation": "OK", "confidence": 0.0}
         self._phase0_cache    = {"veto": False, "veto_resp": _no_veto_resp}
         self._phase0_cache_ts = _now
@@ -231,9 +208,7 @@ class Orchestrator:
         context["news_event"]    = news_resp
         context["funding_rate"]  = funding_resp
 
-        # ── Vérifier vetos ────────────────────────────────────────────────
         # DrawdownGuard : veto absolu (non contournable)
-        # ── Mise à jour du cache Phase 0 ─────────────────────────────────────
         def _cache_and_return(veto: bool, resp: dict):
             self._phase0_cache    = {"veto": veto, "veto_resp": resp}
             self._phase0_cache_ts = _now
@@ -273,9 +248,7 @@ class Orchestrator:
 
         return False, {}
 
-    # ────────────────────────────────────────────────────────────────────────
     # DEMANDE COLLECTIVE PARALLÈLE
-    # ────────────────────────────────────────────────────────────────────────
 
     async def ask_all(
         self, question: str, context: dict
@@ -285,12 +258,10 @@ class Orchestrator:
         # Glossaire partagé
         context["shared_glossary"] = self.kb.get_glossary()
 
-        # ── Phase 0 : sécurité PARALLÈLE ──────────────────────────────────
         veto, veto_resp = await self._phase0_security(context)
         if veto:
             return [veto_resp], veto_resp
 
-        # ── Phase 1 : agents d'analyse PARALLÈLES ─────────────────────────
         # Groupe A : agents indépendants de signal (lancés ensemble)
         group_a = await asyncio.gather(
             _safe_call(self.analyst,              question, context),
@@ -301,10 +272,8 @@ class Orchestrator:
             _safe_call(self.knowledge_specialist, question, context),
             _safe_call(self.wallet_copier,        question, context),
             _safe_call(self.correlation_watcher,  question, context),
-            # ── Agents V8 : edge arbitrage + snipe (indépendants) ──
             _safe_call(self.polymarket_arb,       question, context, timeout=8.0),
             _safe_call(self.event_sniper,         question, context, timeout=10.0),
-            # ── Agents V9 : Polymarket trader direct + Sports latency arb ──
             _safe_call(self.polymarket_trader,  question, context, timeout=10.0),
             _safe_call(self.sports_arb,         question, context, timeout=10.0),
             return_exceptions=False
@@ -358,9 +327,6 @@ class Orchestrator:
         if sniper_resp.get("should_emit"):
             logger.info(f"[ORCH V8] 🎯 Sniper signal: {sniper_resp.get('signal','HOLD')} conf={sniper_resp.get('confidence',0):.0%}")
 
-
-
-        # ── Phase 1.5 : agents V10 — 21 nouveaux agents PARALLÈLES ────────
         group_v10 = await asyncio.gather(
             _safe_call(self.macro_regime,         question, context, timeout=8.0),
             _safe_call(self.on_chain,             question, context, timeout=8.0),
@@ -421,7 +387,6 @@ class Orchestrator:
             f"Macro={context['macro_bias']} | Whales={context['whale_signal']}"
         )
 
-          # ── Phase 2 : agents de risque et de décision PARALLÈLES ──────────
         group_b = await asyncio.gather(
             _safe_call(self.risk,     question, context),
             _safe_call(self.hedging,  question, context),
@@ -441,11 +406,9 @@ class Orchestrator:
                 "confidence": 1.0, "recommendation": "NO TRADE", "veto_source": "risk",
             }
 
-        # ── Phase 3 : décision trader (séquentielle — dépend de phases 1&2) ──
         trader_resp = await _safe_call(self.trader, question, context)
         context["trader_decision"] = trader_resp  # FIX: supervisor accède context["trader_decision"]
 
-        # ── Agréger tous les résultats ────────────────────────────────────
         all_outputs = [
               # V1-V9 agents
               analyst_resp, quant_resp, ob_resp, social_resp,
@@ -469,7 +432,6 @@ class Orchestrator:
         context["final_confidence"] = context["global_score"]
         context["debate_rounds"]    = self.debate_rounds
 
-        # ── Phase 4 : supervision finale (séquentielle) ────────────────────
         final = await _safe_call(self.supervisor, question, context)
 
         self.debate_rounds += 1
@@ -480,9 +442,7 @@ class Orchestrator:
         )
         return all_outputs, final
 
-    # ────────────────────────────────────────────────────────────────────────
     # ANALYSE MULTI-SYMBOLES EN PARALLÈLE
-    # ────────────────────────────────────────────────────────────────────────
 
     async def analyze_symbols_parallel(
         self, symbols: List[str], base_context: dict
@@ -513,9 +473,7 @@ class Orchestrator:
             )
         return results
 
-    # ────────────────────────────────────────────────────────────────────────
     # HELPERS
-    # ────────────────────────────────────────────────────────────────────────
 
     def _compute_global_score(self, outputs: List[Dict]) -> float:
         """Score global pondéré sur tous les agents."""
