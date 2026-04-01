@@ -68,6 +68,7 @@ from agents.whale_tracker_agent import WhaleTrackerAgent
 from agents.regulatory_monitor_agent import RegulatoryMonitorAgent
 from agents.grid_strategy_agent import GridStrategyAgent
 from agents.token_unlock_agent import TokenUnlockAgent
+from agents.scenario_injector_agent import ScenarioInjectorAgent
 
 from logging_config import logger
 
@@ -166,6 +167,7 @@ class Orchestrator:
         self.regulatory_monitor    = RegulatoryMonitorAgent()
         self.grid_strategy         = GridStrategyAgent()
         self.token_unlock          = TokenUnlockAgent()
+        self.scenario_injector     = ScenarioInjectorAgent()   # V10.1 OHMO.AI pre-discovery
 
         self.debate_rounds = 0
         self._poly_arb_cache   = {}
@@ -381,6 +383,7 @@ class Orchestrator:
             _safe_call(self.grid_strategy,        question, context, timeout=8.0),
             _safe_call(self.token_unlock,         question, context, timeout=6.0),
             _safe_call(self.quantum_risk,         question, context, timeout=8.0),
+            _safe_call(self.scenario_injector,    question, context, timeout=10.0),
             return_exceptions=False
         )
 
@@ -388,7 +391,8 @@ class Orchestrator:
          exflow_resp, fg_resp, pattern_resp, regime_resp,
          arb_resp, macrocal_resp, defi_resp, btchealth_resp,
          opts_resp, crossasset_resp, vol_resp, sentiment_resp,
-         whale_resp, reg_resp, grid_resp, unlock_resp, quantum_resp) = group_v10
+         whale_resp, reg_resp, grid_resp, unlock_resp,
+         quantum_resp, scenario_resp) = group_v10
 
         # Enrichir le contexte avec les signaux V10
         context["fear_greed_value"]     = fg_resp.get("fg_value", 50)
@@ -401,6 +405,8 @@ class Orchestrator:
         context["active_patterns"]      = pattern_resp.get("patterns", [])
         context["liq_cascade_score"]    = liq_resp.get("liq_score", 0.5)
         context["quantum_threat"]       = quantum_resp.get("threat_level", 0.0)
+        context["scenario_opportunities"] = scenario_resp.get("opportunities", [])
+        context["scenario_signals"]       = scenario_resp.get("scenarios_with_edge", 0)
         context["grid_params"]          = grid_resp.get("grid_params", {})
         context["sentiment_score"]      = sentiment_resp.get("sentiment_score", 0.5)
 
@@ -453,6 +459,7 @@ class Orchestrator:
               arb_resp, macrocal_resp, defi_resp, btchealth_resp,
               opts_resp, crossasset_resp, vol_resp, sentiment_resp,
               whale_resp, reg_resp, grid_resp, unlock_resp, quantum_resp,
+            scenario_resp,
           ]
         # Filtrer les réponses vides
         all_outputs = [r for r in all_outputs if r and isinstance(r, dict)]
@@ -536,6 +543,7 @@ class Orchestrator:
             "macro_calendar":      0.02, "defi_monitor":        0.02,
             "blockchain_health":   0.01, "token_unlock":        0.01,
             "grid_strategy":       0.02,
+            "scenario_injector":   0.03,
         }
         total_w, weighted_sum = 0.0, 0.0
         for out in outputs:
