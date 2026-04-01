@@ -1,4 +1,4 @@
-"""Trading Bot v8.2 — Autonomous multi-agent crypto trading system."""
+"""Trading Bo v8.2 — Autonomous multi-agent crypto trading system."""
 
 import os, time, threading, feedparser, requests, asyncio
 import json, sqlite3, re, hashlib, base64, hmac, secrets
