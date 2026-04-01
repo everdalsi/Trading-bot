@@ -4,7 +4,7 @@ import os, time, threading, feedparser, requests, asyncio
 import json, sqlite3, re, hashlib, base64, hmac, secrets
 import pandas as pd
 import numpy as np
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 from execution_engine import ExecutionEngine
@@ -253,7 +253,7 @@ class _AegisBufferHandler:
     """Lightweight log sink — not a real logging.Handler to avoid import order issues"""
     def emit(self, level: str, msg: str):
         import datetime as _dt
-        ts = _dt.datetime.utcnow().strftime("%H:%M:%S")
+        ts = _dt.datetime.now(_dt.timezone.utc).strftime("%H:%M:%S")
         LOG_BUFFER.append({"ts": ts, "level": level, "msg": str(msg)[:400]})
 
 _aegis_log_sink = _AegisBufferHandler()
@@ -531,7 +531,7 @@ def _compress_prompt(prompt: str) -> str:
 
 def _get_available_provider() -> dict | None:
     now = time.time()
-    hour_utc = datetime.utcnow().hour
+    hour_utc = datetime.now(timezone.utc).hour
     is_night  = hour_utc in NIGHT_HOURS_UTC
     for p in AI_PROVIDERS:
         if not p["available"]:
@@ -715,7 +715,7 @@ def get_pool_status() -> str:
 
 #  RISK MANAGEMENT
 def check_daily_reset():
-    today = datetime.utcnow().strftime("%Y-%m-%d")
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     if sim.get("daily_start_date") != today:
         sim["daily_start_date"]   = today
         sim["daily_start_equity"] = get_equity_safe()
@@ -835,7 +835,7 @@ def update_blacklist(symbol: str, won: bool):
             }
 
 def is_night_time() -> bool:
-    return datetime.utcnow().hour in NIGHT_HOURS_UTC
+    return datetime.now(timezone.utc).hour in NIGHT_HOURS_UTC
 
 def get_fear_greed_value() -> int:
     now = time.time()
@@ -4296,7 +4296,7 @@ async def cmd_reset(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         "positions":{},"trades":[],"equity_history":[],
         "session":sim.get("session",0)+1,
         "peak_equity":CAPITAL_INITIAL,"daily_start_equity":CAPITAL_INITIAL,
-        "daily_start_date":datetime.utcnow().strftime("%Y-%m-%d")
+        "daily_start_date":datetime.now(timezone.utc).strftime("%Y-%m-%d")
     })
     memory.update({
         "lessons":lessons_saved,"patterns_to_avoid":[],"patterns_that_work":[],
