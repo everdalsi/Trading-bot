@@ -94,6 +94,5 @@ class WebSocketManager:
             else:
                 return self.klines_5m.get(symbol.upper(), deque(maxlen=120))
 
-
 # Instance globale utilisée partout dans le bot
 ws_manager = WebSocketManager()
