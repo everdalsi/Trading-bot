@@ -5053,18 +5053,7 @@ async def cmd_agent(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Tape /agent_stop pour quitter le mode."
     )
 
-async def run_telegram():
-    global _app, _main_loop
-    _main_loop = asyncio.get_event_loop()
-    _app = (ApplicationBuilder()
-            .token(TELEGRAM_TOKEN)
-            .request(HTTPXRequest(
-                connection_pool_size=8, pool_timeout=30.0,
-                connect_timeout=30.0, read_timeout=30.0, write_timeout=30.0
-            ))
-            .updater(None).build())
 
-    for cmd, fn in [
 async def cmd_diagnose(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """One-shot autonomous health check — AEGIS analyses everything and reports"""
     if not _auth(update): return
@@ -5097,6 +5086,18 @@ async def cmd_aegis(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = "Agent AEGIS actif. Envoie-moi directement tes questions."
     await update.message.reply_text(msg)
 
+async def run_telegram():
+    global _app, _main_loop
+    _main_loop = asyncio.get_event_loop()
+    _app = (ApplicationBuilder()
+            .token(TELEGRAM_TOKEN)
+            .request(HTTPXRequest(
+                connection_pool_size=8, pool_timeout=30.0,
+                connect_timeout=30.0, read_timeout=30.0, write_timeout=30.0
+            ))
+            .updater(None).build())
+
+    for cmd, fn in [
         ("diagnose",       cmd_diagnose),
         ("aegis",          cmd_aegis),
         ("start",          cmd_start),
