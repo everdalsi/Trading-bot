@@ -268,6 +268,48 @@ GROQ_SMART_MODEL = "llama-3.3-70b-versatile"   # 1000 req/jour gratuit — meill
 DB_FILE   = "sim_v7.db"
 DATA_FILE = Path("sim_portfolio_v7.json")
 
+# AEGIS log ring-buffer — last 500 entries, survives the whole process lifetime
+LOG_BUFFER = deque(maxlen=500)
+
+class _AegisBufferHandler:
+    """Lightweight log sink — not a real logging.Handler to avoid import order issues"""
+    def emit(self, level: str, msg: str):
+        import datetime as _dt
+        ts = _dt.datetime.utcnow().strftime("%H:%M:%S")
+        LOG_BUFFER.append({"ts": ts, "level": level, "msg": str(msg)[:400]})
+
+_aegis_log_sink = _AegisBufferHandler()
+
+def _log(level: str, msg: str):
+    """Dual-write to logger AND LOG_BUFFER"""
+    _aegis_log_sink.emit(level, msg)
+    if level == "ERROR": logger.error(msg)
+    elif level == "WARN": logger.warning(msg)
+    else: logger.info(msg)
+
+AEGIS_MEMORY_FILE = Path("aegis_memory.json")
+
+def _load_aegis_memory() -> dict:
+    try:
+        if AEGIS_MEMORY_FILE.exists():
+            import json as _j
+            with open(AEGIS_MEMORY_FILE, "r", encoding="utf-8") as f:
+                data = _j.load(f)
+            logger.info(f"[AEGIS] Memory loaded from disk ({len(data)} chats)")
+            return data
+    except Exception as e:
+        logger.warning(f"[AEGIS] Could not load memory: {e}")
+    return {}
+
+def _save_aegis_memory(memory: dict):
+    try:
+        import json as _j
+        with open(AEGIS_MEMORY_FILE, "w", encoding="utf-8") as f:
+            _j.dump(memory, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.warning(f"[AEGIS] Could not save memory: {e}")
+
+
 BINANCE_BASE = "https://api.binance.com"
 BINANCE_KLINES = "https://data.binance.com/api/v3/klines"
 INTERVAL_MAP = {
@@ -2621,6 +2663,7 @@ def trading_loop(send_fn):
     last_risk_check = 0
 
     logger.info("🚀 Trading Loop autonome V8 démarré — Agents décident seuls")
+    _aegis_log_sink.emit("INFO", "Bot trading loop started")
     logger.info("✅ PHASE 1 ACTIVÉE : Backtester VectorBT + ExecutionEngine pro + SQLite Memory")
 
     while bot_state["running"]:
@@ -4603,6 +4646,21 @@ async def _ask_agent_multi(chat_id: int, query: str) -> str:
               "parameters": {"type": "object", "properties": {}, "required": []},
           }
       },
+      {
+          "type": "function",
+          "function": {
+              "name": "get_bot_logs",
+              "description": "Lit les logs recents du bot en memoire. Utilise pour diagnostiquer des erreurs. level=ALL/ERROR/WARN/INFO",
+              "parameters": {
+                  "type": "object",
+                  "properties": {
+                      "level": {"type": "string", "description": "Filtre: ALL, ERROR, WARN, INFO (defaut ALL)"},
+                      "limit": {"type": "integer", "description": "Nombre de logs a retourner (defaut 50)"}
+                  },
+                  "required": []
+              },
+          }
+      },
   ]
 
   # ── Tool execution ────────────────────────────────────────────────────────────
@@ -4818,6 +4876,25 @@ async def _ask_agent_multi(chat_id: int, query: str) -> str:
         except Exception as e:
             return f"Erreur analyse: {e}"
 
+    async def _aegis_tool_get_bot_logs(level: str = "ALL", limit: int = 50) -> str:
+        """Read the in-memory log ring buffer. level: ALL, ERROR, WARN, INFO"""
+        try:
+            all_logs = list(LOG_BUFFER)
+            if not all_logs:
+                return "Aucun log en memoire pour le moment. Le bot vient peut-etre de demarrer."
+            if level.upper() in ("ERROR", "WARN", "INFO"):
+                all_logs = [e for e in all_logs if e["level"].upper() == level.upper()]
+            recent = all_logs[-limit:]
+            if not recent:
+                return f"Aucun log de niveau {level} trouve."
+            out = [f"=== LOGS BOT (derniers {len(recent)}, filtre: {level}) ==="]
+            for e in recent:
+                lvl_icon = {"ERROR": "ERROR", "WARN": "WARN", "INFO": "INFO"}.get(e["level"], e["level"])
+                out.append(f"[{e['ts']}] {lvl_icon} {e['msg']}")
+            return "\n".join(out)
+        except Exception as e:
+            return f"Erreur lecture logs: {e}"
+
   async def _aegis_tool_control_bot(action: str) -> str:
       try:
           global _agent_running, BOT_TRAINING_MODE, _force_trade_override
@@ -4861,7 +4938,7 @@ async def _ask_agent_multi(chat_id: int, query: str) -> str:
           return f"Erreur market data: {e}"
 
   # ── Agent loop (ReAct: Reason + Act) ─────────────────────────────────────────
-  AEGIS_MEMORY: dict = {}  # chat_id → list of messages
+  AEGIS_MEMORY: dict = _load_aegis_memory()  # persisted across restarts
 
   async def _run_aegis_agent(chat_id: str, user_message: str) -> str:
       """Main autonomous agent loop with tool calling (like Claude/Replit Agent)"""
@@ -4904,6 +4981,7 @@ async def _ask_agent_multi(chat_id: int, query: str) -> str:
               # Keep memory bounded
               if len(AEGIS_MEMORY[chat_id]) > 20:
                   AEGIS_MEMORY[chat_id] = AEGIS_MEMORY[chat_id][-20:]
+              _save_aegis_memory(AEGIS_MEMORY)
               return final_text
 
           # Execute tool calls
@@ -4940,6 +5018,8 @@ async def _ask_agent_multi(chat_id: int, query: str) -> str:
                   result = await _aegis_tool_list_github_files(args.get("directory", ""))
               elif tool_name == "analyze_performance":
                   result = await _aegis_tool_analyze_performance()
+              elif tool_name == "get_bot_logs":
+                  result = await _aegis_tool_get_bot_logs(args.get("level","ALL"), args.get("limit",50))
                   result = f"Outil inconnu: {tool_name}"
 
               messages.append({"role": "tool", "tool_call_id": tc.id, "content": str(result)})
@@ -5033,11 +5113,39 @@ async def run_telegram():
             .updater(None).build())
 
     for cmd, fn in [
+async def cmd_diagnose(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """One-shot autonomous health check — AEGIS analyses everything and reports"""
+    if not _auth(update): return
+    await update.message.reply_text("Diagnostic en cours... (10-20 secondes)")
+    try:
+        await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
+    except Exception: pass
+    prompt = (
+        "Effectue un diagnostic complet du bot. "
+        "1) Appelle get_bot_status pour voir l'etat actuel. "
+        "2) Appelle get_bot_logs(level='ERROR') pour chercher les erreurs recentes. "
+        "3) Appelle analyze_performance pour analyser les performances. "
+        "4) Donne un rapport structure: etat general, problemes detectes, recommandations immediates."
+    )
+    try:
+        report = await _run_aegis_agent(str(update.effective_chat.id), prompt)
+        if len(report) > 4000:
+            for i in range(0, len(report), 4000):
+                await update.message.reply_text(report[i:i+4000])
+        else:
+            try:
+                await update.message.reply_text(report, parse_mode="Markdown")
+            except Exception:
+                await update.message.reply_text(report)
+    except Exception as e:
+        await update.message.reply_text(f"Erreur diagnostic: {e}")
+
 async def cmd_aegis(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not _auth(update): return
     msg = "Agent AEGIS actif. Envoie-moi directement tes questions."
     await update.message.reply_text(msg)
 
+        ("diagnose",       cmd_diagnose),
         ("aegis",          cmd_aegis),
         ("start",          cmd_start),
         ("stop",           cmd_stop),
