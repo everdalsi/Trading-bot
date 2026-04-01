@@ -307,3 +307,144 @@ class BaseAgent(ABC):
             return explanation or f"{term} (définition partagée)"
         except Exception:
             return f"{term} (glossaire indisponible)"
+
+
+# ═══════════════════════════════════════════════════════════════════
+# TECHNICAL TOOLS — Accessible à tous les agents via self.tools
+# ═══════════════════════════════════════════════════════════════════
+
+class TechnicalTools:
+    """Boîte à outils technique partagée. Tous les agents ont self.tools = TechnicalTools()."""
+
+    @staticmethod
+    def rsi(closes: list, period: int = 14) -> float:
+        """RSI Wilder. Retourne 50.0 si données insuffisantes."""
+        if len(closes) < period + 1:
+            return 50.0
+        gains, losses = [], []
+        for i in range(1, len(closes)):
+            d = closes[i] - closes[i - 1]
+            gains.append(max(d, 0))
+            losses.append(max(-d, 0))
+        ag = sum(gains[-period:]) / period
+        al = sum(losses[-period:]) / period
+        if al == 0:
+            return 100.0
+        return round(100 - 100 / (1 + ag / al), 2)
+
+    @staticmethod
+    def ema(closes: list, period: int) -> float:
+        """EMA lissée standard."""
+        if not closes: return 0.0
+        if len(closes) < period: return closes[-1]
+        k = 2 / (period + 1)
+        val = sum(closes[:period]) / period
+        for c in closes[period:]:
+            val = c * k + val * (1 - k)
+        return round(val, 6)
+
+    @staticmethod
+    def atr(highs: list, lows: list, closes: list, period: int = 14) -> float:
+        """Average True Range."""
+        if len(closes) < 2: return 0.0
+        trs = []
+        for i in range(1, min(len(highs), len(lows), len(closes))):
+            tr = max(highs[i] - lows[i], abs(highs[i] - closes[i-1]), abs(lows[i] - closes[i-1]))
+            trs.append(tr)
+        if not trs: return 0.0
+        return round(sum(trs[-period:]) / min(len(trs), period), 6)
+
+    @staticmethod
+    def bollinger(closes: list, period: int = 20, num_std: float = 2.0) -> dict:
+        """Bandes de Bollinger. Retourne {"mid","upper","lower","pct_b"}."""
+        if len(closes) < period:
+            c = closes[-1] if closes else 0.0
+            return {"mid": c, "upper": c, "lower": c, "pct_b": 0.5}
+        w = closes[-period:]
+        mid = sum(w) / period
+        std = (sum((x - mid) ** 2 for x in w) / period) ** 0.5
+        upper, lower = mid + num_std * std, mid - num_std * std
+        pct_b = (closes[-1] - lower) / (upper - lower) if upper != lower else 0.5
+        return {"mid": round(mid,6), "upper": round(upper,6), "lower": round(lower,6), "pct_b": round(pct_b,4)}
+
+    @staticmethod
+    def macd(closes: list, fast: int = 12, slow: int = 26, signal: int = 9) -> dict:
+        """MACD standard. Retourne {"macd","signal","hist"}."""
+        if len(closes) < slow: return {"macd": 0.0, "signal": 0.0, "hist": 0.0}
+        def _e(d, p):
+            k = 2 / (p + 1); v = sum(d[:p]) / p
+            for x in d[p:]: v = x * k + v * (1 - k)
+            return v
+        m = _e(closes, fast) - _e(closes, slow)
+        # Signal via mini-series
+        ms = [_e(closes[:i], fast) - _e(closes[:i], slow)
+                  for i in range(slow, len(closes), max(1, len(closes)//slow))]
+        ms.append(m)
+        sig_line = _e(ms, min(signal, len(ms)))
+        return {"macd": round(m,6), "signal": round(sig_line,6), "hist": round(m - sig_line,6)}
+
+    @staticmethod
+    def support_resistance(closes: list, window: int = 20) -> dict:
+        """Niveaux S/R simples."""
+        if not closes: return {"support": 0.0, "resistance": 0.0, "mid": 0.0}
+        w = closes[-window:] if len(closes) >= window else closes
+        s, r = min(w), max(w)
+        return {"support": round(s,6), "resistance": round(r,6), "mid": round((s+r)/2,6)}
+
+    @staticmethod
+    def trend_strength(closes: list, period: int = 20) -> dict:
+        """Force de tendance linéaire. Retourne {"slope_pct","direction"}."""
+        n = min(len(closes), period)
+        if n < 3: return {"slope_pct": 0.0, "direction": "FLAT"}
+        data = closes[-n:]
+        xm, ym = (n-1)/2, sum(data)/n
+        num = sum((i-xm)*(data[i]-ym) for i in range(n))
+        den = sum((i-xm)**2 for i in range(n))
+        sp = (num/den/ym*100) if den and ym else 0.0
+        d = "UP" if sp > 0.05 else "DOWN" if sp < -0.05 else "FLAT"
+        return {"slope_pct": round(sp,4), "direction": d}
+
+
+# ═══════════════════════════════════════════════════════════════════
+# AUTO-CALIBRATION — injectées dans BaseAgent après définition de classe
+# ═══════════════════════════════════════════════════════════════════
+
+def _calibrate_confidence(self, confidence: float, context: dict) -> float:
+    """
+    Ajuste la confiance selon la performance historique de cet agent.
+    Lit /tmp/agent_perf.json (persisté par orchestrator.py).
+    Pas d'ajustement si < 5 trades — données insuffisantes.
+    """
+    import os as _os, json as _json
+    try:
+        perf_file = "/tmp/agent_perf.json"
+        if not _os.path.exists(perf_file): return confidence
+        with open(perf_file, "r") as _f: perfs = _json.load(_f)
+        key = self.name.lower().replace(" ","_").replace("-","_")
+        p = perfs.get(key, {})
+        total, wins = p.get("total", 0), p.get("wins", 0)
+        if total < 5: return confidence
+        wr = wins / total
+        mult = 1.30 if wr >= 0.65 else 1.15 if wr >= 0.55 else 1.00 if wr >= 0.45 else 0.85 if wr >= 0.35 else 0.70
+        return min(0.95, confidence * mult)
+    except Exception:
+        return confidence
+
+
+def _regime_multiplier(self, signal: str, context: dict) -> float:
+    """Multiplicateur de confiance basé sur le régime de marché."""
+    regime = (context.get("market_regime") or "NEUTRAL").upper()
+    sig    = (signal or "HOLD").upper()
+    is_buy  = "BUY" in sig or "LONG" in sig
+    is_sell = "SELL" in sig or "SHORT" in sig
+    if "BULL" in regime:
+        return 1.25 if is_buy  else 0.65 if is_sell else 0.90
+    if "BEAR" in regime:
+        return 1.25 if is_sell else 0.65 if is_buy  else 0.90
+    return 0.85  # TRANSITIONAL/NEUTRAL → prudence
+
+
+# Injection des méthodes dans BaseAgent (monkey-patch modulaire)
+BaseAgent._calibrate_confidence = _calibrate_confidence
+BaseAgent._regime_multiplier     = _regime_multiplier
+BaseAgent.tools                  = TechnicalTools()
