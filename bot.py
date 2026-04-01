@@ -92,9 +92,10 @@ except ImportError:
     print("[WS] websocket-client non installé — fallback REST")
 
 from groq import Groq
-from telegram import Update
+
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters, CallbackQueryHandler
+from telegram.request import HTTPXRequest
 from telegram.constants import ParseMode
 
 # FIX : make_send supporte maintenant parse_mode='HTML'
