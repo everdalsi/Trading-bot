@@ -2751,7 +2751,7 @@ def trading_loop(send_fn):
                         _is_buy    = True
                         _is_no     = False
                         trade_conf = max(trade_conf, _soul_thresh, 0.06)
-                        logger.info(f"[FORCE_TRADE] U0001f525 Override actif → BUY forcé sur {best_symbol} conf={trade_conf:.0%}")
+                        logger.info(f"[FORCE_TRADE] 🔥 Override actif → BUY forcé sur {best_symbol} conf={trade_conf:.0%}")
                 if trade_conf >= _soul_thresh and (_is_buy or _is_sell) and not _is_no:  # Seuil géré par l'âme
                     trade_side = "BUY" if _is_buy else "SELL"
                     trade_price = get_current_price(best_symbol) or current_price
