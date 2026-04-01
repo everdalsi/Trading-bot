@@ -1,13 +1,4 @@
-"""
-🧠 MEMORY V2 — Mémoire hybride SQLite + Redis (fallback automatique)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-FIX V2 :
-- Redis : decode_responses=False (incompatible avec pickle si True)
-- cache_set / cache_get : utilise json.dumps/loads au lieu de pickle
-  pour être compatible avec decode_responses=True si souhaité
-- Ajout de REDIS_HOST fallback : "localhost" si non défini (Docker: "redis")
-- Correction minor : get_global_stats cohérent avec Memory.data structure
-"""
+"""In-memory and persistent storage for the trading bot."""
 
 from typing import Dict, Any, List
 import sqlite3
@@ -26,7 +17,6 @@ try:
 except ImportError:
     REDIS_AVAILABLE = False
     logger.warning("⚠️ [MEMORY] Module redis non installé → SQLite only")
-
 
 class Memory:
 
@@ -77,8 +67,6 @@ class Memory:
                     f"→ fallback SQLite only. ({e})"
                 )
 
-    # ── Compatibilité dictionnaire (requis par bot.py) ────────────────────────
-
     def get(self, key: str, default=None):
         return self.data.get(key, default)
 
@@ -102,8 +90,6 @@ class Memory:
     def update(self, other_dict):
         with self._lock:
             self.data.update(other_dict)
-
-    # ── Gestion des symboles ──────────────────────────────────────────────────
 
     def _init_symbol(self, symbol: str):
         if symbol not in self.data:
@@ -206,8 +192,6 @@ class Memory:
     def log_trade(self, trade_data: dict):
         self.add_trade(trade_data)
 
-    # ── SQLite ────────────────────────────────────────────────────────────────
-
     def _init_db(self):
         self.conn.execute("""
             CREATE TABLE IF NOT EXISTS lessons (
@@ -288,8 +272,6 @@ class Memory:
             except Exception as e:
                 logger.warning(f"[MEMORY] get_positions error: {e}")
                 return {}
-
-    # ── Redis cache ───────────────────────────────────────────────────────────
 
     def cache_set(self, key: str, value: Any, expire: int = 300):
         """
