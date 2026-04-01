@@ -1,5 +1,8 @@
 """Orchestrator V10 — 50 parallel trading agents with Bayesian consensus."""
 
+AGENT_PERF_FILE = "/tmp/agent_perf.json"  # Poids dynamiques agents — mis à jour après chaque trade
+
+
 import asyncio
 from typing import Dict, Any, List, Tuple, Optional
 import os
@@ -159,6 +162,8 @@ class Orchestrator:
         self._last_funding_veto_ts = 0.0   # Debounce : log VETO Funding max 1x/60s
         self._phase0_cache         = {}    # BUG FIX: cache résultat Phase0 (25s TTL)
         self._phase0_cache_ts      = 0.0  # Timestamp dernier cache Phase0
+        self._agent_perf        = self._load_agent_perf()  # Poids dynamiques par agent
+        self._last_perf_save    = 0.0
         logger.info("[ORCHESTRATOR V10] ✅ 50 agents initialisés — Mode PARALLÈLE + Expansion 30→50 agents")
 
     def get_backtest_validator(self) -> BacktestValidatorAgent:
@@ -478,6 +483,80 @@ class Orchestrator:
 
     # HELPERS
 
+    # ─── POIDS DYNAMIQUES AGENTS ────────────────────────────────────────────────
+
+    def _load_agent_perf(self) -> dict:
+        """Charge le fichier de performance des agents (JSON persisté)."""
+        import json as _json, os as _os
+        try:
+            if _os.path.exists(AGENT_PERF_FILE):
+                with open(AGENT_PERF_FILE, "r") as _f:
+                    return _json.load(_f)
+        except Exception: pass
+        return {}
+
+    def _save_agent_perf(self):
+        """Sauvegarde le fichier de performance des agents."""
+        import json as _json
+        try:
+            with open(AGENT_PERF_FILE, "w") as _f:
+                _json.dump(self._agent_perf, _f)
+        except Exception: pass
+
+    def _get_perf_multiplier(self, agent_name: str) -> float:
+        """
+        Retourne un multiplicateur [0.5, 2.0] basé sur la précision historique de l'agent.
+        Un agent correct 80% du temps → 1.5x | 30% → 0.6x | nouveau → 1.0x
+        """
+        perf = self._agent_perf.get(agent_name, {})
+        hits = perf.get("hits", 0)
+        total = perf.get("total", 0)
+        if total < 10:
+            return 1.0  # Pas assez de données → poids nominal
+        accuracy = hits / total
+        # Mapping: 60%+ → boost, <40% → malus
+        if accuracy >= 0.75:  return 2.0
+        if accuracy >= 0.65:  return 1.5
+        if accuracy >= 0.55:  return 1.2
+        if accuracy >= 0.45:  return 1.0
+        if accuracy >= 0.35:  return 0.7
+        return 0.5  # Agent peu fiable
+
+    def update_agent_outcome(self, all_outputs: list, trade_won: bool):
+        """
+        Appelé après clôture d'un trade. Met à jour la précision de chaque agent.
+        Un agent est "correct" si sa recommandation est alignée avec le résultat.
+        """
+        import time as _time
+        changed = False
+        for out in all_outputs:
+            if not isinstance(out, dict): continue
+            name = out.get("agent", "")
+            if not name: continue
+            reco = str(out.get("recommendation", out.get("decision", "HOLD"))).upper()
+            is_buy  = any(x in reco for x in ["BUY", "LONG", "BULLISH"])
+            is_sell = any(x in reco for x in ["SELL", "SHORT", "BEARISH"])
+            is_hold = not (is_buy or is_sell)
+            if is_hold: continue  # HOLD ne contribue pas aux stats
+            # L'agent est correct si : (il dit BUY et le trade est gagnant) OU (il dit SELL et trade perdant)
+            correct = (is_buy and trade_won) or (is_sell and not trade_won)
+            if name not in self._agent_perf:
+                self._agent_perf[name] = {"hits": 0, "total": 0, "accuracy": 0.5}
+            self._agent_perf[name]["total"] += 1
+            if correct:
+                self._agent_perf[name]["hits"] += 1
+            self._agent_perf[name]["accuracy"] = round(
+                self._agent_perf[name]["hits"] / self._agent_perf[name]["total"], 4
+            )
+            changed = True
+        if changed:
+            # Sauvegarder périodiquement (pas à chaque trade)
+            import time as _t2
+            if _t2.time() - self._last_perf_save > 60:
+                self._last_perf_save = _t2.time()
+                self._save_agent_perf()
+                logger.info(f"[ORCH] 📊 Agent perf updated: {len(self._agent_perf)} agents trackés")
+
     def _compute_global_score(self, outputs: List[Dict]) -> float:
         """Score global pondéré sur tous les agents."""
         WEIGHTS = {
@@ -511,7 +590,7 @@ class Orchestrator:
             name = out.get("agent", "")
             conf = float(out.get("confidence", 0.5))
             reco = str(out.get("recommendation", out.get("decision", "HOLD"))).upper()
-            w = WEIGHTS.get(name, 0.02)
+            w = WEIGHTS.get(name, 0.02) * self._get_perf_multiplier(name)
             # Convertir recommandation en score [0, 1]
             if any(x in reco for x in ["BUY", "LONG", "BULLISH"]):
                 score = 0.5 + conf * 0.5
