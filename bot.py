@@ -4666,189 +4666,189 @@ async def _aegis_tool_get_trade_history(limit: int = 20) -> str:
     except Exception as e:
         return f"Erreur lecture trades: {e}"
 
-  async def _aegis_tool_read_github_file(path: str, search: str = None,
-                                          from_line: int = None, to_line: int = None,
-                                          context_lines: int = 5) -> str:
-      try:
-          import urllib.request as _ur, base64 as _b64
-          _repo = GITHUB_REPO or "everdalsi/Trading-bot"
-          _branch = "main-revert-4"
-          _url = f"https://api.github.com/repos/{_repo}/contents/{path}?ref={_branch}"
-          req = _ur.Request(_url, headers={"Authorization": f"Bearer {GITHUB_TOKEN}", "Accept": "application/vnd.github+json"})
-          with _ur.urlopen(req, timeout=15) as r:
-              data = json.loads(r.read())
-          content = _b64.b64decode(data["content"].replace("\n","")).decode("utf-8", errors="replace")
-          file_lines = content.split("\n")
-          total = len(file_lines)
-          if search:
-              matches = [(i, l) for i, l in enumerate(file_lines) if search.lower() in l.lower()]
-              if not matches:
-                  return f"Introuvable: {search!r} dans {path} ({total} lignes)"
-              out = [f"Recherche {search!r} dans {path} -> {len(matches)} resultats:\n"]
-              shown = set()
-              for idx, _ in matches[:8]:
-                  start_c = max(0, idx - context_lines)
-                  end_c = min(total, idx + context_lines + 1)
-                  if start_c in shown: continue
-                  out.append(f"  -- L{idx+1} --")
-                  for i in range(start_c, end_c):
-                      marker = ">>>" if i == idx else "   "
-                      out.append(f"  {marker} L{i+1}: {file_lines[i]}")
-                  shown.add(start_c)
-                  out.append("")
-              return "\n".join(out)
-          if from_line or to_line:
-              start_r = max(0, (from_line or 1) - 1)
-              end_r = min(total, (to_line or total))
-              chunk = file_lines[start_r:end_r]
-              out = [f"{path} L{start_r+1}-L{end_r} ({total} lignes total):"]
-              out += [f"L{start_r+i+1}: {l}" for i, l in enumerate(chunk)]
-              return "\n".join(out)
-          preview = [f"L{i+1}: {l}" for i, l in enumerate(file_lines[:60])]
-          out = [f"{path} ({total} lignes). Premieres 60 lignes:"]
-          out += preview
-          out.append("\n-> Utilise from_line/to_line pour lire une section, ou search pour chercher un mot-cle.")
-          return "\n".join(out)
-      except Exception as e:
-          return f"Erreur lecture {path}: {e}"
+async def _aegis_tool_read_github_file(path: str, search: str = None,
+                                        from_line: int = None, to_line: int = None,
+                                        context_lines: int = 5) -> str:
+    try:
+        import urllib.request as _ur, base64 as _b64
+        _repo = GITHUB_REPO or "everdalsi/Trading-bot"
+        _branch = "main-revert-4"
+        _url = f"https://api.github.com/repos/{_repo}/contents/{path}?ref={_branch}"
+        req = _ur.Request(_url, headers={"Authorization": f"Bearer {GITHUB_TOKEN}", "Accept": "application/vnd.github+json"})
+        with _ur.urlopen(req, timeout=15) as r:
+            data = json.loads(r.read())
+        content = _b64.b64decode(data["content"].replace("\n","")).decode("utf-8", errors="replace")
+        file_lines = content.split("\n")
+        total = len(file_lines)
+        if search:
+            matches = [(i, l) for i, l in enumerate(file_lines) if search.lower() in l.lower()]
+            if not matches:
+                return f"Introuvable: {search!r} dans {path} ({total} lignes)"
+            out = [f"Recherche {search!r} dans {path} -> {len(matches)} resultats:\n"]
+            shown = set()
+            for idx, _ in matches[:8]:
+                start_c = max(0, idx - context_lines)
+                end_c = min(total, idx + context_lines + 1)
+                if start_c in shown: continue
+                out.append(f"  -- L{idx+1} --")
+                for i in range(start_c, end_c):
+                    marker = ">>>" if i == idx else "   "
+                    out.append(f"  {marker} L{i+1}: {file_lines[i]}")
+                shown.add(start_c)
+                out.append("")
+            return "\n".join(out)
+        if from_line or to_line:
+            start_r = max(0, (from_line or 1) - 1)
+            end_r = min(total, (to_line or total))
+            chunk = file_lines[start_r:end_r]
+            out = [f"{path} L{start_r+1}-L{end_r} ({total} lignes total):"]
+            out += [f"L{start_r+i+1}: {l}" for i, l in enumerate(chunk)]
+            return "\n".join(out)
+        preview = [f"L{i+1}: {l}" for i, l in enumerate(file_lines[:60])]
+        out = [f"{path} ({total} lignes). Premieres 60 lignes:"]
+        out += preview
+        out.append("\n-> Utilise from_line/to_line pour lire une section, ou search pour chercher un mot-cle.")
+        return "\n".join(out)
+    except Exception as e:
+        return f"Erreur lecture {path}: {e}"
 
-  async def _aegis_tool_edit_github_file(path: str, old_text: str, new_text: str,
-                                          commit_msg: str, dry_run: bool = False) -> str:
-      """Edit a file on GitHub. dry_run=True shows the diff without committing."""
-      try:
-          import urllib.request as _ur, base64 as _b64
-          _repo = GITHUB_REPO or "everdalsi/Trading-bot"
-          _branch = "main-revert-4"
-          _url = f"https://api.github.com/repos/{_repo}/contents/{path}?ref={_branch}"
-          req = _ur.Request(_url, headers={"Authorization": f"Bearer {GITHUB_TOKEN}", "Accept": "application/vnd.github+json"})
-          with _ur.urlopen(req, timeout=15) as r:
-              data = json.loads(r.read())
-          current_sha = data["sha"]
-          content = _b64.b64decode(data["content"].replace("\n","")).decode("utf-8", errors="replace")
-          count = content.count(old_text)
-          if count == 0:
-              # Try to find close matches
-              first_line = old_text.strip().split("\n")[0][:60]
-              nearby = [(i+1, l) for i, l in enumerate(content.split("\n")) if first_line[:20].lower() in l.lower()][:3]
-              hint = "\n".join(f"  L{n}: {l}" for n, l in nearby) if nearby else "  (aucune correspondance)"
-              return f"Texte a remplacer INTROUVABLE dans {path}.\nPistage similaire:\n{hint}\nUtilise search dans read_github_file pour trouver le texte exact."
-          new_content = content.replace(old_text, new_text, 1)
-          # Show diff summary
-          old_lines = old_text.strip().split("\n")
-          new_lines = new_text.strip().split("\n")
-          diff_preview = f"DIFF ({path}):\n"
-          for l in old_lines[:5]: diff_preview += f"  - {l}\n"
-          for l in new_lines[:5]: diff_preview += f"  + {l}\n"
-          if dry_run:
-              return f"[DRY RUN] Voici ce qui serait change:\n{diff_preview}\nRelance avec dry_run=False pour confirmer."
-          encoded = _b64.b64encode(new_content.encode("utf-8")).decode()
-          payload = json.dumps({"message": f"[AEGIS] {commit_msg}", "content": encoded, "sha": current_sha, "branch": _branch}).encode()
-          put_req = _ur.Request(
-              f"https://api.github.com/repos/{_repo}/contents/{path}",
-              data=payload,
-              headers={"Authorization": f"Bearer {GITHUB_TOKEN}", "Accept": "application/vnd.github+json", "Content-Type": "application/json"},
-              method="PUT"
-          )
-          with _ur.urlopen(put_req, timeout=20) as r:
-              result = json.loads(r.read())
-          commit_sha = result.get("commit", {}).get("sha", "?")[:10]
-          return f"Fichier modifie et pushe! Commit: {commit_sha}\n{diff_preview}\nRailway redemarre dans ~2 min."
-      except Exception as e:
-          return f"Erreur modification fichier: {e}"
+async def _aegis_tool_edit_github_file(path: str, old_text: str, new_text: str,
+                                        commit_msg: str, dry_run: bool = False) -> str:
+    """Edit a file on GitHub. dry_run=True shows the diff without committing."""
+    try:
+        import urllib.request as _ur, base64 as _b64
+        _repo = GITHUB_REPO or "everdalsi/Trading-bot"
+        _branch = "main-revert-4"
+        _url = f"https://api.github.com/repos/{_repo}/contents/{path}?ref={_branch}"
+        req = _ur.Request(_url, headers={"Authorization": f"Bearer {GITHUB_TOKEN}", "Accept": "application/vnd.github+json"})
+        with _ur.urlopen(req, timeout=15) as r:
+            data = json.loads(r.read())
+        current_sha = data["sha"]
+        content = _b64.b64decode(data["content"].replace("\n","")).decode("utf-8", errors="replace")
+        count = content.count(old_text)
+        if count == 0:
+            # Try to find close matches
+            first_line = old_text.strip().split("\n")[0][:60]
+            nearby = [(i+1, l) for i, l in enumerate(content.split("\n")) if first_line[:20].lower() in l.lower()][:3]
+            hint = "\n".join(f"  L{n}: {l}" for n, l in nearby) if nearby else "  (aucune correspondance)"
+            return f"Texte a remplacer INTROUVABLE dans {path}.\nPistage similaire:\n{hint}\nUtilise search dans read_github_file pour trouver le texte exact."
+        new_content = content.replace(old_text, new_text, 1)
+        # Show diff summary
+        old_lines = old_text.strip().split("\n")
+        new_lines = new_text.strip().split("\n")
+        diff_preview = f"DIFF ({path}):\n"
+        for l in old_lines[:5]: diff_preview += f"  - {l}\n"
+        for l in new_lines[:5]: diff_preview += f"  + {l}\n"
+        if dry_run:
+            return f"[DRY RUN] Voici ce qui serait change:\n{diff_preview}\nRelance avec dry_run=False pour confirmer."
+        encoded = _b64.b64encode(new_content.encode("utf-8")).decode()
+        payload = json.dumps({"message": f"[AEGIS] {commit_msg}", "content": encoded, "sha": current_sha, "branch": _branch}).encode()
+        put_req = _ur.Request(
+            f"https://api.github.com/repos/{_repo}/contents/{path}",
+            data=payload,
+            headers={"Authorization": f"Bearer {GITHUB_TOKEN}", "Accept": "application/vnd.github+json", "Content-Type": "application/json"},
+            method="PUT"
+        )
+        with _ur.urlopen(put_req, timeout=20) as r:
+            result = json.loads(r.read())
+        commit_sha = result.get("commit", {}).get("sha", "?")[:10]
+        return f"Fichier modifie et pushe! Commit: {commit_sha}\n{diff_preview}\nRailway redemarre dans ~2 min."
+    except Exception as e:
+        return f"Erreur modification fichier: {e}"
 
-  async def _aegis_tool_list_github_files(directory: str = "") -> str:
-      """List files/folders in the GitHub repo"""
-      try:
-          import urllib.request as _ur
-          _repo = GITHUB_REPO or "everdalsi/Trading-bot"
-          _branch = "main-revert-4"
-          path = directory.strip("/")
-          _url = f"https://api.github.com/repos/{_repo}/contents/{path}?ref={_branch}"
-          req = _ur.Request(_url, headers={"Authorization": f"Bearer {GITHUB_TOKEN}", "Accept": "application/vnd.github+json"})
-          with _ur.urlopen(req, timeout=15) as r:
-              items = json.loads(r.read())
-          if isinstance(items, dict):
-              return f"Ceci est un fichier, pas un dossier. Utilise read_github_file pour le lire."
-          out = [f"Fichiers dans /{path or "racine"}:"]
-          for item in sorted(items, key=lambda x: (x["type"]=="file", x["name"])):
-              icon = "folder" if item["type"] == "dir" else "file"
-              size = f" ({item.get('size', 0)} bytes)" if item["type"] == "file" else ""
-              out.append(f"  [{icon}] {item['name']}{size}")
-          return "\n".join(out)
-      except Exception as e:
-          return f"Erreur liste fichiers: {e}"
+async def _aegis_tool_list_github_files(directory: str = "") -> str:
+    """List files/folders in the GitHub repo"""
+    try:
+        import urllib.request as _ur
+        _repo = GITHUB_REPO or "everdalsi/Trading-bot"
+        _branch = "main-revert-4"
+        path = directory.strip("/")
+        _url = f"https://api.github.com/repos/{_repo}/contents/{path}?ref={_branch}"
+        req = _ur.Request(_url, headers={"Authorization": f"Bearer {GITHUB_TOKEN}", "Accept": "application/vnd.github+json"})
+        with _ur.urlopen(req, timeout=15) as r:
+            items = json.loads(r.read())
+        if isinstance(items, dict):
+            return f"Ceci est un fichier, pas un dossier. Utilise read_github_file pour le lire."
+        out = [f"Fichiers dans /{path or "racine"}:"]
+        for item in sorted(items, key=lambda x: (x["type"]=="file", x["name"])):
+            icon = "folder" if item["type"] == "dir" else "file"
+            size = f" ({item.get('size', 0)} bytes)" if item["type"] == "file" else ""
+            out.append(f"  [{icon}] {item['name']}{size}")
+        return "\n".join(out)
+    except Exception as e:
+        return f"Erreur liste fichiers: {e}"
 
-  async def _aegis_tool_analyze_performance() -> str:
-      """Deep analysis of trading performance — win rate by hour, symbol, session"""
-      try:
-          sim = _SHARED_SIM_STATE
-          trades = sim.get("trades", [])
-          if not trades:
-              return "Pas encore de trades enregistres."
-          from collections import defaultdict
-          by_hour = defaultdict(lambda: {"w":0,"l":0})
-          by_symbol = defaultdict(lambda: {"w":0,"l":0,"pnl":0.0})
-          by_side = defaultdict(lambda: {"w":0,"l":0})
-          total_pnl = 0.0
-          wins = 0
-          for t in trades:
-              pnl = t.get("pnl", 0)
-              sym = t.get("symbol", "?")
-              side = t.get("side", "?")
-              ts = t.get("timestamp", "")
-              won = pnl > 0
-              total_pnl += pnl
-              if won: wins += 1
-              by_symbol[sym]["w" if won else "l"] += 1
-              by_symbol[sym]["pnl"] += pnl
-              by_side[side]["w" if won else "l"] += 1
-              try:
-                  hour = int(str(ts)[11:13])
-                  by_hour[hour]["w" if won else "l"] += 1
-              except: pass
-          total = len(trades)
-          wr = wins/total*100 if total else 0
-          out = [f"=== ANALYSE PERFORMANCE ({total} trades) ==="]
-          out.append(f"Win Rate global: {wr:.1f}% | PnL total: {total_pnl:+.2f}$")
-          out.append("\nPar SYMBOLE:")
-          for sym, d in sorted(by_symbol.items(), key=lambda x: -x[1]["pnl"])[:6]:
-              t2 = d["w"]+d["l"]
-              wr2 = d["w"]/t2*100 if t2 else 0
-              out.append(f"  {sym}: {wr2:.0f}% WR | {d['pnl']:+.2f}$ ({t2} trades)")
-          out.append("\nPar COTE:")
-          for side, d in by_side.items():
-              t2 = d["w"]+d["l"]
-              wr2 = d["w"]/t2*100 if t2 else 0
-              out.append(f"  {side}: {wr2:.0f}% WR ({t2} trades)")
-          if by_hour:
-              best_hours = sorted(by_hour.items(), key=lambda x: -(x[1]["w"]/(x[1]["w"]+x[1]["l"]+0.001)))[:3]
-              out.append("\nMeilleures heures:")
-              for hr, d in best_hours:
-                  t2 = d["w"]+d["l"]
-                  wr2 = d["w"]/t2*100 if t2 else 0
-                  out.append(f"  {hr}h UTC: {wr2:.0f}% WR ({t2} trades)")
-          return "\n".join(out)
-      except Exception as e:
-          return f"Erreur analyse: {e}"
+async def _aegis_tool_analyze_performance() -> str:
+    """Deep analysis of trading performance — win rate by hour, symbol, session"""
+    try:
+        sim = _SHARED_SIM_STATE
+        trades = sim.get("trades", [])
+        if not trades:
+            return "Pas encore de trades enregistres."
+        from collections import defaultdict
+        by_hour = defaultdict(lambda: {"w":0,"l":0})
+        by_symbol = defaultdict(lambda: {"w":0,"l":0,"pnl":0.0})
+        by_side = defaultdict(lambda: {"w":0,"l":0})
+        total_pnl = 0.0
+        wins = 0
+        for t in trades:
+            pnl = t.get("pnl", 0)
+            sym = t.get("symbol", "?")
+            side = t.get("side", "?")
+            ts = t.get("timestamp", "")
+            won = pnl > 0
+            total_pnl += pnl
+            if won: wins += 1
+            by_symbol[sym]["w" if won else "l"] += 1
+            by_symbol[sym]["pnl"] += pnl
+            by_side[side]["w" if won else "l"] += 1
+            try:
+                hour = int(str(ts)[11:13])
+                by_hour[hour]["w" if won else "l"] += 1
+            except: pass
+        total = len(trades)
+        wr = wins/total*100 if total else 0
+        out = [f"=== ANALYSE PERFORMANCE ({total} trades) ==="]
+        out.append(f"Win Rate global: {wr:.1f}% | PnL total: {total_pnl:+.2f}$")
+        out.append("\nPar SYMBOLE:")
+        for sym, d in sorted(by_symbol.items(), key=lambda x: -x[1]["pnl"])[:6]:
+            t2 = d["w"]+d["l"]
+            wr2 = d["w"]/t2*100 if t2 else 0
+            out.append(f"  {sym}: {wr2:.0f}% WR | {d['pnl']:+.2f}$ ({t2} trades)")
+        out.append("\nPar COTE:")
+        for side, d in by_side.items():
+            t2 = d["w"]+d["l"]
+            wr2 = d["w"]/t2*100 if t2 else 0
+            out.append(f"  {side}: {wr2:.0f}% WR ({t2} trades)")
+        if by_hour:
+            best_hours = sorted(by_hour.items(), key=lambda x: -(x[1]["w"]/(x[1]["w"]+x[1]["l"]+0.001)))[:3]
+            out.append("\nMeilleures heures:")
+            for hr, d in best_hours:
+                t2 = d["w"]+d["l"]
+                wr2 = d["w"]/t2*100 if t2 else 0
+                out.append(f"  {hr}h UTC: {wr2:.0f}% WR ({t2} trades)")
+        return "\n".join(out)
+    except Exception as e:
+        return f"Erreur analyse: {e}"
 
-  async def _aegis_tool_get_bot_logs(level: str = "ALL", limit: int = 50) -> str:
-      """Read the in-memory log ring buffer. level: ALL, ERROR, WARN, INFO"""
-      try:
-          all_logs = list(LOG_BUFFER)
-          if not all_logs:
-              return "Aucun log en memoire pour le moment. Le bot vient peut-etre de demarrer."
-          if level.upper() in ("ERROR", "WARN", "INFO"):
-              all_logs = [e for e in all_logs if e["level"].upper() == level.upper()]
-          recent = all_logs[-limit:]
-          if not recent:
-              return f"Aucun log de niveau {level} trouve."
-          out = [f"=== LOGS BOT (derniers {len(recent)}, filtre: {level}) ==="]
-          for e in recent:
-              lvl_icon = {"ERROR": "ERROR", "WARN": "WARN", "INFO": "INFO"}.get(e["level"], e["level"])
-              out.append(f"[{e['ts']}] {lvl_icon} {e['msg']}")
-          return "\n".join(out)
-      except Exception as e:
-          return f"Erreur lecture logs: {e}"
+async def _aegis_tool_get_bot_logs(level: str = "ALL", limit: int = 50) -> str:
+    """Read the in-memory log ring buffer. level: ALL, ERROR, WARN, INFO"""
+    try:
+        all_logs = list(LOG_BUFFER)
+        if not all_logs:
+            return "Aucun log en memoire pour le moment. Le bot vient peut-etre de demarrer."
+        if level.upper() in ("ERROR", "WARN", "INFO"):
+            all_logs = [e for e in all_logs if e["level"].upper() == level.upper()]
+        recent = all_logs[-limit:]
+        if not recent:
+            return f"Aucun log de niveau {level} trouve."
+        out = [f"=== LOGS BOT (derniers {len(recent)}, filtre: {level}) ==="]
+        for e in recent:
+            lvl_icon = {"ERROR": "ERROR", "WARN": "WARN", "INFO": "INFO"}.get(e["level"], e["level"])
+            out.append(f"[{e['ts']}] {lvl_icon} {e['msg']}")
+        return "\n".join(out)
+    except Exception as e:
+        return f"Erreur lecture logs: {e}"
 
 async def _aegis_tool_control_bot(action: str) -> str:
     try:
