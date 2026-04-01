@@ -4958,25 +4958,22 @@ async def _run_aegis_agent(chat_id: str, user_message: str) -> str:
                 result = await _aegis_tool_get_bot_status()
             elif tool_name == "get_trade_history":
                 result = await _aegis_tool_get_trade_history(args.get("limit", 20))
+            elif tool_name == "analyze_performance":
+                result = await _aegis_tool_analyze_performance()
             elif tool_name == "read_github_file":
                 result = await _aegis_tool_read_github_file(args.get("path","bot.py"), args.get("search"), args.get("from_line"), args.get("to_line"), args.get("context_lines", 5))
+            elif tool_name == "list_github_files":
+                result = await _aegis_tool_list_github_files(args.get("directory", ""))
             elif tool_name == "edit_github_file":
-                result = await _aegis_tool_edit_github_file(
-                    args.get("path"), args.get("old_text"), args.get("new_text"), args.get("commit_msg","update")
-                    args.get("path"), args.get("old_text"), args.get("new_text"), args.get("commit_msg","update"), args.get("dry_run", True)
+                result = await _aegis_tool_edit_github_file(args.get("path"), args.get("old_text"), args.get("new_text"), args.get("commit_msg","update"), args.get("dry_run", True))
             elif tool_name == "control_bot":
                 result = await _aegis_tool_control_bot(args.get("action"))
             elif tool_name == "get_market_data":
                 result = await _aegis_tool_get_market_data()
-            else:
-            elif tool_name == "list_github_files":
-                result = await _aegis_tool_list_github_files(args.get("directory", ""))
-            elif tool_name == "analyze_performance":
-                result = await _aegis_tool_analyze_performance()
             elif tool_name == "get_bot_logs":
-                result = await _aegis_tool_get_bot_logs(args.get("level","ALL"), args.get("limit",50))
+                result = await _aegis_tool_get_bot_logs(args.get("level","ALL"), args.get("limit", 50))
+            else:
                 result = f"Outil inconnu: {tool_name}"
-
             messages.append({"role": "tool", "tool_call_id": tc.id, "content": str(result)})
 
     return "J'ai réfléchi en profondeur mais je n'ai pas pu finaliser. Reformule ta demande."
