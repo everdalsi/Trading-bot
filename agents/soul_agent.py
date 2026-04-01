@@ -59,8 +59,8 @@ class SoulAgent:
         self.params: Dict[str, Any] = {
             "confidence_threshold": 0.15,   # Seuil de déclenchement d'un trade
             "kelly_fraction":       0.05,   # Fraction Kelly appliquée
-            "stop_loss_pct":        0.025,  # Stop-loss par trade
-            "take_profit_pct":      0.04,   # Take-profit par trade
+        "stop_loss_pct":        0.015,  # Stop-loss par trade (R:R 1:4)
+        "take_profit_pct":      0.060,   # Take-profit par trade (R:R 1:4)
             "max_positions":        10,     # Positions simultanées max
             "live_mode":            False,  # False = training, True = argent réel
             "live_confidence_min":  0.75,   # Seuil minimum en mode live
