@@ -3489,8 +3489,8 @@ class BotHandler(BaseHTTPRequestHandler):
                 "ws_connected":     ws_manager.connected if ws_manager else False,
                 "training_mode":    BOT_TRAINING_MODE,
                 "training_win_target": int(TRAINING_WIN_TARGET * 100),
-                "live_ready":       not BOT_TRAINING_MODE or (wr >= TRAINING_WIN_TARGET * 100 and len(_trades) >= TRAINING_MIN_TRADES),
-            })
+                "market_universe":   {"hot": len(_HOT_SYMBOLS), "warm": len(_WARM_SYMBOLS), "cold": len(_COLD_SYMBOLS), "total": len(_ALL_DISCOVERED) or len(CRYPTO_SYMBOLS)},
+                "live_ready":       not BOT_TRAINING_MODE or (wr >= TRAINING_WIN_TARGET * 100 and len(_trades) >= TRAINI
 
         elif path in ("/api/soul", "/api/soul/state"):
             if _soul:
