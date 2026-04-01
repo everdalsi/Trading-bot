@@ -2744,6 +2744,35 @@ def trading_loop(send_fn):
                 "daily_start_equity": sim.get("daily_start_equity", equity),
             }
 
+            # ── Biais background + Pump scanner ─────────────────────────────
+            if hasattr(orchestrator, "_bg_cache") and orchestrator._bg_cache:
+                micro_ctx["bg_pre_bias"]  = orchestrator._bg_cache.get("pre_bias", "NEUTRAL")
+                micro_ctx["bg_buy_count"] = orchestrator._bg_cache.get("pre_buy", 0)
+                micro_ctx["bg_sell_count"]= orchestrator._bg_cache.get("pre_sell", 0)
+            # Pump scanner — détecte setups rapides style momentum
+            try:
+                _closes_map_ps = {}
+                for _sym_ps in top_symbols[:5]:
+                    _c = bot_state.get(f"closes_{_sym_ps}", bot_state.get("closes_5m", []))
+                    if _c: _closes_map_ps[_sym_ps] = _c
+                if _closes_map_ps:
+                    _pump_future = asyncio.run_coroutine_threadsafe(
+                        orchestrator.scan_pump_setups(list(_closes_map_ps.keys()), {}, _closes_map_ps),
+                        _main_loop
+                    )
+                    _pump_alerts = _pump_future.result(timeout=5)
+                    if _pump_alerts:
+                        micro_ctx["pump_alerts"] = _pump_alerts
+                        logger.info(f"[PUMP] 🚀 {len(_pump_alerts)} setups → top:{_pump_alerts[0]['symbol']} {_pump_alerts[0]['type']} {_pump_alerts[0]['pct_5c']:+.1f}%")
+                        # Si le top pump est dans nos symboles → le prioriser
+                        _pump_sym = _pump_alerts[0]["symbol"]
+                        if _pump_sym in top_symbols:
+                            top_symbols.remove(_pump_sym)
+                            top_symbols.insert(0, _pump_sym)
+                            micro_ctx["symbol"] = _pump_sym
+            except Exception as _pump_e:
+                pass
+
             try:
                 # ── Analyse parallèle sur les 3 meilleurs symboles ──────────
                 multi_future = asyncio.run_coroutine_threadsafe(
@@ -2919,6 +2948,21 @@ def trading_loop(send_fn):
                                 memory.save_lesson(symbol=best_symbol, action=trade_side, outcome="training_error", pnl=0.0, confidence=trade_conf, lesson=f"[TRAINING ERROR] {trade_side} {best_symbol} conf={trade_conf:.0%} err={type(exec_e).__name__}")
                             except Exception: pass
 
+                else:
+                    # ── HOLD : agents travaillent en arrière-plan ──────────────────
+                    try:
+                        bg_future = asyncio.run_coroutine_threadsafe(
+                            orchestrator.run_background_agents(micro_ctx, _debate_cycle_id),
+                            _main_loop
+                        )
+                        # Non-bloquant — on n'attend pas le résultat
+                        logger.info(f"[HOLD] 🔄 BG agents lancés | cycle={_debate_cycle_id} | bias pré-calculé")
+                    except Exception as _bg_err:
+                        pass
+                    # Injection du biais background dans le prochain cycle
+                    if hasattr(orchestrator, '_bg_cache') and orchestrator._bg_cache:
+                        _bg = orchestrator._bg_cache
+                        logger.info(f"[HOLD] 📊 BG bias: {_bg.get('pre_bias','?')} | BUY:{_bg.get('pre_buy',0)} SELL:{_bg.get('pre_sell',0)}")
             except Exception as e:
                 logger.warning(f"[MICRO V7] Cycle error: {type(e).__name__}: {e or "timeout"}")
                 # Fallback : analyse simple BTC uniquement
