@@ -172,6 +172,7 @@ LIVE_MAX_PCT_PER_TRADE = 0.08
 
 # ── MODE TRAINING / LIVE ───────────────────────────────────────────────────────
 BOT_TRAINING_MODE    = True    # True = training (prend max de trades), False = live (argent réel)
+os.environ["BOT_TRAINING_MODE"] = "True" if BOT_TRAINING_MODE else "False"  # Propagate to agents
 TRAINING_CONF_THRESH = 0.01   # 1% — en training on prend TOUT pour apprendre
 TRAINING_MAX_USD     = 15.0   # Max $15 par trade en training (limiter les pertes)
 TRAINING_WIN_TARGET  = 0.68   # 68% win rate → eligible pour passage en LIVE
