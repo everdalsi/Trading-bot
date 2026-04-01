@@ -1,7 +1,4 @@
-"""
-🔍 KNOWLEDGE BASE V1.4 — Version Stable + AUTO-LOAD + get_glossary
-Fix: suppression du double try/except impossible (bug syntaxique)
-"""
+"""Shared knowledge base and glossary for all agents."""
 
 import os
 from pathlib import Path
