@@ -1280,11 +1280,12 @@ async def scan_market_parallel() -> list:
     prices = get_prices_batch()
     _scan_syms = get_scan_symbols()
     tasks = [_analyze_symbol_quick(sym, prices) for sym in _scan_syms]
+    results_raw = await asyncio.gather(*tasks, return_exceptions=True)
     opps = [r for r in results_raw if r and isinstance(r, dict) and r.get("score", 0) != 0]
     opps.sort(key=lambda x: abs(x.get("score", 0)), reverse=True)
-    logger.info(f"[scan_parallel] ✅ {len(opps)} opportunités / {len(CRYPTO_SYMBOLS)} symboles")
     logger.info(f"[scan_parallel] ✅ {len(opps)} opportunités / {len(_scan_syms)} symboles | tiers actifs")
 
+    return opps
 
 #  ANALYSE COMPLÈTE
 def analyze(opp: dict, fear_greed: str) -> dict:
