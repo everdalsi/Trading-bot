@@ -46,6 +46,29 @@ from agents.event_sniper_agent import EventSniperAgent
 from agents.polymarket_trader_agent import PolymarketTraderAgent
 from agents.sports_arb_agent import SportsArbAgent
 
+# ── Nouveaux agents V10 (20 agents) ─────────────────────────────────────
+from agents.quantum_risk_agent import QuantumRiskAgent
+from agents.macro_regime_agent import MacroRegimeAgent
+from agents.on_chain_agent import OnChainAgent
+from agents.derivatives_agent import DerivativesAgent
+from agents.liquidation_tracker_agent import LiquidationTrackerAgent
+from agents.exchange_flow_agent import ExchangeFlowAgent
+from agents.fear_greed_agent import FearGreedAgent
+from agents.pattern_recognition_agent import PatternRecognitionAgent
+from agents.regime_detector_agent import RegimeDetectorAgent
+from agents.arbitrage_scanner_agent import ArbitrageScannerAgent
+from agents.macro_calendar_agent import MacroCalendarAgent
+from agents.defi_monitor_agent import DefiMonitorAgent
+from agents.blockchain_health_agent import BlockchainHealthAgent
+from agents.options_flow_agent import OptionsFlowAgent
+from agents.cross_asset_agent import CrossAssetAgent
+from agents.vol_regime_agent import VolRegimeAgent
+from agents.sentiment_aggregator_agent import SentimentAggregatorAgent
+from agents.whale_tracker_agent import WhaleTrackerAgent
+from agents.regulatory_monitor_agent import RegulatoryMonitorAgent
+from agents.grid_strategy_agent import GridStrategyAgent
+from agents.token_unlock_agent import TokenUnlockAgent
+
 from logging_config import logger
 
 # Timeout par agent (secondes)
@@ -121,6 +144,29 @@ class Orchestrator:
         self.polymarket_trader  = PolymarketTraderAgent()    # Direct Polymarket trading
         self.sports_arb         = SportsArbAgent()           # Sports latency arbitrage
 
+        # ── Agents V10 — Expansion 30→50 ─────────────────────────────────────
+        self.quantum_risk          = QuantumRiskAgent()
+        self.macro_regime          = MacroRegimeAgent()
+        self.on_chain              = OnChainAgent()
+        self.derivatives           = DerivativesAgent()
+        self.liquidation_tracker   = LiquidationTrackerAgent()
+        self.exchange_flow         = ExchangeFlowAgent()
+        self.fear_greed            = FearGreedAgent()
+        self.pattern_recognition   = PatternRecognitionAgent()
+        self.regime_detector       = RegimeDetectorAgent()
+        self.arbitrage_scanner     = ArbitrageScannerAgent()
+        self.macro_calendar        = MacroCalendarAgent()
+        self.defi_monitor          = DefiMonitorAgent()
+        self.blockchain_health     = BlockchainHealthAgent()
+        self.options_flow          = OptionsFlowAgent()
+        self.cross_asset           = CrossAssetAgent()
+        self.vol_regime            = VolRegimeAgent()
+        self.sentiment_aggregator  = SentimentAggregatorAgent()
+        self.whale_tracker         = WhaleTrackerAgent()
+        self.regulatory_monitor    = RegulatoryMonitorAgent()
+        self.grid_strategy         = GridStrategyAgent()
+        self.token_unlock          = TokenUnlockAgent()
+
         self.debate_rounds = 0
         self._poly_arb_cache   = {}
         self._sniper_cache     = {}
@@ -130,7 +176,7 @@ class Orchestrator:
         self._last_funding_veto_ts = 0.0   # Debounce : log VETO Funding max 1x/60s
         self._phase0_cache         = {}    # BUG FIX: cache résultat Phase0 (25s TTL)
         self._phase0_cache_ts      = 0.0  # Timestamp dernier cache Phase0
-        logger.info("[ORCHESTRATOR V9] ✅ 14 agents initialisés — Mode PARALLÈLE activé (+ PolyTrader + SportsArb)")
+        logger.info("[ORCHESTRATOR V10] ✅ 50 agents initialisés — Mode PARALLÈLE + Expansion 30→50 agents")
 
     def get_backtest_validator(self) -> BacktestValidatorAgent:
         return self.backtest_validator
@@ -412,6 +458,18 @@ class Orchestrator:
             "polymarket_arb":       0.05,
             "event_sniper":         0.05,
             "sports_arb":           0.04, # arb garanti → signal fiable
+            # Agents V10 — expansion
+            "quantum_risk":        0.05, "macro_regime":        0.04,
+            "on_chain":            0.04, "derivatives":         0.04,
+            "fear_greed":          0.03, "whale_tracker":       0.03,
+            "sentiment_aggregator":0.03, "regulatory_monitor":  0.04,
+            "regime_detector":     0.03, "pattern_recognition": 0.03,
+            "vol_regime":          0.02, "options_flow":        0.03,
+            "liquidation_tracker": 0.02, "arbitrage_scanner":   0.03,
+            "cross_asset":         0.02, "exchange_flow":       0.02,
+            "macro_calendar":      0.02, "defi_monitor":        0.02,
+            "blockchain_health":   0.01, "token_unlock":        0.01,
+            "grid_strategy":       0.02,
         }
         total_w, weighted_sum = 0.0, 0.0
         for out in outputs:
