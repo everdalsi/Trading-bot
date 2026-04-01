@@ -1,11 +1,4 @@
-"""
-📋 LOGGING CONFIG — Configuration centralisée des logs (Pino-style)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- Format JSON structuré compatible avec les outils de monitoring
-- Niveaux : DEBUG, INFO, WARNING, ERROR, CRITICAL
-- Rotation automatique des logs (max 10MB x 5 fichiers)
-- Couleurs en mode développement (console)
-"""
+"""Logging configuration for the trading bot."""
 
 import logging
 import logging.handlers
@@ -17,7 +10,6 @@ LOG_FILE   = os.getenv("LOG_FILE", "trading_bot.log")
 LOG_FORMAT = "%(asctime)s [%(levelname)s] %(name)s — %(message)s"
 DATE_FMT   = "%Y-%m-%d %H:%M:%S"
 
-
 def _setup_logger():
     root = logging.getLogger()
 
@@ -27,13 +19,11 @@ def _setup_logger():
 
     root.setLevel(getattr(logging, LOG_LEVEL, logging.INFO))
 
-    # ── Handler console ──────────────────────────────────────────────────
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(getattr(logging, LOG_LEVEL, logging.INFO))
     console_handler.setFormatter(logging.Formatter(LOG_FORMAT, datefmt=DATE_FMT))
     root.addHandler(console_handler)
 
-    # ── Handler fichier avec rotation ────────────────────────────────────
     try:
         file_handler = logging.handlers.RotatingFileHandler(
             LOG_FILE,
@@ -49,7 +39,6 @@ def _setup_logger():
         root.warning(f"[LOGGING] Impossible d'ouvrir le fichier log {LOG_FILE}: {e}")
 
     return root
-
 
 # Instance partagée exportée
 logger = _setup_logger()
