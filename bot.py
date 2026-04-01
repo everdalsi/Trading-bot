@@ -2521,14 +2521,14 @@ def learn_from_trade(trade: dict, send_fn=None):
         db_save_lesson(lesson)
         try:
             orchestrator.learning.save_lesson(lesson)
+        except Exception as ex:
+            print(f"[LEARN-INFINITE] {ex}")
         # Mise à jour des poids dynamiques des agents après chaque trade
         try:
             global _last_raw_agent_outputs
             orchestrator.update_agent_outcome(_last_raw_agent_outputs, pnl > 0)
         except Exception as _perf_e:
             pass  # Non bloquant
-        except Exception as ex:
-            print(f"[LEARN-INFINITE] {ex}")
         key = "patterns_that_work" if lesson_type == "succes" else "patterns_to_avoid"
         memory[key].append(pattern)
         MAX_RAM_LESSONS = 20000 if EXTREME_LEARNING_MODE else 5000
