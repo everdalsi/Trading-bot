@@ -1,0 +1,110 @@
+name: CI — Vérification syntaxe Python
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  syntax-check:
+    name: Vérification syntaxe Python
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Installation Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Vérification syntaxe (py_compile)
+        run: |
+          echo "🔍 Vérification syntaxe de tous les fichiers .py..."
+          ERRORS=0
+          FILES=$(find . -name "*.py" -not -path "./.git/*")
+          TOTAL=$(echo "$FILES" | wc -l)
+          echo "→ $TOTAL fichier(s) Python détecté(s)"
+          echo ""
+          for f in $FILES; do
+            python -m py_compile "$f" 2>&1
+            if [ $? -ne 0 ]; then
+              echo "❌ ERREUR SYNTAXE : $f"
+              ERRORS=$((ERRORS + 1))
+            fi
+          done
+          echo ""
+          if [ $ERRORS -gt 0 ]; then
+            echo "❌ $ERRORS fichier(s) avec erreur(s) de syntaxe — push bloqué."
+            exit 1
+          else
+            echo "✅ Tous les $TOTAL fichiers Python sont syntaxiquement corrects."
+          fi
+
+  lint-check:
+    name: Analyse statique (Pyflakes)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Installation Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Installation Pyflakes
+        run: pip install pyflakes
+
+      - name: Analyse Pyflakes (imports inutilisés, variables non définies)
+        run: |
+          echo "🔍 Analyse Pyflakes..."
+          python -m pyflakes . 2>&1 | grep -v "__pycache__" || true
+          echo ""
+          echo "✅ Analyse Pyflakes terminée (warnings ci-dessus si présents)."
+        continue-on-error: true
+
+  indentation-guard:
+    name: Garde indentation — blocs vides
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Installation Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Détection de blocs for/if/while sans corps
+        run: |
+          echo "🔍 Détection de blocs vides (IndentationError potentiels)..."
+          python << 'PYEOF'
+          import ast, os, sys
+
+          errors = []
+          for root, dirs, files in os.walk("."):
+              dirs[:] = [d for d in dirs if d not in [".git", "__pycache__"]]
+              for fname in files:
+                  if not fname.endswith(".py"):
+                      continue
+                  fpath = os.path.join(root, fname)
+                  try:
+                      with open(fpath, "r", encoding="utf-8", errors="replace") as f:
+                          src = f.read()
+                      ast.parse(src)
+                  except SyntaxError as e:
+                      errors.append(f"  ❌ {fpath}:{e.lineno} — {e.msg}")
+
+          if errors:
+              print(f"\n❌ {len(errors)} erreur(s) de syntaxe détectée(s) :")
+              for e in errors:
+                  print(e)
+              sys.exit(1)
+          else:
+              print("✅ Aucun bloc vide ni erreur de syntaxe AST détecté.")
+          PYEOF
