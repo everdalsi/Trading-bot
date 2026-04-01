@@ -199,7 +199,23 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 #chat-input:focus{border-color:var(--accent);}
 #chat-send{padding:8px 16px;background:var(--accent);border:none;color:#000;font-size:14px;font-weight:700;border-radius:20px;cursor:pointer;}
 
-/* ── CONTROLS PAGE ── */
+
+  /* ── GOD VIEW COMLINK OVERLAY ── */
+  #page-comlink{position:relative!important;overflow:hidden!important;}
+  #god-comlink-frame{width:100%;flex:1;border:none;min-height:0;display:block;}
+  #chat-overlay{position:absolute;bottom:64px;left:0;right:0;max-height:46%;pointer-events:none;z-index:15;padding:0 8px 4px;display:flex;flex-direction:column;justify-content:flex-end;}
+  #chat-overlay #chat-messages{pointer-events:auto;background:transparent;padding:4px;min-height:0;max-height:100%;overflow-y:auto;gap:6px;}
+  #chat-overlay .msg-user{background:rgba(99,102,241,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);}
+  #chat-overlay .msg-agent{background:rgba(10,10,28,.88);border-color:rgba(99,102,241,.35);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);}
+  #chat-input-bar{position:absolute!important;bottom:0;left:0;right:0;background:var(--bg2)!important;border-top:1px solid var(--border);z-index:20;padding:8px 12px;}
+  /* ── GOD VIEW FULL PAGE ── */
+  #page-god{padding:0!important;gap:0!important;overflow:hidden!important;}
+  #god-full-frame{flex:1;width:100%;border:none;height:100%;min-height:0;}
+  /* ── NAV 6 ITEMS ── */
+  #nav .nav-item{font-size:8px;}
+  #nav .nav-icon{font-size:19px;}
+
+  /* ── CONTROLS PAGE ── */
 .ctrl-section{margin-bottom:4px;}
 .ctrl-section-title{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;padding:0 2px;}
 .btn-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
@@ -637,37 +653,43 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     </div>
 
     <!-- ══════════════ PAGE: COMLINK ══════════════ -->
-    <div class="page" id="page-comlink" style="gap:0;padding:0;">
-      <div id="chat-agent-bar" style="padding:10px 12px">
-          <div class="agent-chip selected" data-id="" onclick="selectAgent(this)">Tous</div>
-          <div class="agent-chip" data-id="orchestrator" onclick="selectAgent(this)">🎯 Orch</div>
-          <div class="agent-chip" data-id="analyst" onclick="selectAgent(this)">📊 Analyst</div>
-          <div class="agent-chip" data-id="risk" onclick="selectAgent(this)">⚠️ Risk</div>
-          <div class="agent-chip" data-id="quant_ml" onclick="selectAgent(this)">🧠 QuantML</div>
-          <div class="agent-chip" data-id="trader" onclick="selectAgent(this)">⚡ Trader</div>
-          <div class="agent-chip" data-id="supervisor" onclick="selectAgent(this)">👁 Supervisor</div>
-          <div class="agent-chip" data-id="quantum_risk" onclick="selectAgent(this)">⚛️ Quantum</div>
-          <div class="agent-chip" data-id="fear_greed" onclick="selectAgent(this)">😱 F&G</div>
-          <div class="agent-chip" data-id="whale_tracker" onclick="selectAgent(this)">🐋 Whales</div>
-          <div class="agent-chip" data-id="macro_regime" onclick="selectAgent(this)">🌍 Macro</div>
-          <div class="agent-chip" data-id="scenario_injector" onclick="selectAgent(this)">🎭 Scenario</div>
-          <div class="agent-chip" data-id="derivatives" onclick="selectAgent(this)">📈 Deriv</div>
-          <div class="agent-chip" data-id="on_chain" onclick="selectAgent(this)">⛓ On-Chain</div>
-          <div class="agent-chip" data-id="polymarket_trader" onclick="selectAgent(this)">🎰 Poly</div>
-          <div class="agent-chip" data-id="wallet_copier" onclick="selectAgent(this)">🐳 Copier</div>
-          <div class="agent-chip" data-id="learning" onclick="selectAgent(this)">📚 Learning</div>
-          <div class="agent-chip" data-id="research" onclick="selectAgent(this)">🔬 Research</div>
+      <div class="page" id="page-comlink" style="gap:0;padding:0;">
+        <!-- Agent selector bar -->
+        <div id="chat-agent-bar" style="padding:8px 12px">
+            <div class="agent-chip selected" data-id="" onclick="selectAgent(this)">Tous</div>
+            <div class="agent-chip" data-id="orchestrator" onclick="selectAgent(this)">🎯 Orch</div>
+            <div class="agent-chip" data-id="analyst" onclick="selectAgent(this)">📊 Analyst</div>
+            <div class="agent-chip" data-id="risk" onclick="selectAgent(this)">⚠️ Risk</div>
+            <div class="agent-chip" data-id="quant_ml" onclick="selectAgent(this)">🧠 QuantML</div>
+            <div class="agent-chip" data-id="trader" onclick="selectAgent(this)">⚡ Trader</div>
+            <div class="agent-chip" data-id="supervisor" onclick="selectAgent(this)">👁 Supervisor</div>
+            <div class="agent-chip" data-id="quantum_risk" onclick="selectAgent(this)">⚛️ Quantum</div>
+            <div class="agent-chip" data-id="fear_greed" onclick="selectAgent(this)">😱 F&G</div>
+            <div class="agent-chip" data-id="whale_tracker" onclick="selectAgent(this)">🐋 Whales</div>
+            <div class="agent-chip" data-id="macro_regime" onclick="selectAgent(this)">🌍 Macro</div>
+            <div class="agent-chip" data-id="scenario_injector" onclick="selectAgent(this)">🎭 Scenario</div>
+            <div class="agent-chip" data-id="derivatives" onclick="selectAgent(this)">📈 Deriv</div>
+            <div class="agent-chip" data-id="on_chain" onclick="selectAgent(this)">⛓ On-Chain</div>
+            <div class="agent-chip" data-id="polymarket_trader" onclick="selectAgent(this)">🎰 Poly</div>
+            <div class="agent-chip" data-id="wallet_copier" onclick="selectAgent(this)">🐳 Copier</div>
+            <div class="agent-chip" data-id="learning" onclick="selectAgent(this)">📚 Learning</div>
+            <div class="agent-chip" data-id="research" onclick="selectAgent(this)">🔬 Research</div>
+          </div>
+        <!-- AEGIS CORE God View — live dashboard behind chat -->
+        <iframe id="god-comlink-frame" src="/god" frameborder="0" scrolling="yes" loading="lazy"></iframe>
+        <!-- Chat bubbles float above the iframe -->
+        <div id="chat-overlay">
+          <div id="chat-messages"></div>
         </div>
-        <div id="chat-messages"></div>
-      <div style="flex:1"></div>
-      <div id="chat-input-bar">
-        <input id="chat-input" type="text" placeholder="Message à l'agent..." autocomplete="off"
-          onkeydown="if(event.key==='Enter')sendChat()"/>
-        <button id="chat-send" onclick="sendChat()">↑</button>
+        <!-- Input bar pinned to bottom -->
+        <div id="chat-input-bar">
+          <input id="chat-input" type="text" placeholder="Message à l'agent..." autocomplete="off"
+            onkeydown="if(event.key==='Enter')sendChat()"/>
+          <button id="chat-send" onclick="sendChat()">↑</button>
+        </div>
       </div>
-    </div>
 
-    <!-- ══════════════ PAGE: CONTROLS ══════════════ -->
+      <!-- ══════════════ PAGE: CONTROLS ══════════════ -->
     <div class="page" id="page-ctrl">
 
       <!-- Quick Controls -->
@@ -747,7 +769,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       <div class="page-pad"></div>
     </div>
 
-  </div><!-- /pages -->
+  
+      <!-- ══════════════ PAGE: GOD VIEW ══════════════ -->
+      <div class="page" id="page-god" style="padding:0;gap:0;overflow:hidden;">
+        <iframe id="god-full-frame" src="/god" frameborder="0" loading="lazy" scrolling="yes"></iframe>
+      </div>
+
+    </div><!-- /pages -->
 
   <!-- BOTTOM NAV -->
   <nav id="nav">
@@ -766,7 +794,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <button class="nav-item" onclick="navTo('ctrl',this)">
       <span class="nav-icon">⚙️</span>Contrôles
     </button>
-  </nav>
+      <button class="nav-item" onclick="navTo('god',this)">
+        <span class="nav-icon">👁</span>God View
+      </button>
+    </nav>
 
 </div><!-- /root -->
 
