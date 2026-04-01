@@ -600,6 +600,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       <!-- Grille agents — FIX: ajout de l'élément manquant (agent-grid) -->
       <div style="margin-top:12px">
         <div style="font-size:9px;color:var(--text3);letter-spacing:1.5px;margin-bottom:8px">ÉTAT DES AGENTS</div>
+    <!-- Background Agent Activity Banner -->
+    <div id="bg-activity-banner" style="display:none;align-items:center;gap:10px;background:rgba(255,255,255,.05);
+         border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 14px;margin-bottom:10px;
+         flex-wrap:wrap;justify-content:space-between;"></div>
+    <!-- Pump Detector Panel -->
+    <div id="pump-alerts-panel" style="display:none;background:rgba(63,185,80,.08);
+         border:1px solid rgba(63,185,80,.25);border-radius:10px;padding:12px 14px;margin-bottom:10px;"></div>
         <div id="agent-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:6px"></div>
       </div>
 
@@ -1622,6 +1629,38 @@ function renderAgents(agentsData) {
   document.getElementById('agents-badge').textContent = activeN + ' actifs';
   const abEl = document.getElementById('active-count-badge');
   if (abEl) abEl.textContent = activeN + ' actifs';
+
+  // Background activity banner
+  const bgStatus = agentsData?.bg_status || {};
+  const pumpAlerts = agentsData?.pump_alerts || [];
+  const bgBannerEl = document.getElementById("bg-activity-banner");
+  if (bgBannerEl && bgStatus.mode) {
+    const bias = bgStatus.pre_bias || "NEUTRAL";
+    const biasColor = bias==="BUY" ? "#3fb950" : bias==="SELL" ? "#f85149" : "#d29922";
+    const modeIcon = bgStatus.mode === "preanalysis" ? "🔍" : "🔬";
+    bgBannerEl.innerHTML = `<span style="color:#999;font-size:10px;letter-spacing:1px">AGENTS BG</span>
+      <span style="font-size:11px">${modeIcon} ${bgStatus.mode === "preanalysis" ? "Pré-analyse" : "Auto-amélioration"}</span>
+      <span style="color:${biasColor};font-weight:bold;font-size:12px">${bias}</span>
+      <span style="color:#888;font-size:10px">BUY:${bgStatus.pre_buy||0} SELL:${bgStatus.pre_sell||0} (${bgStatus.elapsed_s||0}s)</span>`;
+    bgBannerEl.style.display = "flex";
+  }
+  // Pump alerts panel
+  const pumpPanelEl = document.getElementById("pump-alerts-panel");
+  if (pumpPanelEl) {
+    if (pumpAlerts.length > 0) {
+      pumpPanelEl.style.display = "block";
+      pumpPanelEl.innerHTML = `<div style="font-size:10px;letter-spacing:1px;color:#999;margin-bottom:6px">🚀 PUMP DETECTOR</div>`
+        + pumpAlerts.map(p => `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+          <span style="color:${p.type==="PUMP"?"#3fb950":"#f85149"};font-weight:bold;font-size:11px">${p.type}</span>
+          <span style="font-weight:bold;font-size:12px;flex:1">${p.symbol.replace("USDT","")}</span>
+          <span style="color:${p.type==="PUMP"?"#3fb950":"#f85149"};font-size:12px">${p.pct_5c>0?"+":""}${p.pct_5c}%</span>
+          <span style="color:#888;font-size:10px">RSI ${p.rsi}</span>
+          <button onclick="triggerManualTrade('${p.symbol}','${p.action}')" style="background:${p.action==="BUY"?"#3fb950":"#f85149"};color:#fff;border:none;border-radius:4px;padding:2px 8px;font-size:10px;cursor:pointer">${p.action}</button>
+        </div>`).join("") + "";
+    } else {
+      pumpPanelEl.style.display = "none";
+    }
+  }
 
   const all = AGENTS.map(meta => {
     const live = agentsArr.find(a => a.id === meta.id);
