@@ -43,8 +43,8 @@ RSS_FEEDS = [
 ]
 
 # Cooldown après détection d'un événement (secondes)
-PRE_EVENT_PAUSE  = 10 * 60   # 10 min avant
-POST_EVENT_PAUSE = 10 * 60   # 10 min après (réduit: faux positifs positifs comme powell sooths market)
+PRE_EVENT_PAUSE  = 2 * 60    # 2 min avant (réduit — faux positifs fréquents)
+POST_EVENT_PAUSE = 2 * 60    # 2 min après (réduit — trading doit continuer)
 
 
 class NewsEventAgent(BaseAgent):
@@ -118,6 +118,10 @@ class NewsEventAgent(BaseAgent):
 
     # ── Check si on est en période de pause ────────────────────────────────
     def _is_paused(self) -> bool:
+        # Training mode: no news veto — collect max data points
+        import os
+        if os.environ.get("BOT_TRAINING_MODE", "False").lower() in ("true", "1", "yes"):
+            return False
         if self._pause_until and time.time() < self._pause_until:
             return True
         return False
