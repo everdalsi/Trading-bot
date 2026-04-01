@@ -215,6 +215,22 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   #nav .nav-item{font-size:8px;}
   #nav .nav-icon{font-size:19px;}
 
+
+  /* ── TRAINING / LIVE MODE ── */
+  .mode-badge{display:inline-flex;align-items:center;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:800;letter-spacing:1.5px;}
+  .mode-badge.training{background:rgba(99,102,241,.2);border:1px solid #6366f1;color:#6366f1;}
+  .mode-badge.live{background:rgba(239,68,68,.2);border:1px solid #ef4444;color:#ef4444;}
+  .progress-bar{height:6px;background:var(--bg4);border-radius:3px;overflow:hidden;}
+  .progress-fill{height:100%;background:linear-gradient(90deg,#6366f1,#22c55e);border-radius:3px;transition:width .5s ease;width:0%;}
+  .mode-section{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);padding:14px;margin-bottom:12px;}
+  .mode-btn-train{border-color:#6366f1!important;color:#6366f1!important;background:rgba(99,102,241,.1)!important;font-size:12px!important;padding:10px!important;}
+  .mode-btn-live{border-color:#ef4444!important;color:#ef4444!important;background:rgba(239,68,68,.1)!important;font-size:12px!important;padding:10px!important;}
+  .mode-btn-train.active-mode,.mode-btn-live.active-mode{opacity:1;font-weight:800;}
+  .mode-btn-train:not(.active-mode),.mode-btn-live:not(.active-mode){opacity:.45;}
+  #topbar-mode{font-size:9px;font-weight:800;letter-spacing:1px;padding:3px 8px;border-radius:10px;}
+  #topbar-mode.training{background:rgba(99,102,241,.2);color:#6366f1;border:1px solid #6366f1;}
+  #topbar-mode.live{background:rgba(239,68,68,.2);color:#ef4444;border:1px solid #ef4444;}
+  
   /* ── CONTROLS PAGE ── */
 .ctrl-section{margin-bottom:4px;}
 .ctrl-section-title{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;padding:0 2px;}
@@ -377,6 +393,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div id="topbar-status" style="display:flex;align-items:center;gap:8px">
       <span id="topbar-pnl" class="neutral">--</span>
       <span id="topbar-eq" style="color:var(--accent)">--</span>
+      <span id="topbar-mode" class="training">🎓 TRAIN</span>
       <span class="dot dot-yellow" id="status-dot"></span>
     </div>
     <button class="toggle-btn toggle-run" id="btn-toggle" onclick="toggleBot()">Stop</button>
@@ -692,6 +709,33 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       <!-- ══════════════ PAGE: CONTROLS ══════════════ -->
     <div class="page" id="page-ctrl">
 
+
+        <!-- ══ MODE TRAINING / LIVE ══ -->
+        <div class="mode-section">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <span style="font-size:10px;color:var(--text2);letter-spacing:1.5px;font-weight:700">MODE ACTUEL</span>
+            <span id="mode-badge" class="mode-badge training">🎓 TRAINING</span>
+          </div>
+          <div id="mode-desc" style="font-size:11px;color:var(--text2);margin-bottom:12px">Prend max de trades pour apprendre · Max $15/trade</div>
+          <div style="margin-bottom:14px">
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-bottom:5px">
+              <span>Progression vers LIVE</span>
+              <span id="wr-pct-label" style="color:var(--text2)">-- Win Rate</span>
+            </div>
+            <div class="progress-bar"><div id="wr-progress-bar" class="progress-fill" style="width:0%"></div></div>
+            <div id="grad-status-label" style="font-size:10px;color:var(--text3);margin-top:5px">Objectif: 68% WR sur 30+ trades</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <button class="ctrl-btn mode-btn-train active-mode" id="btn-train-mode" onclick="switchMode('train_mode')">
+              <span class="btn-icon" style="font-size:18px">🎓</span>TRAINING
+            </button>
+            <button class="ctrl-btn mode-btn-live" id="btn-live-mode" onclick="switchMode('live_mode')">
+              <span class="btn-icon" style="font-size:18px">🔴</span>LIVE
+            </button>
+          </div>
+        </div>
+
+  
       <!-- Quick Controls -->
       <div class="ctrl-section">
         <div class="ctrl-section-title">Contrôle Bot</div>
@@ -1116,6 +1160,15 @@ function renderTopBar(s) {
     pnlEl.textContent = (pd >= 0 ? '+' : '') + usd(pd);
     pnlEl.className   = pd >= 0 ? 'pos' : 'neg';
   }
+  // ── Training/Live mode badge ──
+  const modeEl = document.getElementById("topbar-mode");
+  const isTraining = s.training_mode !== false;  // default training
+  if (modeEl) {
+    modeEl.textContent = isTraining ? "🎓 TRAIN" : "🔴 LIVE";
+    modeEl.className   = isTraining ? "training" : "live";
+  }
+  // ── Update Controls mode section ──
+  updateModeUI(isTraining, s.win_rate, s.total_trades);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1560,6 +1613,63 @@ async function toggleBot() {
   else   { notify('Erreur de connexion', 'error'); }
 }
 
+
+  // ═══════════════════════════════════════════════════════════════
+  // MODE TRAINING / LIVE
+  // ═══════════════════════════════════════════════════════════════
+  async function switchMode(mode) {
+    const r = await apiPost('/api/bot/control', { action: mode });
+    if (r) {
+      const isTraining = mode === 'train_mode';
+      updateModeUI(isTraining, null, null);
+      showNotif(isTraining ? '🎓 Mode TRAINING activé — le bot apprend max' : '🔴 Mode LIVE activé — trading réel', isTraining ? 'info' : 'success');
+    }
+  }
+
+  function updateModeUI(isTraining, wr, totalTrades) {
+    const badge    = document.getElementById('mode-badge');
+    const desc     = document.getElementById('mode-desc');
+    const bar      = document.getElementById('wr-progress-bar');
+    const wrLabel  = document.getElementById('wr-pct-label');
+    const gradTxt  = document.getElementById('grad-status-label');
+    const btnTrain = document.getElementById('btn-train-mode');
+    const btnLive  = document.getElementById('btn-live-mode');
+
+    if (!badge) return;
+
+    if (isTraining) {
+      badge.textContent = '🎓 TRAINING';
+      badge.className   = 'mode-badge training';
+      desc.textContent  = 'Prend max de trades pour apprendre · Max $15/trade · Seuil 1%';
+      btnTrain && btnTrain.classList.add('active-mode');
+      btnLive  && btnLive.classList.remove('active-mode');
+    } else {
+      badge.textContent = '🔴 LIVE';
+      badge.className   = 'mode-badge live';
+      desc.textContent  = 'Trading réel · Seuil 25% · Max 5% du capital par trade';
+      btnLive  && btnLive.classList.add('active-mode');
+      btnTrain && btnTrain.classList.remove('active-mode');
+    }
+
+    if (wr != null && bar) {
+      const pct    = Math.min(100, (wr / 68) * 100);
+      const trades = totalTrades || 0;
+      bar.style.width = pct + '%';
+      if (wrLabel) wrLabel.textContent = wr.toFixed(1) + '% WR (' + trades + ' trades)';
+      if (gradTxt) {
+        if (wr >= 68 && trades >= 30) {
+          gradTxt.textContent = '🏆 OBJECTIF ATTEINT — Prêt pour le Live !';
+          gradTxt.style.color = 'var(--green)';
+        } else {
+          const need = Math.max(0, 30 - trades);
+          gradTxt.textContent = 'Objectif: 68% WR sur 30+ trades' + (need > 0 ? ' (' + need + ' trades restants)' : '');
+          gradTxt.style.color = '';
+        }
+      }
+    }
+  }
+
+  
 async function controlBot(action) {
   const labels = {
     start:'Bot démarré ✅', stop:'Bot arrêté ⏹',
