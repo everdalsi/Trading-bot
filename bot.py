@@ -1,25 +1,12 @@
-"""
-Trading Bot v8.2 — GOAT du cerveau collectif + Cerveau commun parfait + Spécialisation stricte
-UPGRADES intégrées (sans rien supprimer de l’original) :
-- memory forcé en clas
-- PerformanceTracker + export_dashboard compatible
-- Dashboard envoyé en parse_mode='HTML' (plus de HTML brut)
-- Orchestrator V5 + shared_glossary 
-- FIX CRITIQUE : coroutine never awaited sur YieldStakingAgent
-- FIX : trading_loop exécute vraiment les trades quand l’orchestrator décide
-- Singleton KB + réduction massive des get_glossary()
-- Async safety totale (timeouts partout)
-"""
+"""Trading Bot v8.2 — Autonomous multi-agent crypto trading system."""
 
 import os, time, threading, feedparser, requests, asyncio
 import json, sqlite3, re, hashlib, base64, hmac, secrets
 import pandas as pd
-import ccxt
 import numpy as np
 from datetime import datetime, timedelta
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
-import vectorbt as vbt
 from execution_engine import ExecutionEngine
 from urllib.parse import urlparse
 from logging_config import logger
@@ -28,12 +15,7 @@ logger.info("Bot v7.1 démarré avec logging étendu ✅")
 from collections import defaultdict, deque
 from memory import Memory
 from agents.orchestrator import Orchestrator
-from agents.portfolio_manager import PortfolioManager
-from agents.performance_tracker import PerformanceTracker
-from agents.wallet_copier_agent import WalletCopierAgent
 from agents.quant_ml_agent import QuantMLAgent
-from agents.execution_engine_agent import ExecutionEngineAgent
-from agents.yield_staking_agent import YieldStakingAgent
 from agents.base_agent import BaseAgent
 try:
     from agents.soul_agent import SoulAgent as _SoulAgent
@@ -69,12 +51,12 @@ if isinstance(memory, dict):
     logger.info("[MEMORY FIX] memory forcé en classe ✅")
 
 orchestrator = Orchestrator()
-portfolio_manager = PortfolioManager()  # FIX: portfolio_manager global
+portfolio_manager = orchestrator.portfolio_manager  # reuse orchestrator instance
 quant_ml = orchestrator.quant_ml  # FIX: alias direct pour la trading_loop
-performance_tracker = PerformanceTracker()
-wallet_copier = WalletCopierAgent()
-yield_staking = YieldStakingAgent()
-execution_engine = ExecutionEngineAgent()
+performance_tracker = orchestrator.performance  # reuse orchestrator instance
+wallet_copier = orchestrator.wallet_copier  # reuse orchestrator instance
+yield_staking = orchestrator.yield_staking  # reuse orchestrator instance
+execution_engine = orchestrator.execution_engine  # reuse orchestrator instance
 shared_glossary = orchestrator.kb.get_glossary() if hasattr(orchestrator, 'kb') else {}
 logger.info("[FIX] shared_glossary global chargé ✅")
 
@@ -133,9 +115,7 @@ def update_performance(memory, price):
     stats = performance_tracker.get_global_stats(memory)
     return memory
 
-# ═══════════════════════════════════════════════════════════════
 #  SÉCURITÉ — Validation & Rate Limiting
-# ═══════════════════════════════════════════════════════════════
 _rate_limits: dict = defaultdict(lambda: deque(maxlen=100))
 
 def check_rate_limit(key: str, max_calls: int, window_sec: int) -> bool:
@@ -162,9 +142,7 @@ def sanitize_string(s: str, max_len: int = 500) -> str:
 def secure_compare(a: str, b: str) -> bool:
     return hmac.compare_digest(str(a), str(b))
 
-# ═══════════════════════════════════════════════════════════════
 #  CONFIG
-# ═══════════════════════════════════════════════════════════════
 GROQ_KEY = os.environ.get("GROQ_API_KEY")
 TELEGRAM_TOKEN   = os.environ.get("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
@@ -199,7 +177,6 @@ TRAINING_WIN_TARGET  = 0.68   # 68% win rate → eligible pour passage en LIVE
 TRAINING_MIN_TRADES  = 30     # Min 30 trades avant de proposer le passage LIVE
 LIVE_CONF_THRESH     = 0.25   # 25% — plus sélectif en LIVE
 LIVE_MAX_USD_PCT     = 0.05   # Max 5% du capital par trade en LIVE
-# ──────────────────────────────────────────────────────────────────────────────
 
 CAPITAL_INITIAL   = 1000.0
 MAX_POSITIONS     = 60
@@ -368,7 +345,6 @@ PROMO_EXCHANGES = [
     {"name":"OKX",    "url":"https://www.okx.com/earn/bonus",      "type":"exchange"},
 ]
 
-# ═══════════════════════════════════════════════════════════════
 #  CLIENTS
 # ═════════��═════════════════════════════════════════════════════
 if not GROQ_KEY:
@@ -376,6 +352,7 @@ if not GROQ_KEY:
 groq_client = Groq(api_key=GROQ_KEY)
 
 def get_binance_client():
+    import ccxt  # lazy import — only loaded when needed
     exchange = ccxt.binance({
         'apiKey': BINANCE_KEY,
         'secret': BINANCE_SECRET,
@@ -391,9 +368,7 @@ def get_binance_client():
 
 BINANCE_CLIENT = get_binance_client()
 
-# ═══════════════════════════════════════════════════════════════
 #  ÉTAT GLOBAL
-# ═══════════════════════════════════════════════════════════════
 sim = {
     "cash": CAPITAL_INITIAL, "initial": CAPITAL_INITIAL,
     "positions": {}, "trades": [], "equity_history": [],
@@ -445,9 +420,7 @@ _oi_cache           = {"data": {}, "ts": 0}
 _fg_cache           = {"value": 50, "ts": 0}
 _macro_cache        = {"trend": "NEUTRAL", "ts": 0}
 
-# ═══════════════════════════════════════════════════════════════
 #  MODULES PROPRES
-# ═══════════════════════════════════════════════════════════════
 from websocket_manager import ws_manager
 from data_handler import (
     data_handler,
@@ -492,9 +465,7 @@ def fetch_prices_sync(symbols: list) -> dict:
 def get_klines(symbol: str, interval: str = "1m", limit: int = 100):
     return data_handler.get_klines(symbol, interval, limit)
 
-# ═══════════════════════════════════════════════════════════════
 #  AI POOL
-# ═══════════════════════════════════════════════════════════════
 AI_PROVIDERS = [
     # Groq gratuit: 30 req/min, 14400 req/jour sur llama-3.1-8b-instant
     {"name":"groq_fast",  "calls":0, "window_start":time.time(), "last_call":0,
@@ -737,9 +708,7 @@ def get_pool_status() -> str:
     lines.append(f"  Cache hits: {_pool_stats['cache_hits']} | Dernier: {_pool_stats['last_provider']}")
     return "\n".join(lines)
 
-# ═══════════════════════════════════════════════════════════════
 #  RISK MANAGEMENT
-# ═══════════════════════════════════════════════════════════════
 def check_daily_reset():
     today = datetime.utcnow().strftime("%Y-%m-%d")
     if sim.get("daily_start_date") != today:
@@ -950,9 +919,7 @@ def get_volume_profile(symbol: str) -> dict:
     except Exception:
         return {}
 
-# ═══════════════════════════════════════════════════════════════
 #  KELLY CRITERION
-# ═══════════════════════════════════════════════════════════════
 def kelly_criterion(n_recent: int=30) -> float:
     closed = [t for t in sim["trades"] if t.get("pnl") is not None]
     if len(closed) < 5:
@@ -1005,9 +972,7 @@ def dynamic_position_size(confidence: int, market: str, symbol: str) -> float:
     return round(max(0.03, min(0.35,
         base * conf_mult * fg_mult * macro_mult * market_mult * night_mult)), 3)
 
-# ═══════════════════════════════════════════════════════════════
 #  INDICATEURS TECHNIQUES
-# ═══════════════════════════════════════════════════════════════
 def compute_indicators(closes: pd.Series) -> dict:
     if len(closes) < 27:
         return {}
@@ -1150,9 +1115,7 @@ def scan_market() -> list:
     return opps[:15]
 
 
-# ═══════════════════════════════════════════════════════════════
 #  SCAN MARCHÉ PARALLÈLE V7 — asyncio.gather() sur N symboles
-# ═══════════════════════════════════════════════════════════════
 
 async def _analyze_symbol_quick(symbol: str, prices: dict) -> dict:
     """Analyse rapide et non-bloquante d'un symbole (pour le scan parallèle)."""
@@ -1208,9 +1171,7 @@ async def scan_market_parallel() -> list:
     return opps[:15]
 
 
-# ═══════════════════════════════════════════════════════════════
 #  ANALYSE COMPLÈTE
-# ═══════════════════════════════════════════════════════════════
 def analyze(opp: dict, fear_greed: str) -> dict:
     symbol = opp["symbol"]; price = opp["price"]
     ind = opp["ind"]; pats = opp["patterns"]
@@ -1270,9 +1231,7 @@ JSON:{{"signal":"BUY/SELL/HOLD","confidence":0-100,"reason":"raison","risk":"LOW
     })
     return result
 
-# ═══════════════════════════════════════════════════════════════
 #  GESTION DES POSITIONS
-# ═══════════════════════════════════════════════════════════════
 def get_equity() -> float:
     return get_equity_safe()
 
@@ -2787,7 +2746,6 @@ def trading_loop(send_fn):
                     }
                 except Exception:
                     pass
-                # ──────────────────────────────────────────────────────────────────
                 logger.info(
                     f"[MICRO V7] 🔀 {len(multi_results)} symboles analysés en parallèle → "
                     f"meilleur: {best_symbol} | "
@@ -4047,7 +4005,6 @@ async def cmd_sniper(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"⚠️ Erreur event sniper: {e}")
 
 
-
 async def cmd_polybet(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Trading direct Polymarket — edge BTC/ETH binaires + marchés macro."""
     if not _auth(update): return
@@ -4519,10 +4476,8 @@ async def _ask_agent_multi(chat_id: int, query: str) -> str:
     return msg
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
 #  🤖 AEGIS AGENT — Agent autonome avec outils (like Claude/Replit Agent)
 #  Groq llama-3.3-70b + function calling → lit/modifie le code, contrôle le bot
-# ═══════════════════════════════════════════════════════════════════════════════
 
 AEGIS_SYSTEM_PROMPT = """Tu es AEGIS, agent autonome du trading bot crypto de ton proprietaire.
 Tu reponds TOUJOURS en francais, de facon claire et directe.
