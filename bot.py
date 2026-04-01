@@ -3600,15 +3600,15 @@ class BotHandler(BaseHTTPRequestHandler):
                 }
                 agents_list.append(entry)
             # Inject background cache and pump alerts
-                        _bg_data = getattr(orchestrator, "_bg_cache", {})
-                        _pump_data = getattr(micro_ctx, "get", lambda k, d: d)("pump_alerts", []) if "micro_ctx" in dir() else []
-                        self._send_json({
-                            "agents":      agents_list,
-                            "count":       len(agents_list),
-                            "version":     "V10.1",
-                            "bg_status":   _bg_data,
-                            "pump_alerts": _pump_data,
-                        })
+            _bg_data = getattr(orchestrator, "_bg_cache", {})
+            _pump_data = getattr(globals().get("micro_ctx", {}), "get", lambda k,d: d)("pump_alerts", []) if isinstance(globals().get("micro_ctx"), dict) else []
+            self._send_json({
+                "agents":      agents_list,
+                "count":       len(agents_list),
+                "version":     "V10.1",
+                "bg_status":   _bg_data,
+                "pump_alerts": _pump_data,
+            })
 
         elif path == "/api/scenarios":
             # V1.0 — ScenarioInjector live data + static SCENARIO_LIBRARY
