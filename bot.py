@@ -301,31 +301,131 @@ INTERVAL_MAP = {
     "60":"1h","120":"2h","240":"4h","D":"1d","1D":"1d"
 }
 
-CRYPTO_SYMBOLS = [
-    "BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT","XRPUSDT","DOGEUSDT","ADAUSDT",
-    "AVAXUSDT","LINKUSDT","DOTUSDT","UNIUSDT","LTCUSDT","NEARUSDT","APTUSDT",
-    "ARBUSDT","OPUSDT","INJUSDT","SUIUSDT","FETUSDT","RENDERUSDT","TONUSDT",
-    "TRXUSDT","SHIBUSDT","PEPEUSDT","WIFUSDT","BONKUSDT","FLOKIUSDT","JUPUSDT",
-    "POPCATUSDT","MEMEUSDT","MEWUSDT","BRETTUSDT","MOGUSDT","GMEUSDT","TURBOUSDT",
-    "PENDLEUSDT","ONDOUSDT","AEROUSDT","KASUSDT","TAOUSDT","NOTUSDT","PIXELUSDT",
-    "ENAUSDT","WUSDT","STRKUSDT","SEIUSDT","PYTHUSDT","ORDIUSDT","STXUSDT","IMXUSDT"
-]
-MICRO_SYMBOLS = CRYPTO_SYMBOLS
-MEMECOIN_SOLANA = ["BONKUSDT","WIFUSDT","POPCATUSDT","JUPUSDT"]
-MEMECOIN_ETH    = ["SHIBUSDT","FLOKIUSDT","PEPEUSDT","DOGEUSDT"]
-STOCKS_SYMBOLS = {
-    "AAPL":"Apple","TSLA":"Tesla","NVDA":"NVIDIA","META":"Meta",
-    "MSFT":"Microsoft","GOOGL":"Google","AMZN":"Amazon",
-    "AMD":"AMD","COIN":"Coinbase","MSTR":"MicroStrategy",
+# ═══════════════════════════════════════════════════════════════════
+# MULTI-MARKET SYMBOL UNIVERSE — tous les marchés Binance
+# ═══════════════════════════════════════════════════════════════════
+
+# Symboles prioritaires par catégorie (toujours en tier HOT)
+PRIORITY_SYMBOLS = {
+    "LAYER1":    ["BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT","XRPUSDT","ADAUSDT","AVAXUSDT",
+                  "DOTUSDT","NEARUSDT","ATOMUSDT","TRXUSDT","LTCUSDT","TONUSDT","SUIUSDT","APTUSDT",
+                  "HBARUSDT","ALGOUSDT","ICPUSDT","FILUSDT","EGLDUSDT"],
+    "LAYER2":    ["ARBUSDT","OPUSDT","MATICUSDT","IMXUSDT","STRKUSDT","SEIUSDT","MNTUSDT",
+                  "ZKUSDT","SCROLLUSDT","METISUSDT"],
+    "DEFI":      ["UNIUSDT","LINKUSDT","AAVEUSDT","MKRUSDT","SUSHIUSDT","CRVUSDT","COMPUSDT",
+                  "PENDLEUSDT","AEROUSDT","ENAUSDT","JUPUSDT","RAYDIUMUSDT","DYDXUSDT"],
+    "AI_DATA":   ["FETUSDT","RENDERUSDT","TAOUSDT","OCEANUSDT","AGIXUSDT","WLDUSDT",
+                  "AIUSDT","NFPUSDT","ARKMUSDT"],
+    "MEME":      ["DOGEUSDT","SHIBUSDT","PEPEUSDT","WIFUSDT","BONKUSDT","FLOKIUSDT",
+                  "POPCATUSDT","MEMEUSDT","TURBOUSDT","GMEUSDT","BRETTUSDT","MOGUSDT","MEWUSDT"],
+    "RWA_INFRA": ["ONDOUSDT","KASUSDT","ORDIUSDT","STXUSDT","IOTAUSDT","CELOUSDT"],
+    "GAMING":    ["AXSUSDT","SANDUSDT","MANAUSDT","GALAUSDT","PIXELUSDT","NOTUSDT",
+                  "BEAMUSDT","RONUSDT","YMMUSDT"],
+    "COMMODITY": ["PAXGUSDT","XAUTUSDT"],   # Or tokenisé
+    "EXCHANGE":  ["WUSDT","OKBUSDT"],
+    "INFRA":     ["INJUSDT","FETUSDT","CELRUSDT","BANDUSDT","STMXUSDT"],
 }
-FOREX_SYMBOLS = {
-    "EURUSD=X":"EUR/USD","GBPUSD=X":"GBP/USD",
-    "USDJPY=X":"USD/JPY","AUDUSD=X":"AUD/USD",
-}
-COMMODITY_SYMBOLS = {
-    "GC=F":"Or","SI=F":"Argent","CL=F":"Pétrole","HG=F":"Cuivre",
-}
-ALL_SYMBOLS = CRYPTO_SYMBOLS
+
+# Liste initiale HOT (complète statique — mise à jour dynamique au démarrage)
+CRYPTO_SYMBOLS = [s for cat in PRIORITY_SYMBOLS.values() for s in cat]
+CRYPTO_SYMBOLS = list(dict.fromkeys(CRYPTO_SYMBOLS))   # dedup, préserve l'ordre
+
+MICRO_SYMBOLS    = CRYPTO_SYMBOLS
+MEMECOIN_SOLANA  = ["BONKUSDT","WIFUSDT","POPCATUSDT","JUPUSDT"]
+MEMECOIN_ETH     = ["SHIBUSDT","FLOKIUSDT","PEPEUSDT","DOGEUSDT"]
+
+# Placeholders — enrichis au démarrage du bot par discover_all_symbols()
+STOCKS_SYMBOLS    = {"AAPL":"Apple","TSLA":"Tesla","NVDA":"NVIDIA","META":"Meta","MSFT":"Microsoft","GOOGL":"Google","AMZN":"Amazon","AMD":"AMD","COIN":"Coinbase","MSTR":"MicroStrategy"}
+FOREX_SYMBOLS     = {"EURUSD=X":"EUR/USD","GBPUSD=X":"GBP/USD","USDJPY=X":"USD/JPY","AUDUSD=X":"AUD/USD"}
+COMMODITY_SYMBOLS = {"GC=F":"Or","SI=F":"Argent","CL=F":"Pétrole","HG=F":"Cuivre"}
+ALL_SYMBOLS       = CRYPTO_SYMBOLS
+
+# ── Tier system global state ──────────────────────────────────────
+_ALL_DISCOVERED    = []   # tous les symboles Binance (400+)
+_HOT_SYMBOLS       = list(CRYPTO_SYMBOLS)   # scanné chaque cycle
+_WARM_SYMBOLS      = []   # scanné 1 cycle / 3
+_COLD_SYMBOLS      = []   # scanné 1 cycle / 10
+_TIER_CYCLE_CTR    = 0
+_TIER_LAST_REFRESH = 0.0  # timestamp dernier refresh (toutes les 6h)
+
+def discover_all_symbols() -> list:
+    """
+    Récupère TOUTES les paires USDT actives sur Binance (400+).
+    Trie par volume 24h décroissant.
+    Appelé au démarrage du bot et toutes les 6h.
+    """
+    global _ALL_DISCOVERED, _HOT_SYMBOLS, _WARM_SYMBOLS, _COLD_SYMBOLS, _TIER_LAST_REFRESH
+    global CRYPTO_SYMBOLS, MICRO_SYMBOLS, ALL_SYMBOLS
+    try:
+        import requests as _req, time as _t2
+        # Récupération exchange info
+        _ei  = _req.get("https://api.binance.com/api/v3/exchangeInfo", timeout=15).json()
+        _all = [s["symbol"] for s in _ei.get("symbols", [])
+                if s["symbol"].endswith("USDT") and s["status"] == "TRADING"
+                and s.get("quoteAsset") == "USDT"]
+        # Volumes 24h
+        _tks = _req.get("https://api.binance.com/api/v3/ticker/24hr", timeout=15).json()
+        _vol = {t["symbol"]: float(t["quoteVolume"]) for t in _tks
+                if isinstance(t, dict) and t["symbol"].endswith("USDT")}
+        _all.sort(key=lambda s: _vol.get(s, 0), reverse=True)
+        _TIER_LAST_REFRESH = _t2.time()
+        logger.info(f"[DISCOVERY] 🌍 {len(_all)} paires USDT actives sur Binance")
+        _rebuild_tiers(_all)
+        return _all
+    except Exception as _de:
+        logger.warning(f"[DISCOVERY] Fallback liste statique: {_de}")
+        _rebuild_tiers(CRYPTO_SYMBOLS)
+        return CRYPTO_SYMBOLS
+
+def _rebuild_tiers(all_syms: list):
+    """Reconstruit les 3 tiers à partir d'une liste triée par volume."""
+    global _ALL_DISCOVERED, _HOT_SYMBOLS, _WARM_SYMBOLS, _COLD_SYMBOLS
+    global CRYPTO_SYMBOLS, MICRO_SYMBOLS, ALL_SYMBOLS
+    priority_flat = list(dict.fromkeys(
+        [s for cat in PRIORITY_SYMBOLS.values() for s in cat]
+    ))
+    # HOT = priorités + top volume (max 80)
+    hot_raw = priority_flat + [s for s in all_syms if s not in priority_flat]
+    _HOT_SYMBOLS  = list(dict.fromkeys(hot_raw))[:80]
+    _WARM_SYMBOLS = [s for s in all_syms[60:220]  if s not in _HOT_SYMBOLS]
+    _COLD_SYMBOLS = [s for s in all_syms[220:]    if s not in _HOT_SYMBOLS and s not in _WARM_SYMBOLS]
+    _ALL_DISCOVERED = all_syms
+    CRYPTO_SYMBOLS  = _HOT_SYMBOLS
+    MICRO_SYMBOLS   = _HOT_SYMBOLS
+    ALL_SYMBOLS     = all_syms
+    logger.info(f"[TIERS] 🔥 HOT:{len(_HOT_SYMBOLS)} 🔆 WARM:{len(_WARM_SYMBOLS)} ❄️ COLD:{len(_COLD_SYMBOLS)} | Total:{len(all_syms)}")
+
+def get_scan_symbols() -> list:
+    """
+    Retourne les symboles à scanner ce cycle.
+    HOT → chaque cycle | WARM → 1/3 | COLD → 1/10
+    Auto-refresh discover toutes les 6h.
+    """
+    global _TIER_CYCLE_CTR, _TIER_LAST_REFRESH
+    import time as _ts
+    _TIER_CYCLE_CTR += 1
+    # Auto-refresh toutes les 6h
+    if _ts.time() - _TIER_LAST_REFRESH > 21600:
+        try:
+            import threading as _thr
+            _thr.Thread(target=discover_all_symbols, daemon=True).start()
+        except Exception: pass
+    active = list(_HOT_SYMBOLS)
+    if _TIER_CYCLE_CTR % 3 == 0:
+        active.extend(_WARM_SYMBOLS[:120])
+    if _TIER_CYCLE_CTR % 10 == 0:
+        active.extend(_COLD_SYMBOLS[:200])
+    return list(dict.fromkeys(active))
+
+def promote_symbol(symbol: str, reason: str = "pump"):
+    """Promeut un symbole WARM/COLD dans HOT (pump détecté)."""
+    global _HOT_SYMBOLS, _WARM_SYMBOLS, _COLD_SYMBOLS
+    if symbol in _HOT_SYMBOLS: return
+    if symbol in _WARM_SYMBOLS: _WARM_SYMBOLS.remove(symbol)
+    if symbol in _COLD_SYMBOLS: _COLD_SYMBOLS.remove(symbol)
+    _HOT_SYMBOLS.insert(5, symbol)  # Top 5 pour être analysé en priorité
+    logger.info(f"[TIERS] ⬆️ PROMOTION HOT: {symbol} ({reason})")
+
 
 NITTER_INSTANCES = ["nitter.privacydev.net","nitter.poast.org","nitter.1d4.us"]
 TRADER_TWITTER_ACCOUNTS = [
@@ -1090,7 +1190,7 @@ def scan_market() -> list:
     opps = []
     prices = get_prices_batch()
     for symbol in CRYPTO_SYMBOLS:
-        if is_blacklisted(symbol): continue
+    for symbol in get_scan_symbols():
         price = prices.get(symbol, 0)
         if not price: continue
         closes = get_klines_5m_cached(symbol)
@@ -1174,12 +1274,12 @@ async def scan_market_parallel() -> list:
     asyncio.gather() sur TOUS les symboles simultanément.
     """
     prices = get_prices_batch()
-    tasks = [_analyze_symbol_quick(sym, prices) for sym in CRYPTO_SYMBOLS]
-    results_raw = await asyncio.gather(*tasks, return_exceptions=False)
+    _scan_syms = get_scan_symbols()
+    tasks = [_analyze_symbol_quick(sym, prices) for sym in _scan_syms]
     opps = [r for r in results_raw if r and isinstance(r, dict) and r.get("score", 0) != 0]
     opps.sort(key=lambda x: abs(x.get("score", 0)), reverse=True)
     logger.info(f"[scan_parallel] ✅ {len(opps)} opportunités / {len(CRYPTO_SYMBOLS)} symboles")
-    return opps[:15]
+    logger.info(f"[scan_parallel] ✅ {len(opps)} opportunités / {len(_scan_syms)} symboles | tiers actifs")
 
 
 #  ANALYSE COMPLÈTE
@@ -2770,6 +2870,8 @@ def trading_loop(send_fn):
                             top_symbols.remove(_pump_sym)
                             top_symbols.insert(0, _pump_sym)
                             micro_ctx["symbol"] = _pump_sym
+                        # Promouvoir dans le tier HOT pour les prochains cycles
+                        promote_symbol(_pump_sym, f"pump {_pump_alerts[0]['pct_5c']:+.1f}%")
             except Exception as _pump_e:
                 pass
 
@@ -5904,6 +6006,13 @@ if __name__ == "__main__":
     try:
         print("🚀 Trading Bot v7.2 — LIVE PROGRESSIVE chargé")
         init_db()
+        # ── Découverte dynamique de tous les marchés Binance ──────────────
+        try:
+            import threading as _thr_disc
+            _thr_disc.Thread(target=discover_all_symbols, daemon=True).start()
+            logger.info("[STARTUP] 🌍 Découverte marchés Binance lancée en arrière-plan...")
+        except Exception as _disc_e:
+            logger.warning(f"[STARTUP] discover_all_symbols: {_disc_e}")
         load_data()
         if EXTREME_LEARNING_MODE:
             sim["cash"] = CAPITAL_INITIAL
