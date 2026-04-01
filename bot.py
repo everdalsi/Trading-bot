@@ -243,6 +243,7 @@ LEARN_MODE_MAX_PCT    = 0.48
 
 GROQ_FAST_MODEL  = "llama-3.1-8b-instant"      # 14400 req/jour gratuit — rapide
 GROQ_SMART_MODEL = "llama-3.3-70b-versatile"   # 1000 req/jour gratuit — meilleur pour trading
+GROQ_CODE_MODEL  = "deepseek-r1-distill-llama-70b" # Spécialisé code/raisonnement — 100 req/h gratuit
 DB_FILE   = "sim_v7.db"
 DATA_FILE = Path("sim_portfolio_v7.json")
 
@@ -481,6 +482,9 @@ AI_PROVIDERS = [
     # HuggingFace gratuit: ~1000 req/jour
     {"name":"huggingface","calls":0, "window_start":time.time(), "last_call":0,
      "max_calls_per_hour":50,  "cooldown":5,  "available":True, "failures":0, "model":None},
+    # DeepSeek R1: spécialisé code/raisonnement — parfait pour AEGIS édition code
+    {"name":"groq_code",  "calls":0, "window_start":time.time(), "last_call":0,
+     "max_calls_per_hour":100, "cooldown":3,  "available":True, "failures":0, "model":GROQ_CODE_MODEL},
 ]
 _pool_stats = {
     "total_calls":0,"calls_by_provider":{},"fallbacks":0,"last_provider":"groq_fast",
@@ -4621,6 +4625,50 @@ AEGIS_TOOLS = [
             },
         }
     },
+    {
+          "type": "function",
+          "function": {
+              "name": "analyze_smc",
+              "description": "Smart Money Concepts: detecte Order Blocks, Fair Value Gaps, liquidity sweeps, breaker blocks sur un symbole. Utilise pour trouver des setups haute probabilite.",
+              "parameters": {
+                  "type": "object",
+                  "properties": {
+                      "symbol": {"type": "string", "description": "Symbole ex: BTCUSDT"},
+                      "timeframe": {"type": "string", "description": "Timeframe: 5m, 15m, 1h, 4h (defaut 1h)"}
+                  },
+                  "required": ["symbol"]
+              },
+          }
+      },
+      {
+          "type": "function",
+          "function": {
+              "name": "get_liquidation_levels",
+              "description": "Recupere les niveaux de liquidation majeurs (support/resistance dynamiques bases sur l'open interest). Indique ou les stops se concentrent.",
+              "parameters": {
+                  "type": "object",
+                  "properties": {
+                      "symbol": {"type": "string", "description": "Symbole ex: BTCUSDT"}
+                  },
+                  "required": ["symbol"]
+              },
+          }
+      },
+      {
+          "type": "function",
+          "function": {
+              "name": "run_quick_backtest",
+              "description": "Lance un backtest rapide sur les N derniers trades pour evaluer une strategie. Retourne win rate, profit factor, max drawdown.",
+              "parameters": {
+                  "type": "object",
+                  "properties": {
+                      "strategy": {"type": "string", "description": "Nom de la strategie a tester"},
+                      "lookback": {"type": "integer", "description": "Nombre de trades a analyser (defaut 50)"}
+                  },
+                  "required": []
+              },
+          }
+      },
 ]
 
 # ── Tool execution ────────────────────────────────────────────────────────────
@@ -4923,9 +4971,13 @@ async def _run_aegis_agent(chat_id: str, user_message: str) -> str:
 
     max_steps = 6
     for step in range(max_steps):
+        _code_kw = ["code","fix","bug","edit","github","fichier","ligne","fonction","erreur","syntax","indent"]
+        _is_code_task = any(kw in user_message.lower() for kw in _code_kw)
+        _model_to_use = GROQ_CODE_MODEL if _is_code_task else GROQ_SMART_MODEL
         try:
             response = groq_client.chat.completions.create(
-                model=GROQ_SMART_MODEL,
+                model=_model_to_use,
+                # Auto-select: DeepSeek R1 for code tasks, Smart for general
                 messages=messages,
                 tools=AEGIS_TOOLS,
                 tool_choice="auto",
@@ -4983,6 +5035,12 @@ async def _run_aegis_agent(chat_id: str, user_message: str) -> str:
                 result = await _aegis_tool_get_market_data()
             elif tool_name == "get_bot_logs":
                 result = await _aegis_tool_get_bot_logs(args.get("level","ALL"), args.get("limit", 50))
+            elif tool_name == "analyze_smc":
+                result = await _aegis_tool_analyze_smc(args.get("symbol","BTCUSDT"), args.get("timeframe","1h"))
+            elif tool_name == "get_liquidation_levels":
+                result = await _aegis_tool_get_liquidation_levels(args.get("symbol","BTCUSDT"))
+            elif tool_name == "run_quick_backtest":
+                result = await _aegis_tool_run_quick_backtest(args.get("strategy","current"), args.get("lookback",50))
             else:
                 result = f"Outil inconnu: {tool_name}"
             messages.append({"role": "tool", "tool_call_id": tc.id, "content": str(result)})
@@ -5064,6 +5122,118 @@ async def cmd_agent(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Tape /agent_stop pour quitter le mode."
     )
 
+
+
+
+async def _aegis_tool_analyze_smc(symbol: str = "BTCUSDT", timeframe: str = "1h") -> str:
+    """Smart Money Concepts: Order Blocks, FVG, Liquidity Sweeps"""
+    try:
+        import aiohttp
+        url = f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval={timeframe}&limit=100"
+        async with aiohttp.ClientSession() as s:
+            async with s.get(url, timeout=aiohttp.ClientTimeout(total=10)) as r:
+                klines = await r.json()
+        if not klines or isinstance(klines, dict):
+            return f"Donnees indisponibles pour {symbol}"
+        candles = [(float(k[1]),float(k[2]),float(k[3]),float(k[4]),float(k[5])) for k in klines]
+        opens,highs,lows,closes,vols = zip(*candles)
+        # Order Blocks: derniere bougie impulse avant mouvement fort
+        ob_bull, ob_bear = [], []
+        for i in range(2, len(candles)-2):
+            move = abs(closes[i+2] - closes[i]) / closes[i] * 100
+            if move > 0.8:
+                if closes[i+2] > closes[i]: ob_bull.append((lows[i], highs[i], "haussier"))
+                else: ob_bear.append((lows[i], highs[i], "baissier"))
+        # Fair Value Gaps
+        fvgs = []
+        for i in range(1, len(candles)-1):
+            if lows[i+1] > highs[i-1]: fvgs.append(("bull FVG", highs[i-1], lows[i+1]))
+            elif highs[i+1] < lows[i-1]: fvgs.append(("bear FVG", highs[i+1], lows[i-1]))
+        # Liquidity sweeps
+        sweeps = []
+        for i in range(10, len(candles)-1):
+            rh = max(highs[max(0,i-10):i])
+            rl = min(lows[max(0,i-10):i])
+            if highs[i] > rh and closes[i] < rh: sweeps.append(("sell-sweep", round(closes[i],4)))
+            if lows[i] < rl and closes[i] > rl: sweeps.append(("buy-sweep", round(closes[i],4)))
+        cur = closes[-1]
+        lines_out = [
+            f"SMC {symbol} ({timeframe}) | Prix: {cur:.4f}",
+            f"OB haussiers: {len(ob_bull)} | Dernier: {ob_bull[-1] if ob_bull else None}",
+            f"OB baissiers: {len(ob_bear)} | Dernier: {ob_bear[-1] if ob_bear else None}",
+            f"FVG detectes: {len(fvgs)} | Recents: {fvgs[-3:] if fvgs else None}",
+            f"Liquidity Sweeps: {len(sweeps)} | Recents: {sweeps[-3:] if sweeps else None}",
+        ]
+        if ob_bull: lines_out.append(f"Support OB: {ob_bull[-1][0]:.4f} - {ob_bull[-1][1]:.4f}")
+        if ob_bear: lines_out.append(f"Resistance OB: {ob_bear[-1][0]:.4f} - {ob_bear[-1][1]:.4f}")
+        return "\n".join(lines_out)
+    except Exception as e:
+        return f"Erreur SMC: {e}"
+
+
+async def _aegis_tool_get_liquidation_levels(symbol: str = "BTCUSDT") -> str:
+    """Niveaux de liquidation approximatifs bases sur OI et S/R"""
+    try:
+        import aiohttp
+        oi_url = f"https://fapi.binance.com/fapi/v1/openInterest?symbol={symbol}"
+        kl_url = f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval=4h&limit=50"
+        async with aiohttp.ClientSession() as s:
+            async with s.get(oi_url, timeout=aiohttp.ClientTimeout(total=8)) as r1:
+                oi_data = await r1.json()
+            async with s.get(kl_url, timeout=aiohttp.ClientTimeout(total=8)) as r2:
+                klines = await r2.json()
+        price = float(klines[-1][4])
+        oi = float(oi_data.get("openInterest", 0)) if isinstance(oi_data, dict) else 0
+        highs = [float(k[2]) for k in klines]
+        lows  = [float(k[3]) for k in klines]
+        key_highs = sorted(set([round(h,2) for h in highs[-10:]]), reverse=True)[:5]
+        key_lows  = sorted(set([round(l,2) for l in lows[-10:]]))[:5]
+        zone_plus  = round(price * 1.03, 2)
+        zone_minus = round(price * 0.97, 2)
+        out = [
+            f"LIQUIDATIONS {symbol}",
+            f"Prix: {price:.2f} | OI: {oi:,.0f} contrats",
+            f"Liq SHORT (resistance): {key_highs}",
+            f"Liq LONG (support): {key_lows}",
+            f"Zone critique +3%: {zone_plus} | -3%: {zone_minus}",
+        ]
+        return "\n".join(out)
+    except Exception as e:
+        return f"Donnees liquidation indisponibles: {e}"
+
+
+async def _aegis_tool_run_quick_backtest(strategy: str = "current", lookback: int = 50) -> str:
+    """Quick backtest sur les derniers trades enregistres"""
+    try:
+        from memory import load_trades
+        all_trades = load_trades() or []
+        trades = all_trades[-lookback:]
+        if not trades: return "Aucun trade enregistre pour le backtest."
+        wins   = [t for t in trades if float(t.get("pnl_pct", 0)) > 0]
+        losses = [t for t in trades if float(t.get("pnl_pct", 0)) <= 0]
+        wr = len(wins) / len(trades) * 100 if trades else 0
+        avg_w = sum(float(t.get("pnl_pct",0)) for t in wins)   / len(wins)   if wins   else 0
+        avg_l = sum(float(t.get("pnl_pct",0)) for t in losses) / len(losses) if losses else 0
+        pf = abs(avg_w / avg_l) if avg_l != 0 else 999.0
+        equity, peak, dd_max = 1000.0, 1000.0, 0.0
+        for t in trades:
+            equity *= (1 + float(t.get("pnl_pct",0)) / 100)
+            peak = max(peak, equity)
+            dd_max = max(dd_max, (peak - equity) / peak * 100)
+        verdict = ("Strategie rentable" if wr > 50 and pf > 1.5
+                   else "Amelioration necessaire" if wr > 40 else "Strategie perdante")
+        out = [
+            f"BACKTEST {lookback} derniers trades | Strategie: {strategy}",
+            f"Win Rate: {wr:.1f}% ({len(wins)}W / {len(losses)}L)",
+            f"Avg Win: +{avg_w:.2f}% | Avg Loss: {avg_l:.2f}%",
+            f"Profit Factor: {pf:.2f}",
+            f"Max Drawdown: -{dd_max:.2f}%",
+            f"Equity finale: ${equity:.2f}",
+            f"Verdict: {verdict}",
+        ]
+        return "\n".join(out)
+    except Exception as e:
+        return f"Erreur backtest: {e}"
 
 
 async def _aegis_watchdog_loop():
@@ -5628,3 +5798,9 @@ if __name__ == "__main__":
         print(error_msg)
         logger.error(error_msg)
         raise
+            elif tool_name == "analyze_smc":
+                result = await _aegis_tool_analyze_smc(args.get("symbol","BTCUSDT"), args.get("timeframe","1h"))
+            elif tool_name == "get_liquidation_levels":
+                result = await _aegis_tool_get_liquidation_levels(args.get("symbol","BTCUSDT"))
+            elif tool_name == "run_quick_backtest":
+                result = await _aegis_tool_run_quick_backtest(args.get("strategy","current"), args.get("lookback",50))
