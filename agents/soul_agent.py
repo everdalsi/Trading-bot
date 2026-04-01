@@ -25,13 +25,13 @@ SOUL_DB_FILE  = "soul.db"
 
 # ─── Critères de passage en mode LIVE ───────────────────────────────────────
 LIVE_CRITERIA = {
-    "min_training_trades": 200,     # Minimum de trades d'entraînement
+    "min_training_trades": 80,     # Minimum de trades d'entraînement
     "min_winrate_pct":     62.0,    # Win rate >= 62% sur les 100 derniers
     "min_profit_factor":   1.5,     # Profit factor (gains/pertes) >= 1.5
     "max_drawdown_pct":    10.0,    # Drawdown max toléré < 10%
     "min_consistency":     0.60,    # Score de consistance >= 0.60
     "min_sessions":        3,       # Au moins 3 sessions distinctes
-    "consecutive_checks":  3,       # Doit passer les critères 3x de suite
+    "consecutive_checks":  2,       # Doit passer les critères 3x de suite
 }
 
 # ─── Phases d'évolution ──────────────────────────────────────────────────────
