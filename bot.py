@@ -1,7 +1,7 @@
 """
 Trading Bot v8.2 — GOAT du cerveau collectif + Cerveau commun parfait + Spécialisation stricte
 UPGRADES intégrées (sans rien supprimer de l’original) :
-- memory forcé en cla
+- memory forcé en clas
 - PerformanceTracker + export_dashboard compatible
 - Dashboard envoyé en parse_mode='HTML' (plus de HTML brut)
 - Orchestrator V5 + shared_glossary 
@@ -2802,17 +2802,17 @@ def trading_loop(send_fn):
                         exec_result = exec_future.result(timeout=12)
                         logger.info(f"🚀 AUTO TRADE {best_symbol} {trade_side} ${amount_usd:.2f} → {exec_result.get('fill_price', '?')}")
                         # ── AUTO-GRADUATION CHECK ──────────────────────────────────────
-                        if BOT_TRAINING_MODE and len(_trades) >= TRAINING_MIN_TRADES:
-                            _wr_check = (sum(1 for t in _trades if t.get("pnl",0) > 0) / max(1, len(_trades))) * 100
-                            if _wr_check >= TRAINING_WIN_TARGET * 100:
-                                logger.info(f"[TRAINING] 🏆 OBJECTIF ATTEINT! WR={_wr_check:.1f}% sur {len(_trades)} trades → PRÊT pour LIVE")
-                                try:
-                                    _grad_msg = f"🏆 BOT PRÊT POUR LE LIVE!\nWin rate: {_wr_check:.1f}% sur {len(_trades)} trades\n→ Active le mode LIVE dans Contrôles"
-                                    # Notify via telegram if available
+                        try:
+                            _t_hist = sim.get("trades", [])
+                            if BOT_TRAINING_MODE and len(_t_hist) >= TRAINING_MIN_TRADES:
+                                _wr_check = (sum(1 for t in _t_hist if t.get("pnl",0) > 0) / max(1, len(_t_hist))) * 100
+                                if _wr_check >= TRAINING_WIN_TARGET * 100:
+                                    logger.info(f"[TRAINING] 🏆 OBJECTIF ATTEINT! WR={_wr_check:.1f}% sur {len(_t_hist)} trades → PRÊT pour LIVE")
+                                    _grad_msg = f"🏆 BOT PRÊT POUR LE LIVE!\nWin rate: {_wr_check:.1f}% sur {len(_t_hist)} trades\n→ Active le mode LIVE dans Contrôles"
                                     if hasattr(application, "bot"):
                                         asyncio.run_coroutine_threadsafe(application.bot.send_message(TELEGRAM_CHAT_ID, _grad_msg), _main_loop)
-                                except Exception:
-                                    pass
+                        except Exception as grad_e:
+                            pass
                         # TRAINING MODE: enregistrer chaque trade comme lecon
                         if hasattr(memory, "save_lesson"):
                             memory.save_lesson(
