@@ -132,11 +132,68 @@ class BaseAgent(ABC):
         self.role        = role or description
         self.description = description or role
         self.kb          = _KnowledgeBaseSingleton.get_instance()
+        self._bg_signal   = {}   # Cache pré-analyse background
+        self._bg_insights = []   # Insights auto-amélioration
+        self._bg_cycle    = 0    # Compteur cycles background
 
         # V4.0 : Personnalité assignée automatiquement selon le nom de l'agent
         _p_key                   = AGENT_PERSONALITY_MAP.get(name, PERSONALITY_INSTITUTIONAL)
         self.personality         = _p_key
         self.personality_profile = PERSONALITY_PROFILES[_p_key]
+
+
+    def bg_tick(self, ctx: dict, cycle_id: int) -> dict:
+        """
+        Travail en arrière-plan pendant HOLD.
+        cycle pair   → pré-analyse (calcul signaux techniques sans LLM)
+        cycle impair → auto-amélioration (révise perf passée, ajuste seuils)
+        Retourne {"type","signal","insight"} — stocké dans _bg_signal/_bg_insights.
+        """
+        import json as _json, os as _os, time as _time
+        self._bg_cycle += 1
+        try:
+            if cycle_id % 2 == 0:
+                # ── CAS PAIR : pré-analyse technique ─────────────────────────────
+                closes = ctx.get("closes_5m", ctx.get("closes", []))
+                if len(closes) >= 14:
+                    rsi  = self.tools.rsi(closes)
+                    ema9 = self.tools.ema(closes, 9)
+                    ema21= self.tools.ema(closes, 21)
+                    trend= self.tools.trend_strength(closes)
+                    sig  = "BUY" if (rsi < 40 and ema9 > ema21) else \
+                           "SELL" if (rsi > 65 and ema9 < ema21) else "HOLD"
+                    self._bg_signal = {
+                        "agent": self.name, "signal": sig,
+                        "rsi": round(rsi, 1), "trend": trend["direction"],
+                        "slope": trend["slope_pct"], "ts": int(_time.time())
+                    }
+                return {"type": "preanalysis", "signal": self._bg_signal}
+            else:
+                # ── CAS IMPAIR : auto-amélioration ───────────────────────────────
+                perf_file = "/tmp/agent_perf.json"
+                insight = {"agent": self.name, "type": "self_improve", "ts": int(_time.time())}
+                if _os.path.exists(perf_file):
+                    with open(perf_file) as _f: perfs = _json.load(_f)
+                    key = self.name.lower().replace(" ", "_").replace("-", "_")
+                    p = perfs.get(key, {})
+                    total, wins = p.get("total", 0), p.get("wins", 0)
+                    if total >= 3:
+                        wr = wins / total
+                        # Auto-ajustement du seuil de confiance minimal
+                        if wr < 0.35 and not hasattr(self, "_conf_penalty"):
+                            self._conf_penalty = 0.05
+                            insight["action"] = f"WR={wr:.0%} → +5% seuil confiance"
+                        elif wr > 0.60 and hasattr(self, "_conf_penalty"):
+                            del self._conf_penalty
+                            insight["action"] = f"WR={wr:.0%} → seuil confiance rétabli"
+                        else:
+                            insight["action"] = f"WR={wr:.0%} ({total} trades) — stable"
+                        insight["win_rate"] = round(wr, 3)
+                self._bg_insights.append(insight)
+                self._bg_insights = self._bg_insights[-20:]  # Max 20 insights
+                return {"type": "self_improve", "insight": insight}
+        except Exception as _e:
+            return {"type": "error", "agent": self.name, "err": str(_e)}
 
     @abstractmethod
     async def respond(self, question: str, context: dict) -> Dict[str, Any]:
