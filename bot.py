@@ -4481,18 +4481,31 @@ async def _ask_agent_multi(chat_id: int, query: str) -> str:
   #  Groq llama-3.3-70b + function calling → lit/modifie le code, contrôle le bot
   # ═══════════════════════════════════════════════════════════════════════════════
 
-  AEGIS_SYSTEM_PROMPT = """Tu es AEGIS, l'agent autonome du trading bot de ton propriétaire.
-  Tu peux lire et modifier le code, consulter les trades, contrôler le bot.
-  Tu réponds TOUJOURS en français, de façon claire et directe.
-  Quand tu modifies du code, explique exactement ce que tu as changé et pourquoi.
-  Tu as accès aux outils suivants pour agir concrètement."""
+  AEGIS_SYSTEM_PROMPT = """Tu es AEGIS, agent autonome du trading bot crypto de ton proprietaire.
+  Tu reponds TOUJOURS en francais, de facon claire et directe.
+
+  REGLES POUR LIRE LE CODE (bot.py = 5400+ lignes):
+  - Ne JAMAIS lire bot.py sans search ou from_line/to_line. Le fichier est trop grand.
+  - Workflow lecture: 1) read_github_file(search="mot-cle") → trouve les lignes → 2) read_github_file(from_line=X, to_line=Y) pour voir le contexte complet
+  - Pour trouver une variable/fonction: search=le_nom_exact
+  - Pour lire un bloc: from_line=debut, to_line=fin (plages de 50-100 lignes max)
+
+  REGLES POUR MODIFIER LE CODE:
+  - Toujours d abord LIRE le code exact avec search, puis copier les lignes exactes
+  - Utiliser dry_run=True pour verifier le diff avant de committer
+  - Expliquer clairement ce qui change et pourquoi
+  - Un commit = une modification logique
+
+  PERSONNALITE: Tu es factuel, efficace, transparent sur tes actions.
+  Quand tu utilises un outil, dis ce que tu fais (ex: "Je consulte les trades...").
+  Quand tu modifies du code, confirme le commit et que Railway va redemarrer."""
 
   AEGIS_TOOLS = [
       {
           "type": "function",
           "function": {
               "name": "get_bot_status",
-              "description": "Lit l'état actuel du bot: équity, positions, win rate, mode training/live, trades du jour",
+              "description": "Lit etat bot: capital, positions, win rate, mode TRAINING/LIVE, regime marche",
               "parameters": {"type": "object", "properties": {}, "required": []},
           }
       },
@@ -4500,11 +4513,11 @@ async def _ask_agent_multi(chat_id: int, query: str) -> str:
           "type": "function",
           "function": {
               "name": "get_trade_history",
-              "description": "Retourne les derniers trades avec statistiques (win rate, PnL, symboles)",
+              "description": "Derniers trades avec stats (win rate, PnL, symboles). Utilise limit pour le nombre.",
               "parameters": {
                   "type": "object",
                   "properties": {
-                      "limit": {"type": "integer", "description": "Nombre de trades à retourner (défaut 20)"}
+                      "limit": {"type": "integer", "description": "Nombre de trades (defaut 20, max 100)"}
                   },
                   "required": []
               },
@@ -4513,13 +4526,24 @@ async def _ask_agent_multi(chat_id: int, query: str) -> str:
       {
           "type": "function",
           "function": {
+              "name": "analyze_performance",
+              "description": "Analyse profonde: win rate par heure, par symbole, par cote (LONG/SHORT). Utilise pour diagnostic.",
+              "parameters": {"type": "object", "properties": {}, "required": []},
+          }
+      },
+      {
+          "type": "function",
+          "function": {
               "name": "read_github_file",
-              "description": "Lit le contenu d'un fichier du repo GitHub (bot.py, templates/office.html, etc.)",
+              "description": "Lit un fichier GitHub. Supporte: search (mot-cle + contexte), from_line/to_line (plage de lignes). TOUJOURS utiliser search ou from_line/to_line pour naviguer dans bot.py.",
               "parameters": {
                   "type": "object",
                   "properties": {
-                      "path": {"type": "string", "description": "Chemin du fichier ex: bot.py ou templates/office.html"},
-                      "search": {"type": "string", "description": "Optionnel: chercher une ligne spécifique dans le fichier"}
+                      "path":         {"type": "string", "description": "Chemin ex: bot.py"},
+                      "search":       {"type": "string", "description": "Mot-cle a chercher (retourne lignes autour)"},
+                      "from_line":    {"type": "integer", "description": "Ligne de debut (1-indexed)"},
+                      "to_line":      {"type": "integer", "description": "Ligne de fin"},
+                      "context_lines":{"type": "integer", "description": "Lignes de contexte autour des resultats (defaut 5)"}
                   },
                   "required": ["path"]
               },
@@ -4528,15 +4552,30 @@ async def _ask_agent_multi(chat_id: int, query: str) -> str:
       {
           "type": "function",
           "function": {
-              "name": "edit_github_file",
-              "description": "Modifie une portion d'un fichier sur GitHub et pousse le commit. UTILISE SEULEMENT si l'utilisateur confirme explicitement une modification.",
+              "name": "list_github_files",
+              "description": "Liste les fichiers/dossiers du repo GitHub",
               "parameters": {
                   "type": "object",
                   "properties": {
-                      "path":        {"type": "string", "description": "Chemin du fichier à modifier"},
-                      "old_text":    {"type": "string", "description": "Texte exact à remplacer (5-10 lignes de contexte)"},
-                      "new_text":    {"type": "string", "description": "Nouveau texte de remplacement"},
-                      "commit_msg":  {"type": "string", "description": "Message de commit court décrivant le changement"}
+                      "directory": {"type": "string", "description": "Dossier a lister (vide = racine)"}
+                  },
+                  "required": []
+              },
+          }
+      },
+      {
+          "type": "function",
+          "function": {
+              "name": "edit_github_file",
+              "description": "Modifie un fichier sur GitHub. ETAPES: 1) cherche le texte exact avec read_github_file search, 2) utilise dry_run=True pour preview, 3) confirme avec dry_run=False.",
+              "parameters": {
+                  "type": "object",
+                  "properties": {
+                      "path":        {"type": "string", "description": "Chemin du fichier"},
+                      "old_text":    {"type": "string", "description": "Texte EXACT a remplacer (copie du fichier)"},
+                      "new_text":    {"type": "string", "description": "Nouveau texte"},
+                      "commit_msg":  {"type": "string", "description": "Message de commit"},
+                      "dry_run":     {"type": "boolean", "description": "True = preview sans commit (defaut True)"}
                   },
                   "required": ["path", "old_text", "new_text", "commit_msg"]
               },
@@ -4546,7 +4585,7 @@ async def _ask_agent_multi(chat_id: int, query: str) -> str:
           "type": "function",
           "function": {
               "name": "control_bot",
-              "description": "Envoie une commande de contrôle au bot: start, stop, train_mode, live_mode, force_max_trades, conservative_mode",
+              "description": "Commandes de controle: start, stop, train_mode, live_mode, force_max_trades, conservative_mode, close_all",
               "parameters": {
                   "type": "object",
                   "properties": {
@@ -4560,7 +4599,7 @@ async def _ask_agent_multi(chat_id: int, query: str) -> str:
           "type": "function",
           "function": {
               "name": "get_market_data",
-              "description": "Retourne les prix actuels des cryptos et le régime de marché",
+              "description": "Prix actuels des cryptos + regime de marche (bull/bear/sideways)",
               "parameters": {"type": "object", "properties": {}, "required": []},
           }
       },
@@ -4614,63 +4653,170 @@ async def _ask_agent_multi(chat_id: int, query: str) -> str:
       except Exception as e:
           return f"Erreur lecture trades: {e}"
 
-  async def _aegis_tool_read_github_file(path: str, search: str = None) -> str:
-      try:
-          import urllib.request as _ur
-          _tok = GITHUB_TOKEN
-          _repo = GITHUB_REPO or "everdalsi/Trading-bot"
-          _branch = "main-revert-4"
-          _url = f"https://api.github.com/repos/{_repo}/contents/{path}?ref={_branch}"
-          req = _ur.Request(_url, headers={"Authorization": f"Bearer {_tok}", "Accept": "application/vnd.github+json"})
-          with _ur.urlopen(req, timeout=15) as r:
-              data = json.loads(r.read())
-          import base64 as _b64
-          content = _b64.b64decode(data["content"].replace("\n","")).decode("utf-8", errors="replace")
-          file_lines = content.split("\n")
-          if search:
-              matches = [(i+1, l) for i, l in enumerate(file_lines) if search.lower() in l.lower()]
-              if not matches:
-                  return f"'{search}' non trouvé dans {path}"
-              result = f"Recherche '{search}' dans {path} → {len(matches)} résultats:\n"
-              for lineno, l in matches[:15]:
-                  result += f"  L{lineno}: {l}\n"
-              return result
-          # Return first 80 lines if no search
-          preview = "\n".join(f"L{i+1}: {l}" for i, l in enumerate(file_lines[:80]))
-          return f"{path} ({len(file_lines)} lignes total):\n{preview}\n[... {max(0,len(file_lines)-80)} lignes restantes]"
-      except Exception as e:
-          return f"Erreur lecture {path}: {e}"
+    async def _aegis_tool_read_github_file(path: str, search: str = None,
+                                            from_line: int = None, to_line: int = None,
+                                            context_lines: int = 5) -> str:
+        try:
+            import urllib.request as _ur, base64 as _b64
+            _repo = GITHUB_REPO or "everdalsi/Trading-bot"
+            _branch = "main-revert-4"
+            _url = f"https://api.github.com/repos/{_repo}/contents/{path}?ref={_branch}"
+            req = _ur.Request(_url, headers={"Authorization": f"Bearer {GITHUB_TOKEN}", "Accept": "application/vnd.github+json"})
+            with _ur.urlopen(req, timeout=15) as r:
+                data = json.loads(r.read())
+            content = _b64.b64decode(data["content"].replace("\n","")).decode("utf-8", errors="replace")
+            file_lines = content.split("\n")
+            total = len(file_lines)
+            if search:
+                matches = [(i, l) for i, l in enumerate(file_lines) if search.lower() in l.lower()]
+                if not matches:
+                    return f"Introuvable: {search!r} dans {path} ({total} lignes)"
+                out = [f"Recherche {search!r} dans {path} -> {len(matches)} resultats:\n"]
+                shown = set()
+                for idx, _ in matches[:8]:
+                    start_c = max(0, idx - context_lines)
+                    end_c = min(total, idx + context_lines + 1)
+                    if start_c in shown: continue
+                    out.append(f"  -- L{idx+1} --")
+                    for i in range(start_c, end_c):
+                        marker = ">>>" if i == idx else "   "
+                        out.append(f"  {marker} L{i+1}: {file_lines[i]}")
+                    shown.add(start_c)
+                    out.append("")
+                return "\n".join(out)
+            if from_line or to_line:
+                start_r = max(0, (from_line or 1) - 1)
+                end_r = min(total, (to_line or total))
+                chunk = file_lines[start_r:end_r]
+                out = [f"{path} L{start_r+1}-L{end_r} ({total} lignes total):"]
+                out += [f"L{start_r+i+1}: {l}" for i, l in enumerate(chunk)]
+                return "\n".join(out)
+            preview = [f"L{i+1}: {l}" for i, l in enumerate(file_lines[:60])]
+            out = [f"{path} ({total} lignes). Premieres 60 lignes:"]
+            out += preview
+            out.append("\n-> Utilise from_line/to_line pour lire une section, ou search pour chercher un mot-cle.")
+            return "\n".join(out)
+        except Exception as e:
+            return f"Erreur lecture {path}: {e}"
 
-  async def _aegis_tool_edit_github_file(path: str, old_text: str, new_text: str, commit_msg: str) -> str:
-      try:
-          import urllib.request as _ur, base64 as _b64
-          _tok = GITHUB_TOKEN
-          _repo = GITHUB_REPO or "everdalsi/Trading-bot"
-          _branch = "main-revert-4"
-          # Get current file
-          _url = f"https://api.github.com/repos/{_repo}/contents/{path}?ref={_branch}"
-          req = _ur.Request(_url, headers={"Authorization": f"Bearer {_tok}", "Accept": "application/vnd.github+json"})
-          with _ur.urlopen(req, timeout=15) as r:
-              data = json.loads(r.read())
-          current_sha = data["sha"]
-          content = _b64.b64decode(data["content"].replace("\n","")).decode("utf-8", errors="replace")
-          if old_text not in content:
-              return f"❌ Texte à remplacer non trouvé dans {path}. Vérifie l'orthographe exacte."
-          new_content = content.replace(old_text, new_text, 1)
-          encoded = _b64.b64encode(new_content.encode("utf-8")).decode()
-          payload = json.dumps({"message": f"[AEGIS] {commit_msg}", "content": encoded, "sha": current_sha, "branch": _branch}).encode()
-          put_req = _ur.Request(
-              f"https://api.github.com/repos/{_repo}/contents/{path}",
-              data=payload,
-              headers={"Authorization": f"Bearer {_tok}", "Accept": "application/vnd.github+json", "Content-Type": "application/json"},
-              method="PUT"
-          )
-          with _ur.urlopen(put_req, timeout=20) as r:
-              result = json.loads(r.read())
-          commit_sha = result.get("commit", {}).get("sha", "?")[:10]
-          return f"✅ Fichier modifié et pushé! Commit: {commit_sha}\nRailway redéploie automatiquement dans ~2 min."
-      except Exception as e:
-          return f"❌ Erreur modification fichier: {e}"
+    async def _aegis_tool_edit_github_file(path: str, old_text: str, new_text: str,
+                                            commit_msg: str, dry_run: bool = False) -> str:
+        """Edit a file on GitHub. dry_run=True shows the diff without committing."""
+        try:
+            import urllib.request as _ur, base64 as _b64
+            _repo = GITHUB_REPO or "everdalsi/Trading-bot"
+            _branch = "main-revert-4"
+            _url = f"https://api.github.com/repos/{_repo}/contents/{path}?ref={_branch}"
+            req = _ur.Request(_url, headers={"Authorization": f"Bearer {GITHUB_TOKEN}", "Accept": "application/vnd.github+json"})
+            with _ur.urlopen(req, timeout=15) as r:
+                data = json.loads(r.read())
+            current_sha = data["sha"]
+            content = _b64.b64decode(data["content"].replace("\n","")).decode("utf-8", errors="replace")
+            count = content.count(old_text)
+            if count == 0:
+                # Try to find close matches
+                first_line = old_text.strip().split("\n")[0][:60]
+                nearby = [(i+1, l) for i, l in enumerate(content.split("\n")) if first_line[:20].lower() in l.lower()][:3]
+                hint = "\n".join(f"  L{n}: {l}" for n, l in nearby) if nearby else "  (aucune correspondance)"
+                return f"Texte a remplacer INTROUVABLE dans {path}.\nPistage similaire:\n{hint}\nUtilise search dans read_github_file pour trouver le texte exact."
+            new_content = content.replace(old_text, new_text, 1)
+            # Show diff summary
+            old_lines = old_text.strip().split("\n")
+            new_lines = new_text.strip().split("\n")
+            diff_preview = f"DIFF ({path}):\n"
+            for l in old_lines[:5]: diff_preview += f"  - {l}\n"
+            for l in new_lines[:5]: diff_preview += f"  + {l}\n"
+            if dry_run:
+                return f"[DRY RUN] Voici ce qui serait change:\n{diff_preview}\nRelance avec dry_run=False pour confirmer."
+            encoded = _b64.b64encode(new_content.encode("utf-8")).decode()
+            payload = json.dumps({"message": f"[AEGIS] {commit_msg}", "content": encoded, "sha": current_sha, "branch": _branch}).encode()
+            put_req = _ur.Request(
+                f"https://api.github.com/repos/{_repo}/contents/{path}",
+                data=payload,
+                headers={"Authorization": f"Bearer {GITHUB_TOKEN}", "Accept": "application/vnd.github+json", "Content-Type": "application/json"},
+                method="PUT"
+            )
+            with _ur.urlopen(put_req, timeout=20) as r:
+                result = json.loads(r.read())
+            commit_sha = result.get("commit", {}).get("sha", "?")[:10]
+            return f"Fichier modifie et pushe! Commit: {commit_sha}\n{diff_preview}\nRailway redemarre dans ~2 min."
+        except Exception as e:
+            return f"Erreur modification fichier: {e}"
+
+    async def _aegis_tool_list_github_files(directory: str = "") -> str:
+        """List files/folders in the GitHub repo"""
+        try:
+            import urllib.request as _ur
+            _repo = GITHUB_REPO or "everdalsi/Trading-bot"
+            _branch = "main-revert-4"
+            path = directory.strip("/")
+            _url = f"https://api.github.com/repos/{_repo}/contents/{path}?ref={_branch}"
+            req = _ur.Request(_url, headers={"Authorization": f"Bearer {GITHUB_TOKEN}", "Accept": "application/vnd.github+json"})
+            with _ur.urlopen(req, timeout=15) as r:
+                items = json.loads(r.read())
+            if isinstance(items, dict):
+                return f"Ceci est un fichier, pas un dossier. Utilise read_github_file pour le lire."
+            out = [f"Fichiers dans /{path or "racine"}:"]
+            for item in sorted(items, key=lambda x: (x["type"]=="file", x["name"])):
+                icon = "folder" if item["type"] == "dir" else "file"
+                size = f" ({item.get('size', 0)} bytes)" if item["type"] == "file" else ""
+                out.append(f"  [{icon}] {item['name']}{size}")
+            return "\n".join(out)
+        except Exception as e:
+            return f"Erreur liste fichiers: {e}"
+
+    async def _aegis_tool_analyze_performance() -> str:
+        """Deep analysis of trading performance — win rate by hour, symbol, session"""
+        try:
+            sim = _SHARED_SIM_STATE
+            trades = sim.get("trades", [])
+            if not trades:
+                return "Pas encore de trades enregistres."
+            from collections import defaultdict
+            by_hour = defaultdict(lambda: {"w":0,"l":0})
+            by_symbol = defaultdict(lambda: {"w":0,"l":0,"pnl":0.0})
+            by_side = defaultdict(lambda: {"w":0,"l":0})
+            total_pnl = 0.0
+            wins = 0
+            for t in trades:
+                pnl = t.get("pnl", 0)
+                sym = t.get("symbol", "?")
+                side = t.get("side", "?")
+                ts = t.get("timestamp", "")
+                won = pnl > 0
+                total_pnl += pnl
+                if won: wins += 1
+                by_symbol[sym]["w" if won else "l"] += 1
+                by_symbol[sym]["pnl"] += pnl
+                by_side[side]["w" if won else "l"] += 1
+                try:
+                    hour = int(str(ts)[11:13])
+                    by_hour[hour]["w" if won else "l"] += 1
+                except: pass
+            total = len(trades)
+            wr = wins/total*100 if total else 0
+            out = [f"=== ANALYSE PERFORMANCE ({total} trades) ==="]
+            out.append(f"Win Rate global: {wr:.1f}% | PnL total: {total_pnl:+.2f}$")
+            out.append("\nPar SYMBOLE:")
+            for sym, d in sorted(by_symbol.items(), key=lambda x: -x[1]["pnl"])[:6]:
+                t2 = d["w"]+d["l"]
+                wr2 = d["w"]/t2*100 if t2 else 0
+                out.append(f"  {sym}: {wr2:.0f}% WR | {d['pnl']:+.2f}$ ({t2} trades)")
+            out.append("\nPar COTE:")
+            for side, d in by_side.items():
+                t2 = d["w"]+d["l"]
+                wr2 = d["w"]/t2*100 if t2 else 0
+                out.append(f"  {side}: {wr2:.0f}% WR ({t2} trades)")
+            if by_hour:
+                best_hours = sorted(by_hour.items(), key=lambda x: -(x[1]["w"]/(x[1]["w"]+x[1]["l"]+0.001)))[:3]
+                out.append("\nMeilleures heures:")
+                for hr, d in best_hours:
+                    t2 = d["w"]+d["l"]
+                    wr2 = d["w"]/t2*100 if t2 else 0
+                    out.append(f"  {hr}h UTC: {wr2:.0f}% WR ({t2} trades)")
+            return "\n".join(out)
+        except Exception as e:
+            return f"Erreur analyse: {e}"
 
   async def _aegis_tool_control_bot(action: str) -> str:
       try:
@@ -4780,16 +4926,20 @@ async def _ask_agent_multi(chat_id: int, query: str) -> str:
               elif tool_name == "get_trade_history":
                   result = await _aegis_tool_get_trade_history(args.get("limit", 20))
               elif tool_name == "read_github_file":
-                  result = await _aegis_tool_read_github_file(args.get("path","bot.py"), args.get("search"))
+                  result = await _aegis_tool_read_github_file(args.get("path","bot.py"), args.get("search"), args.get("from_line"), args.get("to_line"), args.get("context_lines", 5))
               elif tool_name == "edit_github_file":
                   result = await _aegis_tool_edit_github_file(
                       args.get("path"), args.get("old_text"), args.get("new_text"), args.get("commit_msg","update")
-                  )
+                      args.get("path"), args.get("old_text"), args.get("new_text"), args.get("commit_msg","update"), args.get("dry_run", True)
               elif tool_name == "control_bot":
                   result = await _aegis_tool_control_bot(args.get("action"))
               elif tool_name == "get_market_data":
                   result = await _aegis_tool_get_market_data()
               else:
+              elif tool_name == "list_github_files":
+                  result = await _aegis_tool_list_github_files(args.get("directory", ""))
+              elif tool_name == "analyze_performance":
+                  result = await _aegis_tool_analyze_performance()
                   result = f"Outil inconnu: {tool_name}"
 
               messages.append({"role": "tool", "tool_call_id": tc.id, "content": str(result)})
