@@ -162,6 +162,7 @@ class Orchestrator:
         self._last_funding_veto_ts = 0.0   # Debounce : log VETO Funding max 1x/60s
         self._phase0_cache         = {}    # BUG FIX: cache résultat Phase0 (25s TTL)
         self._phase0_cache_ts      = 0.0  # Timestamp dernier cache Phase0
+        self._bg_cache          = {}    # Cache résultats background agents
         self._agent_perf        = self._load_agent_perf()  # Poids dynamiques par agent
         self._last_perf_save    = 0.0
         logger.info("[ORCHESTRATOR V10] ✅ 50 agents initialisés — Mode PARALLÈLE + Expansion 30→50 agents")
@@ -562,6 +563,126 @@ class Orchestrator:
                 self._last_perf_save = _t2.time()
                 self._save_agent_perf()
                 logger.info(f"[ORCH] 📊 Agent perf updated: {len(self._agent_perf)} agents trackés")
+
+    # ═══════════════════════════════════════════════════════════════════
+    # BACKGROUND AGENTS — travail pendant HOLD (Option C: analyse+learn)
+    # ═══════════════════════════════════════════════════════════════════
+
+    async def run_background_agents(self, ctx: dict, cycle_id: int) -> dict:
+        """
+        Lance tous les agents en tâche de fond pendant les HOLD.
+        Cycle pair  → pré-analyse technique (non-LLM, instantané)
+        Cycle impair → auto-amélioration (révise perf, ajuste confiance)
+        Résultats stockés dans self._bg_cache pour le prochain débat.
+        """
+        import asyncio as _asyncio, time as _bgtime
+        _t0 = _bgtime.time()
+        mode = "preanalysis" if cycle_id % 2 == 0 else "self_improve"
+        logger.info(f"[BG-AGENTS] 🔄 Cycle {cycle_id} → mode: {mode} | {50} agents en arrière-plan")
+
+        # Collecter tous les agents dans une liste
+        _all_agents = [
+            self.analyst, self.quant_ml, self.order_book, self.social_listener,
+            self.research, self.knowledge_specialist, self.wallet_copier,
+            self.correlation_watcher, self.polymarket_arb, self.event_sniper,
+            self.polymarket_trader, self.sports_arb, self.quantum_risk,
+            self.macro_regime, self.on_chain, self.derivatives,
+            self.liquidation_tracker, self.exchange_flow, self.fear_greed,
+            self.pattern_recognition, self.regime_detector, self.arbitrage_scanner,
+            self.macro_calendar, self.defi_monitor, self.blockchain_health,
+            self.options_flow, self.cross_asset, self.vol_regime,
+            self.sentiment_aggregator, self.whale_tracker, self.regulatory_monitor,
+            self.grid_strategy, self.token_unlock, self.scenario_injector,
+            self.risk, self.trader, self.supervisor, self.learning,
+            self.portfolio_manager, self.self_improvement, self.evolution,
+            self.code_fixer, self.news_event, self.funding_rate,
+            self.drawdown_guard, self.yield_staking, self.hedging,
+            self.backtest_validator, self.performance,
+        ]
+
+        # Lancer bg_tick() sur chaque agent — non-bloquant, timeout 2s
+        async def _safe_bg(agent):
+            try:
+                loop = _asyncio.get_event_loop()
+                result = await _asyncio.wait_for(
+                    loop.run_in_executor(None, agent.bg_tick, ctx, cycle_id),
+                    timeout=2.0
+                )
+                return result
+            except Exception:
+                return {"type": "skip", "agent": getattr(agent, "name", "?")}
+
+        results = await _asyncio.gather(*[_safe_bg(a) for a in _all_agents],
+                                        return_exceptions=True)
+
+        # Agréger les pré-signaux (pour injecter dans le prochain débat)
+        pre_signals = [r for r in results
+                       if isinstance(r, dict) and r.get("type") == "preanalysis"
+                       and r.get("signal", {}).get("signal") in ("BUY", "SELL")]
+        buy_count  = sum(1 for s in pre_signals if s.get("signal", {}).get("signal") == "BUY")
+        sell_count = sum(1 for s in pre_signals if s.get("signal", {}).get("signal") == "SELL")
+
+        _elapsed = round(_bgtime.time() - _t0, 2)
+        summary = {
+            "cycle_id":   cycle_id, "mode": mode, "elapsed_s": _elapsed,
+            "agents_ran": len([r for r in results if isinstance(r, dict)]),
+            "pre_buy":    buy_count, "pre_sell": sell_count,
+            "pre_bias":   "BUY" if buy_count > sell_count * 1.4 else
+                          "SELL" if sell_count > buy_count * 1.4 else "NEUTRAL",
+        }
+        self._bg_cache = summary
+        logger.info(f"[BG-AGENTS] ✅ {mode} terminé {_elapsed}s | BUY:{buy_count} SELL:{sell_count} → bias:{summary['pre_bias']}")
+        return summary
+
+    async def scan_pump_setups(self, symbols: list, prices: dict, closes_map: dict) -> list:
+        """
+        Détecte les setups pump rapides (style $NOTHING) sur tous les symboles.
+        Critères : prix +3% en <5 candles AND volume spike AND RSI > 60.
+        Retourne liste d'alertes pump triées par force décroissante.
+        """
+        import time as _pt
+        alerts = []
+        for sym in symbols:
+            try:
+                closes = closes_map.get(sym, [])
+                if len(closes) < 20: continue
+                # Variation récente sur 5 candles
+                price_now = closes[-1]
+                price_5c  = closes[-6] if len(closes) >= 6 else closes[0]
+                if price_5c <= 0: continue
+                pct_5c = (price_now - price_5c) / price_5c * 100
+                # RSI sur 14 périodes
+                rsi = self.pattern_recognition.tools.rsi(closes, 14)
+                # EMA 9 vs 21 pour momentum
+                ema9  = self.pattern_recognition.tools.ema(closes, 9)
+                ema21 = self.pattern_recognition.tools.ema(closes, 21)
+                ema_cross = ema9 > ema21  # momentum haussier
+                # Détecter pump : +3% en 5 candles + RSI > 60 + EMA cross
+                if pct_5c >= 3.0 and rsi > 60 and ema_cross:
+                    strength = round(pct_5c * (rsi / 50), 2)
+                    alerts.append({
+                        "symbol": sym, "type": "PUMP",
+                        "pct_5c": round(pct_5c, 2), "rsi": round(rsi, 1),
+                        "strength": strength, "ts": int(_pt.time()),
+                        "action": "BUY",
+                        "reason": f"Pump {pct_5c:+.1f}% / RSI {rsi:.0f} / EMA↑"
+                    })
+                # Détecter dump (position short opportuniste)
+                elif pct_5c <= -3.0 and rsi < 40 and not ema_cross:
+                    strength = round(abs(pct_5c) * ((100 - rsi) / 50), 2)
+                    alerts.append({
+                        "symbol": sym, "type": "DUMP",
+                        "pct_5c": round(pct_5c, 2), "rsi": round(rsi, 1),
+                        "strength": strength, "ts": int(_pt.time()),
+                        "action": "SELL",
+                        "reason": f"Dump {pct_5c:+.1f}% / RSI {rsi:.0f} / EMA↓"
+                    })
+            except Exception:
+                continue
+        alerts.sort(key=lambda x: x["strength"], reverse=True)
+        if alerts:
+            logger.info(f"[PUMP-SCAN] 🚀 {len(alerts)} setups détectés → top: {alerts[0]['symbol']} {alerts[0]['type']} {alerts[0]['pct_5c']:+.1f}%")
+        return alerts[:5]  # Top 5 setups max
 
     def _compute_global_score(self, outputs: List[Dict]) -> float:
         """Score global pondéré sur tous les agents."""
