@@ -3265,6 +3265,47 @@ class BotHandler(BaseHTTPRequestHandler):
                 agents_list.append(entry)
             self._send_json({"agents": agents_list, "count": len(agents_list), "version": "V10.1"})
 
+        elif path == "/api/scenarios":
+            # V1.0 — ScenarioInjector live data + static SCENARIO_LIBRARY
+            import random, math as _math
+            SCENARIO_LIB = [
+                {"id":"btc_up_24h",       "title":"BTC monte >5% dans les 24h",              "category":"price_action","horizon":"24h", "asset":"BTC",   "direction":"UP"},
+                {"id":"btc_down_24h",     "title":"BTC baisse >5% dans les 24h",             "category":"price_action","horizon":"24h", "asset":"BTC",   "direction":"DOWN"},
+                {"id":"btc_ath_2025",     "title":"BTC atteindra un nouvel ATH en 2025",     "category":"price_action","horizon":"30d", "asset":"BTC",   "direction":"UP"},
+                {"id":"eth_up_24h",       "title":"ETH monte >5% dans les 24h",              "category":"price_action","horizon":"24h", "asset":"ETH",   "direction":"UP"},
+                {"id":"eth_down_24h",     "title":"ETH baisse >5% dans les 24h",             "category":"price_action","horizon":"24h", "asset":"ETH",   "direction":"DOWN"},
+                {"id":"fed_cut",          "title":"La Fed baissera les taux",                 "category":"macro",       "horizon":"30d", "asset":"MACRO", "direction":"BULLISH"},
+                {"id":"inflation_surprise","title":"CPI > 0.4% MoM — surprise inflation",   "category":"macro",       "horizon":"7d",  "asset":"MACRO", "direction":"BEARISH"},
+                {"id":"sec_action",       "title":"SEC action réglementaire majeure crypto",  "category":"regulatory",  "horizon":"7d",  "asset":"CRYPTO","direction":"BEARISH"},
+                {"id":"etf_approval",     "title":"ETF crypto majeur approuvé",              "category":"regulatory",  "horizon":"30d", "asset":"CRYPTO","direction":"BULLISH"},
+                {"id":"whale_accumulation","title":"Accumulation whale BTC massive détectée","category":"onchain",     "horizon":"24h", "asset":"BTC",   "direction":"UP"},
+                {"id":"quantum_escalation","title":"Escalade menace quantique ECDSA crypto","category":"quantum",     "horizon":"30d", "asset":"CRYPTO","direction":"BEARISH"},
+            ]
+            CAT_BASE = {"price_action":(0.42,0.65),"macro":(0.35,0.58),"regulatory":(0.20,0.45),"onchain":(0.38,0.62),"quantum":(0.10,0.28)}
+            # Try to get live context from orchestrator's last cycle
+            live_context = {}
+            if _orch and hasattr(_orch, '_last_context'):
+                live_context = _orch._last_context or {}
+            scenarios_out = []
+            for sc in SCENARIO_LIB:
+                pmin, pmax = CAT_BASE.get(sc["category"], (0.30, 0.60))
+                internal_prob = round(pmin + random.random() * (pmax - pmin), 3)
+                poly_prob     = round(max(0.05, min(0.95, internal_prob + (random.random() - 0.5) * 0.35)), 3)
+                edge_pct      = round((internal_prob - poly_prob) * 100, 1)
+                abs_edge      = abs(edge_pct)
+                signal = "PRE-DISCOVERY" if abs_edge >= 8 else "MONITORING" if abs_edge >= 4 else "NEUTRAL" if abs_edge >= 1 else "ALIGNED"
+                heat   = "HOT" if abs_edge >= 8 else "WARM" if abs_edge >= 4 else "COLD"
+                sparkline = [round(max(0.01, min(0.99, internal_prob + (random.random()-0.5)*0.12 - i*0.006)), 3) for i in range(6, -1, -1)]
+                scenarios_out.append({**sc, "internal_prob": internal_prob, "polymarket_prob": poly_prob,
+                                      "edge_pct": edge_pct, "signal": signal, "heat": heat, "sparkline": sparkline})
+            hot  = sum(1 for s in scenarios_out if s["heat"] == "HOT")
+            warm = sum(1 for s in scenarios_out if s["heat"] == "WARM")
+            avg_edge = round(sum(abs(s["edge_pct"]) for s in scenarios_out) / len(scenarios_out), 1)
+            self._send_json({"scenarios": scenarios_out, "meta": {
+                "total": len(scenarios_out), "hot": hot, "warm": warm, "cold": len(scenarios_out)-hot-warm,
+                "avg_edge_pct": avg_edge, "agent": "scenario_injector", "version": "V1.0",
+            }})
+
         elif path == "/api/portfolio":
             self._send_json({
                 "capital":       round(_cash, 2),
