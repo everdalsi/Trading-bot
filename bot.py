@@ -3497,7 +3497,16 @@ class BotHandler(BaseHTTPRequestHandler):
                     "lastAction":  live.get('lastAction') or live.get('signal'),
                 }
                 agents_list.append(entry)
-            self._send_json({"agents": agents_list, "count": len(agents_list), "version": "V10.1"})
+            # Inject background cache and pump alerts
+                        _bg_data = getattr(orchestrator, "_bg_cache", {})
+                        _pump_data = getattr(micro_ctx, "get", lambda k, d: d)("pump_alerts", []) if "micro_ctx" in dir() else []
+                        self._send_json({
+                            "agents":      agents_list,
+                            "count":       len(agents_list),
+                            "version":     "V10.1",
+                            "bg_status":   _bg_data,
+                            "pump_alerts": _pump_data,
+                        })
 
         elif path == "/api/scenarios":
             # V1.0 — ScenarioInjector live data + static SCENARIO_LIBRARY
