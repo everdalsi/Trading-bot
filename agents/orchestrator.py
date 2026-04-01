@@ -222,7 +222,10 @@ class Orchestrator:
             })
 
         # News : veto sur événement macro critique
-        if news_resp.get("veto"):
+        # Skip news veto in training mode — collect max data points
+        import os as _os_tr
+        _in_training = _os_tr.environ.get("BOT_TRAINING_MODE", "False").lower() in ("true", "1", "yes")
+        if news_resp.get("veto") and not _in_training:
             import time as _time_veto
             _now_veto = _time_veto.time()
             if _now_veto - self._last_news_veto_ts > 60:
