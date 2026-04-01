@@ -639,18 +639,26 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <!-- ══════════════ PAGE: COMLINK ══════════════ -->
     <div class="page" id="page-comlink" style="gap:0;padding:0;">
       <div id="chat-agent-bar" style="padding:10px 12px">
-        <div class="agent-chip selected" data-id="" onclick="selectAgent(this)">Tous</div>
-        <div class="agent-chip" data-id="orchestrator" onclick="selectAgent(this)">🎯 Orchestrator</div>
-        <div class="agent-chip" data-id="analyst" onclick="selectAgent(this)">📊 Analyst</div>
-        <div class="agent-chip" data-id="risk" onclick="selectAgent(this)">⚠️ Risk</div>
-        <div class="agent-chip" data-id="quantml" onclick="selectAgent(this)">🧠 QuantML</div>
-        <div class="agent-chip" data-id="trader" onclick="selectAgent(this)">⚡ Trader</div>
-        <div class="agent-chip" data-id="learning" onclick="selectAgent(this)">📚 Learning</div>
-        <div class="agent-chip" data-id="supervisor" onclick="selectAgent(this)">👁 Supervisor</div>
-        <div class="agent-chip" data-id="walletcopier" onclick="selectAgent(this)">🐳 Wallet Copier</div>
-        <div class="agent-chip" data-id="research" onclick="selectAgent(this)">🔬 Research</div>
-      </div>
-      <div id="chat-messages"></div>
+          <div class="agent-chip selected" data-id="" onclick="selectAgent(this)">Tous</div>
+          <div class="agent-chip" data-id="orchestrator" onclick="selectAgent(this)">🎯 Orch</div>
+          <div class="agent-chip" data-id="analyst" onclick="selectAgent(this)">📊 Analyst</div>
+          <div class="agent-chip" data-id="risk" onclick="selectAgent(this)">⚠️ Risk</div>
+          <div class="agent-chip" data-id="quant_ml" onclick="selectAgent(this)">🧠 QuantML</div>
+          <div class="agent-chip" data-id="trader" onclick="selectAgent(this)">⚡ Trader</div>
+          <div class="agent-chip" data-id="supervisor" onclick="selectAgent(this)">👁 Supervisor</div>
+          <div class="agent-chip" data-id="quantum_risk" onclick="selectAgent(this)">⚛️ Quantum</div>
+          <div class="agent-chip" data-id="fear_greed" onclick="selectAgent(this)">😱 F&G</div>
+          <div class="agent-chip" data-id="whale_tracker" onclick="selectAgent(this)">🐋 Whales</div>
+          <div class="agent-chip" data-id="macro_regime" onclick="selectAgent(this)">🌍 Macro</div>
+          <div class="agent-chip" data-id="scenario_injector" onclick="selectAgent(this)">🎭 Scenario</div>
+          <div class="agent-chip" data-id="derivatives" onclick="selectAgent(this)">📈 Deriv</div>
+          <div class="agent-chip" data-id="on_chain" onclick="selectAgent(this)">⛓ On-Chain</div>
+          <div class="agent-chip" data-id="polymarket_trader" onclick="selectAgent(this)">🎰 Poly</div>
+          <div class="agent-chip" data-id="wallet_copier" onclick="selectAgent(this)">🐳 Copier</div>
+          <div class="agent-chip" data-id="learning" onclick="selectAgent(this)">📚 Learning</div>
+          <div class="agent-chip" data-id="research" onclick="selectAgent(this)">🔬 Research</div>
+        </div>
+        <div id="chat-messages"></div>
       <div style="flex:1"></div>
       <div id="chat-input-bar">
         <input id="chat-input" type="text" placeholder="Message à l'agent..." autocomplete="off"
@@ -770,24 +778,65 @@ const API_BASE = '';  // même origine (Railway)
 const REFRESH_MS = 6000;
 
 const AGENTS = [
-  {id:'analyst',              name:'Analyst',         role:'Market Analysis',   icon:'📊'},
-  {id:'quant_ml',             name:'QuantML',          role:'Regime Detection',  icon:'🧠'},
-  {id:'risk',                 name:'Risk Manager',     role:'Capital Protection',icon:'⚠️'},
-  {id:'trader',               name:'Trader',           role:'Order Execution',   icon:'⚡'},
-  {id:'order_book',           name:'Order Book',       role:'Liquidity',         icon:'📖'},
-  {id:'social_listener',      name:'Social Intel',     role:'Sentiment',         icon:'📡'},
-  {id:'research',             name:'Researcher',       role:'Deep Dives',        icon:'🔬'},
-  {id:'knowledge_specialist', name:'Knowledge',        role:'Context & Memory',  icon:'📚'},
-  {id:'wallet_copier',        name:'Whale Tracker',    role:'Whale Tracking',    icon:'🐳'},
-  {id:'correlation_watcher',  name:'Correlations',     role:'Cross-Asset',       icon:'🔗'},
-  {id:'polymarket_arb',       name:'Poly Arb',         role:'Prediction Markets',icon:'🏦'},
-  {id:'event_sniper',         name:'Event Sniper',     role:'Liquidation Hunt',  icon:'🎯'},
-  {id:'polymarket_trader',    name:'Poly Trader',      role:'Edge Detection',    icon:'🎰'},
-  {id:'sports_arb',           name:'Sports Arb',       role:'Latency Arb',       icon:'⚽'},
-  {id:'hedging',              name:'Hedger',           role:'Risk Hedging',      icon:'🛡'},
-  {id:'supervisor',           name:'Supervisor',       role:'Strategy Oversight',icon:'👁'},
-  {id:'portfolio',    name:'Portfolio Mgr',role:'Allocation',       icon:'💼'},
-];
+    // ── CORE (7) ─────────────────────────────────────────────────────────────
+    {id:'analyst',              name:'Analyst',           role:'Market Analysis',    icon:'📊', cat:'core'},
+    {id:'quant_ml',             name:'QuantML',            role:'Regime Detection',   icon:'🧠', cat:'core'},
+    {id:'risk',                 name:'Risk Manager',       role:'Capital Protection', icon:'⚠️', cat:'core'},
+    {id:'trader',               name:'Trader',             role:'Order Execution',    icon:'⚡', cat:'core'},
+    {id:'execution_engine',     name:'Exec Engine',        role:'TWAP/VWAP',          icon:'🔄', cat:'core'},
+    {id:'supervisor',           name:'Supervisor',         role:'Strategy Oversight', icon:'👁', cat:'core'},
+    {id:'portfolio_manager',    name:'Portfolio Mgr',      role:'Allocation',         icon:'💼', cat:'core'},
+    // ── META / MÉMOIRE (7) ───────────────────────────────────────────────────
+    {id:'learning',             name:'Learning',           role:'Memory & Lessons',   icon:'📚', cat:'meta'},
+    {id:'research',             name:'Researcher',         role:'Deep Dives',         icon:'🔬', cat:'meta'},
+    {id:'knowledge_specialist', name:'Knowledge',          role:'Context & Memory',   icon:'🗂', cat:'meta'},
+    {id:'evolution',            name:'Evolution',          role:'Self Upgrade',       icon:'🧬', cat:'meta'},
+    {id:'self_improvement',     name:'Immune System',      role:'Health Watch',       icon:'🔧', cat:'meta'},
+    {id:'code_fixer',           name:'Code Fixer',         role:'DevOps AI',          icon:'💻', cat:'meta'},
+    {id:'soul',                 name:'Soul Agent',         role:'Autonomous Soul',    icon:'✨', cat:'meta'},
+    // ── MARKET (4) ───────────────────────────────────────────────────────────
+    {id:'social_listener',      name:'Social Intel',       role:'Sentiment',          icon:'📡', cat:'market'},
+    {id:'news_event',           name:'News Radar',         role:'Macro News',         icon:'📰', cat:'market'},
+    {id:'funding_rate',         name:'Funding Rate',       role:'Perpetuals',         icon:'💹', cat:'market'},
+      // ── RISK (3) ─────────────────────────────────────────────────────────────
+    {id:'hedging',              name:'Hedger',             role:'Risk Hedging',       icon:'🛡', cat:'risk'},
+    {id:'drawdown_guard',       name:'Drawdown Guard',     role:'DD Protection',      icon:'🔴', cat:'risk'},
+    {id:'correlation_watcher',  name:'Correlations',       role:'Cross-Asset',        icon:'🔗', cat:'risk'},
+    // ── EXOTIC (6) ───────────────────────────────────────────────────────────
+    {id:'wallet_copier',        name:'Whale Copier',       role:'Smart Money Copy',   icon:'🐳', cat:'exotic'},
+    {id:'yield_staking',        name:'Yield Farmer',       role:'APY Optimizer',      icon:'🌾', cat:'exotic'},
+    {id:'polymarket_arb',       name:'Poly Arb',           role:'Prediction Markets', icon:'🏦', cat:'exotic'},
+    {id:'event_sniper',         name:'Event Sniper',       role:'Liquidation Hunt',   icon:'🎯', cat:'exotic'},
+    {id:'polymarket_trader',    name:'Poly Trader',        role:'Edge Detection',     icon:'🎰', cat:'exotic'},
+    {id:'sports_arb',           name:'Sports Arb',         role:'Latency Arb',        icon:'⚽', cat:'exotic'},
+    // ── MACRO (4) ────────────────────────────────────────────────────────────
+    {id:'macro_regime',         name:'Macro Regime',       role:'Global Macro',       icon:'🌍', cat:'macro'},
+    {id:'macro_calendar',       name:'Macro Calendar',     role:'Event Monitor',      icon:'📅', cat:'macro'},
+    {id:'cross_asset',          name:'Cross Asset',        role:'Multi-Market',       icon:'🔀', cat:'macro'},
+    {id:'regime_detector',      name:'Regime Detector',    role:'ADX/Trend',          icon:'📡', cat:'macro'},
+    // ── ON-CHAIN (5) ─────────────────────────────────────────────────────────
+    {id:'on_chain',             name:'On-Chain',           role:'Blockchain Data',    icon:'⛓', cat:'onchain'},
+    {id:'blockchain_health',    name:'BTC Health',         role:'Network Metrics',    icon:'💚', cat:'onchain'},
+    {id:'exchange_flow',        name:'Exchange Flow',      role:'CEX Flows',          icon:'🌊', cat:'onchain'},
+    {id:'whale_tracker',        name:'Whale Tracker',      role:'Large Wallets',      icon:'🐋', cat:'onchain'},
+    {id:'token_unlock',         name:'Token Unlock',       role:'Unlock Radar',       icon:'🔓', cat:'onchain'},
+    // ── DERIVATIVES (3) ──────────────────────────────────────────────────────
+    {id:'derivatives',          name:'Derivatives',        role:'OI / Basis',         icon:'📈', cat:'derivatives'},
+    {id:'options_flow',         name:'Options Flow',       role:'Gamma/Delta',        icon:'🎲', cat:'derivatives'},
+    {id:'liquidation_tracker',  name:'Liq Tracker',        role:'Cascade Risk',       icon:'💣', cat:'derivatives'},
+    // ── SENTIMENT (4) ────────────────────────────────────────────────────────
+    {id:'fear_greed',           name:'Fear & Greed',       role:'Market Mood',        icon:'😱', cat:'sentiment'},
+    {id:'sentiment_aggregator', name:'Sentiment Agg',      role:'Multi-Source',       icon:'🔮', cat:'sentiment'},
+    {id:'pattern_recognition',  name:'Pattern AI',         role:'Chart Patterns',     icon:'🔍', cat:'sentiment'},
+    {id:'defi_monitor',         name:'DeFi Monitor',       role:'TVL & Yields',       icon:'🏗', cat:'sentiment'},
+    // ── STRATEGY (6) ─────────────────────────────────────────────────────────
+    {id:'arbitrage_scanner',    name:'Arb Scanner',        role:'CEX/DEX Arb',        icon:'⚖️', cat:'strategy'},
+    {id:'vol_regime',           name:'Vol Regime',         role:'Volatility',         icon:'〰️', cat:'strategy'},
+    {id:'grid_strategy',        name:'Grid Strategy',      role:'Grid Trading',       icon:'📐', cat:'strategy'},
+    {id:'regulatory_monitor',   name:'Regulatory',         role:'Compliance Radar',   icon:'🏛', cat:'strategy'},
+    {id:'scenario_injector',    name:'Scenario AI',        role:'Pre-Discovery',      icon:'🎭', cat:'strategy'},
+    {id:'quantum_risk',         name:'Quantum Risk',       role:'CRQC Threat',        icon:'⚛️', cat:'strategy'},
+  ];
 
 // ═══════════════════════════════════════════════════════════════
 // STATE
@@ -1236,23 +1285,27 @@ function renderAgents(agentsData) {
   });
 
   const _agGrid = document.getElementById('agent-grid');
-  if (_agGrid) _agGrid.innerHTML = all.map(a => `
-    <div class="agent-card ${a.status||'idle'}" onclick="selectAgentChat('${a.id}')">
-      <div class="ac-top">
-        <div>
-          <div class="ac-name">${a.icon||''} ${esc(a.name)}</div>
-          <div class="ac-role">${esc(a.role)}</div>
+    const CAT_COLORS = {
+      core:'#4a9eff',meta:'#bc8cff',market:'#39d0b8',risk:'#f85149',
+      exotic:'#ff8c42',macro:'#d29922',onchain:'#3fb950',
+      derivatives:'#e879f9',sentiment:'#06b6d4',strategy:'#a3e635',
+    };
+    if (_agGrid) _agGrid.innerHTML = all.map(a => {
+      const cc = CAT_COLORS[a.cat] || 'var(--accent)';
+      const pIcon = a.personality ? (a.personality.split(' ')[0]||'') : '';
+      return `<div class="agent-card ${a.status||'idle'}" onclick="selectAgentChat('${a.id}')" style="border-left:3px solid ${cc}">
+        <div class="ac-top"><div>
+          <div class="ac-name">${a.icon||''} ${esc(a.name)} ${pIcon}</div>
+          <div class="ac-role" style="color:${cc};opacity:.8">${esc(a.role)}</div>
+        </div>${a.confidence!=null?`<div class="ac-conf">${Math.round(a.confidence*100)}%</div>`:''}</div>
+        <div class="ac-bottom">
+          <span class="ac-activity act-${a.activity||'resting'}">${a.activity||'idle'}</span>
+          <span style="font-size:9px;color:var(--text3);text-transform:uppercase">${a.cat||''}</span>
         </div>
-        ${a.confidence != null ? `<div class="ac-conf">${Math.round(a.confidence*100)}%</div>` : ''}
-      </div>
-      <div class="ac-bottom">
-        <span class="ac-activity act-${a.activity||'resting'}">${a.activity||'idle'}</span>
-        <span style="font-size:10px;color:var(--text3)">${a.status||'idle'}</span>
-      </div>
-      ${a.lastAction ? `<div class="ac-action">${esc(a.lastAction)}</div>` : ''}
-    </div>
-  `).join('');
-}
+        ${a.lastAction?`<div class="ac-action">${esc(a.lastAction)}</div>`:''}
+      </div>`;
+    }).join('');
+  }
 
 // ═══════════════════════════════════════════════════════════════
 // RENDER: EDGE — POLYMARKET SPREAD
