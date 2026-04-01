@@ -263,7 +263,8 @@ LEARN_MODE_ENABLED    = True
 LEARN_MODE_CONF_MIN   = 10
 LEARN_MODE_MAX_PCT    = 0.48
 
-GROQ_FAST_MODEL = "llama-3.1-8b-instant"
+GROQ_FAST_MODEL  = "llama-3.1-8b-instant"      # 14400 req/jour gratuit — rapide
+GROQ_SMART_MODEL = "llama-3.3-70b-versatile"   # 1000 req/jour gratuit — meilleur pour trading
 DB_FILE   = "sim_v7.db"
 DATA_FILE = Path("sim_portfolio_v7.json")
 
@@ -453,19 +454,24 @@ def get_klines(symbol: str, interval: str = "1m", limit: int = 100):
 #  AI POOL
 # ═══════════════════════════════════════════════════════════════
 AI_PROVIDERS = [
-    {"name":"groq", "calls":0, "window_start":time.time(), "last_call":0,
-     "max_calls_per_hour":10, "cooldown":360, "available":True, "failures":0},
-    {"name":"huggingface", "calls":0, "window_start":time.time(), "last_call":0,
-     "max_calls_per_hour":8, "cooldown":600, "available":True, "failures":0},
+    # Groq gratuit: 30 req/min, 14400 req/jour sur llama-3.1-8b-instant
+    {"name":"groq_fast",  "calls":0, "window_start":time.time(), "last_call":0,
+     "max_calls_per_hour":200, "cooldown":3,  "available":True, "failures":0, "model":GROQ_FAST_MODEL},
+    # Groq 70b: 30 req/min, 1000 req/jour (réservé aux décisions importantes)
+    {"name":"groq_smart", "calls":0, "window_start":time.time(), "last_call":0,
+     "max_calls_per_hour":30,  "cooldown":5,  "available":True, "failures":0, "model":GROQ_SMART_MODEL},
+    # HuggingFace gratuit: ~1000 req/jour
+    {"name":"huggingface","calls":0, "window_start":time.time(), "last_call":0,
+     "max_calls_per_hour":50,  "cooldown":5,  "available":True, "failures":0, "model":None},
 ]
 _pool_stats = {
-    "total_calls":0,"calls_by_provider":{},"fallbacks":0,"last_provider":"groq",
-    "cache_hits":0,
+    "total_calls":0,"calls_by_provider":{},"fallbacks":0,"last_provider":"groq_fast",
+    "cache_hits":0,"daily_date":"","groq_fast_daily":0,"groq_smart_daily":0,"hf_daily":0,
 }
 HF_MODELS = [
-    "mistralai/Mistral-7B-Instruct-v0.3",
-    "HuggingFaceH4/zephyr-7b-beta",
-    "tiiuae/falcon-7b-instruct",
+    "Qwen/Qwen2.5-72B-Instruct",           # Meilleur modèle HF gratuit
+    "mistralai/Mistral-7B-Instruct-v0.3",  # Rapide et fiable
+    "meta-llama/Llama-3.1-8B-Instruct",    # Backup Llama
 ]
 _hf_model_idx = 0
 _ai_cache: dict = {}
@@ -527,9 +533,9 @@ def _get_available_provider() -> dict | None:
         return p
     return None
 
-def _call_groq(prompt: str) -> dict:
+def _call_groq(prompt: str, model: str = None) -> dict:
     r = groq_client.chat.completions.create(
-        model=GROQ_FAST_MODEL,
+        model=(model or GROQ_FAST_MODEL),
         max_tokens=120,
         temperature=0.1,
         messages=[
@@ -633,7 +639,7 @@ def ask_ai(prompt: str) -> dict:
         try:
             provider["calls"] += 1
             provider["last_call"] = time.time()
-            result = _call_groq(compressed) if name == "groq" else _call_huggingface(compressed)
+            result = _call_groq(compressed, provider.get("model")) if name.startswith("groq") else _call_huggingface(compressed)
             provider["failures"] = max(0, provider["failures"]-1)
             _pool_stats["last_provider"] = name
             _pool_stats["calls_by_provider"][name] = \
