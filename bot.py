@@ -1628,8 +1628,11 @@ def micro_signal(symbol: str, price: float) -> dict:
         return {"signal":"HOLD","score":0,"conf":0}
 
 def open_micro_trade(symbol: str, price: float, signal: dict, send_fn) -> dict | None:
-    if signal["signal"] == "SELL":
+    # FIX TRAINING V9: SELL (SHORT) autorisé en training pour apprendre dans les deux sens
+    # En mode live seulement, on bloque les SELL (certains exchanges ne permettent pas le short)
+    if signal["signal"] == "SELL" and not (BOT_TRAINING_MODE or EXTREME_LEARNING_MODE):
         return None
+    trade_side = "SHORT" if signal["signal"] == "SELL" else "LONG"
     micro_count = sum(1 for p in sim["positions"].values() if p.get("trade_type") == "MICRO")
     if micro_count >= MAX_MICRO_POSITIONS:
         return None
@@ -1652,7 +1655,7 @@ def open_micro_trade(symbol: str, price: float, signal: dict, send_fn) -> dict |
         "id": len(sim["trades"]) + 1,
         "symbol": symbol,
         "market": "MICRO",
-        "side": "LONG",
+        "side": trade_side,
         "trade_type": "MICRO",
         "price_in": price,
         "price_out": None,
@@ -1689,10 +1692,17 @@ def monitor_micro_positions(send_fn):
         price  = prices.get(symbol) or get_price(symbol,force=True)
         if not price: continue
         entry   = pos["price_in"]
-        change  = (price-entry)/entry
+        # FIX TRAINING V9: P&L inversé pour SHORT (profit si prix baisse)
+        _is_short = pos.get("side", "LONG") == "SHORT"
+        change  = (entry - price) / entry if _is_short else (price - entry) / entry
         elapsed = now-pos.get("open_time",now)
-        pos["peak_price"] = max(pos.get("peak_price",entry), price)
-        trailing = (pos["peak_price"]-price)/pos["peak_price"]
+        # Pour SHORT: pic de profit = prix le plus bas atteint
+        if _is_short:
+            pos["peak_price"] = min(pos.get("peak_price", entry), price)
+            trailing = (price - pos["peak_price"]) / max(pos["peak_price"], 1)
+        else:
+            pos["peak_price"] = max(pos.get("peak_price",entry), price)
+            trailing = (pos["peak_price"]-price)/pos["peak_price"]
         reason = None
         if change <= -MICRO_SL_PCT:                          reason = f"🛑 MICRO SL ({change*100:+.2f}%)"
         elif change >= MICRO_TP_PCT:                         reason = f"🎯 MICRO TP ({change*100:+.2f}%)"
@@ -2827,6 +2837,15 @@ def trading_loop(send_fn):
             last_micro = now
             performance_tracker.update_trade_results(memory, current_price)
 
+            # FIX TRAINING V9: run_micro_cycle génère des trades rapides via signaux techniques
+            # (sans attendre les agents LLM) — s'exécute à CHAQUE cycle en training
+            if BOT_TRAINING_MODE or EXTREME_LEARNING_MODE:
+                try:
+                    run_micro_cycle(send_fn)
+                    logger.info(f"[TRAINING MICRO] ⚡ run_micro_cycle exécuté — positions={len(sim.get('positions',{}))}")
+                except Exception as _rmc_e:
+                    logger.debug(f"[TRAINING MICRO] run_micro_cycle error: {_rmc_e}")
+
             # ── Scan parallèle pour trouver les meilleurs symboles ─────────
             top_symbols = ["BTCUSDT", "ETHUSDT"]
             try:
@@ -3078,7 +3097,28 @@ def trading_loop(send_fn):
                         logger.info(f"[HOLD] 📊 BG bias: {_bg.get('pre_bias','?')} | BUY:{_bg.get('pre_buy',0)} SELL:{_bg.get('pre_sell',0)}")
             except Exception as e:
                 logger.warning(f"[MICRO V7] Cycle error: {type(e).__name__}: {e or 'timeout'}")
-                # Fallback : analyse simple BTC uniquement
+                # FIX TRAINING V9: si les agents échouent/timeout, forcer un trade technique en training
+                # Cela garantit des trades à chaque cycle même sans réponse LLM
+                if BOT_TRAINING_MODE or EXTREME_LEARNING_MODE:
+                    try:
+                        _fb_sym    = top_symbols[0] if top_symbols else "BTCUSDT"
+                        _fb_prices = get_prices_batch()
+                        _fb_price  = _fb_prices.get(_fb_sym) or get_current_price(_fb_sym) or 0
+                        if _fb_price > 0:
+                            _fb_sig = micro_signal(_fb_sym, _fb_price)
+                            if _fb_sig["signal"] == "HOLD":
+                                # Forcer un signal basé sur Fear & Greed
+                                _fg_val  = float(micro_ctx.get("fear_greed", 50) or 50)
+                                _fb_dir  = "BUY" if (_fg_val >= 50 and _debate_cycle_id % 2 == 0) else "SELL"
+                                _fb_sig  = {"signal": _fb_dir, "conf": 50, "score": 2, "reason": "training_heartbeat_fallback"}
+                            _result = open_micro_trade(_fb_sym, _fb_price, _fb_sig, send_fn)
+                            if _result:
+                                logger.info(f"[TRAINING FALLBACK] 🎓 Trade forcé OK: {_fb_sig['signal']} {_fb_sym} @ {_fb_price:.2f}")
+                            else:
+                                logger.debug(f"[TRAINING FALLBACK] open_micro_trade returned None (déjà en position ou cash insuffisant)")
+                    except Exception as _ft_e:
+                        logger.debug(f"[TRAINING FALLBACK] error: {_ft_e}")
+                # Fallback agents : analyse simple BTC uniquement
                 try:
                     fallback_future = asyncio.run_coroutine_threadsafe(
                         orchestrator.ask_all("analyse micro et donne TRADE ou NO TRADE", micro_ctx),
