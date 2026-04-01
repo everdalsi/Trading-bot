@@ -3090,74 +3090,74 @@ class BotHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(b"OK")
         elif self.path in ("/god", "/god/"):
-              # ── God View SPA ─ serve index.html ────────────────────────────────
-              try:
-                  with open("/workspace/templates/god-view/index.html", "rb") as f:
-                      html = f.read()
-                  self.send_response(200)
-                  self.send_header("Content-type", "text/html; charset=utf-8")
-                  self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
-                  self.end_headers()
-                  self.wfile.write(html)
-              except FileNotFoundError:
-                  self.send_response(404)
-                  self.end_headers()
-                  self.wfile.write(b"<h1>God View not built</h1>")
-              except Exception as e:
-                  self.send_response(500)
-                  self.end_headers()
-                  self.wfile.write(f"<h1>Error</h1><p>{str(e)}</p>".encode())
-          elif self.path.startswith("/god/assets/") or self.path.startswith("/god/favicon") or self.path.startswith("/god/opengraph"):
-              # ── God View static assets (JS, CSS, images) ───────────────────────
-              import mimetypes as _mt
-              _rel = self.path[4:]  # strip "/god" → "/assets/..."
-              _fp = "/workspace/templates/god-view" + _rel
-              try:
-                  with open(_fp, "rb") as f:
-                      _d = f.read()
-                  _mime, _ = _mt.guess_type(_fp)
-                  self.send_response(200)
-                  self.send_header("Content-type", _mime or "application/octet-stream")
-                  self.send_header("Cache-Control", "public, max-age=31536000, immutable")
-                  self.end_headers()
-                  self.wfile.write(_d)
-              except FileNotFoundError:
-                  self.send_response(404)
-                  self.end_headers()
-                  self.wfile.write(b"Asset not found")
-          elif self.path.startswith("/god/"):
-              # ── God View SPA sub-route fallback ─────────────────────────────────
-              try:
-                  with open("/workspace/templates/god-view/index.html", "rb") as f:
-                      html = f.read()
-                  self.send_response(200)
-                  self.send_header("Content-type", "text/html; charset=utf-8")
-                  self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
-                  self.end_headers()
-                  self.wfile.write(html)
-              except FileNotFoundError:
-                  self.send_response(404)
-                  self.end_headers()
-                  self.wfile.write(b"<h1>God View not found</h1>")
-          elif self.path == "/office" or self.path == "/office/":
-              try:
-                  with open("/workspace/templates/office.html", "rb") as f:
-                      html = f.read()
-                  self.send_response(200)
-                  self.send_header("Content-type", "text/html; charset=utf-8")
-                  self.end_headers()
-                  self.wfile.write(html)
-                  print("[DASHBOARD] /office servi avec succès ✅")
-              except FileNotFoundError:
-                  self.send_response(404)
-                  self.send_header("Content-type", "text/html")
-                  self.end_headers()
-                  self.wfile.write("<h1>❌ templates/office.html non trouvé</h1>".encode("utf-8"))
-              except Exception as e:
-                  self.send_response(500)
-                  self.send_header("Content-type", "text/html")
-                  self.end_headers()
-                  self.wfile.write(f"<h1>Erreur dashboard</h1><p>{str(e)}</p>".encode())
+            # ── God View SPA ─ serve index.html ────────────────────────────────
+            try:
+                with open("/workspace/templates/god-view/index.html", "rb") as f:
+                    html = f.read()
+                self.send_response(200)
+                self.send_header("Content-type", "text/html; charset=utf-8")
+                self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+                self.end_headers()
+                self.wfile.write(html)
+            except FileNotFoundError:
+                self.send_response(404)
+                self.end_headers()
+                self.wfile.write(b"<h1>God View not built</h1>")
+            except Exception as e:
+                self.send_response(500)
+                self.end_headers()
+                self.wfile.write(f"<h1>Error</h1><p>{str(e)}</p>".encode())
+        elif self.path.startswith("/god/assets/") or self.path.startswith("/god/favicon") or self.path.startswith("/god/opengraph"):
+            # ── God View static assets (JS, CSS, images) ───────────────────────
+            import mimetypes as _mt
+            _rel = self.path[4:]  # strip "/god" → "/assets/..."
+            _fp = "/workspace/templates/god-view" + _rel
+            try:
+                with open(_fp, "rb") as f:
+                    _d = f.read()
+                _mime, _ = _mt.guess_type(_fp)
+                self.send_response(200)
+                self.send_header("Content-type", _mime or "application/octet-stream")
+                self.send_header("Cache-Control", "public, max-age=31536000, immutable")
+                self.end_headers()
+                self.wfile.write(_d)
+            except FileNotFoundError:
+                self.send_response(404)
+                self.end_headers()
+                self.wfile.write(b"Asset not found")
+        elif self.path.startswith("/god/"):
+            # ── God View SPA sub-route fallback ─────────────────────────────────
+            try:
+                with open("/workspace/templates/god-view/index.html", "rb") as f:
+                    html = f.read()
+                self.send_response(200)
+                self.send_header("Content-type", "text/html; charset=utf-8")
+                self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+                self.end_headers()
+                self.wfile.write(html)
+            except FileNotFoundError:
+                self.send_response(404)
+                self.end_headers()
+                self.wfile.write(b"<h1>God View not found</h1>")
+        elif self.path == "/office" or self.path == "/office/":
+            try:
+                with open("/workspace/templates/office.html", "rb") as f:
+                    html = f.read()
+                self.send_response(200)
+                self.send_header("Content-type", "text/html; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(html)
+                print("[DASHBOARD] /office servi avec succès ✅")
+            except FileNotFoundError:
+                self.send_response(404)
+                self.send_header("Content-type", "text/html")
+                self.end_headers()
+                self.wfile.write("<h1>❌ templates/office.html non trouvé</h1>".encode("utf-8"))
+            except Exception as e:
+                self.send_response(500)
+                self.send_header("Content-type", "text/html")
+                self.end_headers()
+                self.wfile.write(f"<h1>Erreur dashboard</h1><p>{str(e)}</p>".encode())
         elif self.path.startswith("/api/"):
             self._handle_api_get()
         else:
