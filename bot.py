@@ -93,8 +93,8 @@ except ImportError:
 
 from groq import Groq
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters
-from telegram.request import HTTPXRequest
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters, CallbackQueryHandler
 from telegram.constants import ParseMode
 
 # FIX : make_send supporte maintenant parse_mode='HTML'
@@ -265,6 +265,10 @@ def _log(level: str, msg: str):
     else: logger.info(msg)
 
 AEGIS_MEMORY_FILE = Path("aegis_memory.json")
+
+AEGIS_WATCHDOG_ENABLED: bool = True
+AEGIS_ERRORS_SEEN: set  = set()
+AEGIS_LAST_FIX: dict    = {}  # {path, old_text, new_text, commit_msg} — pending confirmation
 
 def _load_aegis_memory() -> dict:
     try:
@@ -4739,8 +4743,14 @@ async def _aegis_tool_edit_github_file(path: str, old_text: str, new_text: str,
         diff_preview = f"DIFF ({path}):\n"
         for l in old_lines[:5]: diff_preview += f"  - {l}\n"
         for l in new_lines[:5]: diff_preview += f"  + {l}\n"
+
         if dry_run:
-            return f"[DRY RUN] Voici ce qui serait change:\n{diff_preview}\nRelance avec dry_run=False pour confirmer."
+            global AEGIS_LAST_FIX
+            AEGIS_LAST_FIX = {"path": path, "old_text": old_text, "new_text": new_text, "commit_msg": commit_msg}
+            return (
+                f"[DRY RUN] Voici ce qui serait changé:\n{diff_preview}\n\n"
+                "✅ Fix prêt — Réponds *CONFIRME* pour appliquer, ou ignore."
+            )
         encoded = _b64.b64encode(new_content.encode("utf-8")).decode()
         payload = json.dumps({"message": f"[AEGIS] {commit_msg}", "content": encoded, "sha": current_sha, "branch": _branch}).encode()
         put_req = _ur.Request(
@@ -5054,6 +5064,90 @@ async def cmd_agent(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+
+  async def _aegis_watchdog_loop():
+      """Background task — scans LOG_BUFFER every 2 min for new errors and auto-analyzes them."""
+      global AEGIS_ERRORS_SEEN, AEGIS_WATCHDOG_ENABLED
+      await asyncio.sleep(90)
+      while True:
+          try:
+              if AEGIS_WATCHDOG_ENABLED and TELEGRAM_CHAT_ID and _app:
+                  new_errs = []
+                  for entry in list(LOG_BUFFER):
+                      if entry.get("level") == "ERROR":
+                          key = hash(entry.get("msg", "")[:200])
+                          if key not in AEGIS_ERRORS_SEEN:
+                              AEGIS_ERRORS_SEEN.add(key)
+                              new_errs.append(entry)
+                  for err in new_errs[-2:]:
+                      prompt = (
+                          f"🔴 ERREUR AUTO-DETECTEE par le watchdog:\n"
+                          f"[{err.get('ts','')}] {err.get('msg','')[:400]}\n\n"
+                          "Analyse cette erreur:\n"
+                          "1) Appelle get_bot_logs(level='ERROR', limit=5) pour le contexte complet\n"
+                          "2) Si c'est un bug code, utilise read_github_file pour localiser la ligne\n"
+                          "3) Propose un fix avec edit_github_file(dry_run=True)\n"
+                          "Sois concis et direct."
+                      )
+                      try:
+                          resp = await _run_aegis_agent(str(TELEGRAM_CHAT_ID), prompt)
+                          header = "🔴 *AEGIS WATCHDOG — Erreur détectée*\n\n"
+                          full = header + resp
+                          keyboard = None
+                          if AEGIS_LAST_FIX:
+                              keyboard = InlineKeyboardMarkup([[
+                                  InlineKeyboardButton("✅ Appliquer le fix", callback_data="aegis_apply_fix"),
+                                  InlineKeyboardButton("❌ Ignorer", callback_data="aegis_ignore_fix"),
+                              ]])
+                          for chunk in [full[i:i+4000] for i in range(0, len(full), 4000)]:
+                              try:
+                                  await _app.bot.send_message(
+                                      TELEGRAM_CHAT_ID, chunk,
+                                      parse_mode="Markdown",
+                                      reply_markup=keyboard if chunk == [full[i:i+4000] for i in range(0, len(full), 4000)][-1] else None
+                                  )
+                              except Exception:
+                                  await _app.bot.send_message(TELEGRAM_CHAT_ID, chunk)
+                      except Exception as e:
+                          logger.error(f"[AEGIS-WATCHDOG] Agent error: {e}")
+          except Exception as e:
+              logger.error(f"[AEGIS-WATCHDOG] Loop error: {e}")
+          await asyncio.sleep(120)
+
+
+  async def handle_fix_callback(update, context):
+      """Handle inline keyboard buttons for AEGIS fix confirmation."""
+      global AEGIS_LAST_FIX
+      query = update.callback_query
+      await query.answer()
+      if query.data == "aegis_apply_fix":
+          if not AEGIS_LAST_FIX:
+              await query.edit_message_text("❌ Aucun fix en attente.")
+              return
+          fix = AEGIS_LAST_FIX.copy()
+          AEGIS_LAST_FIX.clear()
+          await query.edit_message_text("⏳ Application du fix en cours...")
+          try:
+              result = await _aegis_tool_edit_github_file(
+                  fix["path"], fix["old_text"], fix["new_text"], fix["commit_msg"], dry_run=False
+              )
+              await _app.bot.send_message(TELEGRAM_CHAT_ID, f"✅ Fix appliqué!\n{result[:3000]}")
+          except Exception as e:
+              await _app.bot.send_message(TELEGRAM_CHAT_ID, f"❌ Erreur lors de l'application: {e}")
+      elif query.data == "aegis_ignore_fix":
+          AEGIS_LAST_FIX.clear()
+          await query.edit_message_text("🚫 Fix ignoré.")
+
+
+  async def cmd_aegis_watch(update, context):
+      """Toggle AEGIS watchdog on/off."""
+      global AEGIS_WATCHDOG_ENABLED
+      if not _auth(update): return
+      AEGIS_WATCHDOG_ENABLED = not AEGIS_WATCHDOG_ENABLED
+      state = "✅ ACTIVÉ" if AEGIS_WATCHDOG_ENABLED else "🔴 DÉSACTIVÉ"
+      await update.message.reply_text(f"🔍 AEGIS Watchdog: {state}\nSurveillance auto des erreurs toutes les 2 min.")
+
+  
 async def cmd_diagnose(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """One-shot autonomous health check — AEGIS analyses everything and reports"""
     if not _auth(update): return
@@ -5147,13 +5241,16 @@ async def run_telegram():
         ("execute",        cmd_execute),
         ("test_brain",     cmd_test_brain),
         ("portfolios",     cmd_portfolios),
+        ("aegis_watch",     cmd_aegis_watch),
     ]:
         _app.add_handler(CommandHandler(cmd, fn))
 
     _app.add_handler(CommandHandler("office", cmd_office))
+    _app.add_handler(CallbackQueryHandler(handle_fix_callback, pattern="^aegis_(apply|ignore)_fix$"))
     _app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_agent_chat))
     _app.add_error_handler(telegram_error_handler)
 
+    asyncio.get_event_loop().create_task(_aegis_watchdog_loop())
     await _app.initialize()
     await _app.start()
 
@@ -5161,11 +5258,11 @@ async def run_telegram():
         full = WEBHOOK_URL.rstrip("/") + WEBHOOK_PATH
         await asyncio.sleep(2)
         try:
-            await _app.bot.set_webhook(url=full, drop_pending_updates=True, allowed_updates=["message"])
+            await _app.bot.set_webhook(url=full, drop_pending_updates=True, allowed_updates=["message","callback_query"])
         except Exception as e:
             print(f"[WEBHOOK] {e}")
             await asyncio.sleep(5)
-            await _app.bot.set_webhook(url=full, drop_pending_updates=True, allowed_updates=["message"])
+            await _app.bot.set_webhook(url=full, drop_pending_updates=True, allowed_updates=["message","callback_query"])
         print(f"Webhook: {full}")
 
     print("Bot v7.1 prêt — /start | /resume | /agent | /agent_stop | /maxtrades")
