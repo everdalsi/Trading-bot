@@ -1617,9 +1617,10 @@ def micro_signal(symbol: str, price: float) -> dict:
         if vol_ratio>2.5 and score>0: score+=1
         if vol_ratio>2.5 and score<0: score-=1
         reason = f"EMA{'↑' if ema5>ema13 else '↓'} RSI7={rsi7:.0f} mom={mom3:+.2f}% vol={vol_ratio:.1f}x"
-        if score>=4:    return {"signal":"BUY","score":score,"conf":min(95,60+score*7),"reason":reason}
-        elif score<=-4: return {"signal":"SELL","score":score,"conf":min(95,60+abs(score)*7),"reason":reason}
-        return {"signal":"HOLD","score":score,"conf":0}
+        _score_thresh = 2 if BOT_TRAINING_MODE else 4
+        if score >= _score_thresh:    return {"signal": "BUY",  "score": score, "conf": min(95, 60 + score * 7),        "reason": reason}
+        elif score <= -_score_thresh: return {"signal": "SELL", "score": score, "conf": min(95, 60 + abs(score) * 7), "reason": reason}
+        return {"signal": "HOLD", "score": score, "conf": 0}
     except Exception:
         return {"signal":"HOLD","score":0,"conf":0}
 
@@ -1633,7 +1634,7 @@ def open_micro_trade(symbol: str, price: float, signal: dict, send_fn) -> dict |
         return None
     if sim["cash"] < 15:
         return None
-    if symbol in memory.get("recent_losses", []):
+    if not BOT_TRAINING_MODE and symbol in memory.get("recent_losses", []):
         print(f"[FILTER] {symbol} évité en MICRO (pertes récentes)")
         return None
     fg = get_fear_greed_value()
@@ -1732,7 +1733,7 @@ def run_micro_cycle(send_fn):
         if any(p["symbol"] == symbol and p.get("trade_type") == "MICRO" for p in sim["positions"].values()): 
             continue
         sig = micro_signal(symbol, price)
-        conf_min = MICRO_CONF_MIN if not EXTREME_LEARNING_MODE else 5
+        conf_min = 5 if (BOT_TRAINING_MODE or EXTREME_LEARNING_MODE) else MICRO_CONF_MIN
         if sig["signal"] != "HOLD" and sig["conf"] >= conf_min:
             open_micro_trade(symbol, price, sig, send_fn)
 
@@ -2847,6 +2848,8 @@ def trading_loop(send_fn):
                 "open_positions":   len(sim.get("positions", {})),
                 "max_positions":    10,  # TRAINING MODE
                 "daily_start_equity": sim.get("daily_start_equity", equity),
+                "fear_greed":         get_fear_greed_value(),     # real F&G value for force-trade direction
+                "training_mode":      BOT_TRAINING_MODE,
             }
 
             # ── Biais background + Pump scanner ─────────────────────────────
@@ -2905,7 +2908,7 @@ def trading_loop(send_fn):
                     sym_final = sym_data.get("final", {})
                     sym_conf  = float(sym_final.get("confidence", 0))
                     best_conf = float(best_decision.get("confidence", 0))
-                    reco      = str(sym_final.get("recommendation", sym_final.get("decision", "HOLD"))).upper()
+                    reco      = str(sym_final.get("decision", sym_final.get("recommendation", "HOLD"))).upper()
                     # FIX: 'TRADE' in 'NO TRADE' == True → vérification stricte
                     _reco_actionable = ("BUY" in reco or "SELL" in reco or "LONG" in reco or "SHORT" in reco) and "NO" not in reco
                     if sym_conf > best_conf and _reco_actionable:
