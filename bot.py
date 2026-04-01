@@ -3417,12 +3417,17 @@ class BotHandler(BaseHTTPRequestHandler):
                 {"id":"quantum_risk",        "name":"Quantum Risk",       "icon":"⚛️","cat":"strategy",   "personality":"🟡 LEADER"},
                 {"id":"vol_surface",         "name":"Vol Surface",        "icon":"📊","cat":"strategy",   "personality":"🔵 INSTITUTIONAL"},
             ]
-            # Try to get live status/confidence from orchestrator last cycle
+            # Try to get live status/confidence from last agent cycle outputs
             live_data = {}
-            if _orch and hasattr(_orch, 'last_cycle_agents'):
-                for ag in (_orch.last_cycle_agents or []):
-                    if isinstance(ag, dict) and 'id' in ag:
-                        live_data[ag['id']] = ag
+            try:
+                for ag in (_last_raw_agent_outputs or []):
+                    if isinstance(ag, dict):
+                        ag_id = (ag.get("id") or ag.get("agent_id") or
+                                 ag.get("name", "").lower().replace(" ", "_"))
+                        if ag_id:
+                            live_data[ag_id] = ag
+            except Exception:
+                pass
             agents_list = []
             for meta in _ALL_AGENTS_META:
                 live = live_data.get(meta['id'], {})
