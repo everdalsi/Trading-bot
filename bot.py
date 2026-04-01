@@ -191,6 +191,16 @@ LIVE_MODE      = False                    # ← Mets à True UNIQUEMENT quand wi
 TESTNET_MODE   = True                     # ← Toujours True au début (sécurité)
 LIVE_MAX_PCT_PER_TRADE = 0.08
 
+# ── MODE TRAINING / LIVE ───────────────────────────────────────────────────────
+BOT_TRAINING_MODE    = True    # True = training (prend max de trades), False = live (argent réel)
+TRAINING_CONF_THRESH = 0.01   # 1% — en training on prend TOUT pour apprendre
+TRAINING_MAX_USD     = 15.0   # Max $15 par trade en training (limiter les pertes)
+TRAINING_WIN_TARGET  = 0.68   # 68% win rate → eligible pour passage en LIVE
+TRAINING_MIN_TRADES  = 30     # Min 30 trades avant de proposer le passage LIVE
+LIVE_CONF_THRESH     = 0.25   # 25% — plus sélectif en LIVE
+LIVE_MAX_USD_PCT     = 0.05   # Max 5% du capital par trade en LIVE
+# ──────────────────────────────────────────────────────────────────────────────
+
 CAPITAL_INITIAL   = 1000.0
 MAX_POSITIONS     = 60
 MAX_PCT_PER_TRADE = 0.28
@@ -2744,21 +2754,40 @@ def trading_loop(send_fn):
                 _is_sell = any(x in reco_str for x in ["SELL", "SHORT"])
                 _is_no   = "NO" in reco_str  # couvre: NO TRADE, NO ACTION, etc.
                 # SOUL: seuil dynamique ajusté par l'âme du bot selon l'expérience accumulée
-                _soul_thresh = (_soul.params["confidence_threshold"] if _soul else 0.15)
-                # ── FORCE TRADE OVERRIDE ────────────────────────────────────────────
+                # ── SOUL + MODE TRAINING/LIVE ──────────────────────────────────────────
+                if BOT_TRAINING_MODE:
+                    # TRAINING: seuil minimal 1%, on apprend de tous les trades
+                    _soul_thresh = TRAINING_CONF_THRESH  # 0.01 = 1%
+                    _regime_str  = micro_ctx.get("market_regime", "NEUTRAL").upper()
+                    if not (_is_buy or _is_sell) or _is_no:
+                        # Forcer un trade basé sur le régime de marché
+                        _is_buy  = "BULL" in _regime_str or ("NEUTRAL" in _regime_str and _debate_cycle_id % 2 == 0)
+                        _is_sell = not _is_buy
+                        _is_no   = False
+                        trade_conf = max(trade_conf, TRAINING_CONF_THRESH)
+                        logger.info(f"[TRAINING] 🎓 Force trade → {'BUY' if _is_buy else 'SELL'} {best_symbol} | régime:{_regime_str} | cycle:{_debate_cycle_id}")
+                else:
+                    # LIVE: respecte le seuil SOUL mais minimum LIVE_CONF_THRESH
+                    _soul_thresh = max(LIVE_CONF_THRESH, (_soul.params["confidence_threshold"] if _soul else LIVE_CONF_THRESH))
+                # ── FORCE TRADE OVERRIDE (manuel 30min via bouton) ──────────────────
                 if _force_trade_override and time.time() < _force_trade_until:
                     if not (_is_buy or _is_sell) and not _is_no:
                         _is_buy    = True
                         _is_no     = False
                         trade_conf = max(trade_conf, _soul_thresh, 0.06)
-                        logger.info(f"[FORCE_TRADE] 🔥 Override actif → BUY forcé sur {best_symbol} conf={trade_conf:.0%}")
+                        logger.info(f"[FORCE_TRADE] 🔥 Override actif → BUY forcé sur {best_symbol}")
                 if trade_conf >= _soul_thresh and (_is_buy or _is_sell) and not _is_no:  # Seuil géré par l'âme
                     trade_side = "BUY" if _is_buy else "SELL"
                     trade_price = get_current_price(best_symbol) or current_price
                     # SOUL: en mode LIVE, utiliser le Kelly calculé par l'âme
                     _kelly_soul = (_soul.params.get("kelly_fraction", 0.05) if _soul else 0.05)
                     amount_usd  = decision.get("amount_usd", equity * float(decision.get("kelly_adjusted", _kelly_soul)))
-                    amount_usd  = max(10.0, min(amount_usd, equity * 0.10))
+                    # Cap position size selon mode
+                    if BOT_TRAINING_MODE:
+                        amount_usd = min(amount_usd, TRAINING_MAX_USD)  # Max $15 en training
+                        amount_usd = max(5.0, amount_usd)
+                    else:
+                        amount_usd = max(10.0, min(amount_usd, equity * LIVE_MAX_USD_PCT))
                     try:
                         exec_future = asyncio.run_coroutine_threadsafe(
                             execution.place_order_async(
@@ -2772,6 +2801,18 @@ def trading_loop(send_fn):
                         )
                         exec_result = exec_future.result(timeout=12)
                         logger.info(f"🚀 AUTO TRADE {best_symbol} {trade_side} ${amount_usd:.2f} → {exec_result.get('fill_price', '?')}")
+                        # ── AUTO-GRADUATION CHECK ──────────────────────────────────────
+                        if BOT_TRAINING_MODE and len(_trades) >= TRAINING_MIN_TRADES:
+                            _wr_check = (sum(1 for t in _trades if t.get("pnl",0) > 0) / max(1, len(_trades))) * 100
+                            if _wr_check >= TRAINING_WIN_TARGET * 100:
+                                logger.info(f"[TRAINING] 🏆 OBJECTIF ATTEINT! WR={_wr_check:.1f}% sur {len(_trades)} trades → PRÊT pour LIVE")
+                                try:
+                                    _grad_msg = f"🏆 BOT PRÊT POUR LE LIVE!\nWin rate: {_wr_check:.1f}% sur {len(_trades)} trades\n→ Active le mode LIVE dans Contrôles"
+                                    # Notify via telegram if available
+                                    if hasattr(application, "bot"):
+                                        asyncio.run_coroutine_threadsafe(application.bot.send_message(TELEGRAM_CHAT_ID, _grad_msg), _main_loop)
+                                except Exception:
+                                    pass
                         # TRAINING MODE: enregistrer chaque trade comme lecon
                         if hasattr(memory, "save_lesson"):
                             memory.save_lesson(
@@ -3217,6 +3258,9 @@ class BotHandler(BaseHTTPRequestHandler):
                 "version":          "V9",
                 "uptime_h":         round((time.time() - _start_ts) / 3600, 1) if '_start_ts' in globals() else 0,
                 "ws_connected":     ws_manager.connected if ws_manager else False,
+                "training_mode":    BOT_TRAINING_MODE,
+                "training_win_target": int(TRAINING_WIN_TARGET * 100),
+                "live_ready":       not BOT_TRAINING_MODE or (wr >= TRAINING_WIN_TARGET * 100 and len(_trades) >= TRAINING_MIN_TRADES),
             })
 
         elif path in ("/api/soul", "/api/soul/state"):
@@ -3517,7 +3561,7 @@ class BotHandler(BaseHTTPRequestHandler):
 
         if path == "/api/bot/control":
             action = body.get("action", "")
-            global _force_trade_override, _force_trade_until
+            global _force_trade_override, _force_trade_until, BOT_TRAINING_MODE
             if action == "start":
                 _agent_running = True
                 self._send_json({"running": True, "action": "started"})
@@ -3543,6 +3587,18 @@ class BotHandler(BaseHTTPRequestHandler):
                     _soul.params["confidence_threshold"] = 0.15
                 logger.info("[CTRL] 🛡 Mode conservatif — seuil 15%")
                 self._send_json({"action": "conservative_mode", "override": False, "threshold_pct": 15})
+            elif action == "train_mode":
+                BOT_TRAINING_MODE = True
+                if _soul:
+                    _soul.params["confidence_threshold"] = TRAINING_CONF_THRESH
+                logger.info("[CTRL] 🎓 MODE TRAINING activé — seuil 1%, max $15/trade")
+                self._send_json({"mode": "TRAINING", "conf_thresh_pct": 1, "max_usd": TRAINING_MAX_USD, "win_target_pct": int(TRAINING_WIN_TARGET*100)})
+            elif action == "live_mode":
+                BOT_TRAINING_MODE = False
+                if _soul:
+                    _soul.params["confidence_threshold"] = LIVE_CONF_THRESH
+                logger.info("[CTRL] 🔴 MODE LIVE activé — seuil 25%, argent réel")
+                self._send_json({"mode": "LIVE", "conf_thresh_pct": int(LIVE_CONF_THRESH*100), "max_pct": int(LIVE_MAX_USD_PCT*100)})
             elif action == "reset_equity":
                 pass  # handled by portfolio reset
                 self._send_json({"action": "reset_equity", "status": "ok"})
