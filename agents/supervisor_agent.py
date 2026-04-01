@@ -262,6 +262,11 @@ class SupervisorAgent(BaseAgent):
             final_decision = "HOLD"
             reason = f"Signal trop faible (net: {net:+.3f}) — pas de trade"
 
+        # HOLD confidence = force du signal neutre (1.0 = parfait, 0.0 = borderline)
+        if final_decision == "HOLD":
+            hold_strength   = max(0.0, 1.0 - abs(net) / 0.15)
+            consensus_conf  = max(consensus_conf, round(hold_strength * 0.65, 2))
+
         # Override clair du trader si consensus fort
         if abs(net) > 0.35 and "BUY" in trader_dec and final_decision == "HOLD":
             final_decision = "BUY"
