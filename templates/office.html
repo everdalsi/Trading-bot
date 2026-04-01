@@ -815,9 +815,269 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 
   
       <!-- ══════════════ PAGE: GOD VIEW ══════════════ -->
-      <div class="page" id="page-god" style="padding:0;gap:0;overflow:hidden;">
-        <iframe id="god-full-frame" src="/god" frameborder="0" loading="eager" scrolling="yes"></iframe>
-      </div>
+      <div class="page" id="page-god" style="padding:0;gap:0;overflow:hidden;flex-direction:column;">
+
+          <!-- ═══ GOD VIEW INLINE ═══ -->
+          <style>
+            #gv { display:flex; flex-direction:column; height:100%; background:#0a0f1a; color:#e0e6f0; font-family:monospace; overflow:hidden; }
+            #gv-header { display:flex; align-items:center; justify-content:space-between; padding:10px 16px; background:#0d1424; border-bottom:1px solid #1e2d4a; flex-shrink:0; }
+            #gv-logo { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; letter-spacing:2px; color:#4a9eff; text-transform:uppercase; }
+            #gv-logo-hex { width:20px; height:20px; display:flex; align-items:center; justify-content:center; font-size:18px; }
+            #gv-mode { font-size:11px; font-weight:700; padding:3px 10px; border-radius:4px; letter-spacing:1px; }
+            #gv-mode.training { background:rgba(59,130,246,0.2); color:#60a5fa; border:1px solid #3b82f6; }
+            #gv-mode.live { background:rgba(34,197,94,0.2); color:#4ade80; border:1px solid #22c55e; animation:gv-pulse 2s infinite; }
+            #gv-refresh { font-size:9px; color:#4a6080; }
+            #gv-body { flex:1; display:flex; flex-direction:column; gap:0; overflow-y:auto; }
+            .gv-section { padding:12px 16px; border-bottom:1px solid #111c2e; }
+            .gv-section-title { font-size:9px; font-weight:700; letter-spacing:2px; color:#4a6080; text-transform:uppercase; margin-bottom:8px; }
+            .gv-metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+            .gv-metric { background:#0d1424; border:1px solid #1e2d4a; border-radius:6px; padding:8px 10px; }
+            .gv-metric-label { font-size:8px; color:#4a6080; text-transform:uppercase; letter-spacing:1px; }
+            .gv-metric-val { font-size:16px; font-weight:700; margin-top:2px; }
+            .gv-metric-val.green { color:#4ade80; }
+            .gv-metric-val.red { color:#f87171; }
+            .gv-metric-val.blue { color:#60a5fa; }
+            .gv-metric-val.white { color:#e0e6f0; }
+            /* Soul progress */
+            .gv-progress-bar-bg { background:#1e2d4a; border-radius:4px; height:6px; margin:6px 0; }
+            .gv-progress-bar-fill { height:100%; border-radius:4px; background:linear-gradient(90deg,#3b82f6,#8b5cf6); transition:width .5s; }
+            .gv-criteria-list { display:flex; flex-direction:column; gap:3px; margin-top:6px; }
+            .gv-criterion { font-size:10px; display:flex; align-items:center; gap:6px; }
+            .gv-criterion .dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+            .gv-criterion.ok .dot { background:#4ade80; }
+            .gv-criterion.nok .dot { background:#f87171; }
+            /* Prices */
+            .gv-prices { display:grid; grid-template-columns:repeat(2,1fr); gap:6px; }
+            .gv-price { background:#0d1424; border:1px solid #1e2d4a; border-radius:6px; padding:8px 10px; display:flex; justify-content:space-between; align-items:center; }
+            .gv-price-sym { font-size:10px; color:#60a5fa; font-weight:700; }
+            .gv-price-val { font-size:13px; color:#e0e6f0; font-weight:700; }
+            /* Trades */
+            .gv-trade { display:flex; justify-content:space-between; align-items:center; padding:5px 0; border-bottom:1px solid #111c2e; font-size:10px; }
+            .gv-trade:last-child { border-bottom:none; }
+            .gv-trade-sym { color:#60a5fa; font-weight:700; width:90px; }
+            .gv-trade-side { width:45px; font-weight:700; }
+            .gv-trade-side.long { color:#4ade80; }
+            .gv-trade-side.short { color:#f87171; }
+            .gv-trade-pnl { font-weight:700; }
+            .gv-trade-pnl.pos { color:#4ade80; }
+            .gv-trade-pnl.neg { color:#f87171; }
+            .gv-trade-pct { font-size:9px; color:#4a6080; margin-left:4px; }
+            /* Last thought */
+            .gv-thought { font-size:10px; color:#a0b0c8; line-height:1.5; font-style:italic; padding:6px 10px; background:#0d1424; border-radius:6px; border-left:2px solid #3b82f6; }
+            /* Status */
+            .gv-status { display:flex; justify-content:space-between; align-items:center; font-size:9px; color:#4a6080; padding:8px 16px; border-top:1px solid #111c2e; flex-shrink:0; }
+            .gv-online { color:#4ade80; }
+            .gv-offline { color:#f87171; }
+            @keyframes gv-pulse { 0%,100%{opacity:1} 50%{opacity:.6} }
+          </style>
+
+          <div id="gv">
+            <div id="gv-header">
+              <div id="gv-logo"><div id="gv-logo-hex">⬡</div>AEGIS CORE</div>
+              <div id="gv-mode" class="training">TRAINING</div>
+              <div id="gv-refresh">⟳ auto 10s</div>
+            </div>
+            <div id="gv-body">
+
+              <!-- Metrics -->
+              <div class="gv-section">
+                <div class="gv-section-title">📊 Bot Metrics</div>
+                <div class="gv-metrics">
+                  <div class="gv-metric"><div class="gv-metric-label">Balance</div><div id="gv-balance" class="gv-metric-val blue">—</div></div>
+                  <div class="gv-metric"><div class="gv-metric-label">P&amp;L Today</div><div id="gv-pnl-day" class="gv-metric-val white">—</div></div>
+                  <div class="gv-metric"><div class="gv-metric-label">P&amp;L Total</div><div id="gv-pnl-tot" class="gv-metric-val white">—</div></div>
+                  <div class="gv-metric"><div class="gv-metric-label">Win Rate</div><div id="gv-wr" class="gv-metric-val white">—</div></div>
+                  <div class="gv-metric"><div class="gv-metric-label">Trades</div><div id="gv-trades" class="gv-metric-val white">—</div></div>
+                  <div class="gv-metric"><div class="gv-metric-label">Uptime</div><div id="gv-uptime" class="gv-metric-val white">—</div></div>
+                </div>
+              </div>
+
+              <!-- Soul / AEGIS Phase -->
+              <div class="gv-section">
+                <div class="gv-section-title">🧠 Phase AEGIS</div>
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <span id="gv-phase" style="font-size:13px;font-weight:700;color:#60a5fa;">TRAINING</span>
+                  <span id="gv-prog-pct" style="font-size:11px;color:#4a6080;">0%</span>
+                </div>
+                <div class="gv-progress-bar-bg"><div id="gv-prog-fill" class="gv-progress-bar-fill" style="width:0%"></div></div>
+                <div id="gv-phase-desc" style="font-size:10px;color:#4a6080;margin-top:2px;"></div>
+                <div class="gv-criteria-list" id="gv-criteria"></div>
+              </div>
+
+              <!-- Market Prices -->
+              <div class="gv-section">
+                <div class="gv-section-title">💹 Marchés Live</div>
+                <div class="gv-prices" id="gv-prices"></div>
+              </div>
+
+              <!-- Recent Trades -->
+              <div class="gv-section">
+                <div class="gv-section-title">📋 Derniers Trades</div>
+                <div id="gv-trades-list"><div style="font-size:10px;color:#4a6080;">Chargement…</div></div>
+              </div>
+
+              <!-- Soul Last Thought -->
+              <div class="gv-section">
+                <div class="gv-section-title">💬 Dernière Pensée AEGIS</div>
+                <div id="gv-thought" class="gv-thought">Chargement…</div>
+              </div>
+
+            </div>
+            <div class="gv-status">
+              <span id="gv-last-update">Jamais mis à jour</span>
+              <span id="gv-conn-status" class="gv-offline">● Connexion…</span>
+            </div>
+          </div>
+
+          <script>
+          (function() {
+            const API = window.API_BASE || '';
+            let gvTimer = null;
+
+            function fmt(n, dec=2) { return n != null ? parseFloat(n).toFixed(dec) : '—'; }
+            function fmtPrice(n) {
+              if (n == null) return '—';
+              return n >= 1000 ? n.toLocaleString('fr-FR', {maximumFractionDigits:2}) : parseFloat(n).toFixed(4);
+            }
+
+            async function gvFetch(path) {
+              const r = await fetch(API + path, {cache:'no-store'});
+              if (!r.ok) throw new Error(r.status);
+              return r.json();
+            }
+
+            async function gvRefresh() {
+              let anyOk = false;
+              // Bot Status
+              try {
+                const s = await gvFetch('/api/bot/status');
+                anyOk = true;
+                const modeEl = document.getElementById('gv-mode');
+                modeEl.textContent = s.mode || s.training_mode ? 'TRAINING' : 'LIVE';
+                modeEl.className = (s.training_mode || s.mode === 'TESTNET') ? 'training' : 'live';
+                const bal = s.balance;
+                const balEl = document.getElementById('gv-balance');
+                balEl.textContent = bal != null ? fmtPrice(bal) + ' $' : '—';
+
+                const pnlDay = s.pnl_today;
+                const pnlDayEl = document.getElementById('gv-pnl-day');
+                pnlDayEl.textContent = pnlDay != null ? (pnlDay >= 0 ? '+' : '') + fmt(pnlDay) + ' $' : '—';
+                pnlDayEl.className = 'gv-metric-val ' + (pnlDay >= 0 ? 'green' : 'red');
+
+                const pnlTot = s.pnl_total;
+                const pnlTotEl = document.getElementById('gv-pnl-tot');
+                pnlTotEl.textContent = pnlTot != null ? (pnlTot >= 0 ? '+' : '') + fmt(pnlTot) + ' $' : '—';
+                pnlTotEl.className = 'gv-metric-val ' + (pnlTot >= 0 ? 'green' : 'red');
+
+                document.getElementById('gv-wr').textContent = s.win_rate != null ? fmt(s.win_rate, 1) + '%' : '—';
+                document.getElementById('gv-trades').textContent = s.total_trades ?? '—';
+                document.getElementById('gv-uptime').textContent = s.uptime_h != null ? fmt(s.uptime_h, 1) + 'h' : '—';
+              } catch(e) { /* silent */ }
+
+              // Soul
+              try {
+                const soul = await gvFetch('/api/soul');
+                anyOk = true;
+                document.getElementById('gv-phase').textContent = (soul.phase_color || '') + ' ' + (soul.phase || 'TRAINING');
+                const pct = soul.live_progress_pct || 0;
+                document.getElementById('gv-prog-pct').textContent = fmt(pct, 1) + '%';
+                document.getElementById('gv-prog-fill').style.width = Math.min(100, pct) + '%';
+                document.getElementById('gv-phase-desc').textContent = soul.phase_desc || '';
+
+                const crit = soul.missing_criteria || [];
+                const critEl = document.getElementById('gv-criteria');
+                if (crit.length === 0) {
+                  critEl.innerHTML = '<div class="gv-criterion ok"><span class="dot"></span><span>Tous critères atteints ✓</span></div>';
+                } else {
+                  critEl.innerHTML = crit.map(c => `<div class="gv-criterion nok"><span class="dot"></span><span>${c}</span></div>`).join('');
+                }
+
+                if (soul.last_thought) {
+                  document.getElementById('gv-thought').textContent = soul.last_thought;
+                }
+              } catch(e) { /* silent */ }
+
+              // Market prices
+              try {
+                const mkt = await gvFetch('/api/market/overview');
+                anyOk = true;
+                const prices = mkt.prices || {};
+                const syms = Object.keys(prices);
+                document.getElementById('gv-prices').innerHTML = syms.map(sym => `
+                  <div class="gv-price">
+                    <span class="gv-price-sym">${sym.replace('USDT','')}</span>
+                    <span class="gv-price-val">${fmtPrice(prices[sym])} $</span>
+                  </div>`).join('');
+              } catch(e) { /* silent */ }
+
+              // Recent trades
+              try {
+                const td = await gvFetch('/api/trades/stats');
+                anyOk = true;
+                const trades = Array.isArray(td.trades) ? td.trades.slice(0,6) : (Array.isArray(td) ? td.slice(0,6) : []);
+                const trEl = document.getElementById('gv-trades-list');
+                if (trades.length === 0) {
+                  trEl.innerHTML = '<div style="font-size:10px;color:#4a6080;">Aucun trade en base</div>';
+                } else {
+                  trEl.innerHTML = trades.map(t => {
+                    const pnl = t.pnl ?? t.pnl_usd ?? 0;
+                    const pnlPct = t.pnl_pct ?? 0;
+                    const side = (t.side || 'LONG').toUpperCase();
+                    return `<div class="gv-trade">
+                      <span class="gv-trade-sym">${t.symbol || '—'}</span>
+                      <span class="gv-trade-side ${side==='LONG'?'long':'short'}">${side}</span>
+                      <span class="gv-trade-pnl ${pnl>=0?'pos':'neg'}">${pnl>=0?'+':''}${fmt(pnl,2)}$<span class="gv-trade-pct">(${pnlPct>=0?'+':''}${fmt(pnlPct,3)}%)</span></span>
+                    </div>`;
+                  }).join('');
+                }
+              } catch(e) { /* silent */ }
+
+              // Status bar
+              const now = new Date();
+              document.getElementById('gv-last-update').textContent = 'Mis à jour ' + now.toLocaleTimeString('fr-FR');
+              const connEl = document.getElementById('gv-conn-status');
+              if (anyOk) {
+                connEl.textContent = '● Railway OK';
+                connEl.className = 'gv-online';
+              } else {
+                connEl.textContent = '● Railway KO';
+                connEl.className = 'gv-offline';
+              }
+            }
+
+            // Auto-refresh
+            function gvStart() {
+              gvRefresh();
+              if (gvTimer) clearInterval(gvTimer);
+              gvTimer = setInterval(gvRefresh, 10000);
+            }
+
+            // Start when tab becomes active
+            document.addEventListener('DOMContentLoaded', () => {
+              // Hook into navTo to start when god tab is selected
+              const origNavTo = window.navTo;
+              if (typeof origNavTo === 'function') {
+                window.navTo = function(page, btn) {
+                  origNavTo(page, btn);
+                  if (page === 'god') gvStart();
+                };
+              }
+              // Also start immediately if we're on god view
+              setTimeout(() => {
+                if (document.getElementById('page-god')?.style.display !== 'none') gvStart();
+              }, 100);
+            });
+
+            // Fallback: start after window load
+            window.addEventListener('load', () => setTimeout(() => {
+              const pgGod = document.getElementById('page-god');
+              if (pgGod && (pgGod.style.display === 'flex' || pgGod.classList.contains('active'))) gvStart();
+            }, 200));
+
+          })();
+          </script>
+
+        </div>
 
     </div><!-- /pages -->
 
