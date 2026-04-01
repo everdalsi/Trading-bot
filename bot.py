@@ -5065,89 +5065,89 @@ async def cmd_agent(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 
-  async def _aegis_watchdog_loop():
-      """Background task — scans LOG_BUFFER every 2 min for new errors and auto-analyzes them."""
-      global AEGIS_ERRORS_SEEN, AEGIS_WATCHDOG_ENABLED
-      await asyncio.sleep(90)
-      while True:
-          try:
-              if AEGIS_WATCHDOG_ENABLED and TELEGRAM_CHAT_ID and _app:
-                  new_errs = []
-                  for entry in list(LOG_BUFFER):
-                      if entry.get("level") == "ERROR":
-                          key = hash(entry.get("msg", "")[:200])
-                          if key not in AEGIS_ERRORS_SEEN:
-                              AEGIS_ERRORS_SEEN.add(key)
-                              new_errs.append(entry)
-                  for err in new_errs[-2:]:
-                      prompt = (
-                          f"🔴 ERREUR AUTO-DETECTEE par le watchdog:\n"
-                          f"[{err.get('ts','')}] {err.get('msg','')[:400]}\n\n"
-                          "Analyse cette erreur:\n"
-                          "1) Appelle get_bot_logs(level='ERROR', limit=5) pour le contexte complet\n"
-                          "2) Si c'est un bug code, utilise read_github_file pour localiser la ligne\n"
-                          "3) Propose un fix avec edit_github_file(dry_run=True)\n"
-                          "Sois concis et direct."
-                      )
-                      try:
-                          resp = await _run_aegis_agent(str(TELEGRAM_CHAT_ID), prompt)
-                          header = "🔴 *AEGIS WATCHDOG — Erreur détectée*\n\n"
-                          full = header + resp
-                          keyboard = None
-                          if AEGIS_LAST_FIX:
-                              keyboard = InlineKeyboardMarkup([[
-                                  InlineKeyboardButton("✅ Appliquer le fix", callback_data="aegis_apply_fix"),
-                                  InlineKeyboardButton("❌ Ignorer", callback_data="aegis_ignore_fix"),
-                              ]])
-                          for chunk in [full[i:i+4000] for i in range(0, len(full), 4000)]:
-                              try:
-                                  await _app.bot.send_message(
-                                      TELEGRAM_CHAT_ID, chunk,
-                                      parse_mode="Markdown",
-                                      reply_markup=keyboard if chunk == [full[i:i+4000] for i in range(0, len(full), 4000)][-1] else None
-                                  )
-                              except Exception:
-                                  await _app.bot.send_message(TELEGRAM_CHAT_ID, chunk)
-                      except Exception as e:
-                          logger.error(f"[AEGIS-WATCHDOG] Agent error: {e}")
-          except Exception as e:
-              logger.error(f"[AEGIS-WATCHDOG] Loop error: {e}")
-          await asyncio.sleep(120)
+async def _aegis_watchdog_loop():
+    """Background task — scans LOG_BUFFER every 2 min for new errors and auto-analyzes them."""
+    global AEGIS_ERRORS_SEEN, AEGIS_WATCHDOG_ENABLED
+    await asyncio.sleep(90)
+    while True:
+        try:
+            if AEGIS_WATCHDOG_ENABLED and TELEGRAM_CHAT_ID and _app:
+                new_errs = []
+                for entry in list(LOG_BUFFER):
+                    if entry.get("level") == "ERROR":
+                        key = hash(entry.get("msg", "")[:200])
+                        if key not in AEGIS_ERRORS_SEEN:
+                            AEGIS_ERRORS_SEEN.add(key)
+                            new_errs.append(entry)
+                for err in new_errs[-2:]:
+                    prompt = (
+                        f"🔴 ERREUR AUTO-DETECTEE par le watchdog:\n"
+                        f"[{err.get('ts','')}] {err.get('msg','')[:400]}\n\n"
+                        "Analyse cette erreur:\n"
+                        "1) Appelle get_bot_logs(level='ERROR', limit=5) pour le contexte complet\n"
+                        "2) Si c'est un bug code, utilise read_github_file pour localiser la ligne\n"
+                        "3) Propose un fix avec edit_github_file(dry_run=True)\n"
+                        "Sois concis et direct."
+                    )
+                    try:
+                        resp = await _run_aegis_agent(str(TELEGRAM_CHAT_ID), prompt)
+                        header = "🔴 *AEGIS WATCHDOG — Erreur détectée*\n\n"
+                        full = header + resp
+                        keyboard = None
+                        if AEGIS_LAST_FIX:
+                            keyboard = InlineKeyboardMarkup([[
+                                InlineKeyboardButton("✅ Appliquer le fix", callback_data="aegis_apply_fix"),
+                                InlineKeyboardButton("❌ Ignorer", callback_data="aegis_ignore_fix"),
+                            ]])
+                        for chunk in [full[i:i+4000] for i in range(0, len(full), 4000)]:
+                            try:
+                                await _app.bot.send_message(
+                                    TELEGRAM_CHAT_ID, chunk,
+                                    parse_mode="Markdown",
+                                    reply_markup=keyboard if chunk == [full[i:i+4000] for i in range(0, len(full), 4000)][-1] else None
+                                )
+                            except Exception:
+                                await _app.bot.send_message(TELEGRAM_CHAT_ID, chunk)
+                    except Exception as e:
+                        logger.error(f"[AEGIS-WATCHDOG] Agent error: {e}")
+        except Exception as e:
+            logger.error(f"[AEGIS-WATCHDOG] Loop error: {e}")
+        await asyncio.sleep(120)
 
 
-  async def handle_fix_callback(update, context):
-      """Handle inline keyboard buttons for AEGIS fix confirmation."""
-      global AEGIS_LAST_FIX
-      query = update.callback_query
-      await query.answer()
-      if query.data == "aegis_apply_fix":
-          if not AEGIS_LAST_FIX:
-              await query.edit_message_text("❌ Aucun fix en attente.")
-              return
-          fix = AEGIS_LAST_FIX.copy()
-          AEGIS_LAST_FIX.clear()
-          await query.edit_message_text("⏳ Application du fix en cours...")
-          try:
-              result = await _aegis_tool_edit_github_file(
-                  fix["path"], fix["old_text"], fix["new_text"], fix["commit_msg"], dry_run=False
-              )
-              await _app.bot.send_message(TELEGRAM_CHAT_ID, f"✅ Fix appliqué!\n{result[:3000]}")
-          except Exception as e:
-              await _app.bot.send_message(TELEGRAM_CHAT_ID, f"❌ Erreur lors de l'application: {e}")
-      elif query.data == "aegis_ignore_fix":
-          AEGIS_LAST_FIX.clear()
-          await query.edit_message_text("🚫 Fix ignoré.")
+async def handle_fix_callback(update, context):
+    """Handle inline keyboard buttons for AEGIS fix confirmation."""
+    global AEGIS_LAST_FIX
+    query = update.callback_query
+    await query.answer()
+    if query.data == "aegis_apply_fix":
+        if not AEGIS_LAST_FIX:
+            await query.edit_message_text("❌ Aucun fix en attente.")
+            return
+        fix = AEGIS_LAST_FIX.copy()
+        AEGIS_LAST_FIX.clear()
+        await query.edit_message_text("⏳ Application du fix en cours...")
+        try:
+            result = await _aegis_tool_edit_github_file(
+                fix["path"], fix["old_text"], fix["new_text"], fix["commit_msg"], dry_run=False
+            )
+            await _app.bot.send_message(TELEGRAM_CHAT_ID, f"✅ Fix appliqué!\n{result[:3000]}")
+        except Exception as e:
+            await _app.bot.send_message(TELEGRAM_CHAT_ID, f"❌ Erreur lors de l'application: {e}")
+    elif query.data == "aegis_ignore_fix":
+        AEGIS_LAST_FIX.clear()
+        await query.edit_message_text("🚫 Fix ignoré.")
 
 
-  async def cmd_aegis_watch(update, context):
-      """Toggle AEGIS watchdog on/off."""
-      global AEGIS_WATCHDOG_ENABLED
-      if not _auth(update): return
-      AEGIS_WATCHDOG_ENABLED = not AEGIS_WATCHDOG_ENABLED
-      state = "✅ ACTIVÉ" if AEGIS_WATCHDOG_ENABLED else "🔴 DÉSACTIVÉ"
-      await update.message.reply_text(f"🔍 AEGIS Watchdog: {state}\nSurveillance auto des erreurs toutes les 2 min.")
+async def cmd_aegis_watch(update, context):
+    """Toggle AEGIS watchdog on/off."""
+    global AEGIS_WATCHDOG_ENABLED
+    if not _auth(update): return
+    AEGIS_WATCHDOG_ENABLED = not AEGIS_WATCHDOG_ENABLED
+    state = "✅ ACTIVÉ" if AEGIS_WATCHDOG_ENABLED else "🔴 DÉSACTIVÉ"
+    await update.message.reply_text(f"🔍 AEGIS Watchdog: {state}\nSurveillance auto des erreurs toutes les 2 min.")
 
-  
+
 async def cmd_diagnose(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """One-shot autonomous health check — AEGIS analyses everything and reports"""
     if not _auth(update): return
