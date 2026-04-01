@@ -3089,7 +3089,6 @@ class BotHandler(BaseHTTPRequestHandler):
             self.send_header("Content-type", "text/plain")
             self.end_headers()
             self.wfile.write(b"OK")
-        elif self.path == "/god" or self.path == "/god/":
         elif self.path in ("/god", "/god/"):
               # ── God View SPA ─ serve index.html ────────────────────────────────
               try:
