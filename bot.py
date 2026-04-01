@@ -2507,7 +2507,7 @@ def learn_from_trade(trade: dict, send_fn=None):
                 lecon = "Setup peu performant"
                 action_future = "Diminuer la priorité de ce setup"
         lesson = {
-            "trade_id": trade["id"],
+            "trade_id": trade.get("id"),
             "pnl": pnl,
             "symbol": trade["symbol"],
             "market": trade.get("market", "SPOT"),
@@ -2540,7 +2540,7 @@ def learn_from_trade(trade: dict, send_fn=None):
         if hasattr(orchestrator, 'learning'):
             lesson_count_db = orchestrator.learning.get_lesson_count()
             logger.warning(f"[LEARN] Leçons DB : {lesson_count_db}")
-        update_symbol_score(trade["symbol"], pnl > 0)
+        update_symbol_score(trade.get("symbol","?"), pnl > 0)
         auto_adjust()
         save_data()
         logger.warning(f"[LEARN] {lesson['lecon']}")
