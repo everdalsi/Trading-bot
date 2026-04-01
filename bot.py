@@ -5798,9 +5798,3 @@ if __name__ == "__main__":
         print(error_msg)
         logger.error(error_msg)
         raise
-            elif tool_name == "analyze_smc":
-                result = await _aegis_tool_analyze_smc(args.get("symbol","BTCUSDT"), args.get("timeframe","1h"))
-            elif tool_name == "get_liquidation_levels":
-                result = await _aegis_tool_get_liquidation_levels(args.get("symbol","BTCUSDT"))
-            elif tool_name == "run_quick_backtest":
-                result = await _aegis_tool_run_quick_backtest(args.get("strategy","current"), args.get("lookback",50))
