@@ -368,6 +368,8 @@ _main_loop  = None
 _app        = None
 _start_ts   = time.time()
 _agent_running = False
+_force_trade_override = False  # Activé par force_max_trades → bypass LLM NO TRADE
+_force_trade_until    = 0.0    # Timestamp fin du override (time.time() + durée)
 _agent_activity_log = []
 _soul = None   # Âme du bot — initialisée au démarrage   # Feed temps réel
 _last_debate_cycle   = {}  # Dernier cycle complet
@@ -2743,6 +2745,13 @@ def trading_loop(send_fn):
                 _is_no   = "NO" in reco_str  # couvre: NO TRADE, NO ACTION, etc.
                 # SOUL: seuil dynamique ajusté par l'âme du bot selon l'expérience accumulée
                 _soul_thresh = (_soul.params["confidence_threshold"] if _soul else 0.15)
+                # ── FORCE TRADE OVERRIDE ────────────────────────────────────────────
+                if _force_trade_override and time.time() < _force_trade_until:
+                    if not (_is_buy or _is_sell) and not _is_no:
+                        _is_buy    = True
+                        _is_no     = False
+                        trade_conf = max(trade_conf, _soul_thresh, 0.06)
+                        logger.info(f"[FORCE_TRADE] U0001f525 Override actif → BUY forcé sur {best_symbol} conf={trade_conf:.0%}")
                 if trade_conf >= _soul_thresh and (_is_buy or _is_sell) and not _is_no:  # Seuil géré par l'âme
                     trade_side = "BUY" if _is_buy else "SELL"
                     trade_price = get_current_price(best_symbol) or current_price
@@ -3520,6 +3529,24 @@ class BotHandler(BaseHTTPRequestHandler):
                 sim["positions"] = []
                 save_json("sim_portfolio_v7.json", sim)
                 self._send_json({"closed": closed, "action": "close_all"})
+            elif action == "force_max_trades":
+                global _force_trade_override, _force_trade_until
+                _force_trade_override = True
+                _force_trade_until    = time.time() + 1800  # 30 minutes
+                if _soul:
+                    _soul.params["confidence_threshold"] = 0.05
+                logger.info("[CTRL] U0001f525 FORCE TRADE OVERRIDE activé — seuil 5% pendant 30min")
+                self._send_json({"action": "force_max_trades", "override": True, "duration_min": 30, "threshold_pct": 5})
+            elif action == "conservative_mode":
+                global _force_trade_override
+                _force_trade_override = False
+                if _soul:
+                    _soul.params["confidence_threshold"] = 0.15
+                logger.info("[CTRL] U0001f6e1 Mode conservatif — seuil 15%")
+                self._send_json({"action": "conservative_mode", "override": False, "threshold_pct": 15})
+            elif action == "reset_equity":
+                pass  # handled by portfolio reset
+                self._send_json({"action": "reset_equity", "status": "ok"})
             elif action.startswith("quick_"):
                 self._send_json({"action": action, "status": "queued"})
             else:
