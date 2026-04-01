@@ -410,6 +410,7 @@ _soul = None   # Âme du bot — initialisée au démarrage   # Feed temps réel
 _last_debate_cycle   = {}  # Dernier cycle complet
 _debate_cycle_id     = 0   # Compteur de cycle
 _signal_cache:   set  = set()
+_last_raw_agent_outputs = []  # Derniers outputs bruts agents (pour tracking précision)
 _price_cache:    dict = {}
 _yahoo_cache:    dict = {}
 _dex_cache:      dict = {}
@@ -2520,6 +2521,12 @@ def learn_from_trade(trade: dict, send_fn=None):
         db_save_lesson(lesson)
         try:
             orchestrator.learning.save_lesson(lesson)
+        # Mise à jour des poids dynamiques des agents après chaque trade
+        try:
+            global _last_raw_agent_outputs
+            orchestrator.update_agent_outcome(_last_raw_agent_outputs, pnl > 0)
+        except Exception as _perf_e:
+            pass  # Non bloquant
         except Exception as ex:
             print(f"[LEARN-INFINITE] {ex}")
         key = "patterns_that_work" if lesson_type == "succes" else "patterns_to_avoid"
@@ -2629,6 +2636,7 @@ def trading_loop(send_fn):
     in_secretary_mode = TELEGRAM_CHAT_ID in AGENT_CHAT_SESSIONS
     last_micro = last_meme = last_epargne = last_status = last_regime = last_staking = 0
     last_backtest = 0
+    last_soul_tick   = 0
     last_risk_check = 0
 
     logger.info("🚀 Trading Loop autonome V8 démarré — Agents décident seuls")
@@ -2665,6 +2673,46 @@ def trading_loop(send_fn):
                     logger.info(f"[RISK] Positions actives : {len(positions)} | Equity : ${equity:,.2f}")
             except Exception as risk_e:
                 logger.warning(f"Risk check error: {risk_e}")
+
+
+        # ── SOUL TICK: auto-ajustement & graduation automatique ────────────────
+        if _soul and now - last_soul_tick >= 60:
+            last_soul_tick = now
+            try:
+                soul_state = _soul.tick()
+                _s_phase   = soul_state.get("phase", "TRAINING")
+                _s_conf    = _soul.params.get("confidence_threshold", 0.01)
+                _s_kelly   = _soul.params.get("kelly_fraction", 0.05)
+                logger.info(
+                    f"[SOUL] 🔮 tick → phase={_s_phase} | conf={_s_conf:.0%} | kelly={_s_kelly:.1%} | "
+                    f"streak={_soul._criteria_pass_streak}"
+                )
+                # GRADUATION AUTOMATIQUE: si soul détecte prêt → propager à bot
+                global BOT_TRAINING_MODE
+                if _soul.params.get("live_mode") and BOT_TRAINING_MODE:
+                    BOT_TRAINING_MODE = False
+                    os.environ["BOT_TRAINING_MODE"] = "False"
+                    _soul.params["confidence_threshold"] = LIVE_CONF_THRESH
+                    logger.info("[SOUL] 💎 GRADUATION AUTOMATIQUE → MODE LIVE DÉCLENCHÉ!")
+                    _smets = soul_state.get("metrics", {})
+                    _grad_auto = (
+                        f"💎 GRADUATION LIVE AUTOMATIQUE!\n"
+                        f"Phase: {_s_phase}\n"
+                        f"Win rate: {_smets.get('winrate', 0):.1f}% ✅\n"
+                        f"Profit factor: {_smets.get('profit_factor', 0):.2f} ✅\n"
+                        f"Consistency: {_smets.get('consistency', 0):.0%} ✅\n"
+                        f"Trades accumulés: {_smets.get('total_trades', 0)}\n\n"
+                        f"→ Seuil confiance: {int(LIVE_CONF_THRESH*100)}% | Max/trade: {int(LIVE_MAX_USD_PCT*100)}% capital\n"
+                        f"🔴 BOT EN MODE ARGENT RÉEL"
+                    )
+                    try:
+                        asyncio.run_coroutine_threadsafe(
+                            application.bot.send_message(TELEGRAM_CHAT_ID, _grad_auto),
+                            _main_loop
+                        )
+                    except Exception: pass
+            except Exception as _soul_tick_e:
+                logger.warning(f"[SOUL] tick error: {_soul_tick_e}")
 
         if now - last_micro >= CYCLE_MICRO:
             last_micro = now
@@ -2709,6 +2757,14 @@ def trading_loop(send_fn):
                 # Choisir le meilleur signal parmi les symboles analysés
                 best_symbol   = top_symbols[0]
                 best_decision = {"recommendation": "HOLD", "confidence": 0.0}
+                # Capture des outputs bruts pour tracking précision agents
+                global _last_raw_agent_outputs
+                try:
+                    _last_raw_agent_outputs = []
+                    for _sym2, _sd2 in multi_results.items():
+                        _last_raw_agent_outputs.extend(_sd2.get("outputs", []) or [])
+                except Exception: pass
+
                 for sym, sym_data in multi_results.items():
                     sym_final = sym_data.get("final", {})
                     sym_conf  = float(sym_final.get("confidence", 0))
