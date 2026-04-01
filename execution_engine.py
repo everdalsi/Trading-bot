@@ -1,18 +1,4 @@
-"""
-⚙️ EXECUTION ENGINE V3 — Expert Exécution Async Parallèle + TWAP/VWAP Pro
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-UPGRADES V3 :
-- Exécution asynchrone totale (async/await) — plus de blocking
-- TWAP adaptatif : taille des slices basée sur le volume réel
-- VWAP targeting : exécution alignée sur le VWAP pour minimiser l'impact
-- Iceberg orders : découpage automatique en micro-ordres pour cacher la taille
-- Anti-front-running : randomisation des timings
-- Slippage réel calculé et loggué
-- Gestion de rate limits Binance (1200 req/min)
-- Paper mode sécurisé avec latence simulée réaliste
-- Multi-symbol : exécution simultanée sur N paires
-- Circuit breaker intégré : annule tous les ordres si équité chute
-"""
+"""Trade execution engine wrapping Binance API."""
 
 import ccxt
 import ccxt.async_support as ccxt_async
@@ -26,7 +12,6 @@ from typing import Dict, Optional, List, Tuple
 import logging
 
 logger = logging.getLogger(__name__)
-
 
 class ExecutionEngine:
 
@@ -88,9 +73,7 @@ class ExecutionEngine:
         mode = "LIVE 🔴" if enabled else "PAPER 🟢"
         logger.warning(f"[EXECUTION V3] Mode basculé → {mode}")
 
-    # ─────────────────────────────────────────────────────────────────────────
     # BALANCE & POSITIONS
-    # ─────────────────────────────────────────────────────────────────────────
 
     def get_balance(self, currency: str = "USDT") -> float:
         if self.paper_mode:
@@ -135,9 +118,7 @@ class ExecutionEngine:
             logger.error(f"❌ get_positions: {e}")
             return {}
 
-    # ─────────────────────────────────────────────────────────────────────────
     # PLACE ORDER — Sync + Async
-    # ─────────────────────────────────────────────────────────────────────────
 
     def place_order(
         self,
@@ -271,9 +252,7 @@ class ExecutionEngine:
             logger.error(f"❌ live_order_async {symbol}: {e}")
             return {"success": False, "error": str(e)}
 
-    # ─────────────────────────────────────────────────────────────────────────
     # MULTI-SYMBOL PARALLEL EXECUTION
-    # ─────────────────────────────────────────────────────────────────────────
 
     async def execute_orders_parallel(self, orders: List[Dict]) -> List[Dict]:
         """
@@ -295,9 +274,7 @@ class ExecutionEngine:
         logger.info(f"[ExecV3] {len(results)} ordres exécutés en parallèle ✅")
         return list(results)
 
-    # ─────────────────────────────────────────────────────────────────────────
     # TWAP ADAPTATIF
-    # ─────────────────────────────────────────────────────────────────────────
 
     async def twap_order(
         self,
@@ -333,9 +310,7 @@ class ExecutionEngine:
         logger.info(f"[TWAP] ✅ Complet — ${total_filled:.2f}/{total_usd:.2f} exécutés")
         return results
 
-    # ─────────────────────────────────────────────────────────────────────────
     # CLOSE POSITION
-    # ─────────────────────────────────────────────────────────────────────────
 
     async def close_position(self, symbol: str) -> Dict:
         """Ferme une position ouverte (async)."""
@@ -366,9 +341,7 @@ class ExecutionEngine:
         logger.info(f"[ExecV3] ✅ {len(results)} positions fermées en parallèle")
         return list(results)
 
-    # ─────────────────────────────────────────────────────────────────────────
     # DONNÉES HISTORIQUES & PRIX
-    # ─────────────────────────────────────────────────────────────────────────
 
     def _fetch_price(self, symbol: str) -> Optional[float]:
         """Prix actuel depuis Binance."""
