@@ -278,7 +278,7 @@ class Orchestrator:
     async def ask_all(
         self, question: str, context: dict
     ) -> Tuple[List[Dict], Dict]:
-        logger.info(f"[ORCH V7] 🚀 Analyse parallèle → {question[:80]}")
+        logger.info(f"[ORCH V10] 🚀 Analyse parallèle 50 agents → {question[:80]}")
 
         # Glossaire partagé
         context["shared_glossary"] = self.kb.get_glossary()
@@ -356,7 +356,66 @@ class Orchestrator:
         if sniper_resp.get("should_emit"):
             logger.info(f"[ORCH V8] 🎯 Sniper signal: {sniper_resp.get('signal','HOLD')} conf={sniper_resp.get('confidence',0):.0%}")
 
-        # ── Phase 2 : agents de risque et de décision PARALLÈLES ──────────
+
+
+        # ── Phase 1.5 : agents V10 — 21 nouveaux agents PARALLÈLES ────────
+        group_v10 = await asyncio.gather(
+            _safe_call(self.macro_regime,         question, context, timeout=8.0),
+            _safe_call(self.on_chain,             question, context, timeout=8.0),
+            _safe_call(self.derivatives,          question, context, timeout=8.0),
+            _safe_call(self.liquidation_tracker,  question, context, timeout=6.0),
+            _safe_call(self.exchange_flow,        question, context, timeout=8.0),
+            _safe_call(self.fear_greed,           question, context, timeout=6.0),
+            _safe_call(self.pattern_recognition,  question, context, timeout=8.0),
+            _safe_call(self.regime_detector,      question, context, timeout=8.0),
+            _safe_call(self.arbitrage_scanner,    question, context, timeout=8.0),
+            _safe_call(self.macro_calendar,       question, context, timeout=8.0),
+            _safe_call(self.defi_monitor,         question, context, timeout=8.0),
+            _safe_call(self.blockchain_health,    question, context, timeout=8.0),
+            _safe_call(self.options_flow,         question, context, timeout=8.0),
+            _safe_call(self.cross_asset,          question, context, timeout=8.0),
+            _safe_call(self.vol_regime,           question, context, timeout=8.0),
+            _safe_call(self.sentiment_aggregator, question, context, timeout=8.0),
+            _safe_call(self.whale_tracker,        question, context, timeout=6.0),
+            _safe_call(self.regulatory_monitor,   question, context, timeout=8.0),
+            _safe_call(self.grid_strategy,        question, context, timeout=8.0),
+            _safe_call(self.token_unlock,         question, context, timeout=6.0),
+            _safe_call(self.quantum_risk,         question, context, timeout=8.0),
+            return_exceptions=False
+        )
+
+        (macro_regime_resp, on_chain_resp, derivatives_resp, liq_resp,
+         exflow_resp, fg_resp, pattern_resp, regime_resp,
+         arb_resp, macrocal_resp, defi_resp, btchealth_resp,
+         opts_resp, crossasset_resp, vol_resp, sentiment_resp,
+         whale_resp, reg_resp, grid_resp, unlock_resp, quantum_resp) = group_v10
+
+        # Enrichir le contexte avec les signaux V10
+        context["fear_greed_value"]     = fg_resp.get("fg_value", 50)
+        context["vol_regime"]           = vol_resp.get("metrics", {}).get("regime", "MEDIUM VOL")
+        context["market_regime_adx"]    = regime_resp.get("regime", "TRANSITIONAL")
+        context["macro_bias"]           = macro_regime_resp.get("bias", "NEUTRAL")
+        context["whale_signal"]         = whale_resp.get("recommendation", "HOLD")
+        context["regulatory_alert"]     = reg_resp.get("alert_level", "LOW")
+        context["arb_opportunities"]    = arb_resp.get("opportunities", [])
+        context["active_patterns"]      = pattern_resp.get("patterns", [])
+        context["liq_cascade_score"]    = liq_resp.get("liq_score", 0.5)
+        context["quantum_threat"]       = quantum_resp.get("threat_level", 0.0)
+        context["grid_params"]          = grid_resp.get("grid_params", {})
+        context["sentiment_score"]      = sentiment_resp.get("sentiment_score", 0.5)
+
+        # Alerte réglementaire haute → flag dans contexte
+        if reg_resp.get("alert_level") == "HIGH" and reg_resp.get("reg_score", 0.5) < 0.25:
+            logger.warning("[ORCH V10] ⚠️ ALERTE RÉGLEMENTAIRE → réduction exposition")
+            context["regulatory_veto"] = True
+
+        logger.info(
+            f"[ORCH V10] 📊 V10: F&G={context['fear_greed_value']} | "
+            f"Regime={context['market_regime_adx']} | "
+            f"Macro={context['macro_bias']} | Whales={context['whale_signal']}"
+        )
+
+          # ── Phase 2 : agents de risque et de décision PARALLÈLES ──────────
         group_b = await asyncio.gather(
             _safe_call(self.risk,     question, context),
             _safe_call(self.hedging,  question, context),
@@ -382,12 +441,19 @@ class Orchestrator:
 
         # ── Agréger tous les résultats ────────────────────────────────────
         all_outputs = [
-            analyst_resp, quant_resp, ob_resp, social_resp,
-            research_resp, ks_resp, wc_resp, corr_resp,
-            risk_resp, hedging_resp, trader_resp,
-            poly_arb_resp, sniper_resp,
-            polytrader_resp, sportsarb_resp,  # FIX: agents V9 — supervisor voit leurs signaux
-        ]
+              # V1-V9 agents
+              analyst_resp, quant_resp, ob_resp, social_resp,
+              research_resp, ks_resp, wc_resp, corr_resp,
+              risk_resp, hedging_resp, trader_resp,
+              poly_arb_resp, sniper_resp,
+              polytrader_resp, sportsarb_resp,
+              # V10 — 21 nouveaux agents actifs
+              macro_regime_resp, on_chain_resp, derivatives_resp, liq_resp,
+              exflow_resp, fg_resp, pattern_resp, regime_resp,
+              arb_resp, macrocal_resp, defi_resp, btchealth_resp,
+              opts_resp, crossasset_resp, vol_resp, sentiment_resp,
+              whale_resp, reg_resp, grid_resp, unlock_resp, quantum_resp,
+          ]
         # Filtrer les réponses vides
         all_outputs = [r for r in all_outputs if r and isinstance(r, dict)]
 
@@ -401,7 +467,7 @@ class Orchestrator:
 
         self.debate_rounds += 1
         logger.info(
-            f"[ORCH V9] ✅ Décision: {final.get('decision', final.get('recommendation', '?'))} | "
+            f"[ORCH V10] ✅ Décision: {final.get('decision', final.get('recommendation', '?'))} | "
             f"conf: {final.get('confidence', 0):.0%} | "
             f"{len(all_outputs)} agents | kelly={context.get('kelly_adjusted', 0):.1%} | regime={context.get('market_regime', '?')}"
         )
