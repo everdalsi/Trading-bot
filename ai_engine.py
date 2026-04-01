@@ -2,6 +2,20 @@
 import os, time, hashlib, json, re, random
 import requests
 from logging_config import logger
+
+# ── Constantes modèles AI ─────────────────────────────────────────────────────
+GROQ_FAST_MODEL  = os.environ.get("GROQ_FAST_MODEL",  "llama-3.1-8b-instant")
+GROQ_SMART_MODEL = os.environ.get("GROQ_SMART_MODEL", "llama-3.3-70b-versatile")
+GROQ_CODE_MODEL  = os.environ.get("GROQ_CODE_MODEL",  "deepseek-r1-distill-llama-70b")
+GROQ_KEY         = os.environ.get("GROQ_API_KEY") or os.environ.get("GROQ_KEY", "")
+HF_KEY           = os.environ.get("HF_KEY", "")
+
+HF_MODELS = [
+    "Qwen/Qwen2.5-72B-Instruct",
+    "mistralai/Mistral-7B-Instruct-v0.3",
+    "meta-llama/Llama-3.1-8B-Instruct",
+]
+
 #  AI POOL
 AI_PROVIDERS = [
     # Groq gratuit: 30 req/min, 14400 req/jour sur llama-3.1-8b-instant
