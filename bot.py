@@ -3517,6 +3517,7 @@ class BotHandler(BaseHTTPRequestHandler):
 
         if path == "/api/bot/control":
             action = body.get("action", "")
+            global _force_trade_override, _force_trade_until
             if action == "start":
                 _agent_running = True
                 self._send_json({"running": True, "action": "started"})
@@ -3530,19 +3531,17 @@ class BotHandler(BaseHTTPRequestHandler):
                 save_json("sim_portfolio_v7.json", sim)
                 self._send_json({"closed": closed, "action": "close_all"})
             elif action == "force_max_trades":
-                global _force_trade_override, _force_trade_until
                 _force_trade_override = True
                 _force_trade_until    = time.time() + 1800  # 30 minutes
                 if _soul:
                     _soul.params["confidence_threshold"] = 0.05
-                logger.info("[CTRL] U0001f525 FORCE TRADE OVERRIDE activé — seuil 5% pendant 30min")
+                logger.info("[CTRL] 🔥 FORCE TRADE OVERRIDE activé — seuil 5% pendant 30min")
                 self._send_json({"action": "force_max_trades", "override": True, "duration_min": 30, "threshold_pct": 5})
             elif action == "conservative_mode":
-                global _force_trade_override
                 _force_trade_override = False
                 if _soul:
                     _soul.params["confidence_threshold"] = 0.15
-                logger.info("[CTRL] U0001f6e1 Mode conservatif — seuil 15%")
+                logger.info("[CTRL] 🛡 Mode conservatif — seuil 15%")
                 self._send_json({"action": "conservative_mode", "override": False, "threshold_pct": 15})
             elif action == "reset_equity":
                 pass  # handled by portfolio reset
