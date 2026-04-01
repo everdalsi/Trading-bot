@@ -159,13 +159,13 @@ class SoulAgent:
         try:
             con = sqlite3.connect(DB_FILE)
             rows = con.execute("""
-                SELECT pnl, lesson_type, confidence, symbol, created_at
-                FROM memory_lessons
+                SELECT pnl, type, 0.5 as confidence, symbol, date
+                FROM lessons
                 ORDER BY id DESC LIMIT ?
             """, (window,)).fetchall()
 
-            total_count = con.execute("SELECT COUNT(*) FROM memory_lessons").fetchone()[0]
-            sessions = con.execute("SELECT COUNT(DISTINCT session_id) FROM memory_lessons").fetchone()[0]
+            total_count = con.execute("SELECT COUNT(*) FROM lessons").fetchone()[0]
+            sessions = con.execute("SELECT COUNT(DISTINCT strftime('%Y-%m-%d', date)) FROM lessons WHERE date IS NOT NULL").fetchone()[0]
             con.close()
 
             if not rows:
