@@ -214,23 +214,25 @@ class Orchestrator:
         context["news_event"]    = news_resp
         context["funding_rate"]  = funding_resp
 
-        # DrawdownGuard : veto absolu (non contournable)
+        # FIX TRAINING V8: en mode apprentissage, TOUS les vetos sont désactivés
+        # Le but est d'accumuler max de trades pour apprendre, pas de se protéger
+        import os as _os_tr
+        _in_training = _os_tr.environ.get("BOT_TRAINING_MODE", "True").lower() in ("true", "1", "yes")
+
         def _cache_and_return(veto: bool, resp: dict):
             self._phase0_cache    = {"veto": veto, "veto_resp": resp}
             self._phase0_cache_ts = _now
             return veto, resp
 
-        if guard_resp.get("veto"):
+        # DrawdownGuard : veto seulement en LIVE (pas en training)
+        if guard_resp.get("veto") and not _in_training:
             logger.warning(f"[ORCH V7] 🛑 VETO DrawdownGuard: {guard_resp.get('veto_reason')}")
             return _cache_and_return(True, {
                 "agent": "orchestrator", "summary": guard_resp.get("summary", "Circuit breaker"),
                 "confidence": 1.0, "recommendation": "NO TRADE", "veto_source": "drawdown_guard",
             })
 
-        # News : veto sur événement macro critique
-        # Skip news veto in training mode — collect max data points
-        import os as _os_tr
-        _in_training = _os_tr.environ.get("BOT_TRAINING_MODE", "False").lower() in ("true", "1", "yes")
+        # News : veto sur événement macro critique (désactivé en training)
         if news_resp.get("veto") and not _in_training:
             import time as _time_veto
             _now_veto = _time_veto.time()
@@ -243,8 +245,8 @@ class Orchestrator:
                 "pause_minutes": news_resp.get("pause_minutes", 0),
             })
 
-        # Funding rate trop élevé
-        if funding_resp.get("veto"):
+        # Funding rate trop élevé (désactivé en training)
+        if funding_resp.get("veto") and not _in_training:
             import time as _time_veto2
             _now_veto2 = _time_veto2.time()
             if _now_veto2 - self._last_funding_veto_ts > 60:
@@ -266,6 +268,12 @@ class Orchestrator:
 
         # Glossaire partagé
         context["shared_glossary"] = self.kb.get_glossary()
+
+        # FIX TRAINING V8: propagation du mode training/learning dans le contexte de tous les agents
+        import os as _os_orch
+        _training_flag = _os_orch.environ.get("BOT_TRAINING_MODE", "True").lower() in ("true", "1", "yes")
+        context["training_mode"]         = _training_flag
+        context["extreme_learning_mode"] = _training_flag  # active le bypass veto dans supervisor
 
         # ── Performances historiques agents → calibration de confiance auto ──
         try:
@@ -413,9 +421,11 @@ class Orchestrator:
         context["risk_level"]       = risk_resp.get("risk_level", "MODERATE")
         context["kelly_adjusted"]   = risk_resp.get("kelly_adjusted", 0.05)
 
-        # Veto risk CRITICAL
-        if risk_resp.get("risk_level") in ("CRITICAL",):
-            logger.warning(f"[ORCH V7] ⚠️ VETO Risk CRITICAL")
+        # Veto risk CRITICAL — désactivé en training pour maximiser les trades d'apprentissage
+        import os as _os_risk
+        _in_training_risk = _os_risk.environ.get("BOT_TRAINING_MODE", "True").lower() in ("true", "1", "yes")
+        if risk_resp.get("risk_level") in ("CRITICAL",) and not _in_training_risk:
+            logger.warning(f"[ORCH V7] ⚠️ VETO Risk CRITICAL (LIVE only)")
             return [risk_resp], {
                 "agent": "orchestrator", "summary": risk_resp.get("summary", "Risque critique"),
                 "confidence": 1.0, "recommendation": "NO TRADE", "veto_source": "risk",

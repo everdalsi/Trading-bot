@@ -251,11 +251,14 @@ class SupervisorAgent(BaseAgent):
         net += edge_boost
 
         # ── Décision finale ─────────────────────────────────────────────
-        # Seuils : BUY > 0.15, SELL < -0.15, reste HOLD
-        if net > 0.15:
+        # FIX TRAINING V8: seuils abaissés en training pour maximiser les trades
+        import os as _os_sup
+        _in_training_sup = _os_sup.environ.get("BOT_TRAINING_MODE", "True").lower() in ("true", "1", "yes")
+        _net_threshold = 0.03 if (_in_training_sup or extreme_learning) else 0.15
+        if net > _net_threshold:
             final_decision = "BUY"
             reason = f"Consensus pondéré BUY (net: {net:+.3f}) | {vote['n_agents']} agents"
-        elif net < -0.15:
+        elif net < -_net_threshold:
             final_decision = "SELL"
             reason = f"Consensus pondéré SELL (net: {net:+.3f}) | {vote['n_agents']} agents"
         else:

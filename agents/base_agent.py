@@ -85,25 +85,28 @@ AGENT_PERSONALITY_MAP: Dict[str, str] = {
 }
 
 # Profils de comportement par personnalité
+# FIX V5.0 TRAINING: seuils abaissés pour maximiser les trades en mode apprentissage
+_TRAINING_MODE = __import__('os').environ.get("BOT_TRAINING_MODE", "True").lower() in ("true", "1", "yes")
+
 PERSONALITY_PROFILES: Dict[str, Dict] = {
     PERSONALITY_RETAIL: {
         "label":            "🔴 RETAIL",
-        "confidence_boost": +0.05,   # Sur-confiant, amplifie les tendances
-        "min_threshold":    0.30,    # Signale facilement (seuil bas)
+        "confidence_boost": +0.10,   # TRAINING FIX: boost amplifié pour signaler davantage
+        "min_threshold":    0.05,    # TRAINING FIX: seuil très bas → signale presque toujours
         "behavior":         "panic_buy_sell",
         "description":      "Réactif aux news, FOMO, sur-réaction aux tendances",
     },
     PERSONALITY_INSTITUTIONAL: {
         "label":            "🔵 INSTITUTIONAL",
-        "confidence_boost": -0.05,   # Conservateur, fade les moves
-        "min_threshold":    0.55,    # Difficile à déclencher
+        "confidence_boost": 0.0,     # TRAINING FIX: neutre au lieu de négatif
+        "min_threshold":    0.08,    # TRAINING FIX: seuil abaissé (était 0.55)
         "behavior":         "fade_moves",
         "description":      "Smart money, patient, contre-tendanciel",
     },
     PERSONALITY_LEADER: {
         "label":            "🟡 LEADER",
-        "confidence_boost": 0.0,     # Neutre — attend les données
-        "min_threshold":    0.60,    # Haute conviction requise avant signal
+        "confidence_boost": +0.05,   # TRAINING FIX: léger boost positif
+        "min_threshold":    0.10,    # TRAINING FIX: seuil abaissé (était 0.60)
         "behavior":         "wait_confirm",
         "description":      "Attente de confirmation, haute conviction requise",
     },

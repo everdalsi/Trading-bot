@@ -242,9 +242,9 @@ MODE_CONFIG = {
 }
 
 MAIN_OBJECTIVE = "Maximiser le nombre de trades simulés pour accumuler un maximum d'expérience et améliorer le winrate le plus rapidement possible"
-EXTREME_LEARNING_MODE = False  # FIX V6.0: désactivé par défaut — danger contourne RiskAgent
+EXTREME_LEARNING_MODE = True   # FIX TRAINING V8: activé en training pour maximiser les trades et l'apprentissage
 LEARN_MODE_ENABLED    = True
-LEARN_MODE_CONF_MIN   = 10
+LEARN_MODE_CONF_MIN   = 1      # FIX TRAINING V8: seuil minimal 1% pour apprendre de tout
 LEARN_MODE_MAX_PCT    = 0.48
 
 GROQ_FAST_MODEL  = "llama-3.1-8b-instant"      # 14400 req/jour gratuit — rapide
@@ -893,6 +893,9 @@ def get_equity_safe() -> float:
         return CAPITAL_INITIAL
 
 def check_risk_limits(send_fn) -> bool:
+    # FIX TRAINING V8: en mode apprentissage, on ne stoppe jamais — chaque trade est une leçon
+    if BOT_TRAINING_MODE or EXTREME_LEARNING_MODE:
+        return True
     if bot_state.get("daily_stopped"):
         return False
     check_daily_reset()
@@ -2846,7 +2849,7 @@ def trading_loop(send_fn):
                 "market_regime":    bot_state.get("market_regime", "NEUTRAL"),
                 "confidence_threshold": memory.get("confidence_threshold", CONFIDENCE_BASE),
                 "open_positions":   len(sim.get("positions", {})),
-                "max_positions":    10,  # TRAINING MODE
+                "max_positions":    MAX_MICRO_POSITIONS,  # FIX TRAINING V8: utilise le vrai max (120)
                 "daily_start_equity": sim.get("daily_start_equity", equity),
                 "fear_greed":         get_fear_greed_value(),     # real F&G value for force-trade direction
                 "training_mode":      BOT_TRAINING_MODE,
@@ -3594,17 +3597,21 @@ class BotHandler(BaseHTTPRequestHandler):
             except Exception:
                 pass
             agents_list = []
+            _bot_running = bot_state.get("running", False)
             for meta in _ALL_AGENTS_META:
                 live = live_data.get(meta['id'], {})
+                # FIX TRAINING V8: montrer "working" si le bot tourne, pas "resting"
+                _default_activity = "working" if _bot_running else "resting"
+                _default_status   = "active"  if meta['id'] != 'soul' else ('active' if _soul else 'inactive')
                 entry = {
                     "id":          meta['id'],
                     "name":        meta['name'],
                     "icon":        meta['icon'],
                     "cat":         meta['cat'],
                     "personality": meta['personality'],
-                    "status":      live.get('status', 'active' if meta['id'] != 'soul' else ('active' if _soul else 'inactive')),
+                    "status":      live.get('status', _default_status),
                     "confidence":  live.get('confidence'),
-                    "activity":    live.get('activity', 'resting'),
+                    "activity":    live.get('activity', _default_activity),
                     "lastAction":  live.get('lastAction') or live.get('signal'),
                 }
                 agents_list.append(entry)
