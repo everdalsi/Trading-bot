@@ -183,8 +183,8 @@ LIVE_MAX_USD_PCT     = 0.05   # Max 5% du capital par trade en LIVE
 CAPITAL_INITIAL   = 1000.0
 MAX_POSITIONS     = 60
 MAX_PCT_PER_TRADE = 0.28
-STOP_LOSS_PCT     = 0.025
-TAKE_PROFIT_PCT   = 0.04
+STOP_LOSS_PCT     = 0.015
+TAKE_PROFIT_PCT   = 0.060
 TRAILING_PCT      = 0.015
 LEVERAGE_SIM      = 2
 
@@ -2570,8 +2570,8 @@ def auto_adjust_sl_tp():
     if len(closed) < 15: return
     recent  = closed[-15:]
     sl_hits = sum(1 for t in recent if "STOP-LOSS" in (t.get("exit_reason","") or ""))
-    if sl_hits/len(recent) > 0.5 and STOP_LOSS_PCT < 0.04:
-        STOP_LOSS_PCT = round(min(0.04, STOP_LOSS_PCT+0.003), 3)
+    if sl_hits/len(recent) > 0.5 and STOP_LOSS_PCT < 0.025:
+        STOP_LOSS_PCT = round(min(0.025, STOP_LOSS_PCT+0.002), 3)
 
 def generate_trading_rules():
     closed = [t for t in sim["trades"] if t.get("pnl") is not None]
@@ -2834,8 +2834,18 @@ def trading_loop(send_fn):
                     _regime_str  = micro_ctx.get("market_regime", "NEUTRAL").upper()
                     if not (_is_buy or _is_sell) or _is_no:
                         # Forcer un trade basé sur le régime de marché
-                        _is_buy  = "BULL" in _regime_str or ("NEUTRAL" in _regime_str and _debate_cycle_id % 2 == 0)
-                        _is_sell = not _is_buy
+                        # Direction forcée selon régime + Fear & Greed
+                        _fg_val = float(micro_ctx.get("fear_greed", micro_ctx.get("fear_greed_index", 50)) or 50)
+                        if "BEAR" in _regime_str or _fg_val < 30:
+                            # Peur extrême ou marché baissier → forcer SELL
+                            _is_buy, _is_sell = False, True
+                        elif "BULL" in _regime_str and _fg_val > 55:
+                            # Marché haussier confirmé + euphorie → forcer BUY
+                            _is_buy, _is_sell = True, False
+                        else:
+                            # Neutre/transitionnel → alterner légèrement en faveur du F&G
+                            _is_buy  = (_fg_val >= 48) and (_debate_cycle_id % 3 != 0)
+                            _is_sell = not _is_buy
                         _is_no   = False
                         trade_conf = max(trade_conf, TRAINING_CONF_THRESH)
                         logger.info(f"[TRAINING] 🎓 Force trade → {'BUY' if _is_buy else 'SELL'} {best_symbol} | régime:{_regime_str} | cycle:{_debate_cycle_id}")
