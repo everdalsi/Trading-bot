@@ -3179,22 +3179,91 @@ class BotHandler(BaseHTTPRequestHandler):
                 self._send_json({"journal": []})
 
         elif path == "/api/agents":
-            agents_list = [
-                {"id": "analyst",           "name": "Market Analyst",      "icon": "📊", "status": "active"},
-                {"id": "quant_ml",          "name": "QuantML Engine",       "icon": "🤖", "status": "active"},
-                {"id": "risk",              "name": "Risk Manager",         "icon": "⚠️", "status": "active"},
-                {"id": "trader",            "name": "Trader Agent",         "icon": "💹", "status": "active"},
-                {"id": "order_book",        "name": "Order Book Reader",    "icon": "📖", "status": "active"},
-                {"id": "social_listener",   "name": "Social Listener",      "icon": "📡", "status": "active"},
-                {"id": "research",          "name": "Research Agent",       "icon": "🔬", "status": "active"},
-                {"id": "correlation",       "name": "Correlation Watcher",  "icon": "🔗", "status": "active"},
-                {"id": "polymarket_arb",    "name": "Polymarket Arb",       "icon": "🏦", "status": "active"},
-                {"id": "event_sniper",      "name": "Event Sniper",         "icon": "🎯", "status": "active"},
-                {"id": "drawdown_guard",    "name": "Drawdown Guard",       "icon": "🛡️", "status": "active"},
-                {"id": "supervisor",        "name": "Supervisor",           "icon": "👁️", "status": "active"},
-                {"id": "soul",              "name": "Soul Agent",           "icon": "🧬", "status": "active" if _soul else "inactive"},
+            # V10.1 — full 51-agent manifest with personality (OHMO.AI)
+            _ALL_AGENTS_META = [
+                # CORE
+                {"id":"analyst",             "name":"Analyst",           "icon":"📊","cat":"core",        "personality":"🟡 LEADER"},
+                {"id":"quant_ml",            "name":"QuantML",            "icon":"🧠","cat":"core",        "personality":"🟡 LEADER"},
+                {"id":"risk",                "name":"Risk Manager",       "icon":"⚠️","cat":"core",        "personality":"🔵 INSTITUTIONAL"},
+                {"id":"trader",              "name":"Trader",             "icon":"⚡","cat":"core",        "personality":"🟡 LEADER"},
+                {"id":"execution_engine",    "name":"Exec Engine",        "icon":"🔄","cat":"core",        "personality":"🔵 INSTITUTIONAL"},
+                {"id":"supervisor",          "name":"Supervisor",         "icon":"👁","cat":"core",        "personality":"🟡 LEADER"},
+                {"id":"portfolio_manager",   "name":"Portfolio Mgr",      "icon":"💼","cat":"core",        "personality":"🟡 LEADER"},
+                # META
+                {"id":"learning",            "name":"Learning",           "icon":"📚","cat":"meta",        "personality":"🔵 INSTITUTIONAL"},
+                {"id":"research",            "name":"Researcher",         "icon":"🔬","cat":"meta",        "personality":"🔵 INSTITUTIONAL"},
+                {"id":"knowledge_specialist","name":"Knowledge",          "icon":"🗂","cat":"meta",        "personality":"🔵 INSTITUTIONAL"},
+                {"id":"evolution",           "name":"Evolution",          "icon":"🧬","cat":"meta",        "personality":"🔵 INSTITUTIONAL"},
+                {"id":"self_improvement",    "name":"Immune System",      "icon":"🔧","cat":"meta",        "personality":"🔵 INSTITUTIONAL"},
+                {"id":"code_fixer",          "name":"Code Fixer",         "icon":"💻","cat":"meta",        "personality":"🔵 INSTITUTIONAL"},
+                {"id":"soul",                "name":"Soul Agent",         "icon":"✨","cat":"meta",        "personality":"🟡 LEADER"},
+                # MARKET
+                {"id":"social_listener",     "name":"Social Intel",       "icon":"📡","cat":"market",      "personality":"🔴 RETAIL"},
+                {"id":"news_event",          "name":"News Radar",         "icon":"📰","cat":"market",      "personality":"🔴 RETAIL"},
+                {"id":"funding_rate",        "name":"Funding Rate",       "icon":"💹","cat":"market",      "personality":"🔵 INSTITUTIONAL"},
+                {"id":"order_book",          "name":"Order Book",         "icon":"📖","cat":"market",      "personality":"🔵 INSTITUTIONAL"},
+                # RISK
+                {"id":"hedging",             "name":"Hedger",             "icon":"🛡","cat":"risk",        "personality":"🔵 INSTITUTIONAL"},
+                {"id":"drawdown_guard",      "name":"Drawdown Guard",     "icon":"🔴","cat":"risk",        "personality":"🔵 INSTITUTIONAL"},
+                {"id":"correlation_watcher", "name":"Correlations",       "icon":"🔗","cat":"risk",        "personality":"🔵 INSTITUTIONAL"},
+                # EXOTIC
+                {"id":"wallet_copier",       "name":"Whale Copier",       "icon":"🐳","cat":"exotic",      "personality":"🔴 RETAIL"},
+                {"id":"yield_staking",       "name":"Yield Farmer",       "icon":"🌾","cat":"exotic",      "personality":"🔵 INSTITUTIONAL"},
+                {"id":"polymarket_arb",      "name":"Poly Arb",           "icon":"🏦","cat":"exotic",      "personality":"🔴 RETAIL"},
+                {"id":"event_sniper",        "name":"Event Sniper",       "icon":"🎯","cat":"exotic",      "personality":"🔴 RETAIL"},
+                {"id":"polymarket_trader",   "name":"Poly Trader",        "icon":"🎰","cat":"exotic",      "personality":"🔴 RETAIL"},
+                {"id":"sports_arb",          "name":"Sports Arb",         "icon":"⚽","cat":"exotic",      "personality":"🔴 RETAIL"},
+                # MACRO
+                {"id":"macro_regime",        "name":"Macro Regime",       "icon":"🌍","cat":"macro",       "personality":"🔵 INSTITUTIONAL"},
+                {"id":"macro_calendar",      "name":"Macro Calendar",     "icon":"📅","cat":"macro",       "personality":"🔵 INSTITUTIONAL"},
+                {"id":"cross_asset",         "name":"Cross Asset",        "icon":"🔀","cat":"macro",       "personality":"🔵 INSTITUTIONAL"},
+                {"id":"regime_detector",     "name":"Regime Detector",    "icon":"📡","cat":"macro",       "personality":"🟡 LEADER"},
+                # ON-CHAIN
+                {"id":"on_chain",            "name":"On-Chain",           "icon":"⛓","cat":"onchain",     "personality":"🔵 INSTITUTIONAL"},
+                {"id":"blockchain_health",   "name":"BTC Health",         "icon":"💚","cat":"onchain",     "personality":"🔵 INSTITUTIONAL"},
+                {"id":"exchange_flow",       "name":"Exchange Flow",      "icon":"🌊","cat":"onchain",     "personality":"🔵 INSTITUTIONAL"},
+                {"id":"whale_tracker",       "name":"Whale Tracker",      "icon":"🐋","cat":"onchain",     "personality":"🔵 INSTITUTIONAL"},
+                {"id":"token_unlock",        "name":"Token Unlock",       "icon":"🔓","cat":"onchain",     "personality":"🔵 INSTITUTIONAL"},
+                # DERIVATIVES
+                {"id":"derivatives",         "name":"Derivatives",        "icon":"📈","cat":"derivatives", "personality":"🔵 INSTITUTIONAL"},
+                {"id":"options_flow",        "name":"Options Flow",       "icon":"🎲","cat":"derivatives", "personality":"🔵 INSTITUTIONAL"},
+                {"id":"liquidation_tracker", "name":"Liq Tracker",        "icon":"💣","cat":"derivatives", "personality":"🔵 INSTITUTIONAL"},
+                # SENTIMENT
+                {"id":"fear_greed",          "name":"Fear & Greed",       "icon":"😱","cat":"sentiment",   "personality":"🔴 RETAIL"},
+                {"id":"sentiment_aggregator","name":"Sentiment Agg",      "icon":"🔮","cat":"sentiment",   "personality":"🔴 RETAIL"},
+                {"id":"pattern_recognition", "name":"Pattern AI",         "icon":"🔍","cat":"sentiment",   "personality":"🟡 LEADER"},
+                {"id":"defi_monitor",        "name":"DeFi Monitor",       "icon":"🏗","cat":"sentiment",   "personality":"🔵 INSTITUTIONAL"},
+                # STRATEGY
+                {"id":"arbitrage_scanner",   "name":"Arb Scanner",        "icon":"⚖️","cat":"strategy",   "personality":"🔵 INSTITUTIONAL"},
+                {"id":"vol_regime",          "name":"Vol Regime",         "icon":"〰️","cat":"strategy",   "personality":"🔵 INSTITUTIONAL"},
+                {"id":"grid_strategy",       "name":"Grid Strategy",      "icon":"📐","cat":"strategy",   "personality":"🔵 INSTITUTIONAL"},
+                {"id":"regulatory_monitor",  "name":"Regulatory",         "icon":"🏛","cat":"strategy",   "personality":"🔵 INSTITUTIONAL"},
+                {"id":"scenario_injector",   "name":"Scenario AI",        "icon":"🎭","cat":"strategy",   "personality":"🟡 LEADER"},
+                {"id":"quantum_risk",        "name":"Quantum Risk",       "icon":"⚛️","cat":"strategy",   "personality":"🟡 LEADER"},
+                {"id":"vol_surface",         "name":"Vol Surface",        "icon":"📊","cat":"strategy",   "personality":"🔵 INSTITUTIONAL"},
             ]
-            self._send_json({"agents": agents_list, "count": len(agents_list)})
+            # Try to get live status/confidence from orchestrator last cycle
+            live_data = {}
+            if _orch and hasattr(_orch, 'last_cycle_agents'):
+                for ag in (_orch.last_cycle_agents or []):
+                    if isinstance(ag, dict) and 'id' in ag:
+                        live_data[ag['id']] = ag
+            agents_list = []
+            for meta in _ALL_AGENTS_META:
+                live = live_data.get(meta['id'], {})
+                entry = {
+                    "id":          meta['id'],
+                    "name":        meta['name'],
+                    "icon":        meta['icon'],
+                    "cat":         meta['cat'],
+                    "personality": meta['personality'],
+                    "status":      live.get('status', 'active' if meta['id'] != 'soul' else ('active' if _soul else 'inactive')),
+                    "confidence":  live.get('confidence'),
+                    "activity":    live.get('activity', 'resting'),
+                    "lastAction":  live.get('lastAction') or live.get('signal'),
+                }
+                agents_list.append(entry)
+            self._send_json({"agents": agents_list, "count": len(agents_list), "version": "V10.1"})
 
         elif path == "/api/portfolio":
             self._send_json({
