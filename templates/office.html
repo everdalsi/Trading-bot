@@ -693,7 +693,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
             <div class="agent-chip" data-id="research" onclick="selectAgent(this)">🔬 Research</div>
           </div>
         <!-- AEGIS CORE God View — live dashboard behind chat -->
-        <iframe id="god-comlink-frame" src="/god" frameborder="0" scrolling="yes" loading="lazy"></iframe>
+        <iframe id="god-comlink-frame" src="/god" frameborder="0" scrolling="yes" loading="eager"></iframe>
         <!-- Chat bubbles float above the iframe -->
         <div id="chat-overlay">
           <div id="chat-messages"></div>
@@ -816,7 +816,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   
       <!-- ══════════════ PAGE: GOD VIEW ══════════════ -->
       <div class="page" id="page-god" style="padding:0;gap:0;overflow:hidden;">
-        <iframe id="god-full-frame" src="/god" frameborder="0" loading="lazy" scrolling="yes"></iframe>
+        <iframe id="god-full-frame" src="/god" frameborder="0" loading="eager" scrolling="yes"></iframe>
       </div>
 
     </div><!-- /pages -->
@@ -1590,11 +1590,19 @@ function pushActivity(agents) {
 // NAVIGATION
 // ═══════════════════════════════════════════════════════════════
 function navTo(pageId, btn) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
-  document.getElementById('page-' + pageId).classList.add('active');
-  btn.classList.add('active');
-}
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+    document.getElementById('page-' + pageId).classList.add('active');
+    btn.classList.add('active');
+    // Ensure God View iframes are loaded when tab is activated
+    if (pageId === 'god') {
+      const f = document.getElementById('god-full-frame');
+      if (f && !f.dataset.loaded) { f.src = '/god'; f.dataset.loaded = '1'; }
+    } else if (pageId === 'comlink') {
+      const f = document.getElementById('god-comlink-frame');
+      if (f && !f.dataset.loaded) { f.src = '/god'; f.dataset.loaded = '1'; }
+    }
+  }
 
 function switchPtab(btn, id) {
   btn.closest('.page').querySelectorAll('.ptab').forEach(t => t.classList.remove('active'));
