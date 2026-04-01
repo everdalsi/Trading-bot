@@ -113,6 +113,8 @@ PERSONALITY_PROFILES: Dict[str, Dict] = {
 
 # Mots-clés de débat collectif → tous les agents y participent
 _DEBATE_KEYWORDS = [
+    # Orchestrateur → tous les agents participent TOUJOURS à toute question de trading
+    "signal", "analyse", "trading", "trade",  # question standard: "analyse trading signal SYMBOL"
     "synthèse", "synthétise", "débat", "cerveau collectif",
     "final decision", "raffine", "trade ou no trade",
     "décision finale", "orchestrator", "ask_all", "round",
