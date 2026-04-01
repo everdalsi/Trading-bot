@@ -266,6 +266,12 @@ class Orchestrator:
         # Glossaire partagé
         context["shared_glossary"] = self.kb.get_glossary()
 
+        # ── Performances historiques agents → calibration de confiance auto ──
+        try:
+            context["agent_perfs"] = self._load_agent_perf()
+        except Exception:
+            context["agent_perfs"] = {}
+
         veto, veto_resp = await self._phase0_security(context)
         if veto:
             return [veto_resp], veto_resp
