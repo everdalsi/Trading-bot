@@ -2755,6 +2755,7 @@ def trading_loop(send_fn):
     in_secretary_mode = TELEGRAM_CHAT_ID in AGENT_CHAT_SESSIONS
     last_micro = last_meme = last_epargne = last_status = last_regime = last_staking = 0
     last_backtest = 0
+    last_monitor = 0
     last_soul_tick   = 0
     last_risk_check = 0
 
@@ -2832,6 +2833,17 @@ def trading_loop(send_fn):
                     except Exception: pass
             except Exception as _soul_tick_e:
                 logger.warning(f"[SOUL] tick error: {_soul_tick_e}")
+
+        # FIX 2026-06-15: surveille et FERME les positions ouvertes (SL/TP/trailing).
+        # monitor_positions + monitor_micro_positions n'étaient JAMAIS appelées dans la boucle
+        # → 15 positions ouvertes, 0 trade fermé, 0 apprentissage. Cause racine du "WR 0%".
+        if now - last_monitor >= CYCLE_MONITOR:
+            last_monitor = now
+            try:
+                monitor_positions(send_fn)
+                monitor_micro_positions(send_fn)
+            except Exception as _mon_e:
+                logger.debug(f"[MONITOR] exit-check error: {_mon_e}")
 
         if now - last_micro >= CYCLE_MICRO:
             last_micro = now
