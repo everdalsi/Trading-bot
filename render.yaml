@@ -4,7 +4,17 @@ services:
     runtime: python
     buildCommand: pip install -r requirements.txt
     startCommand: python bot.py
+    disk:
+      name: bot-data
+      mountPath: /var/data
+      sizeGB: 1
     envVars:
+      - key: DATA_DIR
+        value: /var/data
+      - key: TESTNET_MODE
+        value: "true"
+      - key: LIVE_MODE
+        value: "False"
       - key: ANTHROPIC_KEY
         sync: false
       - key: BINANCE_KEY
@@ -15,8 +25,6 @@ services:
         sync: false
       - key: TELEGRAM_CHAT_ID
         sync: false
-      # Persistance de l'etat: save_data committe sim_portfolio_v7.json sur GitHub.
-      # GITHUB_TOKEN = PAT classic scope repo -> valeur a coller dans le dashboard Render.
       - key: GITHUB_TOKEN
         sync: false
       - key: GITHUB_REPO

@@ -251,7 +251,7 @@ GROQ_FAST_MODEL  = "llama-3.1-8b-instant"      # 14400 req/jour gratuit — rapi
 GROQ_SMART_MODEL = "llama-3.3-70b-versatile"   # 1000 req/jour gratuit — meilleur pour trading
 GROQ_CODE_MODEL  = "deepseek-r1-distill-llama-70b" # Spécialisé code/raisonnement — 100 req/h gratuit
 DB_FILE   = "sim_v7.db"
-DATA_FILE = Path("sim_portfolio_v7.json")
+DATA_FILE = Path(os.getenv("DATA_DIR", ".")) / "sim_portfolio_v7.json"
 
 # AEGIS log ring-buffer — last 500 entries, survives the whole process lifetime
 LOG_BUFFER = deque(maxlen=500)
