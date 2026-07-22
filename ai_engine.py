@@ -10,6 +10,68 @@ GROQ_CODE_MODEL  = os.environ.get("GROQ_CODE_MODEL",  "deepseek-r1-distill-llama
 GROQ_KEY         = os.environ.get("GROQ_API_KEY") or os.environ.get("GROQ_KEY", "")
 HF_KEY           = os.environ.get("HF_KEY", "")
 
+# ── Verification layer (independent second opinion before committing capital) ─
+# Free-tier LLM signals are increasingly arbitraged away when used alone (2026
+# "alpha decay" — most funds now run similar GenAI signal generation). Ensemble/
+# consensus approaches consistently outperform single-model signals in recent
+# benchmarks, so a higher-quality model sanity-checks each trade before it opens.
+ANTHROPIC_KEY             = os.environ.get("ANTHROPIC_KEY", "")
+CLAUDE_VERIFY_MODEL       = os.environ.get("CLAUDE_VERIFY_MODEL", "claude-haiku-4-5-20251001")
+VERIFY_TRADES_WITH_CLAUDE = os.environ.get("VERIFY_TRADES_WITH_CLAUDE", "true").lower() in ("true", "1", "yes")
+
+
+def verify_trade_with_claude(analysis: dict) -> tuple[bool, str]:
+    """Independent coherence check on a trade candidate before capital is committed.
+
+    This does NOT re-analyze the market independently (no live price/indicator feed
+    is sent) — it checks whether the primary signal's own stated reasoning is
+    internally coherent, not an obviously generic/contradictory justification.
+    Fails OPEN (approves) on any error or missing key, so a Claude API hiccup
+    never halts trading — this is a precision gate, not the primary decision engine.
+    """
+    if not VERIFY_TRADES_WITH_CLAUDE or not ANTHROPIC_KEY:
+        return True, "verification_disabled"
+
+    patterns = [p.get("name") for p in analysis.get("patterns", []) if isinstance(p, dict)]
+    prompt = (
+        f"A trading bot wants to open a {analysis.get('signal')} position on "
+        f"{analysis.get('symbol')} ({analysis.get('market', 'SPOT')}) at price "
+        f"{analysis.get('price')}.\n"
+        f"Stated confidence: {analysis.get('confidence')}%\n"
+        f"Stated reason: {str(analysis.get('reason', ''))[:300]}\n"
+        f"Patterns detected: {patterns}\n\n"
+        "You are a skeptical second reviewer, not the primary strategy — you don't have live "
+        "market data, only this stated reasoning. Veto only if the reasoning is generic, "
+        "self-contradictory, or the confidence doesn't match the stated reason. Answer with a "
+        "first line of exactly APPROVE or VETO, then a short reason on the next line."
+    )
+
+    try:
+        resp = requests.post(
+            "https://api.anthropic.com/v1/messages",
+            headers={
+                "x-api-key": ANTHROPIC_KEY,
+                "anthropic-version": "2023-06-01",
+                "content-type": "application/json",
+            },
+            json={
+                "model": CLAUDE_VERIFY_MODEL,
+                "max_tokens": 150,
+                "messages": [{"role": "user", "content": prompt}],
+            },
+            timeout=8,
+        )
+        resp.raise_for_status()
+        blocks = resp.json().get("content", [])
+        text = "".join(b.get("text", "") for b in blocks if b.get("type") == "text").strip()
+        lines = text.splitlines()
+        verdict = lines[0].strip().upper() if lines else "APPROVE"
+        reason = " ".join(lines[1:]).strip() if len(lines) > 1 else ""
+        return ("VETO" not in verdict), reason
+    except Exception as e:
+        logger.warning(f"[CLAUDE-VERIFY] Echec verification, trade autorise par defaut: {e}")
+        return True, f"verification_error: {e}"
+
 HF_MODELS = [
     "Qwen/Qwen2.5-72B-Instruct",
     "mistralai/Mistral-7B-Instruct-v0.3",

@@ -26,7 +26,7 @@ except ImportError:
 from dotenv import load_dotenv
 from ai_engine import (
     ask_ai, vote, _can_call_ai, ask_model_single, get_pool_status,
-    _get_cached_ai, _set_cached_ai, _pool_stats
+    _get_cached_ai, _set_cached_ai, _pool_stats, verify_trade_with_claude
 )
 from indicators import compute_indicators, detect_patterns
 
@@ -1409,6 +1409,11 @@ def open_trade(analysis: dict, send_fn) -> dict | None:
         return None
 
     if not can_open_trade(symbol, market, send_fn):
+        return None
+
+    approved, verify_reason = verify_trade_with_claude(analysis)
+    if not approved:
+        logger.info(f"[CLAUDE-VERIFY] Trade vetoe pour {symbol} ({signal}, conf={conf}%): {verify_reason}")
         return None
 
     if EXTREME_LEARNING_MODE:
