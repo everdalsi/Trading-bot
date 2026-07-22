@@ -178,24 +178,24 @@ LIVE_MAX_PCT_PER_TRADE = 0.08
 # ── MODE TRAINING / LIVE ───────────────────────────────────────────────────────
 BOT_TRAINING_MODE    = True    # True = training (prend max de trades), False = live (argent réel)
 os.environ["BOT_TRAINING_MODE"] = "True" if BOT_TRAINING_MODE else "False"  # Propagate to agents
-TRAINING_CONF_THRESH = 0.01   # 1% — en training on prend TOUT pour apprendre
+TRAINING_CONF_THRESH = float(os.environ.get("TRAINING_CONF_THRESH", 0.01))   # 1% — en training on prend TOUT pour apprendre
 TRAINING_MAX_USD     = 15.0   # Max $15 par trade en training (limiter les pertes)
-TRAINING_WIN_TARGET  = 0.68   # 68% win rate → eligible pour passage en LIVE
-TRAINING_MIN_TRADES  = 30     # Min 30 trades avant de proposer le passage LIVE
+TRAINING_WIN_TARGET  = 0.68   # 68% win rate → eligible pour passage en LIVE (seuil interne, indicatif — la vraie regle projet est plus stricte)
+TRAINING_MIN_TRADES  = 30     # Min 30 trades avant de proposer le passage LIVE (idem, indicatif)
 LIVE_CONF_THRESH     = 0.25   # 25% — plus sélectif en LIVE
 LIVE_MAX_USD_PCT     = 0.05   # Max 5% du capital par trade en LIVE
 
 CAPITAL_INITIAL   = 1000.0
-MAX_POSITIONS     = 60
+MAX_POSITIONS     = int(os.environ.get("MAX_POSITIONS", 60))
 MAX_PCT_PER_TRADE = 0.28
 STOP_LOSS_PCT     = 0.015
 TAKE_PROFIT_PCT   = 0.060
 TRAILING_PCT      = 0.015
 LEVERAGE_SIM      = 2
 
-CONFIDENCE_BASE = 65
-CONFIDENCE_MIN  = 8
-CONFIDENCE_MAX  = 82
+CONFIDENCE_BASE = int(os.environ.get("CONFIDENCE_BASE", 65))
+CONFIDENCE_MIN  = int(os.environ.get("CONFIDENCE_MIN", 8))
+CONFIDENCE_MAX  = int(os.environ.get("CONFIDENCE_MAX", 82))
 
 MAX_DAILY_LOSS_PCT   = 0.15
 MAX_DRAWDOWN_PCT     = 0.10
