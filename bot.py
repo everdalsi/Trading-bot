@@ -2578,9 +2578,32 @@ def _memory_setdefault(mem_obj, key, default):
         mem_obj.data.setdefault(key, default)
 
 def load_data():
+    # BUG FIX (2026-07-24): GitHub-backed state used to load FIRST and count as
+    # "loaded" even when it returned zero trades (stale/empty repo copy), which
+    # short-circuited the local DATA_FILE fallback and silently wiped out the
+    # persistent-volume history on every restart -- this was the original
+    # "resets destroy the measurement" problem from the project's early sessions,
+    # never actually fixed. Local DATA_DIR is now the reliably-persisted source
+    # of truth (Docker volume, confirmed working) and is tried first; GitHub is
+    # only a last-resort fallback for a genuinely fresh deployment with no local
+    # state at all. Neither source counts as "loaded" unless it actually has trades.
     global sim, memory, epargne
     loaded = False
-    if GITHUB_TOKEN and GITHUB_REPO:
+    if DATA_FILE.exists():
+        try:
+            d = json.loads(DATA_FILE.read_text())
+            candidate_sim = d.get("sim",{})
+            if candidate_sim.get("trades"):
+                sim = candidate_sim
+                mem_data = d.get("memory",{})
+                _memory_update(memory, mem_data)
+                epargne_loaded = d.get("epargne",{})
+                if epargne_loaded: epargne.update(epargne_loaded)
+                loaded = True
+                print(f"[LOAD-LOCAL] {len(sim.get('trades',[]))} trades")
+        except Exception as e:
+            print(f"[LOAD-LOCAL] {e}")
+    if not loaded and GITHUB_TOKEN and GITHUB_REPO:
         try:
             headers = {"Authorization":f"token {GITHUB_TOKEN}"}
             api_url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/sim_portfolio_v7.json"
@@ -2588,27 +2611,17 @@ def load_data():
             if r.status_code == 200:
                 content = base64.b64decode(r.json()["content"]).decode()
                 d = json.loads(content)
-                sim = d.get("sim",{})
-                mem_data = d.get("memory",{})
-                _memory_update(memory, mem_data)
-                epargne_loaded = d.get("epargne",{})
-                if epargne_loaded: epargne.update(epargne_loaded)
-                loaded = True
-                print(f"[LOAD-GH] {len(sim.get('trades',[]))} trades | {len(mem_data.get('lessons',[]))} leçons")
+                candidate_sim = d.get("sim",{})
+                if candidate_sim.get("trades"):
+                    sim = candidate_sim
+                    mem_data = d.get("memory",{})
+                    _memory_update(memory, mem_data)
+                    epargne_loaded = d.get("epargne",{})
+                    if epargne_loaded: epargne.update(epargne_loaded)
+                    loaded = True
+                    print(f"[LOAD-GH] {len(sim.get('trades',[]))} trades | {len(mem_data.get('lessons',[]))} leçons")
         except Exception as e:
             print(f"[LOAD-GH] {e}")
-    if not loaded and DATA_FILE.exists():
-        try:
-            d = json.loads(DATA_FILE.read_text())
-            sim = d.get("sim",{})
-            mem_data = d.get("memory",{})
-            _memory_update(memory, mem_data)
-            epargne_loaded = d.get("epargne",{})
-            if epargne_loaded: epargne.update(epargne_loaded)
-            loaded = True
-            print(f"[LOAD-LOCAL] {len(sim.get('trades',[]))} trades")
-        except Exception as e:
-            print(f"[LOAD] {e}")
     for k,v in {
         "cash":CAPITAL_INITIAL,"initial":CAPITAL_INITIAL,"positions":{},
         "trades":[],"equity_history":[],"session":1,
@@ -6110,13 +6123,18 @@ if __name__ == "__main__":
         except Exception as _disc_e:
             logger.warning(f"[STARTUP] discover_all_symbols: {_disc_e}")
         load_data()
-        if EXTREME_LEARNING_MODE:
+        # BUG FIX (2026-07-24): this used to reset equity to CAPITAL_INITIAL on
+        # EVERY restart regardless of what load_data() just loaded, silently
+        # wiping realized PnL/cash history even when trades were correctly
+        # resumed from disk. Only reset on a genuinely fresh start (no trades
+        # loaded at all) -- a resume must keep the real accumulated state.
+        if EXTREME_LEARNING_MODE and not sim.get("trades"):
             sim["cash"] = CAPITAL_INITIAL
             sim["initial"] = CAPITAL_INITIAL
             sim["equity_history"] = [CAPITAL_INITIAL]
             sim["peak_equity"] = CAPITAL_INITIAL
             sim["daily_start_equity"] = CAPITAL_INITIAL
-            print(f"🔄 EXTREME LEARNING MODE → equity reset à ${CAPITAL_INITIAL:,.2f}")
+            print(f"🔄 EXTREME LEARNING MODE → equity reset à ${CAPITAL_INITIAL:,.2f} (fresh start, no prior data)")
         evolution_thread = threading.Thread(target=_evolution_loop_MAIN, daemon=True)
         evolution_thread.start()
         threading.Thread(target=run_server, daemon=True).start()
