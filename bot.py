@@ -203,6 +203,8 @@ FG_NEUTRAL_MIN       = 40
 FG_NEUTRAL_MAX       = 60
 NIGHT_HOURS_UTC      = range(2, 6)
 BLACKLIST_MAX_LOSSES = 5
+BLACKLIST_PERMANENT_MIN_TRADES  = 20    # min lifetime trades before a symbol can be permanently blacklisted
+BLACKLIST_PERMANENT_MAX_WINRATE = 0.10  # lifetime winrate at/below this -> permanent instead of 24h cooldown
 MAX_LESSONS = 999_999_999
 CORRELATED_PAIRS     = [
     {"BTCUSDT","ETHUSDT"},
@@ -930,23 +932,44 @@ def is_blacklisted(symbol: str) -> bool:
     bl = memory.get("symbol_blacklist", {})
     if symbol not in bl:
         return False
+    if bl[symbol].get("permanent"):
+        return True
     if time.time() - bl[symbol].get("ts", 0) > 86400:
         del memory["symbol_blacklist"][symbol]
         return False
     return True
 
 def update_blacklist(symbol: str, won: bool):
+    # BUG FIX (2026-07-24): consecutive_losses was never reset when a symbol got
+    # blacklisted, so after the 24h auto-expiry it re-blacklisted itself on the very
+    # next loss instead of getting a fresh 5-strike chance -- observed in production
+    # with TONUSDT (592 losses / 593 trades) and NFPUSDT (405/~410), both stuck in
+    # an expire-lose-reblacklist loop for over a day. Chronic offenders (enough
+    # lifetime trades, catastrophic winrate) now get permanently blacklisted instead.
     cl = memory.setdefault("consecutive_losses", {})
+    lifetime = memory.setdefault("symbol_lifetime", {})
+    stats = lifetime.setdefault(symbol, {"trades": 0, "wins": 0})
+    stats["trades"] += 1
+
     if won:
+        stats["wins"] += 1
         cl[symbol] = 0
     else:
         cl[symbol] = cl.get(symbol, 0) + 1
         if cl[symbol] >= BLACKLIST_MAX_LOSSES:
+            is_chronic = (
+                stats["trades"] >= BLACKLIST_PERMANENT_MIN_TRADES
+                and stats["wins"] / stats["trades"] <= BLACKLIST_PERMANENT_MAX_WINRATE
+            )
             memory.setdefault("symbol_blacklist", {})[symbol] = {
                 "ts": time.time(),
-                "reason": f"{BLACKLIST_MAX_LOSSES} pertes consécutives",
+                "reason": f"{BLACKLIST_MAX_LOSSES} pertes consécutives"
+                          + (" — chronique, blacklist permanente" if is_chronic else ""),
                 "losses": cl[symbol],
+                "permanent": is_chronic,
             }
+            if not is_chronic:
+                cl[symbol] = 0  # fresh 5-strike budget after the 24h cooldown expires
 
 def is_night_time() -> bool:
     return datetime.now(timezone.utc).hour in NIGHT_HOURS_UTC
@@ -2596,7 +2619,7 @@ def load_data():
     for k,v in {
         "lessons":[],"patterns_to_avoid":[],"patterns_that_work":[],
         "confidence_threshold":CONFIDENCE_BASE,"total_wins":0,"total_losses":0,
-        "symbol_scores":{},"symbol_blacklist":{},"consecutive_losses":{}
+        "symbol_scores":{},"symbol_blacklist":{},"consecutive_losses":{},"symbol_lifetime":{}
     }.items():
         _memory_setdefault(memory, k, v)
 
