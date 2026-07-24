@@ -38,46 +38,15 @@ class PerformanceTracker(BaseAgent):
             name="performance",
             role="Analytics institutionnels : Sortino, Calmar, Sharpe, drawdown, rolling WR, CAGR"
         )
-        self._ensure_tables()
-
-    # ────────────────────────────────────────────────────────────────────────
-    # DB
-    # ────────────────────────────────────────────────────────────────────────
-
-    def _ensure_tables(self):
-        try:
-            con = sqlite3.connect(DB_FILE)
-            con.execute("""
-                CREATE TABLE IF NOT EXISTS trades (
-                    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-                    symbol      TEXT,
-                    market      TEXT DEFAULT 'SPOT',
-                    side        TEXT DEFAULT 'LONG',
-                    price_in    REAL,
-                    price_out   REAL,
-                    qty         REAL,
-                    amount_usd  REAL,
-                    pnl         REAL,
-                    pnl_pct     REAL,
-                    result      TEXT,
-                    confidence  REAL DEFAULT 0.5,
-                    reason      TEXT,
-                    time_in     TEXT,
-                    time_out    TEXT,
-                    duration_min REAL,
-                    patterns    TEXT,
-                    leverage    REAL DEFAULT 1.0,
-                    kelly_pct   REAL DEFAULT 0.0,
-                    session_id  INTEGER DEFAULT 1
-                )
-            """)
-            con.execute("CREATE INDEX IF NOT EXISTS idx_trades_symbol ON trades(symbol)")
-            con.execute("CREATE INDEX IF NOT EXISTS idx_trades_result ON trades(result)")
-            con.execute("CREATE INDEX IF NOT EXISTS idx_trades_time ON trades(time_in)")
-            con.commit()
-            con.close()
-        except Exception as e:
-            logger.error(f"[PERF-TRACKER] DB init error: {e}")
+        # BUG FIX (2026-07-24): this used to call _ensure_tables(), which created
+        # its own "trades" table (20 columns) racing bot.py's own init_db() (19
+        # columns, different order) for the same table in the same DB file.
+        # Whichever ran first won, and the loser's INSERTs failed on every single
+        # trade close ("table trades has 20 columns but 19 values were supplied"
+        # x 8700+ in production logs). log_trade() below -- the only thing that
+        # would have written to this table -- is never called anywhere in the
+        # codebase, so the table was pure dead weight. bot.py's init_db() is the
+        # sole owner of the trades table now.
 
     def log_trade(self, trade_data: dict):
         try:
