@@ -247,23 +247,36 @@ WHALE_FILTER_ENABLED    = os.environ.get("WHALE_FILTER_ENABLED", "true").lower()
 WHALE_FILTER_THRESHOLD  = float(os.environ.get("WHALE_FILTER_THRESHOLD", 0.35))  # buy_ratio below this vetoes a BUY (mirrored for SELL)
 WHALE_CACHE_TTL         = 90
 
-# SOLANA SMART-MONEY FILTER (2026-07-25, best-effort): 3 wallets reported as
-# historically high-performing "smart money" traders (dated snapshot source,
-# not a live leaderboard — accuracy not guaranteed to persist). Balance
-# accumulation/distribution across these wallets is used the same way as the
-# Binance whale filter: block-only, never boosts size/confidence. Fails open
-# (no veto) whenever a fresh snapshot isn't available.
+# SOLANA SMART-MONEY FILTER (2026-07-25, best-effort, updated after research):
+# the previous list came from a dated snapshot article with no way to verify
+# the wallets were still active or accurate, so it was dropped. Replaced with
+# Cupsey (@Cupseyy on X) — one of the most-followed Solana memecoin traders on
+# Crypto Twitter, wallet independently corroborated across OKX Wallet's public
+# leaderboard (#1 by realized profit, ~$5.14M/3mo, 67.7% win rate), Solscan,
+# and GMGN. No public no-auth API exists for a *live* KOL leaderboard (kolscan.io
+# and solanatracker.io both render their tables client-side against an
+# authenticated backend), so this stays a manually curated, occasionally
+# refreshed list rather than a dynamic feed — same "best-effort, may go stale"
+# caveat as before, now at least anchored to a verifiable, currently-active,
+# genuinely high-win-rate trader instead of an untraceable one.
+# Caveat: Cupsey's edge is sniping brand-new pump.fun launches (~900 trades/day),
+# most of which aren't symbols this bot trades — only his BONK/JUP/WIF/POPCAT/
+# native-SOL balance drift (all Binance-tradeable) is usable here, so this is a
+# noisier proxy for his conviction than his real strategy.
+# Balance accumulation/distribution across these wallets is used the same way
+# as the Binance whale filter: block-only, never boosts size/confidence. Fails
+# open (no veto) whenever a fresh snapshot isn't available.
 SOLANA_FILTER_ENABLED  = os.environ.get("SOLANA_FILTER_ENABLED", "true").lower() in ("true", "1", "yes")
 SOLANA_RPC             = os.environ.get("SOLANA_RPC", "https://api.mainnet-beta.solana.com")
 SOLANA_SMART_WALLETS   = [
-    "9HCTuTPEiQvkUtLmTZvK6uch4E3pDynwJTbNw6jLhp9z",
-    "6kbwsSY4hL6WVadLRLnWV2irkMN2AvFZVAS8McKJmAtJ",
-    "5fWkLJfoDsRAaXhPJcJY19qNtDDQ5h6q1SPzsAPRrUNG",
+    "suqh5sHtr8HyJ7q8scBimULPkPpA557prMG47xCHQfK",   # Cupsey (@Cupseyy) — verified, see note above
 ]
 # mint address -> symbol traded by this bot (native SOL tracked via getBalance separately)
 SOLANA_TOKEN_MINTS = {
     "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263": "BONKUSDT",
     "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN":  "JUPUSDT",
+    "EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm": "WIFUSDT",
+    "7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr": "POPCATUSDT",
 }
 SOLANA_SNAPSHOT_TTL   = 1800   # re-snapshot at most every 30 min
 SOLANA_BIAS_MAX_AGE   = 7200   # a bias older than this is considered stale, ignored
