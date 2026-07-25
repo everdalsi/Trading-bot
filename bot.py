@@ -406,6 +406,14 @@ _WARM_SYMBOLS      = []   # scanné 1 cycle / 3
 _COLD_SYMBOLS      = []   # scanné 1 cycle / 10
 _TIER_CYCLE_CTR    = 0
 _TIER_LAST_REFRESH = 0.0  # timestamp dernier refresh (toutes les 6h)
+# FIX (2026-07-25): PRIORITY_SYMBOLS (la liste manuelle ci-dessus) contient à
+# elle seule 82 symboles -- avec l'ancien cap HOT à 80, elle remplissait déjà
+# tout le tier avant même que le tri par vrai volume Binance n'ait une chance
+# de contribuer un seul slot. Des tokens niche de la liste manuelle (ex:
+# catégorie GAMING) squattaient donc HOT à la place de paires à plus gros
+# volume réel non présentes dans la liste. Cap relevé pour garantir des slots
+# HOT au vrai volume, sans rien retirer de la liste manuelle existante.
+HOT_TIER_CAP = int(os.environ.get("HOT_TIER_CAP", 140))
 
 def discover_all_symbols() -> list:
     """
@@ -443,9 +451,11 @@ def _rebuild_tiers(all_syms: list):
     priority_flat = list(dict.fromkeys(
         [s for cat in PRIORITY_SYMBOLS.values() for s in cat]
     ))
-    # HOT = priorités + top volume (max 80)
+    # HOT = priorités + top volume (max HOT_TIER_CAP) -- priority_flat seul
+    # (82 symboles) ne doit plus pouvoir épuiser le cap avant que le tri par
+    # volume réel ne contribue ses propres slots (voir note HOT_TIER_CAP).
     hot_raw = priority_flat + [s for s in all_syms if s not in priority_flat]
-    _HOT_SYMBOLS  = list(dict.fromkeys(hot_raw))[:80]
+    _HOT_SYMBOLS  = list(dict.fromkeys(hot_raw))[:HOT_TIER_CAP]
     _WARM_SYMBOLS = [s for s in all_syms[60:220]  if s not in _HOT_SYMBOLS]
     _COLD_SYMBOLS = [s for s in all_syms[220:]    if s not in _HOT_SYMBOLS and s not in _WARM_SYMBOLS]
     _ALL_DISCOVERED = all_syms
