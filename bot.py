@@ -219,6 +219,7 @@ CYCLE_STATUS  = 900
 CYCLE_MICRO   = 8
 CYCLE_MEME    = 45
 CYCLE_EPARGNE = 3600
+CYCLE_SOLANA  = 1800
 
 TRADING_MODE = "MICRO_HIGH_FREQ"
 MICRO_SL_PCT        = 0.007
@@ -235,6 +236,38 @@ MICRO_MAX_PCT       = 0.48
 MICRO_CONF_MIN      = 12
 MAX_MICRO_POSITIONS = 120
 WARMUP_TRADES_NEEDED = 50
+
+# PRO-WALLET FILTER (2026-07-25): block-only signal from Binance whale flow
+# (>$500K trades) — vetoes a MICRO trade only when whale flow clearly opposes
+# the signal direction. Never increases size/confidence (explicit user
+# requirement — "filtre supplémentaire seulement"). Direct/sync Binance call
+# per candidate symbol, NOT the full orchestrator.ask_all() ensemble (too
+# slow at ~8000+ trades/day; per-agent timeouts there are 6-10s each).
+WHALE_FILTER_ENABLED    = os.environ.get("WHALE_FILTER_ENABLED", "true").lower() in ("true", "1", "yes")
+WHALE_FILTER_THRESHOLD  = float(os.environ.get("WHALE_FILTER_THRESHOLD", 0.35))  # buy_ratio below this vetoes a BUY (mirrored for SELL)
+WHALE_CACHE_TTL         = 90
+
+# SOLANA SMART-MONEY FILTER (2026-07-25, best-effort): 3 wallets reported as
+# historically high-performing "smart money" traders (dated snapshot source,
+# not a live leaderboard — accuracy not guaranteed to persist). Balance
+# accumulation/distribution across these wallets is used the same way as the
+# Binance whale filter: block-only, never boosts size/confidence. Fails open
+# (no veto) whenever a fresh snapshot isn't available.
+SOLANA_FILTER_ENABLED  = os.environ.get("SOLANA_FILTER_ENABLED", "true").lower() in ("true", "1", "yes")
+SOLANA_RPC             = os.environ.get("SOLANA_RPC", "https://api.mainnet-beta.solana.com")
+SOLANA_SMART_WALLETS   = [
+    "9HCTuTPEiQvkUtLmTZvK6uch4E3pDynwJTbNw6jLhp9z",
+    "6kbwsSY4hL6WVadLRLnWV2irkMN2AvFZVAS8McKJmAtJ",
+    "5fWkLJfoDsRAaXhPJcJY19qNtDDQ5h6q1SPzsAPRrUNG",
+]
+# mint address -> symbol traded by this bot (native SOL tracked via getBalance separately)
+SOLANA_TOKEN_MINTS = {
+    "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263": "BONKUSDT",
+    "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN":  "JUPUSDT",
+}
+SOLANA_SNAPSHOT_TTL   = 1800   # re-snapshot at most every 30 min
+SOLANA_BIAS_MAX_AGE   = 7200   # a bias older than this is considered stale, ignored
+SOLANA_BIAS_THRESHOLD = 0.03   # aggregate holdings must move >=3% to register a bias
 
 MEME_SL_PCT       = 0.05
 MEME_TP_PCT       = 0.15
@@ -1665,6 +1698,120 @@ def micro_signal(symbol: str, price: float) -> dict:
     except Exception:
         return {"signal":"HOLD","score":0,"conf":0}
 
+_whale_cache: dict = {}
+
+def check_whale_filter(symbol: str, direction: str) -> tuple[bool, str]:
+    """Blocking-only pro-wallet filter. Fetches recent Binance aggTrades,
+    computes the >$500K whale buy/sell ratio, and vetoes only when whale
+    flow clearly opposes `direction` ("BUY"/"SELL"). Fails open (allows the
+    trade) on any data error or ambiguous reading — same fail-open contract
+    as verify_trade_with_claude above."""
+    if not WHALE_FILTER_ENABLED:
+        return True, "whale_filter_disabled"
+    now = time.time()
+    cached = _whale_cache.get(symbol)
+    if cached and now - cached[0] < WHALE_CACHE_TTL:
+        metrics = cached[1]
+    else:
+        try:
+            trades_r = requests.get(f"{BINANCE_BASE}/api/v3/aggTrades", params={"symbol": symbol, "limit": 500}, timeout=4)
+            trades = trades_r.json() if isinstance(trades_r.json(), list) else []
+            price_r = requests.get(f"{BINANCE_BASE}/api/v3/ticker/price", params={"symbol": symbol}, timeout=3)
+            ref_price = float(price_r.json().get("price", 0))
+        except Exception:
+            return True, "whale_data_unavailable"
+        whale_buy = whale_sell = 0.0
+        for t in trades:
+            try:
+                value = float(t.get("q", 0)) * ref_price
+                if value >= 500_000:
+                    if t.get("m", False): whale_sell += value
+                    else: whale_buy += value
+            except Exception:
+                continue
+        total = whale_buy + whale_sell
+        metrics = {"buy_ratio": (whale_buy / total) if total >= 1 else 0.5, "total": total}
+        _whale_cache[symbol] = (now, metrics)
+
+    if metrics["total"] < 1:
+        return True, "no_whale_activity"
+    buy_ratio = metrics["buy_ratio"]
+    if direction == "BUY" and buy_ratio < WHALE_FILTER_THRESHOLD:
+        return False, f"whales sell {1-buy_ratio:.0%} of flow, opposes BUY"
+    if direction == "SELL" and buy_ratio > (1 - WHALE_FILTER_THRESHOLD):
+        return False, f"whales buy {buy_ratio:.0%} of flow, opposes SELL"
+    return True, "ok"
+
+_solana_snapshot_ts = 0.0
+_solana_prev_totals: dict = {}   # symbol -> aggregate token amount held across tracked wallets, previous snapshot
+_solana_bias: dict = {}          # symbol -> (direction, ts)
+
+def _solana_rpc(method: str, params: list, timeout: float = 6):
+    try:
+        r = requests.post(SOLANA_RPC, json={"jsonrpc": "2.0", "id": 1, "method": method, "params": params}, timeout=timeout)
+        return r.json().get("result")
+    except Exception:
+        return None
+
+def update_solana_snapshots():
+    """Best-effort accumulation/distribution tracker for the 3 tracked wallets.
+    Runs on its own slow cycle (CYCLE_SOLANA), never inline with a trade decision."""
+    global _solana_snapshot_ts, _solana_prev_totals, _solana_bias
+    if not SOLANA_FILTER_ENABLED:
+        return
+    now = time.time()
+    if now - _solana_snapshot_ts < SOLANA_SNAPSHOT_TTL:
+        return
+    _solana_snapshot_ts = now
+
+    totals: dict = {}   # symbol -> total amount across wallets this snapshot
+    sol_lamports_total = 0
+    for wallet in SOLANA_SMART_WALLETS:
+        bal = _solana_rpc("getBalance", [wallet])
+        if isinstance(bal, dict):
+            sol_lamports_total += bal.get("value", 0) or 0
+        try:
+            accounts = _solana_rpc("getTokenAccountsByOwner", [wallet, {"programId": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"}, {"encoding": "jsonParsed"}])
+            for acc in (accounts or {}).get("value", []) or []:
+                info = acc.get("account", {}).get("data", {}).get("parsed", {}).get("info", {})
+                mint = info.get("mint")
+                sym = SOLANA_TOKEN_MINTS.get(mint)
+                if not sym:
+                    continue
+                amount = float(info.get("tokenAmount", {}).get("uiAmount") or 0)
+                totals[sym] = totals.get(sym, 0.0) + amount
+        except Exception:
+            continue
+    if "SOLUSDT" in CRYPTO_SYMBOLS:
+        totals["SOLUSDT"] = sol_lamports_total / 1e9
+
+    for sym, total in totals.items():
+        prev = _solana_prev_totals.get(sym)
+        if prev and prev > 0:
+            change = (total - prev) / prev
+            if change >= SOLANA_BIAS_THRESHOLD:
+                _solana_bias[sym] = ("BUY", now)
+            elif change <= -SOLANA_BIAS_THRESHOLD:
+                _solana_bias[sym] = ("SELL", now)
+    _solana_prev_totals = totals
+    if _solana_bias:
+        logger.info(f"[SOLANA-SMART-MONEY] biais actifs: { {k: v[0] for k,v in _solana_bias.items()} }")
+
+def check_solana_filter(symbol: str, direction: str) -> tuple[bool, str]:
+    """Blocking-only filter mirroring check_whale_filter, sourced from the
+    3 tracked Solana wallets instead of Binance's public trade tape."""
+    if not SOLANA_FILTER_ENABLED:
+        return True, "solana_filter_disabled"
+    bias = _solana_bias.get(symbol)
+    if not bias:
+        return True, "no_solana_bias"
+    bias_dir, ts = bias
+    if time.time() - ts > SOLANA_BIAS_MAX_AGE:
+        return True, "solana_bias_stale"
+    if bias_dir != direction:
+        return False, f"solana smart-money bias={bias_dir}, opposes {direction}"
+    return True, "ok"
+
 def open_micro_trade(symbol: str, price: float, signal: dict, send_fn) -> dict | None:
     # FIX TRAINING V9: SELL (SHORT) autorisé en training pour apprendre dans les deux sens
     # En mode live seulement, on bloque les SELL (certains exchanges ne permettent pas le short)
@@ -1693,6 +1840,16 @@ def open_micro_trade(symbol: str, price: float, signal: dict, send_fn) -> dict |
     })
     if not approved:
         logger.info(f"[CLAUDE-VERIFY] Trade MICRO vetoe pour {symbol} ({signal['signal']}, conf={signal['conf']}%): {verify_reason}")
+        return None
+
+    whale_ok, whale_reason = check_whale_filter(symbol, signal["signal"])
+    if not whale_ok:
+        logger.info(f"[WHALE-FILTER] Trade MICRO vetoe pour {symbol} ({signal['signal']}): {whale_reason}")
+        return None
+
+    solana_ok, solana_reason = check_solana_filter(symbol, signal["signal"])
+    if not solana_ok:
+        logger.info(f"[SOLANA-FILTER] Trade MICRO vetoe pour {symbol} ({signal['signal']}): {solana_reason}")
         return None
 
     fg = get_fear_greed_value()
@@ -2818,7 +2975,7 @@ def trading_loop(send_fn):
         asyncio.set_event_loop(_main_loop)
 
     in_secretary_mode = TELEGRAM_CHAT_ID in AGENT_CHAT_SESSIONS
-    last_micro = last_meme = last_epargne = last_status = last_regime = last_staking = 0
+    last_micro = last_meme = last_epargne = last_status = last_regime = last_staking = last_solana = 0
     last_backtest = 0
     last_monitor = 0
     last_soul_tick   = 0
@@ -3204,6 +3361,13 @@ def trading_loop(send_fn):
                     _, decision = fallback_future.result(timeout=15)
                 except Exception as fb_e:
                     logger.debug(f"[MICRO] Fallback error: {fb_e}")
+
+        if now - last_solana >= CYCLE_SOLANA:
+            last_solana = now
+            try:
+                update_solana_snapshots()
+            except Exception as _sol_e:
+                logger.debug(f"[SOLANA-SMART-MONEY] snapshot error: {_sol_e}")
 
         if now - last_meme >= CYCLE_MEME:
             last_meme = now
