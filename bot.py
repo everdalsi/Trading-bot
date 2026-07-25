@@ -224,7 +224,13 @@ TRADING_MODE = "MICRO_HIGH_FREQ"
 MICRO_SL_PCT        = 0.007
 MICRO_TP_PCT        = 0.011
 MICRO_TRAILING_PCT  = 0.004
-MICRO_MAX_DURATION  = 60
+# FIX (2026-07-25): 60s was far too short for a 0.7%/1.1% SL/TP band on most
+# pairs -- 99.8% of ~8800 production trades exited via timeout, essentially
+# closing at a random point in a tight range instead of ever reaching the
+# designed SL/TP. Extended so real price action gets a fair chance to decide
+# the outcome; MAX_MICRO_POSITIONS stays high so trade throughput/learning
+# volume isn't meaningfully reduced (more positions held longer in parallel).
+MICRO_MAX_DURATION  = int(os.environ.get("MICRO_MAX_DURATION", 180))
 MICRO_MAX_PCT       = 0.48
 MICRO_CONF_MIN      = 12
 MAX_MICRO_POSITIONS = 120
@@ -1648,7 +1654,11 @@ def micro_signal(symbol: str, price: float) -> dict:
         if vol_ratio>2.5 and score>0: score+=1
         if vol_ratio>2.5 and score<0: score-=1
         reason = f"EMA{'↑' if ema5>ema13 else '↓'} RSI7={rsi7:.0f} mom={mom3:+.2f}% vol={vol_ratio:.1f}x"
-        _score_thresh = 2 if BOT_TRAINING_MODE else 4
+        # FIX (2026-07-25): threshold of 2 let a single weak signal (e.g. just an
+        # EMA cross, nothing else confirming) open a trade -- raised to 3 so at
+        # least two indicators agree, while staying well below live's 4 so trade
+        # volume for learning isn't meaningfully cut.
+        _score_thresh = int(os.environ.get("MICRO_SCORE_THRESH", 3)) if BOT_TRAINING_MODE else 4
         if score >= _score_thresh:    return {"signal": "BUY",  "score": score, "conf": min(95, 60 + score * 7),        "reason": reason}
         elif score <= -_score_thresh: return {"signal": "SELL", "score": score, "conf": min(95, 60 + abs(score) * 7), "reason": reason}
         return {"signal": "HOLD", "score": score, "conf": 0}
@@ -1671,6 +1681,20 @@ def open_micro_trade(symbol: str, price: float, signal: dict, send_fn) -> dict |
     if not BOT_TRAINING_MODE and symbol in memory.get("recent_losses", []):
         print(f"[FILTER] {symbol} évité en MICRO (pertes récentes)")
         return None
+
+    # GAP FIX (2026-07-25): verify_trade_with_claude() was only wired into
+    # open_trade(), but 99.8% of actual trades go through this MICRO path
+    # instead -- the verification gate had never fired on a single real trade
+    # despite ~8800 trades executed. Wired in here too, same fail-open contract.
+    approved, verify_reason = verify_trade_with_claude({
+        "symbol": symbol, "signal": signal["signal"], "price": price,
+        "confidence": signal["conf"], "reason": signal.get("reason", ""),
+        "market": "MICRO", "patterns": [{"name": f"score={signal['score']}"}],
+    })
+    if not approved:
+        logger.info(f"[CLAUDE-VERIFY] Trade MICRO vetoe pour {symbol} ({signal['signal']}, conf={signal['conf']}%): {verify_reason}")
+        return None
+
     fg = get_fear_greed_value()
     macro = get_macro_trend()
     night_factor = 0.7 if is_night_time() else 1.0
