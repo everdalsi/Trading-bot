@@ -1697,19 +1697,44 @@ def micro_signal(symbol: str, price: float) -> dict:
         avg_vol   = sum(vols[:-1])/max(len(vols)-1,1) if len(vols)>1 else 1
         vol_ratio = vols[-1]/avg_vol if avg_vol > 0 else 1.0
         score = 0
-        if ema5_prev<=ema13_prev and ema5>ema13:  score += 2
-        elif ema5_prev>=ema13_prev and ema5<ema13: score -= 2
-        if rsi7<28:   score+=2
-        elif rsi7<40: score+=1
-        elif rsi7>72: score-=2
-        elif rsi7>60: score-=1
-        if mom3>0.6:  score+=1
-        elif mom3<-0.6: score-=1
-        if bb_pct<8:  score+=1
-        elif bb_pct>92: score-=1
-        if vol_ratio>2.5 and score>0: score+=1
-        if vol_ratio>2.5 and score<0: score-=1
-        reason = f"EMA{'↑' if ema5>ema13 else '↓'} RSI7={rsi7:.0f} mom={mom3:+.2f}% vol={vol_ratio:.1f}x"
+        contributors = []
+        # FIX (2026-07-26): the old reason string always reported the EMA's
+        # *current* direction (ema5>ema13 snapshot) regardless of whether an
+        # EMA cross actually contributed to the score this cycle. That made
+        # every RSI-driven mean-reversion signal -- a normal, valid setup
+        # where price is still trending while RSI is extended -- read as
+        # self-contradictory ("EMA up + RSI overbought = SELL??") to the
+        # Claude verify gate, which vetoes on exactly that kind of internal
+        # inconsistency. Once Claude verify started running reliably (credits
+        # fixed), this pre-existing bug started vetoing ~97%+ of candidates
+        # instead of the small minority it should. Now the reason only cites
+        # what actually moved the score, so a trend+reversal-timing signal
+        # reads as the coherent multi-factor setup it actually is.
+        if ema5_prev<=ema13_prev and ema5>ema13:
+            score += 2; contributors.append("EMA5/13 cross up")
+        elif ema5_prev>=ema13_prev and ema5<ema13:
+            score -= 2; contributors.append("EMA5/13 cross down")
+        if rsi7<28:
+            score+=2; contributors.append(f"RSI7={rsi7:.0f} oversold (reversal-up)")
+        elif rsi7<40:
+            score+=1; contributors.append(f"RSI7={rsi7:.0f} low")
+        elif rsi7>72:
+            score-=2; contributors.append(f"RSI7={rsi7:.0f} overbought (reversal-down)")
+        elif rsi7>60:
+            score-=1; contributors.append(f"RSI7={rsi7:.0f} high")
+        if mom3>0.6:
+            score+=1; contributors.append(f"momentum {mom3:+.2f}% up")
+        elif mom3<-0.6:
+            score-=1; contributors.append(f"momentum {mom3:+.2f}% down")
+        if bb_pct<8:
+            score+=1; contributors.append("Bollinger lower band (oversold)")
+        elif bb_pct>92:
+            score-=1; contributors.append("Bollinger upper band (overbought)")
+        if vol_ratio>2.5 and score>0:
+            score+=1; contributors.append(f"volume spike {vol_ratio:.1f}x confirming")
+        if vol_ratio>2.5 and score<0:
+            score-=1; contributors.append(f"volume spike {vol_ratio:.1f}x confirming")
+        reason = ", ".join(contributors) if contributors else f"weak/no signal (RSI7={rsi7:.0f}, mom={mom3:+.2f}%)"
         # FIX (2026-07-25): threshold of 2 let a single weak signal (e.g. just an
         # EMA cross, nothing else confirming) open a trade -- raised to 3 so at
         # least two indicators agree, while staying well below live's 4 so trade

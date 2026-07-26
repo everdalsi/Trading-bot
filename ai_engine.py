@@ -41,9 +41,14 @@ def verify_trade_with_claude(analysis: dict) -> tuple[bool, str]:
         f"Stated reason: {str(analysis.get('reason', ''))[:300]}\n"
         f"Patterns detected: {patterns}\n\n"
         "You are a skeptical second reviewer, not the primary strategy — you don't have live "
-        "market data, only this stated reasoning. Veto only if the reasoning is generic, "
-        "self-contradictory, or the confidence doesn't match the stated reason. Answer with a "
-        "first line of exactly APPROVE or VETO, then a short reason on the next line."
+        "market data, only this stated reasoning. Note: this strategy deliberately combines a "
+        "trend indicator (EMA cross) with reversal-timing indicators (RSI, Bollinger) — a trade "
+        "listing an overbought/oversold RSI alongside an established EMA trend is a normal "
+        "mean-reversion-within-trend setup, NOT a contradiction by itself. Veto only if the "
+        "reasoning is generic boilerplate with no real signal, mathematically inconsistent (e.g. "
+        "cites an oversold RSI to justify a SELL), or the confidence is wildly out of line with "
+        "how weak/borderline the cited numbers are. Answer with a first line of exactly APPROVE "
+        "or VETO, then a short reason on the next line."
     )
 
     try:
