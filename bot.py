@@ -232,7 +232,20 @@ MICRO_TRAILING_PCT  = 0.004
 # the outcome; MAX_MICRO_POSITIONS stays high so trade throughput/learning
 # volume isn't meaningfully reduced (more positions held longer in parallel).
 MICRO_MAX_DURATION  = int(os.environ.get("MICRO_MAX_DURATION", 180))
-MICRO_MAX_PCT       = 0.48
+# FIX (2026-07-27): this was 0.48 -- 48% of *remaining* cash on every single
+# trade. Two consequences, both wrong for a strategy explicitly named "micro
+# high-frequency" with room for 120 concurrent positions: (1) each trade's
+# dollar size was wildly inconsistent, shrinking fast as cash got eaten up
+# (e.g. $1000 cash -> $480 first trade -> $520 left -> $249 second trade),
+# self-limiting real concurrency to a handful of oversized positions instead
+# of many small ones; (2) it was based on *remaining* cash, not total equity,
+# so it had no stable relationship to actual capital at risk. A single
+# DEXEUSDT trade sized this way hit $350+ on a sub-$1000 account. Rescaled to
+# a small percent of total equity (cash + value of open positions) with a
+# hard dollar ceiling as a backstop -- position size no longer depends on how
+# depleted cash happens to be at that moment.
+MICRO_MAX_PCT       = float(os.environ.get("MICRO_MAX_PCT", 0.04))
+MICRO_MAX_USD_CAP   = float(os.environ.get("MICRO_MAX_USD_CAP", 50.0))
 MICRO_CONF_MIN      = 12
 MAX_MICRO_POSITIONS = 120
 WARMUP_TRADES_NEEDED = 50
@@ -1956,7 +1969,13 @@ def open_micro_trade(symbol: str, price: float, signal: dict, send_fn) -> dict |
     fg_mult = 0.55 if fg < 25 else 0.75 if fg < 40 else 1.15 if fg > 75 else 1.00  # FIX V6.0: inversé — peur extrême → taille réduite (était BUG: 1.45)
     macro_mult = 1.35 if macro == "BULL" else 0.65 if macro == "BEAR" else 1.0
     vol_mult = get_volatility_size_mult(symbol)
-    amount = sim["cash"] * MICRO_MAX_PCT * fg_mult * macro_mult * night_factor * vol_mult
+    # FIX (2026-07-27): sized off total equity now, not remaining cash -- see
+    # the note at MICRO_MAX_PCT's definition. Hard $ cap as a backstop so
+    # position size stays bounded even as equity grows, and never risk more
+    # than what's actually still available in cash.
+    equity_now = sim["cash"] + sum(p.get("amount_usd", 0) for p in sim["positions"].values())
+    amount = equity_now * MICRO_MAX_PCT * fg_mult * macro_mult * night_factor * vol_mult
+    amount = min(amount, MICRO_MAX_USD_CAP, sim["cash"] * 0.9)
     qty = amount / price
     sim["cash"] -= amount
     trade = {
