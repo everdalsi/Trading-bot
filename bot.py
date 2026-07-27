@@ -1740,8 +1740,18 @@ def micro_signal(symbol: str, price: float) -> dict:
         # least two indicators agree, while staying well below live's 4 so trade
         # volume for learning isn't meaningfully cut.
         _score_thresh = int(os.environ.get("MICRO_SCORE_THRESH", 3)) if BOT_TRAINING_MODE else 4
-        if score >= _score_thresh:    return {"signal": "BUY",  "score": score, "conf": min(95, 60 + score * 7),        "reason": reason}
-        elif score <= -_score_thresh: return {"signal": "SELL", "score": score, "conf": min(95, 60 + abs(score) * 7), "reason": reason}
+        # FIX (2026-07-27): the old formula (60 + score*7, capped 95) put a
+        # bare-minimum score=3 signal at 81% -- indistinguishable from a
+        # strong score=5+ signal, and the Claude verify gate correctly kept
+        # flagging that as "confidence overstated for a single weak/borderline
+        # indicator". Now scaled against the real max possible score (EMA
+        # cross ±2, RSI ±2, momentum ±1, Bollinger ±1, volume confirm ±1 = 7),
+        # so a borderline pass reads as moderate confidence and only genuine
+        # multi-indicator agreement earns high confidence.
+        _MICRO_MAX_SCORE = 7
+        conf = min(90, round(45 + 45 * min(abs(score), _MICRO_MAX_SCORE) / _MICRO_MAX_SCORE))
+        if score >= _score_thresh:    return {"signal": "BUY",  "score": score, "conf": conf, "reason": reason}
+        elif score <= -_score_thresh: return {"signal": "SELL", "score": score, "conf": conf, "reason": reason}
         return {"signal": "HOLD", "score": score, "conf": 0}
     except Exception:
         return {"signal":"HOLD","score":0,"conf":0}
@@ -3305,62 +3315,86 @@ def trading_loop(send_fn):
                 if trade_conf >= _soul_thresh and (_is_buy or _is_sell) and not _is_no:  # Seuil géré par l'âme
                     trade_side = "BUY" if _is_buy else "SELL"
                     trade_price = get_current_price(best_symbol) or current_price
-                    # SOUL: en mode LIVE, utiliser le Kelly calculé par l'âme
-                    _kelly_soul = (_soul.params.get("kelly_fraction", 0.05) if _soul else 0.05)
-                    amount_usd  = decision.get("amount_usd", equity * float(decision.get("kelly_adjusted", _kelly_soul)))
-                    # Cap position size selon mode
-                    if BOT_TRAINING_MODE:
-                        amount_usd = min(amount_usd, TRAINING_MAX_USD)  # Max $15 en training
-                        amount_usd = max(5.0, amount_usd)
+
+                    # FIX (2026-07-27): this path (the MICRO V7 debate ensemble)
+                    # calls execution.place_order_async() directly and, in
+                    # training mode, forces a trade even on a HOLD/NO-TRADE
+                    # ensemble decision (see the force-trade block above) --
+                    # meaning it bypassed the Claude/whale/Solana verification
+                    # gates entirely, unlike open_micro_trade(). Same three
+                    # block-only checks now apply here too.
+                    _v7_reason = str(decision.get("summary") or decision.get("reason")
+                                      or f"MICRO V7 ensemble, regime={micro_ctx.get('market_regime','?')}, "
+                                         f"fg={micro_ctx.get('fear_greed','?')}")[:300]
+                    _v7_ok, _v7_why = verify_trade_with_claude({
+                        "symbol": best_symbol, "signal": trade_side, "price": trade_price,
+                        "confidence": round(trade_conf * 100), "reason": _v7_reason,
+                        "market": "MICRO_V7", "patterns": [],
+                    })
+                    if _v7_ok:
+                        _v7_ok, _v7_why = check_whale_filter(best_symbol, trade_side)
+                    if _v7_ok:
+                        _v7_ok, _v7_why = check_solana_filter(best_symbol, trade_side)
+
+                    if not _v7_ok:
+                        logger.info(f"[MICRO-V7-VETO] {best_symbol} ({trade_side}) bloqué: {_v7_why}")
                     else:
-                        amount_usd = max(10.0, min(amount_usd, equity * LIVE_MAX_USD_PCT))
-                    try:
-                        exec_future = asyncio.run_coroutine_threadsafe(
-                            execution.place_order_async(
-                                symbol     = best_symbol,
-                                side       = trade_side,
-                                order_type = "market",
-                                amount_usd = amount_usd,
-                                stop_loss  = decision.get("analysis", {}).get("stop_loss"),
-                                take_profit = decision.get("analysis", {}).get("take_profit"),
-                            ), _main_loop
-                        )
-                        exec_result = exec_future.result(timeout=12)
-                        logger.info(f"🚀 AUTO TRADE {best_symbol} {trade_side} ${amount_usd:.2f} → {exec_result.get('fill_price', '?')}")
-                        # ── AUTO-GRADUATION CHECK ──────────────────────────────────────
+                        # SOUL: en mode LIVE, utiliser le Kelly calculé par l'âme
+                        _kelly_soul = (_soul.params.get("kelly_fraction", 0.05) if _soul else 0.05)
+                        amount_usd  = decision.get("amount_usd", equity * float(decision.get("kelly_adjusted", _kelly_soul)))
+                        # Cap position size selon mode
+                        if BOT_TRAINING_MODE:
+                            amount_usd = min(amount_usd, TRAINING_MAX_USD)  # Max $15 en training
+                            amount_usd = max(5.0, amount_usd)
+                        else:
+                            amount_usd = max(10.0, min(amount_usd, equity * LIVE_MAX_USD_PCT))
                         try:
-                            _t_hist = sim.get("trades", [])
-                            if BOT_TRAINING_MODE and len(_t_hist) >= TRAINING_MIN_TRADES:
-                                _wr_check = (sum(1 for t in _t_hist if t.get("pnl",0) > 0) / max(1, len(_t_hist))) * 100
-                                if _wr_check >= TRAINING_WIN_TARGET * 100:
-                                    logger.info(f"[TRAINING] 🏆 OBJECTIF ATTEINT! WR={_wr_check:.1f}% sur {len(_t_hist)} trades → PRÊT pour LIVE")
-                                    _grad_msg = f"🏆 BOT PRÊT POUR LE LIVE!\nWin rate: {_wr_check:.1f}% sur {len(_t_hist)} trades\n→ Active le mode LIVE dans Contrôles"
-                                    if hasattr(application, "bot"):
-                                        asyncio.run_coroutine_threadsafe(application.bot.send_message(TELEGRAM_CHAT_ID, _grad_msg), _main_loop)
-                        except Exception as grad_e:
-                            pass
-                        # TRAINING MODE: enregistrer chaque trade comme lecon
-                        if hasattr(memory, "save_lesson"):
-                            memory.save_lesson(
-                                symbol     = best_symbol,
-                                action     = trade_side,
-                                outcome    = "training",
-                                pnl        = 0.0,
-                                confidence = trade_conf,
-                                lesson     = f"[TRAINING] {trade_side} {best_symbol} conf={trade_conf:.0%} regime={micro_ctx.get('market_regime','?')}"
+                            exec_future = asyncio.run_coroutine_threadsafe(
+                                execution.place_order_async(
+                                    symbol     = best_symbol,
+                                    side       = trade_side,
+                                    order_type = "market",
+                                    amount_usd = amount_usd,
+                                    stop_loss  = decision.get("analysis", {}).get("stop_loss"),
+                                    take_profit = decision.get("analysis", {}).get("take_profit"),
+                                ), _main_loop
                             )
-                        if hasattr(memory, "save_position") and exec_result.get("success"):
-                            memory.save_position(
-                                best_symbol, trade_side.lower(),
-                                amount_usd / (trade_price or 1), trade_price
-                            )
-                    except Exception as exec_e:
-                        logger.warning(f"[MICRO] ExecutionEngine error {best_symbol}: {exec_e}")
-                        # TRAINING MODE: les erreurs sont aussi des lecons
-                        if hasattr(memory, "save_lesson"):
+                            exec_result = exec_future.result(timeout=12)
+                            logger.info(f"🚀 AUTO TRADE {best_symbol} {trade_side} ${amount_usd:.2f} → {exec_result.get('fill_price', '?')}")
+                            # ── AUTO-GRADUATION CHECK ──────────────────────────────────────
                             try:
-                                memory.save_lesson(symbol=best_symbol, action=trade_side, outcome="training_error", pnl=0.0, confidence=trade_conf, lesson=f"[TRAINING ERROR] {trade_side} {best_symbol} conf={trade_conf:.0%} err={type(exec_e).__name__}")
-                            except Exception: pass
+                                _t_hist = sim.get("trades", [])
+                                if BOT_TRAINING_MODE and len(_t_hist) >= TRAINING_MIN_TRADES:
+                                    _wr_check = (sum(1 for t in _t_hist if t.get("pnl",0) > 0) / max(1, len(_t_hist))) * 100
+                                    if _wr_check >= TRAINING_WIN_TARGET * 100:
+                                        logger.info(f"[TRAINING] 🏆 OBJECTIF ATTEINT! WR={_wr_check:.1f}% sur {len(_t_hist)} trades → PRÊT pour LIVE")
+                                        _grad_msg = f"🏆 BOT PRÊT POUR LE LIVE!\nWin rate: {_wr_check:.1f}% sur {len(_t_hist)} trades\n→ Active le mode LIVE dans Contrôles"
+                                        if hasattr(application, "bot"):
+                                            asyncio.run_coroutine_threadsafe(application.bot.send_message(TELEGRAM_CHAT_ID, _grad_msg), _main_loop)
+                            except Exception as grad_e:
+                                pass
+                            # TRAINING MODE: enregistrer chaque trade comme lecon
+                            if hasattr(memory, "save_lesson"):
+                                memory.save_lesson(
+                                    symbol     = best_symbol,
+                                    action     = trade_side,
+                                    outcome    = "training",
+                                    pnl        = 0.0,
+                                    confidence = trade_conf,
+                                    lesson     = f"[TRAINING] {trade_side} {best_symbol} conf={trade_conf:.0%} regime={micro_ctx.get('market_regime','?')}"
+                                )
+                            if hasattr(memory, "save_position") and exec_result.get("success"):
+                                memory.save_position(
+                                    best_symbol, trade_side.lower(),
+                                    amount_usd / (trade_price or 1), trade_price
+                                )
+                        except Exception as exec_e:
+                            logger.warning(f"[MICRO] ExecutionEngine error {best_symbol}: {exec_e}")
+                            # TRAINING MODE: les erreurs sont aussi des lecons
+                            if hasattr(memory, "save_lesson"):
+                                try:
+                                    memory.save_lesson(symbol=best_symbol, action=trade_side, outcome="training_error", pnl=0.0, confidence=trade_conf, lesson=f"[TRAINING ERROR] {trade_side} {best_symbol} conf={trade_conf:.0%} err={type(exec_e).__name__}")
+                                except Exception: pass
 
                 else:
                     # ── HOLD : agents travaillent en arrière-plan ──────────────────
