@@ -1758,7 +1758,14 @@ def micro_signal(symbol: str, price: float) -> dict:
         # EMA cross, nothing else confirming) open a trade -- raised to 3 so at
         # least two indicators agree, while staying well below live's 4 so trade
         # volume for learning isn't meaningfully cut.
-        _score_thresh = int(os.environ.get("MICRO_SCORE_THRESH", 3)) if BOT_TRAINING_MODE else 4
+        # FIX (2026-07-28): raised to 4 (matching live) per explicit user choice --
+        # after ~17,000 trades of accumulated learning data, the original
+        # rationale for keeping training below live's bar (maximize volume
+        # early on) is largely satisfied; winrate/PF had been oscillating near
+        # breakeven (0.5-2.0) for 16+ hours with score=3 signals dominating.
+        # Raising the bar trades some volume for real edge -- an explicit,
+        # deliberate choice, not the previous default.
+        _score_thresh = int(os.environ.get("MICRO_SCORE_THRESH", 4)) if BOT_TRAINING_MODE else 4
         # FIX (2026-07-27): the old formula (60 + score*7, capped 95) put a
         # bare-minimum score=3 signal at 81% -- indistinguishable from a
         # strong score=5+ signal, and the Claude verify gate correctly kept
