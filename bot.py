@@ -1876,6 +1876,30 @@ def check_solana_filter(symbol: str, direction: str) -> tuple[bool, str]:
         return False, f"solana smart-money bias={bias_dir}, opposes {direction}"
     return True, "ok"
 
+# FIX (2026-07-27): DEXEUSDT (and similarly thin/erratic pairs) produced both
+# the largest wins AND the largest losses in the trade history -- single
+# 1-minute candles moving 3-4%, several times wider than MICRO's SL/TP bands
+# (0.7%/1.1%). monitor_micro_positions() only checks price periodically, so
+# on a symbol that gaps like this the exit price routinely overshoots the
+# configured threshold in either direction -- that's variance from imprecise
+# monitoring, not genuine trading skill. Rather than block these symbols
+# outright (would cut learning volume), position size is scaled down for
+# whatever a symbol's own recent volatility calls for, so the dollar swing
+# from an overshoot -- win or loss -- is capped without touching how often
+# it's traded.
+def get_volatility_size_mult(symbol: str) -> float:
+    try:
+        closes = get_klines_1m_cached(symbol)
+        if len(closes) < 10:
+            return 1.0
+        max_move_pct = closes.pct_change().dropna().tail(15).abs().max() * 100
+        if max_move_pct > 3.0:   return 0.3
+        elif max_move_pct > 2.0: return 0.5
+        elif max_move_pct > 1.2: return 0.75
+        return 1.0
+    except Exception:
+        return 1.0
+
 def open_micro_trade(symbol: str, price: float, signal: dict, send_fn) -> dict | None:
     # FIX TRAINING V9: SELL (SHORT) autorisé en training pour apprendre dans les deux sens
     # En mode live seulement, on bloque les SELL (certains exchanges ne permettent pas le short)
@@ -1931,7 +1955,8 @@ def open_micro_trade(symbol: str, price: float, signal: dict, send_fn) -> dict |
     night_factor = 0.7 if is_night_time() else 1.0
     fg_mult = 0.55 if fg < 25 else 0.75 if fg < 40 else 1.15 if fg > 75 else 1.00  # FIX V6.0: inversé — peur extrême → taille réduite (était BUG: 1.45)
     macro_mult = 1.35 if macro == "BULL" else 0.65 if macro == "BEAR" else 1.0
-    amount = sim["cash"] * MICRO_MAX_PCT * fg_mult * macro_mult * night_factor
+    vol_mult = get_volatility_size_mult(symbol)
+    amount = sim["cash"] * MICRO_MAX_PCT * fg_mult * macro_mult * night_factor * vol_mult
     qty = amount / price
     sim["cash"] -= amount
     trade = {
