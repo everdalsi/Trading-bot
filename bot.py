@@ -237,6 +237,12 @@ MICRO_CONF_MIN      = 12
 MAX_MICRO_POSITIONS = 120
 WARMUP_TRADES_NEEDED = 50
 
+# FIX (2026-07-27): only send higher-conviction MICRO signals (multi-indicator
+# agreement) to Claude verification -- see the note at its call site in
+# open_micro_trade() for why. Borderline signals (score just above
+# MICRO_SCORE_THRESH) skip Claude but still go through the whale/Solana filters.
+CLAUDE_VERIFY_MIN_SCORE = int(os.environ.get("CLAUDE_VERIFY_MIN_SCORE", 5))
+
 # PRO-WALLET FILTER (2026-07-25): block-only signal from Binance whale flow
 # (>$500K trades) — vetoes a MICRO trade only when whale flow clearly opposes
 # the signal direction. Never increases size/confidence (explicit user
@@ -1891,14 +1897,24 @@ def open_micro_trade(symbol: str, price: float, signal: dict, send_fn) -> dict |
     # open_trade(), but 99.8% of actual trades go through this MICRO path
     # instead -- the verification gate had never fired on a single real trade
     # despite ~8800 trades executed. Wired in here too, same fail-open contract.
-    approved, verify_reason = verify_trade_with_claude({
-        "symbol": symbol, "signal": signal["signal"], "price": price,
-        "confidence": signal["conf"], "reason": signal.get("reason", ""),
-        "market": "MICRO", "patterns": [{"name": f"score={signal['score']}"}],
-    })
-    if not approved:
-        logger.info(f"[CLAUDE-VERIFY] Trade MICRO vetoe pour {symbol} ({signal['signal']}, conf={signal['conf']}%): {verify_reason}")
-        return None
+    # FIX (2026-07-27): training mode deliberately trades on borderline,
+    # single-factor signals (score just above MICRO_SCORE_THRESH) to keep
+    # learning volume up -- but a skeptical reviewer will always correctly
+    # call a genuinely thin signal thin, no matter how the confidence/reason
+    # text is calibrated. That's a real design conflict, not a bug: recalibrating
+    # the prompt further just keeps chasing it. Resolved by only sending
+    # higher-conviction, multi-indicator-agreement signals (score >= 5) to
+    # Claude at all -- borderline signals skip straight to the whale/Solana
+    # filters, which stay block-only and unconditional for every trade.
+    if abs(signal["score"]) >= CLAUDE_VERIFY_MIN_SCORE:
+        approved, verify_reason = verify_trade_with_claude({
+            "symbol": symbol, "signal": signal["signal"], "price": price,
+            "confidence": signal["conf"], "reason": signal.get("reason", ""),
+            "market": "MICRO", "patterns": [{"name": f"score={signal['score']}"}],
+        })
+        if not approved:
+            logger.info(f"[CLAUDE-VERIFY] Trade MICRO vetoe pour {symbol} ({signal['signal']}, conf={signal['conf']}%): {verify_reason}")
+            return None
 
     whale_ok, whale_reason = check_whale_filter(symbol, signal["signal"])
     if not whale_ok:
