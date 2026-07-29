@@ -2008,6 +2008,12 @@ def open_micro_trade(symbol: str, price: float, signal: dict, send_fn) -> dict |
         "peak_price": price,
         "open_time": time.time(),
         "kelly_pct": MICRO_MAX_PCT,
+        # INSTRUMENTATION (2026-07-29): whale filter is block-only today (vetoes,
+        # never boosts) and its buy_ratio was never persisted per trade, so there
+        # was no historical data to test whether whale-flow alignment predicts
+        # outcome. Logging it now, unused by trading logic, purely to build a
+        # dataset -- revisit once enough trades have accumulated post-deploy.
+        "whale_buy_ratio": (_whale_cache.get(symbol) or (None, {}))[1].get("buy_ratio"),
     }
     pos_key = f"MICRO_{symbol}_{trade['id']}"
     sim["trades"].append(trade)
