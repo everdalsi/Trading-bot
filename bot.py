@@ -265,12 +265,16 @@ CLAUDE_VERIFY_MIN_SCORE = int(os.environ.get("CLAUDE_VERIFY_MIN_SCORE", 5))
 WHALE_FILTER_ENABLED    = os.environ.get("WHALE_FILTER_ENABLED", "true").lower() in ("true", "1", "yes")
 WHALE_FILTER_THRESHOLD  = float(os.environ.get("WHALE_FILTER_THRESHOLD", 0.35))  # buy_ratio below this vetoes a BUY (mirrored for SELL)
 WHALE_CACHE_TTL         = 90
-# TUNING (2026-07-29): $500K/trade was silently never reached on MICRO-tier
-# low-cap alts -- 43/43 logged trades since the whale_buy_ratio instrumentation
-# landed came back at the neutral default (no whale activity detected at all).
-# Lowered to $100K so the filter actually produces a reading on this tier;
-# revisit once enough data has accumulated at this threshold.
-WHALE_MICRO_TRADE_MIN_USD = float(os.environ.get("WHALE_MICRO_TRADE_MIN_USD", 100_000))
+# TUNING (2026-07-29): $500K/trade, then $100K/trade, both silently never fired
+# on MICRO-tier low-cap alts -- checked Binance directly for 15 actively-traded
+# MICRO symbols and found their single largest trade in a 500-trade window
+# rarely exceeds $20-30K. A fixed-dollar threshold structurally doesn't fit
+# this tier's liquidity. Replaced with a per-symbol RELATIVE threshold: the
+# Nth percentile of that symbol's own recent trade-size distribution, so
+# "whale" always means "large for this specific market" instead of a number
+# picked for BTC/ETH-scale liquidity. See WHALE_PERCENTILE below.
+WHALE_PERCENTILE       = float(os.environ.get("WHALE_PERCENTILE", 95))     # top (100-N)% of trades in the window count as "large"
+WHALE_MIN_LARGE_TRADES = int(os.environ.get("WHALE_MIN_LARGE_TRADES", 5))  # need at least this many "large" trades to trust the ratio
 
 # SOLANA SMART-MONEY FILTER (2026-07-25, best-effort, updated after research):
 # the previous list came from a dated snapshot article with no way to verify
@@ -1802,11 +1806,13 @@ def micro_signal(symbol: str, price: float) -> dict:
 _whale_cache: dict = {}
 
 def check_whale_filter(symbol: str, direction: str) -> tuple[bool, str]:
-    """Blocking-only pro-wallet filter. Fetches recent Binance aggTrades,
-    computes the whale buy/sell ratio (single trades >= WHALE_MICRO_TRADE_MIN_USD),
-    and vetoes only when whale flow clearly opposes `direction` ("BUY"/"SELL"). Fails open (allows the
-    trade) on any data error or ambiguous reading — same fail-open contract
-    as verify_trade_with_claude above."""
+    """Blocking-only pro-wallet filter. Fetches recent Binance aggTrades and
+    computes the whale buy/sell ratio among that SYMBOL's own largest recent
+    trades (top (100-WHALE_PERCENTILE)% by size in the window, not a fixed
+    dollar amount -- see WHALE_PERCENTILE's definition for why), then vetoes
+    only when whale flow clearly opposes `direction` ("BUY"/"SELL"). Fails
+    open (allows the trade) on any data error or ambiguous reading — same
+    fail-open contract as verify_trade_with_claude above."""
     if not WHALE_FILTER_ENABLED:
         return True, "whale_filter_disabled"
     now = time.time()
@@ -1821,17 +1827,30 @@ def check_whale_filter(symbol: str, direction: str) -> tuple[bool, str]:
             ref_price = float(price_r.json().get("price", 0))
         except Exception:
             return True, "whale_data_unavailable"
-        whale_buy = whale_sell = 0.0
+        parsed = []
         for t in trades:
             try:
-                value = float(t.get("q", 0)) * ref_price
-                if value >= WHALE_MICRO_TRADE_MIN_USD:
-                    if t.get("m", False): whale_sell += value
-                    else: whale_buy += value
+                parsed.append((float(t.get("q", 0)) * ref_price, bool(t.get("m", False))))
             except Exception:
                 continue
-        total = whale_buy + whale_sell
-        metrics = {"buy_ratio": (whale_buy / total) if total >= 1 else 0.5, "total": total}
+        values = sorted(v for v, _ in parsed)
+        if len(values) < WHALE_MIN_LARGE_TRADES:
+            metrics = {"buy_ratio": 0.5, "total": 0}
+        else:
+            idx = min(int(len(values) * WHALE_PERCENTILE / 100), len(values) - 1)
+            large_threshold = values[idx]
+            whale_buy = whale_sell = 0.0
+            n_large = 0
+            for value, is_sell_side in parsed:
+                if value >= large_threshold:
+                    n_large += 1
+                    if is_sell_side: whale_sell += value
+                    else: whale_buy += value
+            total = whale_buy + whale_sell
+            if n_large < WHALE_MIN_LARGE_TRADES or total < 1:
+                metrics = {"buy_ratio": 0.5, "total": 0}
+            else:
+                metrics = {"buy_ratio": whale_buy / total, "total": total}
         _whale_cache[symbol] = (now, metrics)
 
     if metrics["total"] < 1:
