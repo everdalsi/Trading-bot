@@ -265,6 +265,12 @@ CLAUDE_VERIFY_MIN_SCORE = int(os.environ.get("CLAUDE_VERIFY_MIN_SCORE", 5))
 WHALE_FILTER_ENABLED    = os.environ.get("WHALE_FILTER_ENABLED", "true").lower() in ("true", "1", "yes")
 WHALE_FILTER_THRESHOLD  = float(os.environ.get("WHALE_FILTER_THRESHOLD", 0.35))  # buy_ratio below this vetoes a BUY (mirrored for SELL)
 WHALE_CACHE_TTL         = 90
+# TUNING (2026-07-29): $500K/trade was silently never reached on MICRO-tier
+# low-cap alts -- 43/43 logged trades since the whale_buy_ratio instrumentation
+# landed came back at the neutral default (no whale activity detected at all).
+# Lowered to $100K so the filter actually produces a reading on this tier;
+# revisit once enough data has accumulated at this threshold.
+WHALE_MICRO_TRADE_MIN_USD = float(os.environ.get("WHALE_MICRO_TRADE_MIN_USD", 100_000))
 
 # SOLANA SMART-MONEY FILTER (2026-07-25, best-effort, updated after research):
 # the previous list came from a dated snapshot article with no way to verify
@@ -1786,8 +1792,8 @@ _whale_cache: dict = {}
 
 def check_whale_filter(symbol: str, direction: str) -> tuple[bool, str]:
     """Blocking-only pro-wallet filter. Fetches recent Binance aggTrades,
-    computes the >$500K whale buy/sell ratio, and vetoes only when whale
-    flow clearly opposes `direction` ("BUY"/"SELL"). Fails open (allows the
+    computes the whale buy/sell ratio (single trades >= WHALE_MICRO_TRADE_MIN_USD),
+    and vetoes only when whale flow clearly opposes `direction` ("BUY"/"SELL"). Fails open (allows the
     trade) on any data error or ambiguous reading — same fail-open contract
     as verify_trade_with_claude above."""
     if not WHALE_FILTER_ENABLED:
@@ -1808,7 +1814,7 @@ def check_whale_filter(symbol: str, direction: str) -> tuple[bool, str]:
         for t in trades:
             try:
                 value = float(t.get("q", 0)) * ref_price
-                if value >= 500_000:
+                if value >= WHALE_MICRO_TRADE_MIN_USD:
                     if t.get("m", False): whale_sell += value
                     else: whale_buy += value
             except Exception:
