@@ -1938,6 +1938,16 @@ def get_volatility_size_mult(symbol: str) -> float:
         return 1.0
 
 def open_micro_trade(symbol: str, price: float, signal: dict, send_fn) -> dict | None:
+    # FIX (2026-07-29): a LAUSDT trade slipped through 36min after the manual
+    # blacklist deploy -- root cause is the older MICRO_SYMBOLS loop, which
+    # skips is_blacklisted() entirely when EXTREME_LEARNING_MODE is on (by
+    # design, to keep learning volume up), and feeds straight into this
+    # function. The dynamic auto-blacklist's training-mode bypass is left
+    # alone, but a MANUAL_SYMBOL_BLACKLIST entry means the user has already
+    # looked at the data and decided -- it must hold everywhere, so it's
+    # enforced here at the single choke point every trade-open path shares.
+    if symbol in MANUAL_SYMBOL_BLACKLIST:
+        return None
     # FIX TRAINING V9: SELL (SHORT) autorisé en training pour apprendre dans les deux sens
     # En mode live seulement, on bloque les SELL (certains exchanges ne permettent pas le short)
     if signal["signal"] == "SELL" and not (BOT_TRAINING_MODE or EXTREME_LEARNING_MODE):
