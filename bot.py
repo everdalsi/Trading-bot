@@ -1015,7 +1015,18 @@ def is_correlated(symbol: str) -> bool:
                 return True
     return False
 
+# MANUAL PERMANENT BLACKLIST (2026-07-29, user-authorized): LAUSDT and
+# COTIUSDT together accounted for 66% of the negative pnl across the last
+# 150 closed trades (3 rapid-fire LONG stop-outs on LAUSDT within ~10min
+# while price fell ~5.7%, plus a -3.77% SL hit on COTIUSDT) -- next-worst
+# symbol was under 6% of the total. Neither had racked up the 5 consecutive
+# losses needed to trip the existing auto-blacklist yet. Added here instead
+# of waiting for that counter, per explicit user go-ahead to cut the culprit.
+MANUAL_SYMBOL_BLACKLIST = {"LAUSDT", "COTIUSDT"}
+
 def is_blacklisted(symbol: str) -> bool:
+    if symbol in MANUAL_SYMBOL_BLACKLIST:
+        return True
     bl = memory.get("symbol_blacklist", {})
     if symbol not in bl:
         return False
