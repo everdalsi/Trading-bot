@@ -645,7 +645,8 @@ from data_handler import (
     get_prices_batch,
     get_klines_1m_cached,
     get_klines_5m_cached,
-    get_volume_data
+    get_volume_data,
+    get_order_book
 )
 
 WS_SYMBOLS_WATCH = [
@@ -2037,6 +2038,16 @@ def open_micro_trade(symbol: str, price: float, signal: dict, send_fn) -> dict |
             if _align_score < -WHALE_OPPOSED_MARGIN:
                 whale_boost_mult = WHALE_OPPOSED_BOOST_MULT
 
+    # INSTRUMENTATION (2026-07-30): order-book imbalance is a well-documented
+    # short-horizon signal (bid/ask volume ratio predicts price direction over
+    # seconds-to-~1min in liquid order-driven markets) and get_order_book()
+    # already exists and works -- it was just never wired past the dead
+    # analyze() function (same "built but unused" pattern the whale filter
+    # was in before). Log-only for now, same evidence-first approach as
+    # whale_buy_ratio: accumulate real MICRO-tier data before deciding
+    # whether this predicts outcome here too and is worth gating/boosting on.
+    _ob = get_order_book(symbol)
+
     solana_ok, solana_reason = check_solana_filter(symbol, signal["signal"])
     if not solana_ok:
         logger.info(f"[SOLANA-FILTER] Trade MICRO vetoe pour {symbol} ({signal['signal']}): {solana_reason}")
@@ -2086,6 +2097,8 @@ def open_micro_trade(symbol: str, price: float, signal: dict, send_fn) -> dict |
         # size booster (see WHALE_OPPOSED_BOOST_MULT). Keep logging it either way.
         "whale_buy_ratio": (_whale_cache.get(symbol) or (None, {}))[1].get("buy_ratio"),
         "whale_boost_applied": whale_boost_mult != 1.0,
+        "ob_pressure": _ob.get("pressure"),
+        "ob_ratio": _ob.get("ratio"),
     }
     pos_key = f"MICRO_{symbol}_{trade['id']}"
     sim["trades"].append(trade)
