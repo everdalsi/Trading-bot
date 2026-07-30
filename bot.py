@@ -276,6 +276,18 @@ WHALE_CACHE_TTL         = 90
 WHALE_PERCENTILE       = float(os.environ.get("WHALE_PERCENTILE", 95))     # top (100-N)% of trades in the window count as "large"
 WHALE_MIN_LARGE_TRADES = int(os.environ.get("WHALE_MIN_LARGE_TRADES", 5))  # need at least this many "large" trades to trust the ratio
 
+# ACTIVE BOOST (2026-07-30, explicit user go-ahead): once whale_buy_ratio
+# logging accumulated real data (n=845 over 36 monitoring reads), a stable
+# pattern emerged -- trades where whale flow mildly OPPOSED the signal
+# direction (large trades leaning against it, but not strongly enough to
+# hit the WHALE_FILTER_THRESHOLD veto) consistently outperformed both
+# aligned and neutral trades (PF ~1.2-1.5 vs ~0.8-1.1). This reverses the
+# original "block-only, never boost" design on that one specific reading;
+# aligned/neutral stay untouched (no boost, no penalty) since the data never
+# showed an edge there. Size-only lever, same spirit as fg_mult/macro_mult.
+WHALE_OPPOSED_BOOST_MULT = float(os.environ.get("WHALE_OPPOSED_BOOST_MULT", 1.4))
+WHALE_OPPOSED_MARGIN     = float(os.environ.get("WHALE_OPPOSED_MARGIN", 0.1))  # matches the analysis bucket used to validate this
+
 # SOLANA SMART-MONEY FILTER (2026-07-25, best-effort, updated after research):
 # the previous list came from a dated snapshot article with no way to verify
 # the wallets were still active or accurate, so it was dropped. Replaced with
@@ -2011,6 +2023,20 @@ def open_micro_trade(symbol: str, price: float, signal: dict, send_fn) -> dict |
         logger.info(f"[WHALE-FILTER] Trade MICRO vetoe pour {symbol} ({signal['signal']}): {whale_reason}")
         return None
 
+    # ACTIVE BOOST (2026-07-30): check_whale_filter() just refreshed/read the
+    # cache for this exact symbol, so reuse it here instead of a second
+    # Binance call. "Opposed" mirrors the veto's own direction convention --
+    # see WHALE_OPPOSED_BOOST_MULT's definition for the data behind this.
+    whale_boost_mult = 1.0
+    _wc = _whale_cache.get(symbol)
+    if _wc:
+        _br = _wc[1].get("buy_ratio")
+        if _br is not None:
+            _dist = _br - 0.5
+            _align_score = _dist if signal["signal"] == "BUY" else -_dist
+            if _align_score < -WHALE_OPPOSED_MARGIN:
+                whale_boost_mult = WHALE_OPPOSED_BOOST_MULT
+
     solana_ok, solana_reason = check_solana_filter(symbol, signal["signal"])
     if not solana_ok:
         logger.info(f"[SOLANA-FILTER] Trade MICRO vetoe pour {symbol} ({signal['signal']}): {solana_reason}")
@@ -2027,7 +2053,7 @@ def open_micro_trade(symbol: str, price: float, signal: dict, send_fn) -> dict |
     # position size stays bounded even as equity grows, and never risk more
     # than what's actually still available in cash.
     equity_now = sim["cash"] + sum(p.get("amount_usd", 0) for p in sim["positions"].values())
-    amount = equity_now * MICRO_MAX_PCT * fg_mult * macro_mult * night_factor * vol_mult
+    amount = equity_now * MICRO_MAX_PCT * fg_mult * macro_mult * night_factor * vol_mult * whale_boost_mult
     amount = min(amount, MICRO_MAX_USD_CAP, sim["cash"] * 0.9)
     qty = amount / price
     sim["cash"] -= amount
@@ -2054,12 +2080,12 @@ def open_micro_trade(symbol: str, price: float, signal: dict, send_fn) -> dict |
         "peak_price": price,
         "open_time": time.time(),
         "kelly_pct": MICRO_MAX_PCT,
-        # INSTRUMENTATION (2026-07-29): whale filter is block-only today (vetoes,
-        # never boosts) and its buy_ratio was never persisted per trade, so there
-        # was no historical data to test whether whale-flow alignment predicts
-        # outcome. Logging it now, unused by trading logic, purely to build a
-        # dataset -- revisit once enough trades have accumulated post-deploy.
+        # INSTRUMENTATION (2026-07-29, now also load-bearing as of 2026-07-30):
+        # started as passive logging to test whether whale-flow alignment
+        # predicts outcome; the "opposed" bucket it revealed is now an active
+        # size booster (see WHALE_OPPOSED_BOOST_MULT). Keep logging it either way.
         "whale_buy_ratio": (_whale_cache.get(symbol) or (None, {}))[1].get("buy_ratio"),
+        "whale_boost_applied": whale_boost_mult != 1.0,
     }
     pos_key = f"MICRO_{symbol}_{trade['id']}"
     sim["trades"].append(trade)
