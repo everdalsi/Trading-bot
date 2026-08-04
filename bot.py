@@ -333,12 +333,16 @@ WHALE_OPPOSED_MARGIN     = float(os.environ.get("WHALE_OPPOSED_MARGIN", 0.1))  #
 # trade direction (large resting size against it, but the trade still fired
 # on the technical/score signal) outperformed both aligned (n=1302) and
 # neutral (n=1384) trades: winrate 43.4% / PF 1.40 / pnl +$10.32, vs
-# 41.3%/1.21/+$6.70 and 41.7%/1.03/+$1.22 respectively. Sample is far larger
-# than what the whale-opposed boost had when it was first deployed (n=5-11)
-# and later proved to be a false positive at n=460 -- still, given that
-# exact precedent, this needs continued post-deploy monitoring before being
-# trusted long-term, not treated as final.
-OB_OPPOSED_BOOST_MULT = float(os.environ.get("OB_OPPOSED_BOOST_MULT", 1.4))
+# 41.3%/1.21/+$6.70 and 41.7%/1.03/+$1.22 respectively.
+# REVERTED same day: post-deploy tracking showed the exact same trajectory
+# as the whale-opposed boost's earlier false positive (n=22: winrate 50.0%/
+# PF 1.48/pnl+$0.17 -> n=54: 44.4%/0.87/-$0.22 -> n=60: 43.3%/0.77/-$0.48,
+# vs non-boosted staying positive at 39.9%/1.10/+$0.26 the same window).
+# Reverted proactively at n=60 rather than waiting for n=460 like last time,
+# per the user's standing instruction not to re-ask once the pattern repeats
+# unambiguously. Multiplier set back to 1.0, mechanism kept as a tunable
+# env var like WHALE_OPPOSED_BOOST_MULT above.
+OB_OPPOSED_BOOST_MULT = float(os.environ.get("OB_OPPOSED_BOOST_MULT", 1.0))
 
 # SOLANA SMART-MONEY FILTER (2026-07-25, best-effort, updated after research):
 # the previous list came from a dated snapshot article with no way to verify
@@ -1111,7 +1115,16 @@ def is_correlated(symbol: str) -> bool:
 # symbol was under 6% of the total. Neither had racked up the 5 consecutive
 # losses needed to trip the existing auto-blacklist yet. Added here instead
 # of waiting for that counter, per explicit user go-ahead to cut the culprit.
-MANUAL_SYMBOL_BLACKLIST = {"LAUSDT", "COTIUSDT"}
+# TURBOUSDT added (2026-08-04): tracked for over a week as a "recent-window
+# share" underperformer that never quite crossed the dominant-majority bar
+# in any single cycle (share of losses hovered 18-21%) -- but its ALL-TIME
+# standalone record hit a large, statistically solid sample (302 trades)
+# at only 29.8% winrate and -$2.39 lifetime pnl, clearly and persistently
+# below the bot's overall ~40% average. Cut under the standing "coupe le
+# symbole en cause" authorization -- this is the same evidence bar as
+# LAUSDT/COTIUSDT, just measured over the full history instead of one
+# recent window, since a large sample makes that read more reliable, not less.
+MANUAL_SYMBOL_BLACKLIST = {"LAUSDT", "COTIUSDT", "TURBOUSDT"}
 
 def is_blacklisted(symbol: str) -> bool:
     if symbol in MANUAL_SYMBOL_BLACKLIST:
