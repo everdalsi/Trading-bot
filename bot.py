@@ -266,6 +266,24 @@ MICRO_CONF_MIN      = 12
 MAX_MICRO_POSITIONS = 120
 WARMUP_TRADES_NEEDED = 50
 
+# COMPOUND LONG-TERM SLEEVE (2026-08-04, user request: "un portefeuille a
+# interet compose" alongside the existing MICRO scalping). Unlike MICRO
+# (rapid in/out, no directional bias held), this buys and holds a
+# core-satellite crypto basket indefinitely (no SL/TP), funded by
+# periodically sweeping a slice of MICRO's REALIZED profit growth -- not
+# principal, so a losing stretch in MICRO never forces a compound sale.
+# Basket weights follow the institutional core-satellite framework from
+# 2026 allocation research (BTC/ETH as the liquid, low-volatility core;
+# SOL/BNB/AVAX as growth satellites): 70% core / 30% satellite.
+COMPOUND_BASKET = {
+    "BTCUSDT": 0.45, "ETHUSDT": 0.25,       # core (70%)
+    "SOLUSDT": 0.15, "BNBUSDT": 0.10, "AVAXUSDT": 0.05,  # satellite (30%)
+}
+COMPOUND_SWEEP_PCT          = float(os.environ.get("COMPOUND_SWEEP_PCT", 0.25))   # fraction of new profit growth swept per cycle
+COMPOUND_SWEEP_MIN_GROWTH   = float(os.environ.get("COMPOUND_SWEEP_MIN_GROWTH", 5.0))  # skip sweeping until this much new profit has accumulated (avoid dust)
+COMPOUND_SWEEP_MAX_CASH_PCT = float(os.environ.get("COMPOUND_SWEEP_MAX_CASH_PCT", 0.5))  # never sweep more than this fraction of MICRO's current liquid cash in one go
+CYCLE_COMPOUND              = int(os.environ.get("CYCLE_COMPOUND", 86400))  # check once/day
+
 # FIX (2026-07-27): only send higher-conviction MICRO signals (multi-indicator
 # agreement) to Claude verification -- see the note at its call site in
 # open_micro_trade() for why. Borderline signals (score just above
@@ -636,6 +654,15 @@ sim = {
     "positions": {}, "trades": [], "equity_history": [],
     "session": 1, "peak_equity": CAPITAL_INITIAL,
     "daily_start_equity": CAPITAL_INITIAL, "daily_start_date": "",
+    # COMPOUND LONG-TERM SLEEVE (2026-08-04, user request): separate from
+    # MICRO's high-frequency scalping. Periodically sweeps a fraction of
+    # MICRO's REALIZED profit growth (not principal) into a buy-and-hold
+    # core-satellite crypto basket -- see COMPOUND_BASKET's definition.
+    # "holdings" values are {"qty": float, "cost_usd": float}.
+    # last_sweep_equity=None means no baseline yet -- the first cycle just
+    # records the current MICRO equity as the starting point instead of
+    # immediately sweeping all pre-existing profit in one shot.
+    "compound": {"holdings": {}, "last_sweep_equity": None, "sweeps": []},
 }
 # FIX CRITIQUE : la définition de memory en dict supprimée — écrasait l instance Memory() créée ligne ~55.
   # L instance Memory() (classe) est la seule référence valide : memory.get(), memory.data, etc.
@@ -2216,6 +2243,71 @@ def monitor_micro_positions(send_fn):
             update_symbol_score(symbol, won)
             update_blacklist(symbol, won)
 
+def run_compound_sweep(send_fn):
+    """COMPOUND LONG-TERM SLEEVE (2026-08-04): sweeps a slice of MICRO's
+    realized profit GROWTH (never principal) into a buy-and-hold
+    core-satellite crypto basket. See COMPOUND_* constants for the data
+    behind the weights/parameters. Runs once per CYCLE_COMPOUND from the
+    main loop, same pattern as run_epargne_scan."""
+    compound = sim.setdefault("compound", {"holdings": {}, "last_sweep_equity": None, "sweeps": []})
+    equity_now = sim["cash"] + sum(p.get("amount_usd", 0) for p in sim["positions"].values())
+
+    if compound["last_sweep_equity"] is None:
+        # First run ever: just record the starting line, don't sweep the
+        # entire pre-existing profit in one shot.
+        compound["last_sweep_equity"] = equity_now
+        save_data()
+        return
+
+    growth = equity_now - compound["last_sweep_equity"]
+    if growth < COMPOUND_SWEEP_MIN_GROWTH:
+        return  # not enough new profit yet; keep accumulating toward the threshold
+
+    sweep_amount = growth * COMPOUND_SWEEP_PCT
+    sweep_amount = min(sweep_amount, sim["cash"] * COMPOUND_SWEEP_MAX_CASH_PCT)
+    if sweep_amount < 1.0:
+        return  # too small to bother, but still wait for more growth rather than resetting the baseline
+
+    prices = get_prices_batch()
+    bought = {}
+    spent = 0.0
+    for symbol, weight in COMPOUND_BASKET.items():
+        alloc = sweep_amount * weight
+        price = prices.get(symbol) or get_current_price(symbol)
+        if not price:
+            continue
+        qty = alloc / price
+        sim["cash"] -= alloc
+        spent += alloc
+        h = compound["holdings"].setdefault(symbol, {"qty": 0.0, "cost_usd": 0.0})
+        h["qty"] += qty
+        h["cost_usd"] += alloc
+        bought[symbol] = round(qty, 6)
+
+    compound["last_sweep_equity"] = equity_now
+    compound["sweeps"].append({
+        "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "swept_usd": round(spent, 2),
+        "trigger_growth_usd": round(growth, 2),
+        "bought": bought,
+    })
+    save_data()
+    logger.info(f"[COMPOUND] 💰 Sweep ${spent:.2f} into long-term basket (MICRO growth was ${growth:.2f})")
+    send_fn(f"💰 Compound: ${spent:.2f} investis en long-terme (croissance MICRO: +${growth:.2f})")
+
+def get_compound_equity() -> float:
+    """Current mark-to-market value of the compound long-term sleeve."""
+    compound = sim.get("compound", {})
+    holdings = compound.get("holdings", {})
+    if not holdings:
+        return 0.0
+    prices = get_prices_batch()
+    total = 0.0
+    for symbol, h in holdings.items():
+        price = prices.get(symbol) or get_current_price(symbol) or 0
+        total += h.get("qty", 0) * price
+    return total
+
 def run_micro_cycle(send_fn):
     max_micro = MAX_MICRO_POSITIONS
     prices = get_prices_batch()
@@ -3256,6 +3348,7 @@ def trading_loop(send_fn):
     last_monitor = 0
     last_soul_tick   = 0
     last_risk_check = 0
+    last_compound = 0
 
     logger.info("🚀 Trading Loop autonome V8 démarré — Agents décident seuls")
     _aegis_log_sink.emit("INFO", "Bot trading loop started")
@@ -3697,6 +3790,13 @@ def trading_loop(send_fn):
                         logger.debug(f"[MEME] Exec error: {meme_exec_e}")
             except Exception as meme_e:
                 logger.debug(f"[MEME] Cycle skipped: {meme_e}")
+
+        if now - last_compound >= CYCLE_COMPOUND:
+            last_compound = now
+            try:
+                run_compound_sweep(send_fn)
+            except Exception as _ce:
+                logger.warning(f"[COMPOUND] Sweep error: {type(_ce).__name__}: {_ce}")
 
         if now - last_epargne >= CYCLE_EPARGNE:
             last_epargne = now
