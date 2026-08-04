@@ -281,11 +281,16 @@ WHALE_MIN_LARGE_TRADES = int(os.environ.get("WHALE_MIN_LARGE_TRADES", 5))  # nee
 # pattern emerged -- trades where whale flow mildly OPPOSED the signal
 # direction (large trades leaning against it, but not strongly enough to
 # hit the WHALE_FILTER_THRESHOLD veto) consistently outperformed both
-# aligned and neutral trades (PF ~1.2-1.5 vs ~0.8-1.1). This reverses the
-# original "block-only, never boost" design on that one specific reading;
-# aligned/neutral stay untouched (no boost, no penalty) since the data never
-# showed an edge there. Size-only lever, same spirit as fg_mult/macro_mult.
-WHALE_OPPOSED_BOOST_MULT = float(os.environ.get("WHALE_OPPOSED_BOOST_MULT", 1.4))
+# aligned and neutral trades (PF ~1.2-1.5 vs ~0.8-1.1). This reversed the
+# original "block-only, never boost" design on that one specific reading.
+# REVERTED (2026-08-04): that read didn't hold up. With n=460 boosted trades
+# accumulated over 5 days, the bucket flipped to a clear net negative
+# (winrate 40.7%, PF 0.89, pnl -$1.74) against 3289 non-boosted trades in
+# the same window (winrate 42.2%, PF 1.26, pnl +$20.96). Textbook small-
+# sample false positive -- disabled by setting the multiplier back to 1.0
+# (kept as a live-tunable env var rather than deleting the mechanism, in
+# case a future signal warrants reusing this same size-boost lever).
+WHALE_OPPOSED_BOOST_MULT = float(os.environ.get("WHALE_OPPOSED_BOOST_MULT", 1.0))
 WHALE_OPPOSED_MARGIN     = float(os.environ.get("WHALE_OPPOSED_MARGIN", 0.1))  # matches the analysis bucket used to validate this
 
 # SOLANA SMART-MONEY FILTER (2026-07-25, best-effort, updated after research):
