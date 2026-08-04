@@ -441,10 +441,21 @@ PRIORITY_SYMBOLS = {
                   "ZKUSDT","SCROLLUSDT","METISUSDT"],
     "DEFI":      ["UNIUSDT","LINKUSDT","AAVEUSDT","MKRUSDT","SUSHIUSDT","CRVUSDT","COMPUSDT",
                   "PENDLEUSDT","AEROUSDT","ENAUSDT","JUPUSDT","RAYDIUMUSDT","DYDXUSDT"],
+    # AI_DATA additions (2026-08-04, research-backed: CoinGecko/LunarCrush
+    # trending + narrative research pointed at the AI-agent/DePIN-compute
+    # sector; each candidate verified TRADING on Binance with real 24h
+    # volume before being added -- SPX/UXLINK/GRASS/HYPE from the same
+    # research pass were dropped, not listed on Binance at all, and KMNO
+    # was dropped too, listed but only ~$123K/24h volume, too thin).
     "AI_DATA":   ["FETUSDT","RENDERUSDT","TAOUSDT","OCEANUSDT","AGIXUSDT","WLDUSDT",
-                  "AIUSDT","NFPUSDT","ARKMUSDT"],
+                  "AIUSDT","NFPUSDT","ARKMUSDT","VIRTUALUSDT","AIXBTUSDT","IOUSDT"],
+    # PENGUUSDT added 2026-08-04: was already trading via the dynamic
+    # volume-ranked HOT tier (real $2.79M/24h volume) but had no guaranteed
+    # slot -- promoted to permanent priority so it's never dropped on a
+    # temporary volume dip.
     "MEME":      ["DOGEUSDT","SHIBUSDT","PEPEUSDT","WIFUSDT","BONKUSDT","FLOKIUSDT",
-                  "POPCATUSDT","MEMEUSDT","TURBOUSDT","GMEUSDT","BRETTUSDT","MOGUSDT","MEWUSDT"],
+                  "POPCATUSDT","MEMEUSDT","TURBOUSDT","GMEUSDT","BRETTUSDT","MOGUSDT","MEWUSDT",
+                  "PENGUUSDT"],
     "RWA_INFRA": ["ONDOUSDT","KASUSDT","ORDIUSDT","STXUSDT","IOTAUSDT","CELOUSDT"],
     "GAMING":    ["AXSUSDT","SANDUSDT","MANAUSDT","GALAUSDT","PIXELUSDT","NOTUSDT",
                   "BEAMUSDT","RONUSDT","YMMUSDT"],
