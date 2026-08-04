@@ -233,7 +233,14 @@ MICRO_TRAILING_PCT  = 0.004
 # relies on MICRO_SL_PCT (unchanged downside) + the existing trailing-stop
 # check to let the position ride further before closing. Ordinary/borderline
 # signals are untouched.
-LET_WINNER_RUN_MIN_SCORE = int(os.environ.get("LET_WINNER_RUN_MIN_SCORE", 5))
+# LOWERED 5->4 (2026-08-04, explicit user go-ahead): score distribution check
+# on the last 2000 trades showed 1998 sitting at exactly 4 (MICRO_SCORE_THRESH,
+# the trading floor) and only 2 at lower scores -- none ever reached 5, so the
+# feature had never fired since deploy. At 4 this now applies to virtually
+# every MICRO trade rather than a high-conviction subset -- user was told this
+# explicitly before confirming. Downside is still unchanged (same SL), this
+# broadly swaps the fixed-TP exit for the trailing-stop exit across the board.
+LET_WINNER_RUN_MIN_SCORE = int(os.environ.get("LET_WINNER_RUN_MIN_SCORE", 4))
 # FIX (2026-07-25): 60s was far too short for a 0.7%/1.1% SL/TP band on most
 # pairs -- 99.8% of ~8800 production trades exited via timeout, essentially
 # closing at a random point in a tight range instead of ever reaching the
