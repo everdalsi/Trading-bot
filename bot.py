@@ -225,6 +225,15 @@ TRADING_MODE = "MICRO_HIGH_FREQ"
 MICRO_SL_PCT        = 0.007
 MICRO_TP_PCT        = 0.011
 MICRO_TRAILING_PCT  = 0.004
+# LET WINNERS RUN (2026-08-04, user request: max win was capped near $0.55 at
+# the $50 position cap x 1.1% TP -- wanted occasional bigger wins). For
+# high-conviction signals only (abs(score) >= this threshold, same bar
+# CLAUDE_VERIFY_MIN_SCORE already uses to decide a signal is worth extra
+# scrutiny), monitor_micro_positions() skips the fixed MICRO_TP_PCT exit and
+# relies on MICRO_SL_PCT (unchanged downside) + the existing trailing-stop
+# check to let the position ride further before closing. Ordinary/borderline
+# signals are untouched.
+LET_WINNER_RUN_MIN_SCORE = int(os.environ.get("LET_WINNER_RUN_MIN_SCORE", 5))
 # FIX (2026-07-25): 60s was far too short for a 0.7%/1.1% SL/TP band on most
 # pairs -- 99.8% of ~8800 production trades exited via timeout, essentially
 # closing at a random point in a tight range instead of ever reaching the
@@ -292,6 +301,19 @@ WHALE_MIN_LARGE_TRADES = int(os.environ.get("WHALE_MIN_LARGE_TRADES", 5))  # nee
 # case a future signal warrants reusing this same size-boost lever).
 WHALE_OPPOSED_BOOST_MULT = float(os.environ.get("WHALE_OPPOSED_BOOST_MULT", 1.0))
 WHALE_OPPOSED_MARGIN     = float(os.environ.get("WHALE_OPPOSED_MARGIN", 0.1))  # matches the analysis bucket used to validate this
+
+# ORDER-BOOK-OPPOSED BOOST (2026-08-04, user go-ahead, "fais les deux"):
+# ob_pressure/ob_ratio logging (deployed 2026-07-30) accumulated real data
+# over 5 days -- n=968 trades where order-book depth pressure opposed the
+# trade direction (large resting size against it, but the trade still fired
+# on the technical/score signal) outperformed both aligned (n=1302) and
+# neutral (n=1384) trades: winrate 43.4% / PF 1.40 / pnl +$10.32, vs
+# 41.3%/1.21/+$6.70 and 41.7%/1.03/+$1.22 respectively. Sample is far larger
+# than what the whale-opposed boost had when it was first deployed (n=5-11)
+# and later proved to be a false positive at n=460 -- still, given that
+# exact precedent, this needs continued post-deploy monitoring before being
+# trusted long-term, not treated as final.
+OB_OPPOSED_BOOST_MULT = float(os.environ.get("OB_OPPOSED_BOOST_MULT", 1.4))
 
 # SOLANA SMART-MONEY FILTER (2026-07-25, best-effort, updated after research):
 # the previous list came from a dated snapshot article with no way to verify
@@ -2048,10 +2070,13 @@ def open_micro_trade(symbol: str, price: float, signal: dict, send_fn) -> dict |
     # seconds-to-~1min in liquid order-driven markets) and get_order_book()
     # already exists and works -- it was just never wired past the dead
     # analyze() function (same "built but unused" pattern the whale filter
-    # was in before). Log-only for now, same evidence-first approach as
-    # whale_buy_ratio: accumulate real MICRO-tier data before deciding
-    # whether this predicts outcome here too and is worth gating/boosting on.
+    # was in before). Started log-only; now also load-bearing as of
+    # 2026-08-04 -- see OB_OPPOSED_BOOST_MULT's definition for the data.
     _ob = get_order_book(symbol)
+    ob_boost_mult = 1.0
+    _ob_press = _ob.get("pressure")
+    if (_ob_press == "buy" and signal["signal"] == "SELL") or (_ob_press == "sell" and signal["signal"] == "BUY"):
+        ob_boost_mult = OB_OPPOSED_BOOST_MULT
 
     solana_ok, solana_reason = check_solana_filter(symbol, signal["signal"])
     if not solana_ok:
@@ -2069,8 +2094,15 @@ def open_micro_trade(symbol: str, price: float, signal: dict, send_fn) -> dict |
     # position size stays bounded even as equity grows, and never risk more
     # than what's actually still available in cash.
     equity_now = sim["cash"] + sum(p.get("amount_usd", 0) for p in sim["positions"].values())
-    amount = equity_now * MICRO_MAX_PCT * fg_mult * macro_mult * night_factor * vol_mult * whale_boost_mult
-    amount = min(amount, MICRO_MAX_USD_CAP, sim["cash"] * 0.9)
+    amount = equity_now * MICRO_MAX_PCT * fg_mult * macro_mult * night_factor * vol_mult * whale_boost_mult * ob_boost_mult
+    # FIX (2026-08-04): base sizing routinely lands within a few dollars of
+    # MICRO_MAX_USD_CAP already, so a boost multiplier applied before a fixed
+    # cap gets mostly clipped away -- the whale-opposed boost's trades were
+    # sized ~$45.5, barely above the ~$44 baseline, not the ~$63 a real 1.4x
+    # would have produced. Scale the cap itself by the same boost so it
+    # actually shows up in the final size instead of being absorbed by it.
+    effective_cap = MICRO_MAX_USD_CAP * max(whale_boost_mult, ob_boost_mult)
+    amount = min(amount, effective_cap, sim["cash"] * 0.9)
     qty = amount / price
     sim["cash"] -= amount
     trade = {
@@ -2104,6 +2136,11 @@ def open_micro_trade(symbol: str, price: float, signal: dict, send_fn) -> dict |
         "whale_boost_applied": whale_boost_mult != 1.0,
         "ob_pressure": _ob.get("pressure"),
         "ob_ratio": _ob.get("ratio"),
+        "ob_boost_applied": ob_boost_mult != 1.0,
+        # LET WINNERS RUN (2026-08-04): see LET_WINNER_RUN_MIN_SCORE's
+        # definition -- monitor_micro_positions() checks this flag to skip
+        # the fixed take-profit exit for high-conviction signals only.
+        "let_winner_run": abs(signal["score"]) >= LET_WINNER_RUN_MIN_SCORE,
     }
     pos_key = f"MICRO_{symbol}_{trade['id']}"
     sim["trades"].append(trade)
@@ -2134,10 +2171,10 @@ def monitor_micro_positions(send_fn):
             pos["peak_price"] = max(pos.get("peak_price",entry), price)
             trailing = (pos["peak_price"]-price)/pos["peak_price"]
         reason = None
-        if change <= -MICRO_SL_PCT:                          reason = f"🛑 MICRO SL ({change*100:+.2f}%)"
-        elif change >= MICRO_TP_PCT:                         reason = f"🎯 MICRO TP ({change*100:+.2f}%)"
-        elif change>0.003 and trailing>=MICRO_TRAILING_PCT:  reason = f"📐 TRAIL ({trailing*100:.2f}%)"
-        elif elapsed >= MICRO_MAX_DURATION:                  reason = f"⏱ TIMEOUT {int(elapsed)}s"
+        if change <= -MICRO_SL_PCT:                                                reason = f"🛑 MICRO SL ({change*100:+.2f}%)"
+        elif change >= MICRO_TP_PCT and not pos.get("let_winner_run"):             reason = f"🎯 MICRO TP ({change*100:+.2f}%)"
+        elif change>0.003 and trailing>=MICRO_TRAILING_PCT:                        reason = f"📐 TRAIL ({trailing*100:.2f}%)"
+        elif elapsed >= MICRO_MAX_DURATION:                                        reason = f"⏱ TIMEOUT {int(elapsed)}s"
         if reason:
             pnl = change*pos["amount_usd"]
             sim["cash"] += pos["amount_usd"]+pnl
