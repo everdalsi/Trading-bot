@@ -233,14 +233,21 @@ MICRO_TRAILING_PCT  = 0.004
 # relies on MICRO_SL_PCT (unchanged downside) + the existing trailing-stop
 # check to let the position ride further before closing. Ordinary/borderline
 # signals are untouched.
-# LOWERED 5->4 (2026-08-04, explicit user go-ahead): score distribution check
-# on the last 2000 trades showed 1998 sitting at exactly 4 (MICRO_SCORE_THRESH,
-# the trading floor) and only 2 at lower scores -- none ever reached 5, so the
-# feature had never fired since deploy. At 4 this now applies to virtually
-# every MICRO trade rather than a high-conviction subset -- user was told this
-# explicitly before confirming. Downside is still unchanged (same SL), this
-# broadly swaps the fixed-TP exit for the trailing-stop exit across the board.
-LET_WINNER_RUN_MIN_SCORE = int(os.environ.get("LET_WINNER_RUN_MIN_SCORE", 4))
+# REVERTED 4->5 (2026-08-05): lowering to 4 (2026-08-04) made this apply to
+# virtually every MICRO trade instead of a high-conviction subset, exactly as
+# flagged when that change shipped -- confirmed by the data once the sample
+# got large enough to trust: n=512 LET_WINNER_RUN=True trades, winrate 35.7%/
+# PF 0.78/-2.52$, clearly worse than the n=203 non-LWR trades (40.4%/PF 0.94/
+# -0.27$) in the same window. Two earlier reads at small n (n=20 negative,
+# n=23 positive) were just noise either way -- this is the first read with
+# enough volume to trust, and it's unambiguous. Reverting to 5 restores the
+# pre-2026-08-04 behavior (effectively inert, since real scores basically
+# never exceed 4 -- see MICRO_SCORE_THRESH) rather than leaving a proven-
+# negative broad rule running. The underlying tension (threshold 4 = fires on
+# ~everything, threshold 5 = never fires) needs an actual redesign of what
+# "high conviction" means here -- not a threshold tweak -- so this is a
+# reversion to safe/inert, not a fix.
+LET_WINNER_RUN_MIN_SCORE = int(os.environ.get("LET_WINNER_RUN_MIN_SCORE", 5))
 # FIX (2026-07-25): 60s was far too short for a 0.7%/1.1% SL/TP band on most
 # pairs -- 99.8% of ~8800 production trades exited via timeout, essentially
 # closing at a random point in a tight range instead of ever reaching the
@@ -328,6 +335,12 @@ HL_COIN_TO_BINANCE = {
     "TRX": "TRXUSDT", "ATOM": "ATOMUSDT", "TON": "TONUSDT", "ICP": "ICPUSDT",
     "FIL": "FILUSDT", "UNI": "UNIUSDT", "AAVE": "AAVEUSDT", "CRV": "CRVUSDT",
     "INJ": "INJUSDT", "WLD": "WLDUSDT", "TAO": "TAOUSDT",
+    # ZEC added 2026-08-05: first monitoring cycle after this sleeve's deploy
+    # showed a followed wallet holding a ZEC position that got silently
+    # skipped (not in the map) -- verified TRADING on Binance with real
+    # $39.4M/24h volume before adding, same standard as every other symbol
+    # addition in this bot.
+    "ZEC": "ZECUSDT",
 }
 
 # FIX (2026-07-27): only send higher-conviction MICRO signals (multi-indicator
