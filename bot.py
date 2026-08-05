@@ -2503,13 +2503,41 @@ def monitor_hl_copytrade_risk(send_fn):
             _close_hl_mirror(pos_key, price, f"🛑 HL-Copy hard SL ({change*100:+.2f}%)", send_fn)
     save_data()
 
+_hl_copytrade_running = False
+
 def run_hl_copytrade_cycle(send_fn):
+    """Thin non-blocking trigger for _hl_copytrade_worker(). FIX (2026-08-05,
+    same deploy this landed in): the leaderboard fetch inside the worker
+    downloads a ~34MB payload -- measured live on the VPS, it froze the
+    entire single-threaded main trading loop for 1min20s+ (confirmed via a
+    dead gap in the logs: no MICRO cycle, no monitor tick, nothing, between
+    01:05:50 and 01:07:10 right after this sleeve's first deploy). Every
+    other slow/network-bound background task in this bot already runs off
+    the main loop via threading.Thread(daemon=True) (see discover_all_symbols
+    and its call sites) -- this just follows that same established pattern,
+    with a running-flag guard so a slow poll can't stack a second thread on
+    top of itself before the first one finishes."""
+    global _hl_copytrade_running
+    if not HL_COPYTRADE_ENABLED or _hl_copytrade_running:
+        return
+    _hl_copytrade_running = True
+    threading.Thread(target=_hl_copytrade_worker, args=(send_fn,), daemon=True).start()
+
+def _hl_copytrade_worker(send_fn):
     """Refresh the followed-wallet list (every HL_REFRESH_WALLETS_SEC) and
     poll their live positions (every CYCLE_HL_COPYTRADE) to mirror opens and
     source-side closes on Binance paper-trading. See HL_COPYTRADE_ENABLED's
-    definition for the full design rationale."""
-    if not HL_COPYTRADE_ENABLED:
-        return
+    definition for the full design rationale. Runs in a background thread --
+    see run_hl_copytrade_cycle()."""
+    global _hl_copytrade_running
+    try:
+        _hl_copytrade_worker_body(send_fn)
+    except Exception as e:
+        logger.warning(f"[HL-COPY] Worker error: {type(e).__name__}: {e}")
+    finally:
+        _hl_copytrade_running = False
+
+def _hl_copytrade_worker_body(send_fn):
     state = sim.setdefault("hl_copytrade", {"wallets": [], "last_wallet_refresh": None, "wallet_positions": {}})
     now = time.time()
 
