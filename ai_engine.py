@@ -51,8 +51,13 @@ def _trace_claude_verify(analysis: dict, prompt: str, output_text, approved: boo
     if not _langfuse:
         return
     try:
+        # NAMING (per langfuse.com/docs/observability/best-practices, fetched
+        # 2026-08-05): names are treated as stable API-like identifiers by
+        # downstream evaluators/dashboards, and must not embed the model --
+        # that belongs in the separate `model=` field on the generation, not
+        # the name. "verify-trade" (verb-first, no dynamic/model values).
         trace = _langfuse.trace(
-            name="verify_trade_with_claude",
+            name="verify-trade",
             input={"symbol": analysis.get("symbol"), "signal": analysis.get("signal"),
                    "confidence": analysis.get("confidence"), "market": analysis.get("market")},
             output={"approved": approved, "text": output_text, "error": error},
@@ -62,9 +67,12 @@ def _trace_claude_verify(analysis: dict, prompt: str, output_text, approved: boo
         if usage:
             gen_usage = {"input": usage.get("input_tokens"), "output": usage.get("output_tokens"), "unit": "TOKENS"}
         trace.generation(
-            name="claude-verify",
+            name="verify",
             model=CLAUDE_VERIFY_MODEL,
-            input=prompt,
+            # MESSAGE FORMAT (same best-practices doc): generation input/output
+            # should use role-labeled message format, not a raw string, so
+            # Langfuse renders it like the actual chat completion it is.
+            input=[{"role": "user", "content": prompt}],
             output=output_text,
             usage=gen_usage,
             metadata={"latency_s": round(latency_s, 3)},
