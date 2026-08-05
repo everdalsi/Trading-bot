@@ -1189,7 +1189,15 @@ def is_correlated(symbol: str) -> bool:
 # symbole en cause" authorization -- this is the same evidence bar as
 # LAUSDT/COTIUSDT, just measured over the full history instead of one
 # recent window, since a large sample makes that read more reliable, not less.
-MANUAL_SYMBOL_BLACKLIST = {"LAUSDT", "COTIUSDT", "TURBOUSDT"}
+# ERAUSDT added (2026-08-05): user flagged "extremement perdant sur les
+# derniers 24h" -- confirmed real (last 24h: n=785, winrate 37.6%/PF 0.82/
+# -$3.23 vs the prior 24h's n=653, winrate 42.7%/PF 1.37/+$6.78). ERAUSDT was
+# the single largest contributor: its entire trading history is these same
+# 44 trades (a newly-active symbol, not a long-tracked one), at 20.5%
+# winrate and PF 0.26 -- worse than any symbol cut so far. Cut immediately
+# rather than waiting for a larger sample given how stark the edge already
+# is, under the same standing authorization.
+MANUAL_SYMBOL_BLACKLIST = {"LAUSDT", "COTIUSDT", "TURBOUSDT", "ERAUSDT"}
 
 def is_blacklisted(symbol: str) -> bool:
     if symbol in MANUAL_SYMBOL_BLACKLIST:
