@@ -284,6 +284,52 @@ COMPOUND_SWEEP_MIN_GROWTH   = float(os.environ.get("COMPOUND_SWEEP_MIN_GROWTH", 
 COMPOUND_SWEEP_MAX_CASH_PCT = float(os.environ.get("COMPOUND_SWEEP_MAX_CASH_PCT", 0.5))  # never sweep more than this fraction of MICRO's current liquid cash in one go
 CYCLE_COMPOUND              = int(os.environ.get("CYCLE_COMPOUND", 86400))  # check once/day
 
+# HYPERLIQUID COPY TRADING SLEEVE (2026-08-05, user request: full copy trading
+# of the best crypto wallets, independent of the existing MICRO scoring).
+# Hyperliquid is a fully on-chain perp DEX -- every trader's positions and
+# PnL are public, no API key needed. Verified live before writing this code:
+#   GET  https://stats-data.hyperliquid.xyz/Mainnet/leaderboard
+#        -> {"leaderboardRows": [{"ethAddress", "accountValue",
+#            "windowPerformances": [["day"/"week"/"month"/"allTime",
+#            {"pnl","roi","vlm"}], ...]}, ...]}   (all traders, ~34MB, sort client-side)
+#   POST https://api.hyperliquid.xyz/info {"type":"clearinghouseState","user":addr}
+#        -> {"assetPositions": [{"position": {"coin","szi","entryPx",...}}]}
+#            (szi sign = direction: positive long, negative short)
+# We follow the top wallets by month ROI (filtered on min account size + a
+# positive week ROI too, so a single lucky pump doesn't qualify a tiny/fresh
+# account), and mirror their opens/closes 1:1 in direction on Binance
+# paper-trading for whichever of their coins map to a symbol we can trade.
+# Hyperliquid's own universe is majors/large-caps, not the long-tail MICRO
+# alts -- this sleeve only covers what maps via HL_COIN_TO_BINANCE, by design.
+# Sized independently of MICRO (own fixed $/trade, own position cap): this is
+# a distinct, lower-frequency, higher-conviction signal, not a MICRO score
+# input, per explicit user choice ("copy trading complet", not "signal
+# additionnel"). A hard stop-loss safety net exists on our side because a
+# pure "close when source closes" rule has unbounded downside if the source
+# wallet never closes (or we lose track of it) -- everything else in this
+# bot has an independent risk backstop, this sleeve keeps that pattern.
+HL_COPYTRADE_ENABLED     = int(os.environ.get("HL_COPYTRADE_ENABLED", 1))
+HL_INFO_URL              = "https://api.hyperliquid.xyz/info"
+HL_LEADERBOARD_URL       = "https://stats-data.hyperliquid.xyz/Mainnet/leaderboard"
+HL_MIN_ACCOUNT_VALUE     = float(os.environ.get("HL_MIN_ACCOUNT_VALUE", 500000))   # filter out tiny/noise accounts
+HL_MIN_MONTH_ROI         = float(os.environ.get("HL_MIN_MONTH_ROI", 0.05))         # >=5% ROI over 30d
+HL_MIN_WEEK_ROI          = float(os.environ.get("HL_MIN_WEEK_ROI", 0.0))           # still positive recently, not just a stale monthly number
+HL_TOP_N_WALLETS         = int(os.environ.get("HL_TOP_N_WALLETS", 15))
+HL_REFRESH_WALLETS_SEC   = int(os.environ.get("HL_REFRESH_WALLETS_SEC", 21600))    # 6h -- leaderboard payload is ~34MB, don't refetch every cycle
+CYCLE_HL_COPYTRADE        = int(os.environ.get("CYCLE_HL_COPYTRADE", 300))          # poll followed wallets' positions every 5min
+HL_SLEEVE_USD_PER_TRADE  = float(os.environ.get("HL_SLEEVE_USD_PER_TRADE", 25.0))
+HL_SLEEVE_MAX_CONCURRENT = int(os.environ.get("HL_SLEEVE_MAX_CONCURRENT", 10))
+HL_SLEEVE_HARD_SL_PCT    = float(os.environ.get("HL_SLEEVE_HARD_SL_PCT", 0.15))    # independent safety net, see note above
+HL_COIN_TO_BINANCE = {
+    "BTC": "BTCUSDT", "ETH": "ETHUSDT", "SOL": "SOLUSDT", "BNB": "BNBUSDT",
+    "XRP": "XRPUSDT", "DOGE": "DOGEUSDT", "AVAX": "AVAXUSDT", "LINK": "LINKUSDT",
+    "ADA": "ADAUSDT", "LTC": "LTCUSDT", "DOT": "DOTUSDT", "SUI": "SUIUSDT",
+    "APT": "APTUSDT", "ARB": "ARBUSDT", "OP": "OPUSDT", "NEAR": "NEARUSDT",
+    "TRX": "TRXUSDT", "ATOM": "ATOMUSDT", "TON": "TONUSDT", "ICP": "ICPUSDT",
+    "FIL": "FILUSDT", "UNI": "UNIUSDT", "AAVE": "AAVEUSDT", "CRV": "CRVUSDT",
+    "INJ": "INJUSDT", "WLD": "WLDUSDT", "TAO": "TAOUSDT",
+}
+
 # FIX (2026-07-27): only send higher-conviction MICRO signals (multi-indicator
 # agreement) to Claude verification -- see the note at its call site in
 # open_micro_trade() for why. Borderline signals (score just above
@@ -667,6 +713,12 @@ sim = {
     # records the current MICRO equity as the starting point instead of
     # immediately sweeping all pre-existing profit in one shot.
     "compound": {"holdings": {}, "last_sweep_equity": None, "sweeps": []},
+    # HYPERLIQUID COPY TRADING SLEEVE (2026-08-05): "wallets" is the current
+    # followed top-N list (refreshed every HL_REFRESH_WALLETS_SEC);
+    # "wallet_positions" is the last-seen {coin: {side,size,entry_px}} per
+    # followed address, used to diff opens/closes each poll -- see
+    # run_hl_copytrade_cycle().
+    "hl_copytrade": {"wallets": [], "last_wallet_refresh": None, "wallet_positions": {}},
 }
 # FIX CRITIQUE : la définition de memory en dict supprimée — écrasait l instance Memory() créée ligne ~55.
   # L instance Memory() (classe) est la seule référence valide : memory.get(), memory.data, etc.
@@ -2321,6 +2373,212 @@ def get_compound_equity() -> float:
         total += h.get("qty", 0) * price
     return total
 
+def fetch_hl_top_wallets() -> list:
+    """Fetch Hyperliquid's public leaderboard (no API key) and pick wallets to
+    follow: minimum account size (filters out tiny/lucky accounts) and
+    positive ROI on both the week AND month windows (filters out a single
+    stale/one-off pump), ranked by month ROI descending."""
+    try:
+        r = requests.get(HL_LEADERBOARD_URL, timeout=30)
+        rows = r.json().get("leaderboardRows", [])
+    except Exception as e:
+        logger.warning(f"[HL-COPY] Leaderboard fetch failed: {type(e).__name__}: {e}")
+        return []
+    candidates = []
+    for row in rows:
+        try:
+            acct_val = float(row.get("accountValue", 0) or 0)
+            if acct_val < HL_MIN_ACCOUNT_VALUE:
+                continue
+            perf = dict(row.get("windowPerformances", []))
+            month_roi = float(perf.get("month", {}).get("roi", 0) or 0)
+            week_roi  = float(perf.get("week", {}).get("roi", 0) or 0)
+            if month_roi < HL_MIN_MONTH_ROI or week_roi < HL_MIN_WEEK_ROI:
+                continue
+            addr = row.get("ethAddress")
+            if not addr:
+                continue
+            candidates.append({
+                "address": addr, "account_value": acct_val,
+                "month_roi": month_roi, "week_roi": week_roi,
+            })
+        except Exception:
+            continue
+    candidates.sort(key=lambda c: c["month_roi"], reverse=True)
+    return candidates[:HL_TOP_N_WALLETS]
+
+def fetch_hl_wallet_positions(address: str) -> dict:
+    """Returns {coin: {side, size, entry_px}} for a wallet's currently open
+    Hyperliquid perp positions (empty dict if none or on any fetch error)."""
+    try:
+        r = requests.post(HL_INFO_URL, json={"type": "clearinghouseState", "user": address}, timeout=15)
+        d = r.json()
+    except Exception as e:
+        logger.debug(f"[HL-COPY] clearinghouseState fetch failed for {address}: {type(e).__name__}: {e}")
+        return {}
+    out = {}
+    for ap in d.get("assetPositions", []) or []:
+        pos = ap.get("position", {}) or {}
+        coin = pos.get("coin")
+        try:
+            szi = float(pos.get("szi", 0) or 0)
+        except (TypeError, ValueError):
+            continue
+        if not coin or szi == 0:
+            continue
+        out[coin] = {
+            "side": "LONG" if szi > 0 else "SHORT",
+            "size": abs(szi),
+            "entry_px": float(pos.get("entryPx", 0) or 0),
+        }
+    return out
+
+def _open_hl_mirror(symbol: str, price: float, side: str, source_addr: str,
+                     source_coin: str, source_month_roi: float, send_fn):
+    amount = min(HL_SLEEVE_USD_PER_TRADE, sim["cash"] * 0.9)
+    qty = amount / price
+    sim["cash"] -= amount
+    trade = {
+        "id": len(sim["trades"]) + 1,
+        "symbol": symbol, "market": "HL_COPY", "side": side, "trade_type": "HL_COPY",
+        "price_in": price, "price_out": None, "qty": qty, "amount_usd": amount,
+        "confidence": 0, "reason": f"HL copy: {source_addr[:10]}... (ROI mois {source_month_roi*100:.1f}%)",
+        "exit_reason": None,
+        "time_in": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "time_out": None,
+        "pnl": None, "pnl_pct": None, "duration_min": None,
+        "patterns": [f"hl_source={source_addr}", f"hl_coin={source_coin}"],
+        "leverage": 1, "peak_price": price, "open_time": time.time(),
+        "hl_source_addr": source_addr, "hl_source_coin": source_coin,
+    }
+    pos_key = f"HLCOPY_{symbol}_{trade['id']}"
+    sim["trades"].append(trade)
+    sim["positions"][pos_key] = {**trade, "pos_key": pos_key}
+    db_save_trade(trade)
+    coin_label = symbol.replace("USDT", "")
+    send_fn(f"🐋 HL-Copy OPEN {side} {coin_label} @ ${price:.4f} (wallet {source_addr[:8]}..., ROI mois {source_month_roi*100:.1f}%)")
+
+def _close_hl_mirror(pos_key: str, price: float, reason: str, send_fn):
+    pos = sim["positions"].get(pos_key)
+    if not pos:
+        return
+    entry = pos["price_in"]
+    is_short = pos.get("side") == "SHORT"
+    change = (entry - price) / entry if is_short else (price - entry) / entry
+    pnl = change * pos["amount_usd"]
+    sim["cash"] += pos["amount_usd"] + pnl
+    elapsed = time.time() - pos.get("open_time", time.time())
+    trade = next((t for t in reversed(sim["trades"]) if t["id"] == pos["id"]), None)
+    if trade:
+        trade.update({
+            "price_out": price,
+            "time_out": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "pnl": round(pnl, 6), "pnl_pct": round(change * 100, 3),
+            "exit_reason": reason, "duration_min": max(1, int(elapsed / 60)),
+        })
+        db_save_trade(trade)
+        learn_from_trade(trade, send_fn=None)
+    del sim["positions"][pos_key]
+    coin_label = pos["symbol"].replace("USDT", "")
+    send_fn(f"{'✅' if pnl > 0 else '❌'} HL-Copy {coin_label}: ${pnl:+.4f} | {reason}")
+
+def monitor_hl_copytrade_risk(send_fn):
+    """Independent safety net for the HL copy sleeve, checked every
+    CYCLE_MONITOR (same cadence as MICRO's SL/TP) -- separate from the 5min
+    wallet-position poll in run_hl_copytrade_cycle(), which only sees a
+    source-side close. Without this, a source wallet that stops updating (or
+    a coin we lose track of between polls) would leave us holding an
+    uncapped-downside position."""
+    prices = get_prices_batch()
+    for pos_key, pos in list(sim["positions"].items()):
+        if pos.get("trade_type") != "HL_COPY":
+            continue
+        symbol = pos["symbol"]
+        price = prices.get(symbol) or get_current_price(symbol)
+        if not price:
+            continue
+        entry = pos["price_in"]
+        is_short = pos.get("side") == "SHORT"
+        change = (entry - price) / entry if is_short else (price - entry) / entry
+        if change <= -HL_SLEEVE_HARD_SL_PCT:
+            _close_hl_mirror(pos_key, price, f"🛑 HL-Copy hard SL ({change*100:+.2f}%)", send_fn)
+    save_data()
+
+def run_hl_copytrade_cycle(send_fn):
+    """Refresh the followed-wallet list (every HL_REFRESH_WALLETS_SEC) and
+    poll their live positions (every CYCLE_HL_COPYTRADE) to mirror opens and
+    source-side closes on Binance paper-trading. See HL_COPYTRADE_ENABLED's
+    definition for the full design rationale."""
+    if not HL_COPYTRADE_ENABLED:
+        return
+    state = sim.setdefault("hl_copytrade", {"wallets": [], "last_wallet_refresh": None, "wallet_positions": {}})
+    now = time.time()
+
+    if state["last_wallet_refresh"] is None or now - state["last_wallet_refresh"] >= HL_REFRESH_WALLETS_SEC:
+        wallets = fetch_hl_top_wallets()
+        if wallets:
+            state["wallets"] = wallets
+            state["last_wallet_refresh"] = now
+            logger.info(f"[HL-COPY] Wallets suivis rafraichis: {len(wallets)} (meilleur ROI mois={wallets[0]['month_roi']*100:.1f}%)")
+            save_data()
+
+    if not state["wallets"]:
+        return
+
+    prices = get_prices_batch()
+
+    for w in state["wallets"]:
+        addr = w["address"]
+        live_positions = fetch_hl_wallet_positions(addr)
+        last_seen = state["wallet_positions"].get(addr, {})
+
+        for coin in list(last_seen.keys()):
+            if coin not in live_positions:
+                symbol = HL_COIN_TO_BINANCE.get(coin)
+                if not symbol:
+                    continue
+                mirror_key = next((pk for pk, p in sim["positions"].items()
+                                    if p.get("trade_type") == "HL_COPY"
+                                    and p.get("hl_source_addr") == addr
+                                    and p.get("hl_source_coin") == coin), None)
+                if mirror_key:
+                    price = prices.get(symbol) or get_current_price(symbol)
+                    if price:
+                        _close_hl_mirror(mirror_key, price, "🐋 HL-Copy source closed", send_fn)
+
+        for coin, pos in live_positions.items():
+            if coin in last_seen:
+                continue
+            symbol = HL_COIN_TO_BINANCE.get(coin)
+            if not symbol or symbol in MANUAL_SYMBOL_BLACKLIST:
+                continue
+            open_hl_positions = [p for p in sim["positions"].values() if p.get("trade_type") == "HL_COPY"]
+            if len(open_hl_positions) >= HL_SLEEVE_MAX_CONCURRENT:
+                continue
+            if any(p["symbol"] == symbol for p in open_hl_positions):
+                continue
+            price = prices.get(symbol) or get_current_price(symbol)
+            if not price or sim["cash"] < HL_SLEEVE_USD_PER_TRADE:
+                continue
+            _open_hl_mirror(symbol, price, pos["side"], addr, coin, w["month_roi"], send_fn)
+
+        state["wallet_positions"][addr] = live_positions
+
+    save_data()
+
+def get_hl_copytrade_equity() -> float:
+    """Current mark-to-market value (cash already spent + unrealized PnL) of
+    open HL copy positions -- for reporting/monitoring only."""
+    prices = get_prices_batch()
+    total = 0.0
+    for p in sim["positions"].values():
+        if p.get("trade_type") != "HL_COPY":
+            continue
+        price = prices.get(p["symbol"]) or get_current_price(p["symbol"]) or p["price_in"]
+        is_short = p.get("side") == "SHORT"
+        change = (p["price_in"] - price) / p["price_in"] if is_short else (price - p["price_in"]) / p["price_in"]
+        total += p["amount_usd"] + change * p["amount_usd"]
+    return total
+
 def run_micro_cycle(send_fn):
     max_micro = MAX_MICRO_POSITIONS
     prices = get_prices_batch()
@@ -3362,6 +3620,7 @@ def trading_loop(send_fn):
     last_soul_tick   = 0
     last_risk_check = 0
     last_compound = 0
+    last_hl_copytrade = 0
 
     logger.info("🚀 Trading Loop autonome V8 démarré — Agents décident seuls")
     _aegis_log_sink.emit("INFO", "Bot trading loop started")
@@ -3446,6 +3705,7 @@ def trading_loop(send_fn):
             try:
                 monitor_positions(send_fn)
                 monitor_micro_positions(send_fn)
+                monitor_hl_copytrade_risk(send_fn)
             except Exception as _mon_e:
                 logger.debug(f"[MONITOR] exit-check error: {_mon_e}")
 
@@ -3810,6 +4070,13 @@ def trading_loop(send_fn):
                 run_compound_sweep(send_fn)
             except Exception as _ce:
                 logger.warning(f"[COMPOUND] Sweep error: {type(_ce).__name__}: {_ce}")
+
+        if now - last_hl_copytrade >= CYCLE_HL_COPYTRADE:
+            last_hl_copytrade = now
+            try:
+                run_hl_copytrade_cycle(send_fn)
+            except Exception as _hle:
+                logger.warning(f"[HL-COPY] Cycle error: {type(_hle).__name__}: {_hle}")
 
         if now - last_epargne >= CYCLE_EPARGNE:
             last_epargne = now
