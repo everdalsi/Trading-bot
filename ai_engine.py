@@ -19,6 +19,59 @@ ANTHROPIC_KEY             = os.environ.get("ANTHROPIC_KEY", "")
 CLAUDE_VERIFY_MODEL       = os.environ.get("CLAUDE_VERIFY_MODEL", "claude-haiku-4-5-20251001")
 VERIFY_TRADES_WITH_CLAUDE = os.environ.get("VERIFY_TRADES_WITH_CLAUDE", "true").lower() in ("true", "1", "yes")
 
+# ── Observability (2026-08-05, user request): this bot has run since launch
+# with zero visibility into its only real Claude call -- no cost, latency, or
+# approve/veto-rate tracking on verify_trade_with_claude, the actual capital
+# gate before every high-conviction trade. Langfuse Cloud chosen over a
+# self-hosted option (Phoenix etc.) specifically to avoid adding another
+# container to an already CPU-loaded VPS -- this is a thin client sending
+# events to Langfuse's hosted API, no local infra. Entirely optional: absent
+# keys just leave _langfuse=None and every trace call below becomes a no-op,
+# so this can never affect trading if unset or if Langfuse itself is down.
+LANGFUSE_PUBLIC_KEY = os.environ.get("LANGFUSE_PUBLIC_KEY", "")
+LANGFUSE_SECRET_KEY = os.environ.get("LANGFUSE_SECRET_KEY", "")
+LANGFUSE_HOST       = os.environ.get("LANGFUSE_HOST", "https://cloud.langfuse.com")
+
+_langfuse = None
+if LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY:
+    try:
+        from langfuse import Langfuse
+        _langfuse = Langfuse(public_key=LANGFUSE_PUBLIC_KEY, secret_key=LANGFUSE_SECRET_KEY, host=LANGFUSE_HOST)
+        logger.info("[LANGFUSE] Tracing active pour verify_trade_with_claude")
+    except Exception as e:
+        logger.warning(f"[LANGFUSE] Init echouee, tracing desactive: {e}")
+        _langfuse = None
+
+
+def _trace_claude_verify(analysis: dict, prompt: str, output_text, approved: bool,
+                          usage: dict | None, latency_s: float, error: str | None = None):
+    """Fire-and-forget trace of a verify_trade_with_claude call. Never raises --
+    any Langfuse-side failure (network, quota, bad keys) must never affect the
+    trading decision, which has already been made by the time this runs."""
+    if not _langfuse:
+        return
+    try:
+        trace = _langfuse.trace(
+            name="verify_trade_with_claude",
+            input={"symbol": analysis.get("symbol"), "signal": analysis.get("signal"),
+                   "confidence": analysis.get("confidence"), "market": analysis.get("market")},
+            output={"approved": approved, "text": output_text, "error": error},
+            tags=["trade-verify", "APPROVE" if approved else "VETO"],
+        )
+        gen_usage = None
+        if usage:
+            gen_usage = {"input": usage.get("input_tokens"), "output": usage.get("output_tokens"), "unit": "TOKENS"}
+        trace.generation(
+            name="claude-verify",
+            model=CLAUDE_VERIFY_MODEL,
+            input=prompt,
+            output=output_text,
+            usage=gen_usage,
+            metadata={"latency_s": round(latency_s, 3)},
+        )
+    except Exception as e:
+        logger.debug(f"[LANGFUSE] Trace echouee (non-bloquant): {e}")
+
 
 def verify_trade_with_claude(analysis: dict) -> tuple[bool, str]:
     """Independent coherence check on a trade candidate before capital is committed.
@@ -51,6 +104,7 @@ def verify_trade_with_claude(analysis: dict) -> tuple[bool, str]:
         "or VETO, then a short reason on the next line."
     )
 
+    t0 = time.time()
     try:
         resp = requests.post(
             "https://api.anthropic.com/v1/messages",
@@ -67,14 +121,18 @@ def verify_trade_with_claude(analysis: dict) -> tuple[bool, str]:
             timeout=8,
         )
         resp.raise_for_status()
-        blocks = resp.json().get("content", [])
+        body = resp.json()
+        blocks = body.get("content", [])
         text = "".join(b.get("text", "") for b in blocks if b.get("type") == "text").strip()
         lines = text.splitlines()
         verdict = lines[0].strip().upper() if lines else "APPROVE"
         reason = " ".join(lines[1:]).strip() if len(lines) > 1 else ""
-        return ("VETO" not in verdict), reason
+        approved = "VETO" not in verdict
+        _trace_claude_verify(analysis, prompt, text, approved, body.get("usage"), time.time() - t0)
+        return approved, reason
     except Exception as e:
         logger.warning(f"[CLAUDE-VERIFY] Echec verification, trade autorise par defaut: {e}")
+        _trace_claude_verify(analysis, prompt, None, True, None, time.time() - t0, error=str(e))
         return True, f"verification_error: {e}"
 
 HF_MODELS = [

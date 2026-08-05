@@ -66,3 +66,6 @@ cryptography
 
 # ── Nouveaux agents V6.0 ──────────────────────────────────────────────
 newsapi-python       # NewsEventAgent — flux actualités macro/crypto
+
+# ── Observabilité LLM ──────────────────────────────────────────
+langfuse>=2.0.0,<3.0.0   # Tracing des appels Claude (verify_trade_with_claude): coût, latence, taux d'approbation -- pinned <3 since v3 SDK is OTEL-based with a different client API
