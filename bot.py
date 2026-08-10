@@ -222,8 +222,19 @@ CYCLE_EPARGNE = 3600
 CYCLE_SOLANA  = 1800
 
 TRADING_MODE = "MICRO_HIGH_FREQ"
-MICRO_SL_PCT        = 0.007
-MICRO_TP_PCT        = 0.011
+# FIX (2026-08-11): widening MICRO_MAX_DURATION (60->180->600s, see below) never
+# fixed the ~97-99% TIMEOUT rate because duration was never the constraint --
+# the band was. Post-2026-08-10 audit of TIMEOUT-exit trades: price movement
+# over the full 600s has stdev ~0.22%, median 0.0%, and 84% stay within +-0.3%.
+# A 0.7%/1.1% band is 3-5x wider than the actual move budget, so it's almost
+# never reached regardless of how long the position is held open -- trades just
+# close near-flat after a noisy walk, and fees turn that into a small negative
+# drift (PF ~0.88-0.91 on the bulk). Tightened to match measured volatility so
+# trades resolve on real signal instead of timing out; same ~1.6x TP:SL ratio
+# preserved (old 1.1/0.7=1.57, new 0.4/0.25=1.6) so breakeven winrate is
+# unchanged. Single isolated change -- MICRO_MAX_DURATION/TRAILING untouched.
+MICRO_SL_PCT        = 0.0025
+MICRO_TP_PCT        = 0.004
 MICRO_TRAILING_PCT  = 0.004
 # LET WINNERS RUN (2026-08-04, user request: max win was capped near $0.55 at
 # the $50 position cap x 1.1% TP -- wanted occasional bigger wins). For
