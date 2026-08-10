@@ -377,7 +377,20 @@ CLAUDE_VERIFY_MIN_SCORE = int(os.environ.get("CLAUDE_VERIFY_MIN_SCORE", 5))
 # per candidate symbol, NOT the full orchestrator.ask_all() ensemble (too
 # slow at ~8000+ trades/day; per-agent timeouts there are 6-10s each).
 WHALE_FILTER_ENABLED    = os.environ.get("WHALE_FILTER_ENABLED", "true").lower() in ("true", "1", "yes")
-WHALE_FILTER_THRESHOLD  = float(os.environ.get("WHALE_FILTER_THRESHOLD", 0.35))  # buy_ratio below this vetoes a BUY (mirrored for SELL)
+WHALE_FILTER_THRESHOLD  = float(os.environ.get("WHALE_FILTER_THRESHOLD", 0.35))  # legacy veto-only threshold, superseded by WHALE_ALIGNMENT_MARGIN below
+# TUNING (2026-08-11, entry-signal-quality audit): the veto-only threshold
+# above only blocked strong opposition (buy_ratio<0.35/>0.65), letting mild
+# opposition and neutral flow (buy_ratio 0.35-0.65) through unfiltered. Audit
+# of 11.5k MICRO trades since 2026-07-28, re-checked on 3 independent rolling
+# windows (since 08-01 n=7045, since 08-06 n=3333, since 08-09 n=1278) all
+# show the same ranking holding even in the recent flat/negative period:
+# aligned PF 1.02-1.24 vs neutral PF 0.76-0.95 vs opposed PF 0.90-0.99 --
+# neutral/mild-opposed trades are consistently flat-to-negative and account
+# for ~62% of current volume. NOTE: this exact metric (whale alignment) flipped
+# sign once before at smaller n (see WHALE_OPPOSED_BOOST_MULT's history just
+# below) -- treat this as another single-variable test, not settled, and keep
+# watching it the same way.
+WHALE_ALIGNMENT_MARGIN  = float(os.environ.get("WHALE_ALIGNMENT_MARGIN", 0.05))
 WHALE_CACHE_TTL         = 90
 # TUNING (2026-07-29): $500K/trade, then $100K/trade, both silently never fired
 # on MICRO-tier low-cap alts -- checked Binance directly for 15 actively-traded
@@ -2052,10 +2065,10 @@ def check_whale_filter(symbol: str, direction: str) -> tuple[bool, str]:
     if metrics["total"] < 1:
         return True, "no_whale_activity"
     buy_ratio = metrics["buy_ratio"]
-    if direction == "BUY" and buy_ratio < WHALE_FILTER_THRESHOLD:
-        return False, f"whales sell {1-buy_ratio:.0%} of flow, opposes BUY"
-    if direction == "SELL" and buy_ratio > (1 - WHALE_FILTER_THRESHOLD):
-        return False, f"whales buy {buy_ratio:.0%} of flow, opposes SELL"
+    dist = buy_ratio - 0.5
+    align = dist if direction == "BUY" else -dist
+    if align <= WHALE_ALIGNMENT_MARGIN:
+        return False, f"whale flow not aligned with {direction} (buy_ratio={buy_ratio:.0%})"
     return True, "ok"
 
 _solana_snapshot_ts = 0.0
