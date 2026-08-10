@@ -254,7 +254,17 @@ LET_WINNER_RUN_MIN_SCORE = int(os.environ.get("LET_WINNER_RUN_MIN_SCORE", 5))
 # designed SL/TP. Extended so real price action gets a fair chance to decide
 # the outcome; MAX_MICRO_POSITIONS stays high so trade throughput/learning
 # volume isn't meaningfully reduced (more positions held longer in parallel).
-MICRO_MAX_DURATION  = int(os.environ.get("MICRO_MAX_DURATION", 180))
+# FIX (2026-08-10): 180s didn't fix it either -- full-history audit (28k
+# trades) plus a clean post-2026-08-05-restart sample (3343 trades, guaranteed
+# to reflect this exact constant) both show ~98-99% of trades still exiting
+# via TIMEOUT rather than the real SL/TP, PF flat near 1.0-1.04 on that bulk.
+# Of the <1% that do reach SL/TP, winrate (~27-33%) is below the ~38.9%
+# breakeven bar for the 0.7%/1.1% band. Widening further (180->600s) as a
+# single isolated change (not stacked with SL/TP or scoring changes) to let
+# more trades reach a real decision before drawing conclusions about the
+# signal itself -- see project memory for the full diagnostic and the
+# deliberate reasons to change only one lever at a time here.
+MICRO_MAX_DURATION  = int(os.environ.get("MICRO_MAX_DURATION", 600))
 # FIX (2026-07-27): this was 0.48 -- 48% of *remaining* cash on every single
 # trade. Two consequences, both wrong for a strategy explicitly named "micro
 # high-frequency" with room for 120 concurrent positions: (1) each trade's
@@ -1197,7 +1207,11 @@ def is_correlated(symbol: str) -> bool:
 # winrate and PF 0.26 -- worse than any symbol cut so far. Cut immediately
 # rather than waiting for a larger sample given how stark the edge already
 # is, under the same standing authorization.
-MANUAL_SYMBOL_BLACKLIST = {"LAUSDT", "COTIUSDT", "TURBOUSDT", "ERAUSDT"}
+# 2026-08-10: added API3USDT (PF 0.48, n=75), NEIROUSDT (PF 0.48, n=59),
+# TRUMPUSDT (PF 0.56, n=202), SPCXBUSDT (PF 0.52, n=119) -- all clearly
+# negative at a sample size large enough to trust, from a full-history
+# analysis of the 28k-trade log, same bar as the earlier four cuts.
+MANUAL_SYMBOL_BLACKLIST = {"LAUSDT", "COTIUSDT", "TURBOUSDT", "ERAUSDT", "API3USDT", "NEIROUSDT", "TRUMPUSDT", "SPCXBUSDT"}
 
 def is_blacklisted(symbol: str) -> bool:
     if symbol in MANUAL_SYMBOL_BLACKLIST:
