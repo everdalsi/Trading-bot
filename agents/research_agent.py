@@ -200,7 +200,10 @@ class ResearchAgent(BaseAgent):
         oi       = self._get_open_interest(symbol)
         fg       = get_fear_greed_value()
         ob       = get_order_book(symbol)
-        whales   = get_whale_alerts()
+        # FIX (2026-08-14): get_whale_alerts() used to be a permanent no-op
+        # stub returning [] regardless of args -- now takes the symbol and
+        # does real detection (see data_handler.py), so pass it through.
+        whales   = get_whale_alerts(symbol)
         liquidations = get_liquidations()
         # FIX (2026-08-13): get_volume_data() from data_handler.py returns a
         # list[float] of per-candle volumes (used elsewhere by MICRO for its

@@ -231,9 +231,57 @@ def get_order_book(symbol: str) -> dict:
         logger.debug(f"[DATA] Order book {symbol}: {e}")
     return {"pressure": "neutre", "ratio": 1.0, "wall_size": 0, "depth_ratio": 1.0}
 
-def get_whale_alerts() -> list:
-    return []
+def get_whale_alerts(symbol: str = "BTCUSDT") -> list:
+    """FIX (2026-08-14): was a permanent no-op stub (`return []`), silently
+    starving ResearchAgent's anomaly detection of any real whale signal.
+    Reuses the same proven method as bot.py's check_whale_filter() (percentile
+    of trade size among the symbol's own recent aggTrades, not a fixed dollar
+    cutoff) instead of introducing a second, divergent whale-detection logic."""
+    try:
+        symbol = symbol.upper()
+        r = requests.get(
+            f"{BINANCE_BASE}/api/v3/aggTrades",
+            params={"symbol": symbol, "limit": 200},
+            timeout=5
+        )
+        price_r = requests.get(
+            f"{BINANCE_BASE}/api/v3/ticker/price",
+            params={"symbol": symbol},
+            timeout=4
+        )
+        if r.status_code != 200 or price_r.status_code != 200:
+            return []
+        trades = r.json()
+        ref_price = float(price_r.json().get("price", 0))
+        if not ref_price or not isinstance(trades, list) or len(trades) < 20:
+            return []
+        values = sorted(float(t.get("q", 0)) * ref_price for t in trades)
+        threshold = values[int(len(values) * 0.95)]  # top 5% by size in this window = "whale"
+        alerts = []
+        for t in trades:
+            value = float(t.get("q", 0)) * ref_price
+            if value >= threshold and value > 5000:  # ignore illiquid symbols where "top 5%" is trivially small
+                alerts.append({
+                    "symbol":    symbol,
+                    "side":      "SELL" if t.get("m") else "BUY",
+                    "value_usd": round(value, 0),
+                    "price":     float(t.get("p", 0)),
+                    "ts":        t.get("T", 0),
+                })
+        return alerts
+    except Exception as e:
+        logger.debug(f"[DATA] Whale alerts {symbol}: {e}")
+        return []
 
+# NOTE (2026-08-14): get_mev_alerts/get_flashbots_alerts/get_sandwich_alerts
+# were also permanent no-op stubs. Deliberately left as no-ops rather than
+# faking a detector: MEV/flashbots/sandwich-attack detection are on-chain/DEX
+# concepts (mempool front-running) that don't apply to trades executed on a
+# centralized exchange (Binance) the way this bot trades -- there's no real
+# signal to compute here, unlike whale_alerts above which had a genuine,
+# already-proven Binance-based method just sitting unused elsewhere in the
+# codebase. Don't build fake detectors for these; if MEV-relevant signals are
+# ever wanted, they'd need real on-chain infra (not in scope here).
 def get_mev_alerts(symbol: str) -> list:
     return []
 
