@@ -202,7 +202,27 @@ class ResearchAgent(BaseAgent):
         ob       = get_order_book(symbol)
         whales   = get_whale_alerts()
         liquidations = get_liquidations()
-        volume_data  = get_volume_data(symbol)
+        # FIX (2026-08-13): get_volume_data() from data_handler.py returns a
+        # list[float] of per-candle volumes (used elsewhere by MICRO for its
+        # own volume-ratio calc), not the {"volume_24h","volume_spike"} dict
+        # this function expects -- calling volume_data.get(...) below crashed
+        # with 'list' object has no attribute 'get' on every single call,
+        # silently caught by respond()'s except-block, which meant this
+        # agent (weight 0.07 in the ensemble) had been returning a fixed
+        # neutral placeholder (score=0.5, price=0, RSI=50) instead of real
+        # market intelligence since some unknown point in its history.
+        # Derive the same {"volume_24h","volume_spike"} shape ourselves,
+        # reusing MICRO's own 2.5x-average-volume spike threshold for
+        # consistency with the rest of the codebase.
+        _vol_list = get_volume_data(symbol, "1", 10)
+        if isinstance(_vol_list, list) and len(_vol_list) >= 2:
+            _avg_vol = sum(_vol_list[:-1]) / max(len(_vol_list) - 1, 1)
+            volume_data = {
+                "volume_24h": ticker.get("volume_24h", 0),
+                "volume_spike": bool(_avg_vol > 0 and _vol_list[-1] > _avg_vol * 2.5),
+            }
+        else:
+            volume_data = {"volume_24h": ticker.get("volume_24h", 0), "volume_spike": False}
 
         indicators = compute_indicators(closes) if len(closes) >= 14 else {"rsi": 50.0, "macd_h": 0.0, "macd": 0.0}
 
