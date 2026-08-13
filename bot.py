@@ -236,6 +236,18 @@ TRADING_MODE = "MICRO_HIGH_FREQ"
 MICRO_SL_PCT        = 0.0025
 MICRO_TP_PCT        = 0.004
 MICRO_TRAILING_PCT  = 0.004
+# ENTRY-SIGNAL-QUALITY FIX (2026-08-13): the 2026-08-11 audit (11.5k trades)
+# found EMA cross and momentum carry real measured edge when present (EMA-up
+# PF 1.39 vs 1.07 baseline; momentum PF 1.14-1.88 vs 1.07 baseline) but almost
+# never decide whether a trade fires, since RSI+Bollinger+volume alone reach
+# MICRO_SCORE_THRESH without them (Bollinger fires ~99.9% of trades, volume
+# spike ~99.2% -- the near-universal tags, not the rare high-conviction ones).
+# This gate requires the final BUY/SELL direction to be corroborated by an
+# EMA cross or momentum reading in that same direction -- makes the proven
+# signals actually gate entries instead of just adding to a score that's
+# already reached by the generic tags. Mirrors the whale-alignment gate
+# precedent (817ab4a): a symmetric requirement, not just a veto threshold.
+MICRO_REQUIRE_TREND_CONFIRM = os.environ.get("MICRO_REQUIRE_TREND_CONFIRM", "1") == "1"
 # LET WINNERS RUN (2026-08-04, user request: max win was capped near $0.55 at
 # the $50 position cap x 1.1% TP -- wanted occasional bigger wins). For
 # high-conviction signals only (abs(score) >= this threshold, same bar
@@ -1947,6 +1959,7 @@ def micro_signal(symbol: str, price: float) -> dict:
         vol_ratio = vols[-1]/avg_vol if avg_vol > 0 else 1.0
         score = 0
         contributors = []
+        ema_bull_cross = ema_bear_cross = mom_bull = mom_bear = False
         # FIX (2026-07-26): the old reason string always reported the EMA's
         # *current* direction (ema5>ema13 snapshot) regardless of whether an
         # EMA cross actually contributed to the score this cycle. That made
@@ -1960,9 +1973,9 @@ def micro_signal(symbol: str, price: float) -> dict:
         # what actually moved the score, so a trend+reversal-timing signal
         # reads as the coherent multi-factor setup it actually is.
         if ema5_prev<=ema13_prev and ema5>ema13:
-            score += 2; contributors.append("EMA5/13 cross up")
+            score += 2; contributors.append("EMA5/13 cross up"); ema_bull_cross = True
         elif ema5_prev>=ema13_prev and ema5<ema13:
-            score -= 2; contributors.append("EMA5/13 cross down")
+            score -= 2; contributors.append("EMA5/13 cross down"); ema_bear_cross = True
         if rsi7<28:
             score+=2; contributors.append(f"RSI7={rsi7:.0f} oversold (reversal-up)")
         elif rsi7<40:
@@ -1972,9 +1985,9 @@ def micro_signal(symbol: str, price: float) -> dict:
         elif rsi7>60:
             score-=1; contributors.append(f"RSI7={rsi7:.0f} high")
         if mom3>0.6:
-            score+=1; contributors.append(f"momentum {mom3:+.2f}% up")
+            score+=1; contributors.append(f"momentum {mom3:+.2f}% up"); mom_bull = True
         elif mom3<-0.6:
-            score-=1; contributors.append(f"momentum {mom3:+.2f}% down")
+            score-=1; contributors.append(f"momentum {mom3:+.2f}% down"); mom_bear = True
         if bb_pct<8:
             score+=1; contributors.append("Bollinger lower band (oversold)")
         elif bb_pct>92:
@@ -2006,8 +2019,16 @@ def micro_signal(symbol: str, price: float) -> dict:
         # multi-indicator agreement earns high confidence.
         _MICRO_MAX_SCORE = 7
         conf = min(90, round(45 + 45 * min(abs(score), _MICRO_MAX_SCORE) / _MICRO_MAX_SCORE))
-        if score >= _score_thresh:    return {"signal": "BUY",  "score": score, "conf": conf, "reason": reason}
-        elif score <= -_score_thresh: return {"signal": "SELL", "score": score, "conf": conf, "reason": reason}
+        if score >= _score_thresh:
+            if MICRO_REQUIRE_TREND_CONFIRM and not (ema_bull_cross or mom_bull):
+                return {"signal": "HOLD", "score": score, "conf": 0,
+                        "reason": f"gated: score {score} reached without EMA/momentum confirm ({reason})"}
+            return {"signal": "BUY",  "score": score, "conf": conf, "reason": reason}
+        elif score <= -_score_thresh:
+            if MICRO_REQUIRE_TREND_CONFIRM and not (ema_bear_cross or mom_bear):
+                return {"signal": "HOLD", "score": score, "conf": 0,
+                        "reason": f"gated: score {score} reached without EMA/momentum confirm ({reason})"}
+            return {"signal": "SELL", "score": score, "conf": conf, "reason": reason}
         return {"signal": "HOLD", "score": score, "conf": 0}
     except Exception:
         return {"signal":"HOLD","score":0,"conf":0}
