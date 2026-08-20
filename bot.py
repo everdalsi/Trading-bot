@@ -842,6 +842,7 @@ from data_handler import (
     get_volume_data,
     get_order_book
 )
+from smc_signal import analyze_structure
 
 WS_SYMBOLS_WATCH = [
     "btcusdt","ethusdt","solusdt","bnbusdt","xrpusdt",
@@ -1950,6 +1951,11 @@ def micro_signal(symbol: str, price: float) -> dict:
         closes = get_klines_1m_cached(symbol)
         if len(closes) < 14:
             return {"signal":"HOLD","score":0,"conf":0}
+        # SMC (structure/liquidity/order blocks) -- informational only, see
+        # smc_signal.py docstring. Computed here (closes already fetched) and
+        # tagged onto the trade in open_micro_trade() for later correlation
+        # analysis, NOT used to gate or size this decision.
+        smc_info = analyze_structure(closes.tolist())
         ema5       = float(closes.ewm(span=5, adjust=False).mean().iloc[-1])
         ema13      = float(closes.ewm(span=13,adjust=False).mean().iloc[-1])
         ema5_prev  = float(closes.ewm(span=5, adjust=False).mean().iloc[-2])
@@ -2033,12 +2039,12 @@ def micro_signal(symbol: str, price: float) -> dict:
             if MICRO_REQUIRE_TREND_CONFIRM and not (ema_bull_cross or mom_bull):
                 return {"signal": "HOLD", "score": score, "conf": 0,
                         "reason": f"gated: score {score} reached without EMA/momentum confirm ({reason})"}
-            return {"signal": "BUY",  "score": score, "conf": conf, "reason": reason}
+            return {"signal": "BUY",  "score": score, "conf": conf, "reason": reason, "smc": smc_info}
         elif score <= -_score_thresh:
             if MICRO_REQUIRE_TREND_CONFIRM and not (ema_bear_cross or mom_bear):
                 return {"signal": "HOLD", "score": score, "conf": 0,
                         "reason": f"gated: score {score} reached without EMA/momentum confirm ({reason})"}
-            return {"signal": "SELL", "score": score, "conf": conf, "reason": reason}
+            return {"signal": "SELL", "score": score, "conf": conf, "reason": reason, "smc": smc_info}
         return {"signal": "HOLD", "score": score, "conf": 0}
     except Exception:
         return {"signal":"HOLD","score":0,"conf":0}
@@ -2329,6 +2335,9 @@ def open_micro_trade(symbol: str, price: float, signal: dict, send_fn) -> dict |
             "peak_price": price,
             "open_time": time.time(),
             "kelly_pct": MICRO_MAX_PCT,
+            # SMC signal (2026-08-20) -- informational only, see smc_signal.py.
+            # Tagged for correlation analysis, not yet used to gate/size trades.
+            "smc": signal.get("smc"),
             # INSTRUMENTATION (2026-07-29, now also load-bearing as of 2026-07-30):
             # started as passive logging to test whether whale-flow alignment
             # predicts outcome; the "opposed" bucket it revealed is now an active
