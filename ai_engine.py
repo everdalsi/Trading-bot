@@ -94,23 +94,37 @@ def verify_trade_with_claude(analysis: dict) -> tuple[bool, str]:
         return True, "verification_disabled"
 
     patterns = [p.get("name") for p in analysis.get("patterns", []) if isinstance(p, dict)]
-    prompt = (
-        f"A trading bot wants to open a {analysis.get('signal')} position on "
+
+    # Prompt structured in 4 explicit parts (context / task / instructions / format)
+    # rather than one flowing paragraph — same content as before, reorganized after
+    # a pattern seen repeated across independent trading-education sources (2026-08-20).
+    context = (
+        f"Context: a trading bot wants to open a {analysis.get('signal')} position on "
         f"{analysis.get('symbol')} ({analysis.get('market', 'SPOT')}) at price "
-        f"{analysis.get('price')}.\n"
-        f"Stated confidence: {analysis.get('confidence')}%\n"
-        f"Stated reason: {str(analysis.get('reason', ''))[:300]}\n"
-        f"Patterns detected: {patterns}\n\n"
+        f"{analysis.get('price')}. Stated confidence: {analysis.get('confidence')}%. "
+        f"Stated reason: {str(analysis.get('reason', ''))[:300]} "
+        f"Patterns detected: {patterns}. "
         "You are a skeptical second reviewer, not the primary strategy — you don't have live "
-        "market data, only this stated reasoning. Note: this strategy deliberately combines a "
-        "trend indicator (EMA cross) with reversal-timing indicators (RSI, Bollinger) — a trade "
-        "listing an overbought/oversold RSI alongside an established EMA trend is a normal "
-        "mean-reversion-within-trend setup, NOT a contradiction by itself. Veto only if the "
-        "reasoning is generic boilerplate with no real signal, mathematically inconsistent (e.g. "
-        "cites an oversold RSI to justify a SELL), or the confidence is wildly out of line with "
-        "how weak/borderline the cited numbers are. Answer with a first line of exactly APPROVE "
-        "or VETO, then a short reason on the next line."
+        "market data, only this stated reasoning."
     )
+    task = (
+        "Task: decide whether to APPROVE or VETO this trade candidate, based only on whether "
+        "the stated reasoning above is internally coherent — you are not re-analyzing the market."
+    )
+    instructions = (
+        "Instructions: this strategy deliberately combines a trend indicator (EMA cross) with "
+        "reversal-timing indicators (RSI, Bollinger) — a trade listing an overbought/oversold "
+        "RSI alongside an established EMA trend is a normal mean-reversion-within-trend setup, "
+        "NOT a contradiction by itself. Veto only if the reasoning is generic boilerplate with "
+        "no real signal, mathematically inconsistent (e.g. cites an oversold RSI to justify a "
+        "SELL), or the confidence is wildly out of line with how weak/borderline the cited "
+        "numbers are."
+    )
+    format_ = (
+        "Format: answer with a first line of exactly APPROVE or VETO, then a short reason on "
+        "the next line. Nothing else."
+    )
+    prompt = f"{context}\n\n{task}\n\n{instructions}\n\n{format_}"
 
     t0 = time.time()
     try:
