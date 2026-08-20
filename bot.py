@@ -779,6 +779,13 @@ sim = {
     # run_hl_copytrade_cycle().
     "hl_copytrade": {"wallets": [], "last_wallet_refresh": None, "wallet_positions": {}},
 }
+# CONCURRENCY FIX (2026-08-20, diagnosed 2026-08-13): save_data() is called from 14
+# sites and `sim` is mutated from ~10 background threads with zero synchronization --
+# an SFTP/monitoring read could catch the JSON mid-write (non-atomic write_text), and
+# a thread reading `sim` could catch it between e.g. cash already debited but the new
+# position not yet appended. RLock (not Lock) so a function that both mutates sim AND
+# calls save_data() internally doesn't deadlock itself.
+sim_lock = threading.RLock()
 # FIX CRITIQUE : la définition de memory en dict supprimée — écrasait l instance Memory() créée ligne ~55.
   # L instance Memory() (classe) est la seule référence valide : memory.get(), memory.data, etc.
 epargne = {
@@ -1770,53 +1777,55 @@ def open_trade(analysis: dict, send_fn) -> dict | None:
         kelly_pct = analysis.get("kelly_pct") or dynamic_position_size(conf, market, symbol)
 
     leverage = LEVERAGE_SIM if market == "FUTURES" else 1
-    amount   = sim["cash"] * kelly_pct
-    qty      = amount / price
 
-    sim["cash"] -= amount
+    with sim_lock:
+        amount   = sim["cash"] * kelly_pct
+        qty      = amount / price
 
-    trade = {
-        "id": len(sim["trades"]) + 1,
-        "symbol": symbol,
-        "market": market,
-        "side": side,
-        "price_in": price,
-        "price_out": None,
-        "qty": qty,
-        "amount_usd": amount,
-        "confidence": conf,
-        "reason": reason,
-        "exit_reason": None,
-        "time_in": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "time_out": None,
-        "pnl": None,
-        "pnl_pct": None,
-        "duration_min": None,
-        "patterns": [p["name"] for p in pats if p.get("signal") != "HOLD"],
-        "leverage": leverage,
-        "peak_price": price,
-        "trough_price": price,
-        "kelly_pct": kelly_pct
-    }
+        sim["cash"] -= amount
 
-    if LIVE_MODE and bot_state.get("warmup_done", False):
-        try:
-            order_side = "buy" if side == "LONG" else "sell"
-            order = BINANCE_CLIENT.create_market_order(symbol, order_side, qty)
-            trade["live_order_id"] = order["id"]
-            trade["live_status"] = "placed"
-            send_fn(f"✅ ORDRE LIVE PLACÉ #{trade['id']} | {order_side.upper()} {symbol}")
-        except Exception as e:
-            send_fn(f"❌ ERREUR LIVE ORDER #{trade['id']}: {e}")
-            return None
+        trade = {
+            "id": len(sim["trades"]) + 1,
+            "symbol": symbol,
+            "market": market,
+            "side": side,
+            "price_in": price,
+            "price_out": None,
+            "qty": qty,
+            "amount_usd": amount,
+            "confidence": conf,
+            "reason": reason,
+            "exit_reason": None,
+            "time_in": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "time_out": None,
+            "pnl": None,
+            "pnl_pct": None,
+            "duration_min": None,
+            "patterns": [p["name"] for p in pats if p.get("signal") != "HOLD"],
+            "leverage": leverage,
+            "peak_price": price,
+            "trough_price": price,
+            "kelly_pct": kelly_pct
+        }
 
-    pos_key = f"{market}_{symbol}_{side}_{trade['id']}"
-    sim["trades"].append(trade)
-    sim["positions"][pos_key] = {**trade, "pos_key": pos_key}
+        if LIVE_MODE and bot_state.get("warmup_done", False):
+            try:
+                order_side = "buy" if side == "LONG" else "sell"
+                order = BINANCE_CLIENT.create_market_order(symbol, order_side, qty)
+                trade["live_order_id"] = order["id"]
+                trade["live_status"] = "placed"
+                send_fn(f"✅ ORDRE LIVE PLACÉ #{trade['id']} | {order_side.upper()} {symbol}")
+            except Exception as e:
+                send_fn(f"❌ ERREUR LIVE ORDER #{trade['id']}: {e}")
+                return None
 
-    db_save_trade(trade)
-    save_data()
-    bot_state["trades_today"] += 1
+        pos_key = f"{market}_{symbol}_{side}_{trade['id']}"
+        sim["trades"].append(trade)
+        sim["positions"][pos_key] = {**trade, "pos_key": pos_key}
+
+        db_save_trade(trade)
+        save_data()
+        bot_state["trades_today"] += 1
 
     sl = price * (1 - STOP_LOSS_PCT) if side == "LONG" else price * (1 + STOP_LOSS_PCT)
     tp = price * (1 + TAKE_PROFIT_PCT) if side == "LONG" else price * (1 - TAKE_PROFIT_PCT)
@@ -1841,61 +1850,62 @@ def open_trade(analysis: dict, send_fn) -> dict | None:
     return trade
 
 def close_trade(pos_key: str, price: float, reason: str, send_fn) -> dict | None:
-    pos = sim["positions"].pop(pos_key, None)
-    if not pos:
-        return None
+    with sim_lock:
+        pos = sim["positions"].pop(pos_key, None)
+        if not pos:
+            return None
 
-    if LIVE_MODE and "live_order_id" in pos:
+        if LIVE_MODE and "live_order_id" in pos:
+            try:
+                side = "sell" if pos["side"] == "LONG" else "buy"
+                BINANCE_CLIENT.create_market_order(pos["symbol"], side, pos["qty"])
+                send_fn(f"✅ POSITION LIVE FERMÉE #{pos['id']}")
+            except Exception as e:
+                send_fn(f"⚠️ Erreur fermeture live #{pos['id']}: {e}")
+
+        side   = pos["side"]
+        entry  = pos["price_in"]
+        amt    = pos["amount_usd"]
+        lev    = pos.get("leverage", 1)
+
+        if side == "LONG":
+            pnl     = (price - entry) / entry * amt * lev
+            pnl_pct = (price - entry) / entry * 100 * lev
+        else:
+            pnl     = (entry - price) / entry * amt * lev
+            pnl_pct = (entry - price) / entry * 100 * lev
+
+        sim["cash"] += amt + pnl
+
+        duration = 0
         try:
-            side = "sell" if pos["side"] == "LONG" else "buy"
-            BINANCE_CLIENT.create_market_order(pos["symbol"], side, pos["qty"])
-            send_fn(f"✅ POSITION LIVE FERMÉE #{pos['id']}")
-        except Exception as e:
-            send_fn(f"⚠️ Erreur fermeture live #{pos['id']}: {e}")
+            t_in = datetime.strptime(pos["time_in"], "%Y-%m-%d %H:%M:%S")
+            duration = int((datetime.now() - t_in).total_seconds() / 60)
+        except:
+            pass
 
-    side   = pos["side"]
-    entry  = pos["price_in"]
-    amt    = pos["amount_usd"]
-    lev    = pos.get("leverage", 1)
+        trade = next((t for t in reversed(sim["trades"]) if t["id"] == pos["id"]), None)
+        if trade:
+            trade.update({
+                "price_out": price,
+                "time_out": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "pnl": round(pnl, 4),
+                "pnl_pct": round(pnl_pct, 2),
+                "exit_reason": reason,
+                "duration_min": duration
+            })
+            db_save_trade(trade)
+            learn_from_trade(trade, send_fn=send_fn)
 
-    if side == "LONG":
-        pnl     = (price - entry) / entry * amt * lev
-        pnl_pct = (price - entry) / entry * 100 * lev
-    else:
-        pnl     = (entry - price) / entry * amt * lev
-        pnl_pct = (entry - price) / entry * 100 * lev
+        won = pnl > 0
+        if won:
+            memory["total_wins"] = memory.get("total_wins", 0) + 1
+        else:
+            memory["total_losses"] = memory.get("total_losses", 0) + 1
 
-    sim["cash"] += amt + pnl
-
-    duration = 0
-    try:
-        t_in = datetime.strptime(pos["time_in"], "%Y-%m-%d %H:%M:%S")
-        duration = int((datetime.now() - t_in).total_seconds() / 60)
-    except:
-        pass
-
-    trade = next((t for t in reversed(sim["trades"]) if t["id"] == pos["id"]), None)
-    if trade:
-        trade.update({
-            "price_out": price,
-            "time_out": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "pnl": round(pnl, 4),
-            "pnl_pct": round(pnl_pct, 2),
-            "exit_reason": reason,
-            "duration_min": duration
-        })
-        db_save_trade(trade)
-        learn_from_trade(trade, send_fn=send_fn)
-
-    won = pnl > 0
-    if won:
-        memory["total_wins"] = memory.get("total_wins", 0) + 1
-    else:
-        memory["total_losses"] = memory.get("total_losses", 0) + 1
-
-    update_symbol_score(pos["symbol"], won)
-    update_blacklist(pos["symbol"], won)
-    save_data()
+        update_symbol_score(pos["symbol"], won)
+        update_blacklist(pos["symbol"], won)
+        save_data()
 
     equity_now = get_equity_safe()
     pnl_total  = equity_now - sim["initial"]
@@ -2283,61 +2293,62 @@ def open_micro_trade(symbol: str, price: float, signal: dict, send_fn) -> dict |
     # the note at MICRO_MAX_PCT's definition. Hard $ cap as a backstop so
     # position size stays bounded even as equity grows, and never risk more
     # than what's actually still available in cash.
-    equity_now = sim["cash"] + sum(p.get("amount_usd", 0) for p in sim["positions"].values())
-    amount = equity_now * MICRO_MAX_PCT * fg_mult * macro_mult * night_factor * vol_mult * whale_boost_mult * ob_boost_mult
-    # FIX (2026-08-04): base sizing routinely lands within a few dollars of
-    # MICRO_MAX_USD_CAP already, so a boost multiplier applied before a fixed
-    # cap gets mostly clipped away -- the whale-opposed boost's trades were
-    # sized ~$45.5, barely above the ~$44 baseline, not the ~$63 a real 1.4x
-    # would have produced. Scale the cap itself by the same boost so it
-    # actually shows up in the final size instead of being absorbed by it.
-    effective_cap = MICRO_MAX_USD_CAP * max(whale_boost_mult, ob_boost_mult)
-    amount = min(amount, effective_cap, sim["cash"] * 0.9)
-    qty = amount / price
-    sim["cash"] -= amount
-    trade = {
-        "id": len(sim["trades"]) + 1,
-        "symbol": symbol,
-        "market": "MICRO",
-        "side": trade_side,
-        "trade_type": "MICRO",
-        "price_in": price,
-        "price_out": None,
-        "qty": qty,
-        "amount_usd": amount,
-        "confidence": signal["conf"],
-        "reason": signal.get("reason", ""),
-        "exit_reason": None,
-        "time_in": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "time_out": None,
-        "pnl": None,
-        "pnl_pct": None,
-        "duration_min": None,
-        "patterns": [f"score={signal['score']}"],
-        "leverage": 1,
-        "peak_price": price,
-        "open_time": time.time(),
-        "kelly_pct": MICRO_MAX_PCT,
-        # INSTRUMENTATION (2026-07-29, now also load-bearing as of 2026-07-30):
-        # started as passive logging to test whether whale-flow alignment
-        # predicts outcome; the "opposed" bucket it revealed is now an active
-        # size booster (see WHALE_OPPOSED_BOOST_MULT). Keep logging it either way.
-        "whale_buy_ratio": (_whale_cache.get(symbol) or (None, {}))[1].get("buy_ratio"),
-        "whale_boost_applied": whale_boost_mult != 1.0,
-        "ob_pressure": _ob.get("pressure"),
-        "ob_ratio": _ob.get("ratio"),
-        "ob_boost_applied": ob_boost_mult != 1.0,
-        # LET WINNERS RUN (2026-08-04): see LET_WINNER_RUN_MIN_SCORE's
-        # definition -- monitor_micro_positions() checks this flag to skip
-        # the fixed take-profit exit for high-conviction signals only.
-        "let_winner_run": abs(signal["score"]) >= LET_WINNER_RUN_MIN_SCORE,
-    }
-    pos_key = f"MICRO_{symbol}_{trade['id']}"
-    sim["trades"].append(trade)
-    sim["positions"][pos_key] = {**trade, "pos_key": pos_key}
-    db_save_trade(trade)
-    bot_state["trades_today"] += 1
-    bot_state["micro_count"] = bot_state.get("micro_count", 0) + 1
+    with sim_lock:
+        equity_now = sim["cash"] + sum(p.get("amount_usd", 0) for p in sim["positions"].values())
+        amount = equity_now * MICRO_MAX_PCT * fg_mult * macro_mult * night_factor * vol_mult * whale_boost_mult * ob_boost_mult
+        # FIX (2026-08-04): base sizing routinely lands within a few dollars of
+        # MICRO_MAX_USD_CAP already, so a boost multiplier applied before a fixed
+        # cap gets mostly clipped away -- the whale-opposed boost's trades were
+        # sized ~$45.5, barely above the ~$44 baseline, not the ~$63 a real 1.4x
+        # would have produced. Scale the cap itself by the same boost so it
+        # actually shows up in the final size instead of being absorbed by it.
+        effective_cap = MICRO_MAX_USD_CAP * max(whale_boost_mult, ob_boost_mult)
+        amount = min(amount, effective_cap, sim["cash"] * 0.9)
+        qty = amount / price
+        sim["cash"] -= amount
+        trade = {
+            "id": len(sim["trades"]) + 1,
+            "symbol": symbol,
+            "market": "MICRO",
+            "side": trade_side,
+            "trade_type": "MICRO",
+            "price_in": price,
+            "price_out": None,
+            "qty": qty,
+            "amount_usd": amount,
+            "confidence": signal["conf"],
+            "reason": signal.get("reason", ""),
+            "exit_reason": None,
+            "time_in": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "time_out": None,
+            "pnl": None,
+            "pnl_pct": None,
+            "duration_min": None,
+            "patterns": [f"score={signal['score']}"],
+            "leverage": 1,
+            "peak_price": price,
+            "open_time": time.time(),
+            "kelly_pct": MICRO_MAX_PCT,
+            # INSTRUMENTATION (2026-07-29, now also load-bearing as of 2026-07-30):
+            # started as passive logging to test whether whale-flow alignment
+            # predicts outcome; the "opposed" bucket it revealed is now an active
+            # size booster (see WHALE_OPPOSED_BOOST_MULT). Keep logging it either way.
+            "whale_buy_ratio": (_whale_cache.get(symbol) or (None, {}))[1].get("buy_ratio"),
+            "whale_boost_applied": whale_boost_mult != 1.0,
+            "ob_pressure": _ob.get("pressure"),
+            "ob_ratio": _ob.get("ratio"),
+            "ob_boost_applied": ob_boost_mult != 1.0,
+            # LET WINNERS RUN (2026-08-04): see LET_WINNER_RUN_MIN_SCORE's
+            # definition -- monitor_micro_positions() checks this flag to skip
+            # the fixed take-profit exit for high-conviction signals only.
+            "let_winner_run": abs(signal["score"]) >= LET_WINNER_RUN_MIN_SCORE,
+        }
+        pos_key = f"MICRO_{symbol}_{trade['id']}"
+        sim["trades"].append(trade)
+        sim["positions"][pos_key] = {**trade, "pos_key": pos_key}
+        db_save_trade(trade)
+        bot_state["trades_today"] += 1
+        bot_state["micro_count"] = bot_state.get("micro_count", 0) + 1
     return trade
 
 def monitor_micro_positions(send_fn):
@@ -2366,20 +2377,21 @@ def monitor_micro_positions(send_fn):
         elif change>0.003 and trailing>=MICRO_TRAILING_PCT:                        reason = f"📐 TRAIL ({trailing*100:.2f}%)"
         elif elapsed >= MICRO_MAX_DURATION:                                        reason = f"⏱ TIMEOUT {int(elapsed)}s"
         if reason:
-            pnl = change*pos["amount_usd"]
-            sim["cash"] += pos["amount_usd"]+pnl
-            trade = next((t for t in reversed(sim["trades"]) if t["id"]==pos["id"]), None)
-            if trade:
-                trade.update({
-                    "price_out":price,
-                    "time_out":datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "pnl":round(pnl,6),"pnl_pct":round(change*100,3),
-                    "exit_reason":reason,"duration_min":max(1,int(elapsed/60))
-                })
-                db_save_trade(trade)
-                learn_from_trade(trade,send_fn=None)
-            del sim["positions"][pos_key]
-            save_data()
+            with sim_lock:
+                pnl = change*pos["amount_usd"]
+                sim["cash"] += pos["amount_usd"]+pnl
+                trade = next((t for t in reversed(sim["trades"]) if t["id"]==pos["id"]), None)
+                if trade:
+                    trade.update({
+                        "price_out":price,
+                        "time_out":datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "pnl":round(pnl,6),"pnl_pct":round(change*100,3),
+                        "exit_reason":reason,"duration_min":max(1,int(elapsed/60))
+                    })
+                    db_save_trade(trade)
+                    learn_from_trade(trade,send_fn=None)
+                del sim["positions"][pos_key]
+                save_data()
             coin = symbol.replace("USDT","")
             send_fn(f"{'✅' if pnl>0 else '❌'} Micro {coin}: ${pnl:+.4f} | {reason}")
             won = pnl > 0
@@ -2394,49 +2406,50 @@ def run_compound_sweep(send_fn):
     core-satellite crypto basket. See COMPOUND_* constants for the data
     behind the weights/parameters. Runs once per CYCLE_COMPOUND from the
     main loop, same pattern as run_epargne_scan."""
-    compound = sim.setdefault("compound", {"holdings": {}, "last_sweep_equity": None, "sweeps": []})
-    equity_now = sim["cash"] + sum(p.get("amount_usd", 0) for p in sim["positions"].values())
+    with sim_lock:
+        compound = sim.setdefault("compound", {"holdings": {}, "last_sweep_equity": None, "sweeps": []})
+        equity_now = sim["cash"] + sum(p.get("amount_usd", 0) for p in sim["positions"].values())
 
-    if compound["last_sweep_equity"] is None:
-        # First run ever: just record the starting line, don't sweep the
-        # entire pre-existing profit in one shot.
+        if compound["last_sweep_equity"] is None:
+            # First run ever: just record the starting line, don't sweep the
+            # entire pre-existing profit in one shot.
+            compound["last_sweep_equity"] = equity_now
+            save_data()
+            return
+
+        growth = equity_now - compound["last_sweep_equity"]
+        if growth < COMPOUND_SWEEP_MIN_GROWTH:
+            return  # not enough new profit yet; keep accumulating toward the threshold
+
+        sweep_amount = growth * COMPOUND_SWEEP_PCT
+        sweep_amount = min(sweep_amount, sim["cash"] * COMPOUND_SWEEP_MAX_CASH_PCT)
+        if sweep_amount < 1.0:
+            return  # too small to bother, but still wait for more growth rather than resetting the baseline
+
+        prices = get_prices_batch()
+        bought = {}
+        spent = 0.0
+        for symbol, weight in COMPOUND_BASKET.items():
+            alloc = sweep_amount * weight
+            price = prices.get(symbol) or get_current_price(symbol)
+            if not price:
+                continue
+            qty = alloc / price
+            sim["cash"] -= alloc
+            spent += alloc
+            h = compound["holdings"].setdefault(symbol, {"qty": 0.0, "cost_usd": 0.0})
+            h["qty"] += qty
+            h["cost_usd"] += alloc
+            bought[symbol] = round(qty, 6)
+
         compound["last_sweep_equity"] = equity_now
+        compound["sweeps"].append({
+            "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "swept_usd": round(spent, 2),
+            "trigger_growth_usd": round(growth, 2),
+            "bought": bought,
+        })
         save_data()
-        return
-
-    growth = equity_now - compound["last_sweep_equity"]
-    if growth < COMPOUND_SWEEP_MIN_GROWTH:
-        return  # not enough new profit yet; keep accumulating toward the threshold
-
-    sweep_amount = growth * COMPOUND_SWEEP_PCT
-    sweep_amount = min(sweep_amount, sim["cash"] * COMPOUND_SWEEP_MAX_CASH_PCT)
-    if sweep_amount < 1.0:
-        return  # too small to bother, but still wait for more growth rather than resetting the baseline
-
-    prices = get_prices_batch()
-    bought = {}
-    spent = 0.0
-    for symbol, weight in COMPOUND_BASKET.items():
-        alloc = sweep_amount * weight
-        price = prices.get(symbol) or get_current_price(symbol)
-        if not price:
-            continue
-        qty = alloc / price
-        sim["cash"] -= alloc
-        spent += alloc
-        h = compound["holdings"].setdefault(symbol, {"qty": 0.0, "cost_usd": 0.0})
-        h["qty"] += qty
-        h["cost_usd"] += alloc
-        bought[symbol] = round(qty, 6)
-
-    compound["last_sweep_equity"] = equity_now
-    compound["sweeps"].append({
-        "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "swept_usd": round(spent, 2),
-        "trigger_growth_usd": round(growth, 2),
-        "bought": bought,
-    })
-    save_data()
     logger.info(f"[COMPOUND] 💰 Sweep ${spent:.2f} into long-term basket (MICRO growth was ${growth:.2f})")
     send_fn(f"💰 Compound: ${spent:.2f} investis en long-terme (croissance MICRO: +${growth:.2f})")
 
@@ -2515,49 +2528,51 @@ def fetch_hl_wallet_positions(address: str) -> dict:
 
 def _open_hl_mirror(symbol: str, price: float, side: str, source_addr: str,
                      source_coin: str, source_month_roi: float, send_fn):
-    amount = min(HL_SLEEVE_USD_PER_TRADE, sim["cash"] * 0.9)
-    qty = amount / price
-    sim["cash"] -= amount
-    trade = {
-        "id": len(sim["trades"]) + 1,
-        "symbol": symbol, "market": "HL_COPY", "side": side, "trade_type": "HL_COPY",
-        "price_in": price, "price_out": None, "qty": qty, "amount_usd": amount,
-        "confidence": 0, "reason": f"HL copy: {source_addr[:10]}... (ROI mois {source_month_roi*100:.1f}%)",
-        "exit_reason": None,
-        "time_in": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "time_out": None,
-        "pnl": None, "pnl_pct": None, "duration_min": None,
-        "patterns": [f"hl_source={source_addr}", f"hl_coin={source_coin}"],
-        "leverage": 1, "peak_price": price, "open_time": time.time(),
-        "hl_source_addr": source_addr, "hl_source_coin": source_coin,
-    }
-    pos_key = f"HLCOPY_{symbol}_{trade['id']}"
-    sim["trades"].append(trade)
-    sim["positions"][pos_key] = {**trade, "pos_key": pos_key}
-    db_save_trade(trade)
+    with sim_lock:
+        amount = min(HL_SLEEVE_USD_PER_TRADE, sim["cash"] * 0.9)
+        qty = amount / price
+        sim["cash"] -= amount
+        trade = {
+            "id": len(sim["trades"]) + 1,
+            "symbol": symbol, "market": "HL_COPY", "side": side, "trade_type": "HL_COPY",
+            "price_in": price, "price_out": None, "qty": qty, "amount_usd": amount,
+            "confidence": 0, "reason": f"HL copy: {source_addr[:10]}... (ROI mois {source_month_roi*100:.1f}%)",
+            "exit_reason": None,
+            "time_in": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "time_out": None,
+            "pnl": None, "pnl_pct": None, "duration_min": None,
+            "patterns": [f"hl_source={source_addr}", f"hl_coin={source_coin}"],
+            "leverage": 1, "peak_price": price, "open_time": time.time(),
+            "hl_source_addr": source_addr, "hl_source_coin": source_coin,
+        }
+        pos_key = f"HLCOPY_{symbol}_{trade['id']}"
+        sim["trades"].append(trade)
+        sim["positions"][pos_key] = {**trade, "pos_key": pos_key}
+        db_save_trade(trade)
     coin_label = symbol.replace("USDT", "")
     send_fn(f"🐋 HL-Copy OPEN {side} {coin_label} @ ${price:.4f} (wallet {source_addr[:8]}..., ROI mois {source_month_roi*100:.1f}%)")
 
 def _close_hl_mirror(pos_key: str, price: float, reason: str, send_fn):
-    pos = sim["positions"].get(pos_key)
-    if not pos:
-        return
-    entry = pos["price_in"]
-    is_short = pos.get("side") == "SHORT"
-    change = (entry - price) / entry if is_short else (price - entry) / entry
-    pnl = change * pos["amount_usd"]
-    sim["cash"] += pos["amount_usd"] + pnl
-    elapsed = time.time() - pos.get("open_time", time.time())
-    trade = next((t for t in reversed(sim["trades"]) if t["id"] == pos["id"]), None)
-    if trade:
-        trade.update({
-            "price_out": price,
-            "time_out": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "pnl": round(pnl, 6), "pnl_pct": round(change * 100, 3),
-            "exit_reason": reason, "duration_min": max(1, int(elapsed / 60)),
-        })
-        db_save_trade(trade)
-        learn_from_trade(trade, send_fn=None)
-    del sim["positions"][pos_key]
+    with sim_lock:
+        pos = sim["positions"].get(pos_key)
+        if not pos:
+            return
+        entry = pos["price_in"]
+        is_short = pos.get("side") == "SHORT"
+        change = (entry - price) / entry if is_short else (price - entry) / entry
+        pnl = change * pos["amount_usd"]
+        sim["cash"] += pos["amount_usd"] + pnl
+        elapsed = time.time() - pos.get("open_time", time.time())
+        trade = next((t for t in reversed(sim["trades"]) if t["id"] == pos["id"]), None)
+        if trade:
+            trade.update({
+                "price_out": price,
+                "time_out": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "pnl": round(pnl, 6), "pnl_pct": round(change * 100, 3),
+                "exit_reason": reason, "duration_min": max(1, int(elapsed / 60)),
+            })
+            db_save_trade(trade)
+            learn_from_trade(trade, send_fn=None)
+        del sim["positions"][pos_key]
     coin_label = pos["symbol"].replace("USDT", "")
     send_fn(f"{'✅' if pnl > 0 else '❌'} HL-Copy {coin_label}: ${pnl:+.4f} | {reason}")
 
@@ -2782,24 +2797,25 @@ def _open_meme_trade(token: dict, score: int, source: str, send_fn) -> dict | No
     meme_count = sum(1 for p in sim["positions"].values() if p.get("trade_type")=="MEME")
     if meme_count >= 2: return None
     if any(p.get("meme_symbol")==symbol for p in sim["positions"].values()): return None
-    amount = sim["cash"] * MEME_MAX_PCT
-    qty    = amount/price
-    sim["cash"] -= amount
-    trade = {
-        "id":len(sim["trades"])+1,"symbol":symbol,"market":"MEME","side":"LONG",
-        "trade_type":"MEME","meme_symbol":symbol,"price_in":price,"price_out":None,
-        "qty":qty,"amount_usd":amount,"confidence":min(95,50+score*7),
-        "reason":f"Score {score}/10 | @{source}","exit_reason":None,
-        "time_in":datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "time_out":None,"pnl":None,"pnl_pct":None,"duration_min":None,
-        "patterns":["memecoin"],"leverage":1,"peak_price":price,
-        "open_time":time.time(),"kelly_pct":MEME_MAX_PCT
-    }
-    pos_key = f"MEME_{symbol}_{trade['id']}"
-    sim["trades"].append(trade)
-    sim["positions"][pos_key] = {**trade,"pos_key":pos_key}
-    db_save_trade(trade)
-    bot_state["trades_today"] += 1
+    with sim_lock:
+        amount = sim["cash"] * MEME_MAX_PCT
+        qty    = amount/price
+        sim["cash"] -= amount
+        trade = {
+            "id":len(sim["trades"])+1,"symbol":symbol,"market":"MEME","side":"LONG",
+            "trade_type":"MEME","meme_symbol":symbol,"price_in":price,"price_out":None,
+            "qty":qty,"amount_usd":amount,"confidence":min(95,50+score*7),
+            "reason":f"Score {score}/10 | @{source}","exit_reason":None,
+            "time_in":datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "time_out":None,"pnl":None,"pnl_pct":None,"duration_min":None,
+            "patterns":["memecoin"],"leverage":1,"peak_price":price,
+            "open_time":time.time(),"kelly_pct":MEME_MAX_PCT
+        }
+        pos_key = f"MEME_{symbol}_{trade['id']}"
+        sim["trades"].append(trade)
+        sim["positions"][pos_key] = {**trade,"pos_key":pos_key}
+        db_save_trade(trade)
+        bot_state["trades_today"] += 1
     send_fn(f"🐸 MEME ${symbol} | ${price:.8f} | Score:{score}/10 | {source}")
     return trade
 
@@ -2825,20 +2841,21 @@ def _monitor_meme_positions(send_fn):
         elif change>0.05 and trailing>=MEME_TRAILING_PCT: reason = "📐 MEME TRAIL"
         elif elapsed >= MEME_MAX_DURATION: reason = "⏱ TIMEOUT"
         if reason:
-            pnl = change*pos["amount_usd"]
-            sim["cash"] += pos["amount_usd"]+pnl
-            trade = next((t for t in reversed(sim["trades"]) if t["id"]==pos["id"]), None)
-            if trade:
-                trade.update({
-                    "price_out":price,
-                    "time_out":datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "pnl":round(pnl,6),"pnl_pct":round(change*100,2),
-                    "exit_reason":reason,"duration_min":max(1,int(elapsed/60))
-                })
-                db_save_trade(trade)
-                learn_from_trade(trade,send_fn=None)
-            del sim["positions"][pos_key]
-            save_data()
+            with sim_lock:
+                pnl = change*pos["amount_usd"]
+                sim["cash"] += pos["amount_usd"]+pnl
+                trade = next((t for t in reversed(sim["trades"]) if t["id"]==pos["id"]), None)
+                if trade:
+                    trade.update({
+                        "price_out":price,
+                        "time_out":datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "pnl":round(pnl,6),"pnl_pct":round(change*100,2),
+                        "exit_reason":reason,"duration_min":max(1,int(elapsed/60))
+                    })
+                    db_save_trade(trade)
+                    learn_from_trade(trade,send_fn=None)
+                del sim["positions"][pos_key]
+                save_data()
             send_fn(f"{'✅' if pnl>0 else '❌'} MEME ${symbol}: ${pnl:+.4f} | {reason}")
             won = pnl > 0
             if won: memory["total_wins"]   = memory.get("total_wins",0)+1
@@ -3471,9 +3488,15 @@ def learn_from_backtest_result(result: dict):
 
 def save_data():
     try:
-        memory_data = memory.data if hasattr(memory, "data") else (memory if isinstance(memory, dict) else {})
-        data = json.dumps({"sim":sim,"memory":memory_data,"epargne":epargne}, indent=2, default=str)
-        DATA_FILE.write_text(data)
+        with sim_lock:
+            memory_data = memory.data if hasattr(memory, "data") else (memory if isinstance(memory, dict) else {})
+            data = json.dumps({"sim":sim,"memory":memory_data,"epargne":epargne}, indent=2, default=str)
+        # Atomic write (temp file + os.replace) -- a reader (SFTP pull, monitoring
+        # script) now only ever sees a complete, valid JSON file: either the full
+        # old version or the full new one, never a partially-written one.
+        tmp_path = DATA_FILE.with_suffix(DATA_FILE.suffix + ".tmp")
+        tmp_path.write_text(data)
+        os.replace(tmp_path, DATA_FILE)
         if GITHUB_TOKEN and GITHUB_REPO:
             headers = {"Authorization":f"token {GITHUB_TOKEN}","Content-Type":"application/json"}
             api_url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/sim_portfolio_v7.json"
