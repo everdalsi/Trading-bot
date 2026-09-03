@@ -843,6 +843,7 @@ from data_handler import (
     get_order_book
 )
 from smc_signal import analyze_structure
+from bull_bear_debate import debate as bull_bear_debate
 
 WS_SYMBOLS_WATCH = [
     "btcusdt","ethusdt","solusdt","bnbusdt","xrpusdt",
@@ -2039,12 +2040,16 @@ def micro_signal(symbol: str, price: float) -> dict:
             if MICRO_REQUIRE_TREND_CONFIRM and not (ema_bull_cross or mom_bull):
                 return {"signal": "HOLD", "score": score, "conf": 0,
                         "reason": f"gated: score {score} reached without EMA/momentum confirm ({reason})"}
-            return {"signal": "BUY",  "score": score, "conf": conf, "reason": reason, "smc": smc_info}
+            # Bull/bear debate (2026-09-03) -- informational only, see
+            # bull_bear_debate.py. NOT used to gate or size this decision.
+            debate_info = bull_bear_debate(score, "BUY", smc_info)
+            return {"signal": "BUY",  "score": score, "conf": conf, "reason": reason, "smc": smc_info, "debate": debate_info}
         elif score <= -_score_thresh:
             if MICRO_REQUIRE_TREND_CONFIRM and not (ema_bear_cross or mom_bear):
                 return {"signal": "HOLD", "score": score, "conf": 0,
                         "reason": f"gated: score {score} reached without EMA/momentum confirm ({reason})"}
-            return {"signal": "SELL", "score": score, "conf": conf, "reason": reason, "smc": smc_info}
+            debate_info = bull_bear_debate(score, "SELL", smc_info)
+            return {"signal": "SELL", "score": score, "conf": conf, "reason": reason, "smc": smc_info, "debate": debate_info}
         return {"signal": "HOLD", "score": score, "conf": 0}
     except Exception:
         return {"signal":"HOLD","score":0,"conf":0}
@@ -2338,6 +2343,11 @@ def open_micro_trade(symbol: str, price: float, signal: dict, send_fn) -> dict |
             # SMC signal (2026-08-20) -- informational only, see smc_signal.py.
             # Tagged for correlation analysis, not yet used to gate/size trades.
             "smc": signal.get("smc"),
+            # Bull/bear debate (2026-09-03) -- informational only, see
+            # bull_bear_debate.py. Tagged for correlation analysis: does a
+            # "bear_wins" verdict on a BUY (or vice versa) predict worse
+            # outcomes than when the debate agrees with the trade direction?
+            "debate": signal.get("debate"),
             # INSTRUMENTATION (2026-07-29, now also load-bearing as of 2026-07-30):
             # started as passive logging to test whether whale-flow alignment
             # predicts outcome; the "opposed" bucket it revealed is now an active
