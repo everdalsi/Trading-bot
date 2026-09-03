@@ -25,7 +25,7 @@ COPY . .
 # 5. Vérification post-install (robuste – pyfolio-reloaded est optionnel pour éviter les plantages)
 RUN python -c "import feedparser; print('✅ Feedparser OK')" \
     && python -c "import crewai; print('✅ CrewAI OK')" \
-    && python -c "import vectorbt as vbt; print('✅ VectorBT OK')" \
+    && (python -c "import vectorbt as vbt; print('✅ VectorBT OK')" || echo "⚠️  VectorBT non importable (optionnel, meme incompatibilite plotly/scattermapbox que QuantStats -- pas utilise par bot.py, voir agents/code_fixer_agent.py seulement)") \
     && (python -c "import quantstats as qs; print('✅ QuantStats OK')" || echo "⚠️  QuantStats non importable (optionnel, casse sur des incompatibilites plotly/scattermapbox transitoires -- pas utilise par bot.py, voir agents/code_fixer_agent.py seulement)") \
     && python -c "import redis; print('✅ Redis OK')" \
     && (python -c "import pyfolio as pf; print('✅ Pyfolio-reloaded OK')" || echo "⚠️  Pyfolio-reloaded non importable (optionnel)") \
