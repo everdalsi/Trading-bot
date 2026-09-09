@@ -108,6 +108,30 @@ from typing import Optional
 
 import alpaca_broker
 
+# Reuse the bot's shared logger config (stdout + rotating file handler) so
+# this sleeve's cycles show up in the same log stream as everything else.
+# logging_config.py is a standalone, dependency-free module (logging/os/sys
+# only, no bot.py import) so pulling it in here does not break this file's
+# "no bot.py coupling" discipline -- see module docstring.
+#
+# ROOT CAUSE (2026-09-09 investigation): run_alpaca_stocks_cycle() IS wired
+# correctly into the live trading_loop() in bot.py (same loop that logs
+# "Trading Loop autonome V8 demarre", not a separate/dead loop as first
+# suspected) and DOES fire every CYCLE_ALPACA_STOCKS (300s). But before this
+# fix, the only output on a HOLD decision (the overwhelming majority of
+# cycles -- score_symbol() needs |score|>=2 to even consider a trade) was a
+# silent append to the ledger JSON file. _safe_send()/send_fn only reaches
+# Telegram (bot.py's `send()`), never the logger -- so a HOLD, or a
+# would-be BUY/SELL skipped because the market is closed, produced zero
+# lines in trading_bot.log / stdout. That looked identical to "the cycle
+# never runs" from the logs alone. Fix: log a one-line cycle summary here
+# every run, independent of whether any order was placed.
+try:
+    from logging_config import logger
+except Exception:  # pragma: no cover - keep this sleeve importable standalone
+    import logging
+    logger = logging.getLogger("alpaca_stocks_sleeve")
+
 # Optional conviction overlay (13F + Congress) -- see module docstring
 # "CONVICTION OVERLAY" section. Import failures must never break this
 # sleeve: fall back to technical-only scoring.
@@ -385,19 +409,34 @@ def _alpaca_stocks_worker_body(send_fn) -> None:
         _safe_send(send_fn, f"[ALPACA-STOCKS] Conviction overlay unavailable this cycle (non-blocking): {type(e).__name__}: {e}")
         conviction_bonuses = {s: {"bonus": 0, "13f_direction": 0, "congress_direction": 0} for s in UNIVERSE}
 
+    cycle_summary = []
     for symbol in UNIVERSE:
         try:
-            _process_symbol(symbol, ledger, market_open, send_fn, conviction_bonuses.get(symbol, {"bonus": 0}))
+            result = _process_symbol(symbol, ledger, market_open, send_fn, conviction_bonuses.get(symbol, {"bonus": 0}))
+            cycle_summary.append(f"{symbol}={result}")
         except Exception as e:
             _safe_send(send_fn, f"[ALPACA-STOCKS] {symbol} error (isolated, skipped): {type(e).__name__}: {e}")
+            cycle_summary.append(f"{symbol}=ERROR({type(e).__name__})")
 
     ledger["last_run"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     if len(ledger["decisions"]) > MAX_DECISIONS_KEPT:
         ledger["decisions"] = ledger["decisions"][-MAX_DECISIONS_KEPT:]
     save_ledger(ledger)
 
+    # ALWAYS log a cycle heartbeat, independent of BUY/SELL/HOLD -- see the
+    # ROOT CAUSE note above the logger import. This is the only change that
+    # makes a normal (HOLD-only, or market-closed) cycle visible in the logs.
+    logger.info(
+        f"[ALPACA-STOCKS] Cycle done | market_open={market_open} | "
+        f"open_positions={len(ledger['positions'])} | " + ", ".join(cycle_summary)
+    )
 
-def _process_symbol(symbol: str, ledger: dict, market_open: bool, send_fn, conviction: Optional[dict] = None) -> None:
+
+def _process_symbol(symbol: str, ledger: dict, market_open: bool, send_fn, conviction: Optional[dict] = None) -> str:
+    """Returns a short status string (e.g. "HOLD score=1", "BUY", "SELL",
+    "BUY(skip:market_closed)") describing what happened for this symbol this
+    cycle -- used only to build the cycle heartbeat log line in
+    _alpaca_stocks_worker_body, never for control flow."""
     closes = alpaca_broker.get_recent_closes(symbol)
     technical_score, detail = score_symbol(closes)
 
@@ -425,15 +464,15 @@ def _process_symbol(symbol: str, ledger: dict, market_open: bool, send_fn, convi
     if action == "BUY" and not has_position:
         open_count = len(ledger["positions"])
         if open_count >= MAX_CONCURRENT_POSITIONS:
-            return
+            return f"BUY(skip:max_positions,score={score})"
         if not market_open:
-            return  # scored + logged above; no order while market is closed
+            return f"BUY(skip:market_closed,score={score})"  # scored + logged above; no order while market is closed
         last_close = detail.get("last_close") or (closes[-1] if closes else None)
         if not last_close or last_close <= 0:
-            return
+            return f"BUY(skip:no_price,score={score})"
         qty = round(USD_PER_TRADE / last_close, 4)
         if qty <= 0:
-            return
+            return f"BUY(skip:qty<=0,score={score})"
         order = alpaca_broker.submit_market_order(symbol, "buy", qty)
         entry_price = order.get("filled_avg_price") or last_close
         ledger["positions"][symbol] = {
@@ -442,10 +481,11 @@ def _process_symbol(symbol: str, ledger: dict, market_open: bool, send_fn, convi
             "order_id": order.get("id"), "score_at_entry": score,
         }
         _safe_send(send_fn, f"[ALPACA-STOCKS] BUY {symbol} qty={qty} ~${entry_price:.2f} (score={score})")
+        return f"BUY(qty={qty})"
 
     elif action == "SELL" and has_position:
         if not market_open:
-            return
+            return f"SELL(skip:market_closed,score={score})"
         pos = ledger["positions"][symbol]
         order = alpaca_broker.submit_market_order(symbol, "sell", pos["qty"])
         exit_price = order.get("filled_avg_price") or detail.get("last_close")
@@ -459,6 +499,9 @@ def _process_symbol(symbol: str, ledger: dict, market_open: bool, send_fn, convi
         })
         del ledger["positions"][symbol]
         _safe_send(send_fn, f"[ALPACA-STOCKS] SELL {symbol} qty={pos['qty']} pnl=${pnl} (score={score})")
+        return f"SELL(pnl={pnl})"
+
+    return f"{action}(score={score},has_position={has_position})"
 
 
 def get_alpaca_stocks_summary() -> dict:
