@@ -28,6 +28,7 @@ requests
 httpx
 websocket-client
 aiohttp
+alpaca-py     # Alpaca US-stocks paper-trading sleeve (alpaca_broker.py / alpaca_stocks_sleeve.py)
 
 # ── Réseau & Bot Telegram ─────────────────────────────���────────
 python-telegram-bot>=21.0

@@ -13,6 +13,54 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
+def _real_slippage_fraction(symbol: str, side: str, amount_usd: float) -> Optional[float]:
+    """Estime le slippage réel depuis l'order book Binance, en réutilisant
+    EXACTEMENT la formule déjà en prod dans agents/execution_engine_agent.py
+    (demi-spread + market impact Almgren-Chriss simplifié) via sa version
+    pure/offline-testable execution_quality_agent.predicted_slippage_pct() --
+    pas de duplication de formule (voir search-first).
+
+    FAIL-OPEN garanti (2026-09, remplace l'ancien random.uniform fictif --
+    voir project memory "trading bot slippage" pour le contexte complet) :
+    ne lève jamais d'exception. Retourne None si les données réelles ne sont
+    pas disponibles pour une raison quelconque (import impossible, API
+    Binance indisponible, symbole non supporté, order book vide/incomplet)
+    -- l'appelant doit alors retomber sur l'ancienne estimation
+    random.uniform(0.0001, 0.0005), qui reste le comportement par défaut.
+    """
+    try:
+        from agents.execution_engine_agent import _fetch_spread_and_depth
+        from execution_quality_agent import predicted_slippage_pct
+    except Exception as e:
+        logger.debug(f"[ExecV3] real slippage module unavailable, fallback to random: {e}")
+        return None
+    try:
+        book = _fetch_spread_and_depth(symbol)
+        best_bid  = book.get("best_bid", 0.0)
+        best_ask  = book.get("best_ask", 0.0)
+        mid_price = book.get("mid_price", 0.0)
+        if best_bid <= 0 or best_ask <= 0 or mid_price <= 0:
+            # This is _fetch_spread_and_depth's own "unavailable" sentinel
+            # (API down / symbol not on Binance / empty book) -- explicitly
+            # NOT real data, do not treat it as one.
+            return None
+        pct = predicted_slippage_pct(
+            spread_pct = book.get("spread_pct", 0.08),
+            side       = side,
+            amount_usd = amount_usd,
+            mid_price  = mid_price,
+            bid_depth  = book.get("bid_depth", 0.0),
+            ask_depth  = book.get("ask_depth", 0.0),
+        )
+        if pct is None or pct < 0:
+            return None
+        return pct / 100.0
+    except Exception as e:
+        logger.debug(f"[ExecV3] real slippage estimate failed for {symbol}, fallback to random: {e}")
+        return None
+
+
 class ExecutionEngine:
 
     def __init__(
@@ -162,13 +210,20 @@ class ExecutionEngine:
         amount_usd: float, price: float = None,
         stop_loss: float = None, take_profit: float = None
     ) -> Dict:
-        """Exécution simulée avec slippage réaliste."""
+        """Exécution simulée. Slippage estimé depuis l'order book Binance réel
+        (agents/execution_engine_agent.py) quand disponible ; sinon fallback
+        sur l'ancienne estimation random.uniform(0.0001, 0.0005) -- jamais
+        d'échec dur (fail-open), voir _real_slippage_fraction()."""
         current_price = price or self._fetch_price(symbol)
         if not current_price:
             return {"success": False, "error": "Prix indisponible"}
 
-        # Slippage simulé (0.01% à 0.05%)
-        slippage = random.uniform(0.0001, 0.0005)
+        slippage = _real_slippage_fraction(symbol, side, amount_usd)
+        slippage_source = "orderbook_real"
+        if slippage is None:
+            # Fallback (0.01% à 0.05%) -- comportement historique, inchangé.
+            slippage = random.uniform(0.0001, 0.0005)
+            slippage_source = "fallback_random"
         if side.upper() == "BUY":
             fill_price = current_price * (1 + slippage)
         else:
@@ -203,13 +258,14 @@ class ExecutionEngine:
             "amount_usd":  amount_usd,
             "fill_price":  fill_price,
             "slippage_pct": round(slippage * 100, 4),
+            "slippage_source": slippage_source,
             "fee":         round(fee, 4),
             "paper":       True,
             "ts":          datetime.utcnow().isoformat(),
             "balance":     self._paper_balance.get("USDT", 0),
         }
         self.trades_history.append(trade)
-        logger.info(f"[PAPER] {side} {symbol} ${amount_usd:.2f} @ {fill_price:.4f} | slippage: {slippage:.4%}")
+        logger.info(f"[PAPER] {side} {symbol} ${amount_usd:.2f} @ {fill_price:.4f} | slippage: {slippage:.4%} ({slippage_source})")
         return trade
 
     def _live_order(self, symbol: str, side: str, order_type: str,

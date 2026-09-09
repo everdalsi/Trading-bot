@@ -23,6 +23,22 @@ try:
 except ImportError:
     _SOUL_AVAILABLE = False
     logger.info("[SOUL] soul_agent.py non disponible → fonctionnalité désactivée")
+
+# ALPACA US-STOCKS PAPER SLEEVE (2026-09-08): additive only, see
+# alpaca_stocks_sleeve.py's module docstring for the full design rationale.
+# Broad `except Exception` (not just ImportError) on purpose -- alpaca_broker
+# raises RuntimeError at import time if ALPACA_API_KEY/SECRET_KEY are missing
+# from the environment, or KeyError-equivalent if .env isn't loaded yet in
+# whatever context imports bot.py; either way this must never prevent the
+# existing crypto sleeves (MICRO, HL_COPY) from starting.
+try:
+    from alpaca_stocks_sleeve import run_alpaca_stocks_cycle
+    _ALPACA_STOCKS_AVAILABLE = True
+except Exception as _alpaca_imp_e:
+    _ALPACA_STOCKS_AVAILABLE = False
+    def run_alpaca_stocks_cycle(send_fn):  # no-op fallback so call sites never need a hasattr check
+        pass
+    logger.info(f"[ALPACA-STOCKS] sleeve non disponible ({type(_alpaca_imp_e).__name__}: {_alpaca_imp_e}) → désactivée")
 from dotenv import load_dotenv
 from ai_engine import (
     ask_ai, vote, _can_call_ai, ask_model_single, get_pool_status,
@@ -376,6 +392,13 @@ HL_COIN_TO_BINANCE = {
     "ZEC": "ZECUSDT",
 }
 
+# ALPACA US-STOCKS PAPER SLEEVE config (2026-09-08). Universe/scoring/sizing
+# live in alpaca_stocks_sleeve.py itself (single source of truth) -- only the
+# cycle cadence and the on/off switch belong here, same split as the other
+# sleeves' CYCLE_* / *_ENABLED constants in this block.
+ALPACA_STOCKS_ENABLED = int(os.environ.get("ALPACA_STOCKS_ENABLED", 1)) and _ALPACA_STOCKS_AVAILABLE
+CYCLE_ALPACA_STOCKS   = int(os.environ.get("CYCLE_ALPACA_STOCKS", 300))   # 5min -- daily-bar signal, no need for tighter polling
+
 # FIX (2026-07-27): only send higher-conviction MICRO signals (multi-indicator
 # agreement) to Claude verification -- see the note at its call site in
 # open_micro_trade() for why. Borderline signals (score just above
@@ -468,6 +491,33 @@ OB_OPPOSED_BOOST_MULT = float(os.environ.get("OB_OPPOSED_BOOST_MULT", 1.0))
 # Balance accumulation/distribution across these wallets is used the same way
 # as the Binance whale filter: block-only, never boosts size/confidence. Fails
 # open (no veto) whenever a fresh snapshot isn't available.
+#
+# RE-AUDITED 2026-09-08 (user request: dig into what this does + look for
+# better public sources): confirmed this remains a SINGLE static wallet,
+# never re-verified against a live ranking the way HL_COPYTRADE's top-15
+# Hyperliquid wallets are refreshed every HL_REFRESH_WALLETS_SEC -- weaker
+# than that sleeve by design, not by oversight. Surveyed OKX Wallet's
+# leaderboard, GMGN, Solana Tracker's PnL leaderboard, Binance Futures
+# Leaderboard, Bybit Copy Trading, and GMX/Drift/Vertex on-chain perps: none
+# expose a public, no-auth, programmatically-refreshable top-N-by-ROI API the
+# way Hyperliquid does -- every one of them is either scrape-only (client-side
+# rendered) or paid. Conclusion: Hyperliquid remains the only source meeting
+# the full "verified ranking, not hype" bar end-to-end; do not add a second
+# Solana wallet (or swap this one) without first standing up real scraping
+# infra, which this bot does not have and per user policy is not being added
+# casually.
+# CAUTION (found during the same re-audit, not yet acted on): public
+# reporting (Solscan/GMGN/news coverage, Sept 2025) indicates this wallet was
+# drained by a private-key compromise around that time. If the wallet's
+# post-compromise activity isn't genuinely Cupsey's own trading anymore (new
+# key, different operator, or simply abandoned), the balance-drift signal
+# this filter relies on could be stale or meaningless without it being
+# obvious from the code -- it would keep failing "open" (no crash) while
+# silently tracking the wrong thing. Not independently re-verified as still
+# live/active as of this note -- flagged for the user to sanity-check
+# (e.g. recent Solscan activity on the address) before trusting this filter's
+# vetoes at face value; SOLANA_FILTER_ENABLED=false is the immediate mitigation
+# if that check comes back stale.
 SOLANA_FILTER_ENABLED  = os.environ.get("SOLANA_FILTER_ENABLED", "true").lower() in ("true", "1", "yes")
 SOLANA_RPC             = os.environ.get("SOLANA_RPC", "https://api.mainnet-beta.solana.com")
 SOLANA_SMART_WALLETS   = [
@@ -3771,6 +3821,7 @@ def trading_loop(send_fn):
     last_risk_check = 0
     last_compound = 0
     last_hl_copytrade = 0
+    last_alpaca_stocks = 0
 
     logger.info("🚀 Trading Loop autonome V8 démarré — Agents décident seuls")
     _aegis_log_sink.emit("INFO", "Bot trading loop started")
@@ -4227,6 +4278,13 @@ def trading_loop(send_fn):
                 run_hl_copytrade_cycle(send_fn)
             except Exception as _hle:
                 logger.warning(f"[HL-COPY] Cycle error: {type(_hle).__name__}: {_hle}")
+
+        if ALPACA_STOCKS_ENABLED and now - last_alpaca_stocks >= CYCLE_ALPACA_STOCKS:
+            last_alpaca_stocks = now
+            try:
+                run_alpaca_stocks_cycle(send_fn)
+            except Exception as _ase:
+                logger.warning(f"[ALPACA-STOCKS] Cycle error: {type(_ase).__name__}: {_ase}")
 
         if now - last_epargne >= CYCLE_EPARGNE:
             last_epargne = now
