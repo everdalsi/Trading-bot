@@ -249,8 +249,29 @@ TRADING_MODE = "MICRO_HIGH_FREQ"
 # trades resolve on real signal instead of timing out; same ~1.6x TP:SL ratio
 # preserved (old 1.1/0.7=1.57, new 0.4/0.25=1.6) so breakeven winrate is
 # unchanged. Single isolated change -- MICRO_MAX_DURATION/TRAILING untouched.
+# FEE FIX (2026-09-24): close_trade() computed PnL with zero fee deduction --
+# confirmed by audit: no FEE_PCT/TAKER_FEE constant existed anywhere in the live
+# path (the only "FEE = 0.001" in the whole file was a dead local var inside the
+# separate offline backtest_strategy(), declared and never referenced again).
+# Every one of the 32k+ MICRO trades to date was scored/reported on GROSS PnL.
+# Binance taker fee is ~0.1%/side = 0.2% round-trip. At the pre-fix bands
+# (SL 0.25%/TP 0.4%, "1.6x ratio"), net-of-fee breakeven winrate is ~69.2%
+# (net TP 0.4-0.2=0.2%, net SL 0.25+0.2=0.45%, breakeven=0.45/(0.2+0.45)) --
+# nowhere near the observed 37.2% gross WR, meaning MICRO was very likely
+# net-losing in fee-adjusted reality despite showing a positive gross number.
+# FEE_PCT is now real and applied in close_trade(). MICRO_TP_PCT widened so
+# the NET TP:SL ratio restores the 1.6x this file has explicitly intended and
+# preserved through every prior band-width change (SL left untouched --
+# that width was separately calibrated to measured volatility, unrelated to
+# the fee bug): net_TP = 1.6 * net_SL = 1.6*(0.0025+0.002) = 0.0072 -> gross
+# TP = 0.0072+0.002 = 0.0092. NOT independently re-validated against real
+# volume yet -- per this file's own established practice (see
+# LET_WINNER_RUN_MIN_SCORE history), treat this as provisional until a real
+# sample confirms it doesn't just push MICRO back toward the ~98% TIMEOUT-exit
+# regime the 0.7%/1.1% band produced before.
+FEE_PCT             = float(os.environ.get("FEE_PCT", 0.001))  # Binance taker fee, one side
 MICRO_SL_PCT        = 0.0025
-MICRO_TP_PCT        = 0.004
+MICRO_TP_PCT        = 0.0092
 MICRO_TRAILING_PCT  = 0.004
 # ENTRY-SIGNAL-QUALITY FIX (2026-08-13): the 2026-08-11 audit (11.5k trades)
 # found EMA cross and momentum carry real measured edge when present (EMA-up
@@ -1920,12 +1941,11 @@ def close_trade(pos_key: str, price: float, reason: str, send_fn) -> dict | None
         amt    = pos["amount_usd"]
         lev    = pos.get("leverage", 1)
 
-        if side == "LONG":
-            pnl     = (price - entry) / entry * amt * lev
-            pnl_pct = (price - entry) / entry * 100 * lev
-        else:
-            pnl     = (entry - price) / entry * amt * lev
-            pnl_pct = (entry - price) / entry * 100 * lev
+        notional = amt * lev
+        gross_pnl = (price - entry) / entry * notional if side == "LONG" else (entry - price) / entry * notional
+        fee_cost  = notional * FEE_PCT * 2  # round-trip: paid on entry AND exit
+        pnl       = gross_pnl - fee_cost
+        pnl_pct   = pnl / amt * 100 if amt else 0.0
 
         sim["cash"] += amt + pnl
 
@@ -3448,13 +3468,16 @@ def backtest_strategy(
             in_trade = True
             entry_price = price * (1 + SLIPPAGE)
             exit_price = price * (1 + strategy_params["tp"]) if score > 6 else price * (1 - strategy_params["sl"])
-            pnl = (exit_price - entry_price) / entry_price * (equity * 0.20)
+            position_size = equity * 0.20
+            gross_pnl = (exit_price - entry_price) / entry_price * position_size
+            fee_cost = position_size * FEE * 2  # round-trip, was declared but never applied (2026-09-24 fix)
+            pnl = gross_pnl - fee_cost
             equity += pnl
             trades.append({
                 "entry": entry_price,
                 "exit": exit_price,
                 "pnl": round(pnl, 4),
-                "pnl_pct": round((exit_price - entry_price) / entry_price * 100, 2),
+                "pnl_pct": round(pnl / position_size * 100, 2),
                 "exit_reason": "TP" if score > 6 else "SL"
             })
             equity_curve.append(equity)
