@@ -16,16 +16,40 @@ project memory for why this matters: BB+volume+RSI already dominate
 nearly every MICRO entry, and this is a genuinely different signal
 family worth checking for real differentiation before trusting it.
 
-Uses only close-price data (bot.py's get_klines_1m_cached() doesn't
-expose high/low) -- swing points are detected from a rolling window of
-closes, a simplification of "real" SMC (usually done on wicks) chosen
-to keep this additive and avoid touching the shared data_handler cache
-that many other parts of the bot depend on.
+`analyze_structure()` uses only close-price data -- swing points are
+detected from a rolling window of closes, a simplification of "real" SMC
+(usually done on wicks). This was originally a deliberate limitation
+(bot.py's get_klines_1m_cached() didn't expose high/low at the time).
+
+UPDATE (2026-09-24): data_handler.py now also caches highs/lows
+(get_ohlc_1m_cached(), additive, zero extra API calls -- see its
+docstring). Two more indicators added below that genuinely NEED wicks
+and couldn't be approximated on closes alone, found in another saved
+TikTok trading-education video (@captaintrading) and verified against
+real technical-analysis sources before implementing (not taken at
+face value -- see sources in each docstring):
+
+- Choppiness Index (CHOP) -- E.W. Dreiss, standard formula, needs
+  high/low for its ATR component.
+- Swing Failure Pattern (SFP) -- an ICT/SMC concept literally defined
+  by wick behavior (price wicks past a prior swing level then closes
+  back inside it same bar) -- cannot be detected on close-only data at
+  all, this is the reason it wasn't implemented before now.
+
+Same discipline as everything else in this file: computed and tagged
+onto the trade for later correlation analysis, NOT used to gate or
+size trades yet, never raises.
 """
 
 SWING_WINDOW = 3        # bars each side a point must beat to count as a swing high/low
 LIQUIDITY_TOLERANCE = 0.002  # 0.2% -- "near a prior level" proxy for equal highs/lows
 MIN_CLOSES_REQUIRED = 20
+CHOP_PERIOD = 14                # standard Dreiss period
+CHOP_CHOPPY_THRESHOLD = 61.8    # above this: ranging/choppy market
+CHOP_TRENDING_THRESHOLD = 38.2  # below this: strong trend
+SFP_LOOKBACK = 20               # bars searched for the prior swing level being swept
+
+import math
 
 
 def _find_swings(closes):
@@ -107,3 +131,91 @@ def analyze_structure(closes) -> dict:
         return result
     except Exception:
         return result
+
+
+def compute_chop(highs, lows, closes, period: int = CHOP_PERIOD) -> float | None:
+    """Choppiness Index (E.W. Dreiss): 100*LOG10(SUM(TrueRange,n)/(MaxHigh(n)-MinLow(n)))/LOG10(n).
+    >CHOP_CHOPPY_THRESHOLD (61.8) = ranging/choppy. <CHOP_TRENDING_THRESHOLD (38.2) = strong trend.
+    Formula verified against https://www.wealthcharts.com/kb (Choppiness Index formula) and
+    https://www.tradingsim.com/blog/choppiness-index-indicator before implementing.
+    None on insufficient data or any error -- never raises."""
+    try:
+        highs = [float(h) for h in highs]
+        lows = [float(l) for l in lows]
+        closes = [float(c) for c in closes]
+        n = period
+        if len(highs) < n + 1 or len(lows) < n + 1 or len(closes) < n + 1:
+            return None
+
+        trs = []
+        start = len(highs) - n
+        for i in range(start, len(highs)):
+            if i == 0:
+                tr = highs[i] - lows[i]
+            else:
+                tr = max(highs[i] - lows[i], abs(highs[i] - closes[i - 1]), abs(lows[i] - closes[i - 1]))
+            trs.append(tr)
+        atr_sum = sum(trs)
+        rng = max(highs[-n:]) - min(lows[-n:])
+        if rng <= 0 or atr_sum <= 0:
+            return None
+        return 100 * math.log10(atr_sum / rng) / math.log10(n)
+    except Exception:
+        return None
+
+
+def chop_regime(chop_value: float | None) -> str:
+    """UNKNOWN | CHOPPY | TRENDING | NEUTRAL, from a compute_chop() output."""
+    if chop_value is None:
+        return "UNKNOWN"
+    if chop_value >= CHOP_CHOPPY_THRESHOLD:
+        return "CHOPPY"
+    if chop_value <= CHOP_TRENDING_THRESHOLD:
+        return "TRENDING"
+    return "NEUTRAL"
+
+
+def detect_sfp(highs, lows, closes, lookback: int = SFP_LOOKBACK) -> dict:
+    """Swing Failure Pattern: the last bar's wick sweeps a prior swing high/low
+    (from the `lookback` bars before it) but closes back inside -- a liquidity-sweep
+    reversal signal. Real ICT/SMC concept, verified against
+    https://www.luxalgo.com/library/indicator/swing-failure-pattern-sfp/ and
+    https://coinmarketcap.com/academy/article/what-is-the-swing-failure-pattern-and-how-to-use-it-in-trading
+    before implementing. Never raises -- returns all-False on insufficient data/error."""
+    result = {"bullish_sfp": False, "bearish_sfp": False, "swept_level": None}
+    try:
+        highs = [float(h) for h in highs]
+        lows = [float(l) for l in lows]
+        closes = [float(c) for c in closes]
+        if len(highs) < lookback + 2 or len(lows) < lookback + 2 or len(closes) < lookback + 2:
+            return result
+
+        prior_highs = highs[-(lookback + 1):-1]
+        prior_lows = lows[-(lookback + 1):-1]
+        prior_swing_high = max(prior_highs)
+        prior_swing_low = min(prior_lows)
+        last_high, last_low, last_close = highs[-1], lows[-1], closes[-1]
+
+        if last_high > prior_swing_high and last_close < prior_swing_high:
+            result["bearish_sfp"] = True
+            result["swept_level"] = prior_swing_high
+        if last_low < prior_swing_low and last_close > prior_swing_low:
+            result["bullish_sfp"] = True
+            result["swept_level"] = prior_swing_low
+        return result
+    except Exception:
+        return result
+
+
+def analyze_ohlc(highs, lows, closes) -> dict:
+    """Combined CHOP + SFP read for one symbol -- the single call site to wire into
+    bot.py's MICRO signal, same shape/spirit as analyze_structure(). Never raises."""
+    chop = compute_chop(highs, lows, closes)
+    sfp = detect_sfp(highs, lows, closes)
+    return {
+        "chop": chop,
+        "chop_regime": chop_regime(chop),
+        "sfp_bullish": sfp["bullish_sfp"],
+        "sfp_bearish": sfp["bearish_sfp"],
+        "sfp_level": sfp["swept_level"],
+    }

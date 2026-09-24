@@ -18,6 +18,13 @@ class DataHandler:
         self.kline_cache_1m = {}
         self.kline_cache_5m = {}
         self.cache_ttl      = 30
+        # OHLC FIX (2026-09-24): close-only caches above can't feed indicators that
+        # genuinely need wicks (Choppiness Index needs high/low for ATR; Swing Failure
+        # Pattern is *defined* by a wick sweeping a prior level). Parallel, additive
+        # caches populated from the SAME Binance kline responses already being fetched
+        # below (zero extra API calls) -- existing kline_cache_1m/5m and every caller
+        # of get_klines()/get_klines_1m_cached() are byte-for-byte untouched.
+        self.hl_cache_1m = {}   # symbol -> deque[(high, low)], synced 1:1 with kline_cache_1m
 
     def get_current_price(self, symbol: str) -> float | None:
         now    = time.time()
@@ -73,8 +80,10 @@ class DataHandler:
                     timeout=8
                 )
                 r.raise_for_status()
-                closes = [float(c[4]) for c in r.json()]
+                rows = r.json()
+                closes = [float(c[4]) for c in rows]
                 self.kline_cache_1m[sym] = deque(closes, maxlen=60)
+                self.hl_cache_1m[sym] = deque(((float(c[2]), float(c[3])) for c in rows), maxlen=60)
             except Exception as e:
                 logger.debug(f"[DATA] Prefill {sym}: {e}")
             time.sleep(0.3)
@@ -108,16 +117,35 @@ class DataHandler:
                 timeout=8
             )
             if r.status_code == 200:
-                closes = [float(c[4]) for c in r.json()]
+                rows = r.json()
+                closes = [float(c[4]) for c in rows]
                 series = pd.Series(closes, dtype=float)
                 if interval == "1m":
                     self.kline_cache_1m[symbol] = deque(closes, maxlen=60)
+                    self.hl_cache_1m[symbol] = deque(((float(c[2]), float(c[3])) for c in rows), maxlen=60)
                 elif interval == "5m":
                     self.kline_cache_5m[symbol] = deque(closes, maxlen=60)
                 return series
         except Exception as e:
             logger.debug(f"[DATA] Klines {symbol}/{interval}: {e}")
         return pd.Series([], dtype=float)
+
+    def get_ohlc_1m(self, symbol: str) -> tuple[list, list, list]:
+        """(highs, lows, closes) for 1m, oldest-first, parallel arrays -- same length,
+        same bars. Empty lists if nothing cached yet (fail-open, caller's job to handle).
+        NOTE: only populated via prefill_caches()/get_klines()'s REST fallback path --
+        if a symbol has only ever been served from the websocket path in get_klines(),
+        highs/lows for it will be empty even though closes work fine there. This is a
+        known, accepted gap (websocket_manager doesn't carry OHLC), not a bug to chase."""
+        symbol = symbol.upper()
+        hl = list(self.hl_cache_1m.get(symbol, []))
+        closes = list(self.kline_cache_1m.get(symbol, []))
+        n = min(len(hl), len(closes))
+        if n == 0:
+            return [], [], []
+        highs = [h for h, l in hl[-n:]]
+        lows  = [l for h, l in hl[-n:]]
+        return highs, lows, closes[-n:]
 
     def update_kline(self, symbol: str, close: float, interval: str = "1m"):
         symbol = symbol.upper()
@@ -147,6 +175,10 @@ def get_klines_1m_cached(symbol: str) -> pd.Series:
 def get_klines_5m_cached(symbol: str, limit: int = 100) -> pd.Series:
     """Alias legacy pour compatibilite imports."""
     return data_handler.get_klines(symbol, "5m", limit)
+
+def get_ohlc_1m_cached(symbol: str) -> tuple[list, list, list]:
+    """(highs, lows, closes) 1m from the singleton -- see DataHandler.get_ohlc_1m."""
+    return data_handler.get_ohlc_1m(symbol)
 
 def get_volume_data(symbol: str, interval: str = "1", count: int = 10) -> list:
     """

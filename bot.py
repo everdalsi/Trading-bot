@@ -911,9 +911,10 @@ from data_handler import (
     get_klines_1m_cached,
     get_klines_5m_cached,
     get_volume_data,
-    get_order_book
+    get_order_book,
+    get_ohlc_1m_cached
 )
-from smc_signal import analyze_structure
+from smc_signal import analyze_structure, analyze_ohlc
 from bull_bear_debate import debate as bull_bear_debate
 
 WS_SYMBOLS_WATCH = [
@@ -2027,6 +2028,11 @@ def micro_signal(symbol: str, price: float) -> dict:
         # tagged onto the trade in open_micro_trade() for later correlation
         # analysis, NOT used to gate or size this decision.
         smc_info = analyze_structure(closes.tolist())
+        # CHOP + SFP (2026-09-24) -- informational only, see smc_signal.py docstring.
+        # Needs real wicks (data_handler's new OHLC cache); empty/None-safe if that
+        # cache hasn't been populated yet for this symbol (fail-open, same as smc_info).
+        _hi, _lo, _cl = get_ohlc_1m_cached(symbol)
+        ohlc_info = analyze_ohlc(_hi, _lo, _cl)
         ema5       = float(closes.ewm(span=5, adjust=False).mean().iloc[-1])
         ema13      = float(closes.ewm(span=13,adjust=False).mean().iloc[-1])
         ema5_prev  = float(closes.ewm(span=5, adjust=False).mean().iloc[-2])
@@ -2113,13 +2119,13 @@ def micro_signal(symbol: str, price: float) -> dict:
             # Bull/bear debate (2026-09-03) -- informational only, see
             # bull_bear_debate.py. NOT used to gate or size this decision.
             debate_info = bull_bear_debate(score, "BUY", smc_info)
-            return {"signal": "BUY",  "score": score, "conf": conf, "reason": reason, "smc": smc_info, "debate": debate_info}
+            return {"signal": "BUY",  "score": score, "conf": conf, "reason": reason, "smc": smc_info, "debate": debate_info, "ohlc": ohlc_info}
         elif score <= -_score_thresh:
             if MICRO_REQUIRE_TREND_CONFIRM and not (ema_bear_cross or mom_bear):
                 return {"signal": "HOLD", "score": score, "conf": 0,
                         "reason": f"gated: score {score} reached without EMA/momentum confirm ({reason})"}
             debate_info = bull_bear_debate(score, "SELL", smc_info)
-            return {"signal": "SELL", "score": score, "conf": conf, "reason": reason, "smc": smc_info, "debate": debate_info}
+            return {"signal": "SELL", "score": score, "conf": conf, "reason": reason, "smc": smc_info, "debate": debate_info, "ohlc": ohlc_info}
         return {"signal": "HOLD", "score": score, "conf": 0}
     except Exception:
         return {"signal":"HOLD","score":0,"conf":0}
@@ -2413,6 +2419,9 @@ def open_micro_trade(symbol: str, price: float, signal: dict, send_fn) -> dict |
             # SMC signal (2026-08-20) -- informational only, see smc_signal.py.
             # Tagged for correlation analysis, not yet used to gate/size trades.
             "smc": signal.get("smc"),
+            # CHOP + SFP (2026-09-24) -- informational only, see smc_signal.py docstring.
+            # Tagged for correlation analysis, not yet used to gate/size trades.
+            "ohlc": signal.get("ohlc"),
             # Bull/bear debate (2026-09-03) -- informational only, see
             # bull_bear_debate.py. Tagged for correlation analysis: does a
             # "bear_wins" verdict on a BUY (or vice versa) predict worse
