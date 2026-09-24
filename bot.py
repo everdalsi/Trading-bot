@@ -2476,14 +2476,24 @@ def monitor_micro_positions(send_fn):
         elif elapsed >= MICRO_MAX_DURATION:                                        reason = f"⏱ TIMEOUT {int(elapsed)}s"
         if reason:
             with sim_lock:
-                pnl = change*pos["amount_usd"]
+                # FEE FIX (2026-09-24): this function has its own inline close logic,
+                # separate from close_trade() -- the fee fix applied there earlier
+                # today never touched MICRO trades at all (~99.8% of all volume per
+                # this file's own 2026-07-25 comment), because this path never calls
+                # close_trade(). Caught by checking real post-deploy trades directly
+                # (id 32948/32949) still showing gross-only pnl. Same fee model as
+                # close_trade(): round-trip FEE_PCT on the notional.
+                notional = pos["amount_usd"] * pos.get("leverage", 1)
+                gross_pnl = change * notional
+                fee_cost = notional * FEE_PCT * 2
+                pnl = gross_pnl - fee_cost
                 sim["cash"] += pos["amount_usd"]+pnl
                 trade = next((t for t in reversed(sim["trades"]) if t["id"]==pos["id"]), None)
                 if trade:
                     trade.update({
                         "price_out":price,
                         "time_out":datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                        "pnl":round(pnl,6),"pnl_pct":round(change*100,3),
+                        "pnl":round(pnl,6),"pnl_pct":round((pnl/pos["amount_usd"])*100 if pos["amount_usd"] else 0.0,3),
                         "exit_reason":reason,"duration_min":max(1,int(elapsed/60))
                     })
                     db_save_trade(trade)
@@ -2657,7 +2667,12 @@ def _close_hl_mirror(pos_key: str, price: float, reason: str, send_fn):
         entry = pos["price_in"]
         is_short = pos.get("side") == "SHORT"
         change = (entry - price) / entry if is_short else (price - entry) / entry
-        pnl = change * pos["amount_usd"]
+        # FEE FIX (2026-09-24): same bug as monitor_micro_positions -- this closer
+        # bypasses close_trade() too, so the earlier fee fix never applied here either.
+        notional = pos["amount_usd"] * pos.get("leverage", 1)
+        gross_pnl = change * notional
+        fee_cost = notional * FEE_PCT * 2
+        pnl = gross_pnl - fee_cost
         sim["cash"] += pos["amount_usd"] + pnl
         elapsed = time.time() - pos.get("open_time", time.time())
         trade = next((t for t in reversed(sim["trades"]) if t["id"] == pos["id"]), None)
@@ -2665,7 +2680,7 @@ def _close_hl_mirror(pos_key: str, price: float, reason: str, send_fn):
             trade.update({
                 "price_out": price,
                 "time_out": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "pnl": round(pnl, 6), "pnl_pct": round(change * 100, 3),
+                "pnl": round(pnl, 6), "pnl_pct": round((pnl / pos["amount_usd"]) * 100 if pos["amount_usd"] else 0.0, 3),
                 "exit_reason": reason, "duration_min": max(1, int(elapsed / 60)),
             })
             db_save_trade(trade)
@@ -2940,14 +2955,18 @@ def _monitor_meme_positions(send_fn):
         elif elapsed >= MEME_MAX_DURATION: reason = "⏱ TIMEOUT"
         if reason:
             with sim_lock:
-                pnl = change*pos["amount_usd"]
+                # FEE FIX (2026-09-24): same bypass-of-close_trade() bug as MICRO/HL-copy.
+                notional = pos["amount_usd"] * pos.get("leverage", 1)
+                gross_pnl = change * notional
+                fee_cost = notional * FEE_PCT * 2
+                pnl = gross_pnl - fee_cost
                 sim["cash"] += pos["amount_usd"]+pnl
                 trade = next((t for t in reversed(sim["trades"]) if t["id"]==pos["id"]), None)
                 if trade:
                     trade.update({
                         "price_out":price,
                         "time_out":datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                        "pnl":round(pnl,6),"pnl_pct":round(change*100,2),
+                        "pnl":round(pnl,6),"pnl_pct":round((pnl/pos["amount_usd"])*100 if pos["amount_usd"] else 0.0,2),
                         "exit_reason":reason,"duration_min":max(1,int(elapsed/60))
                     })
                     db_save_trade(trade)
