@@ -270,7 +270,31 @@ TRADING_MODE = "MICRO_HIGH_FREQ"
 # sample confirms it doesn't just push MICRO back toward the ~98% TIMEOUT-exit
 # regime the 0.7%/1.1% band produced before.
 FEE_PCT             = float(os.environ.get("FEE_PCT", 0.001))  # Binance taker fee, one side
-MICRO_SL_PCT        = 0.0025
+# TP-WIDEN CORRECTION (2026-09-28): the provisional TP widen above was flagged
+# "not independently re-validated" -- now it has been, and it made things worse.
+# 4 days / 226 real post-fee-fix MICRO trades, WR settled at 27% (nowhere near
+# even the improved ~38.5% breakeven), net pnl -$22.76, trend negative every
+# single day (not one bad day -- 09-25 to 09-28 all net-negative). Exit-reason
+# breakdown makes the mechanism exact, not guessed: MICRO_SL n=92 pnl=-$22.21
+# (97.6% of all losses) vs MICRO_TP n=13 pnl=+$4.90 -- SL is hit ~7x more often
+# than TP, wildly lopsided versus the intended ~1:1.6 risk:reward. Root cause:
+# SL at 0.25% sits right at the edge of the measured pure-noise band (2026-08-10
+# audit: 600s stdev ~0.22%, 84% of moves stay within +-0.3%) -- it gets hit by
+# random walk alone, with or without real signal edge, while TP at 0.92% is far
+# outside that same noise band and rarely reached organically. TIMEOUT exits
+# (n=95, pnl=-$0.71) are near-flat as expected -- NOT the problem, ruling out
+# the "fee-drag-on-flat-closes" theory this file worried about right after the
+# fee fix shipped.
+# Fix: widen SL by the SAME 2.3x factor TP was widened by (0.4->0.92% was
+# 2.3x), so SL moves proportionally outside the noise band instead of sitting
+# at its edge, while keeping the gross TP:SL ratio ~1.6x this file has always
+# intended (0.92/0.58=1.586). This is the SL's first change since the
+# 2026-08-10 volatility calibration -- that calibration measured raw price
+# noise, not fee-adjusted hit-rate balance, so revisiting it now with real
+# post-fee-fix trade data is a distinct, justified reason, not a contradiction
+# of it. Provisional like every band-width change here -- needs its own real-
+# sample confirmation before being trusted further.
+MICRO_SL_PCT        = 0.0058
 MICRO_TP_PCT        = 0.0092
 MICRO_TRAILING_PCT  = 0.004
 # ENTRY-SIGNAL-QUALITY FIX (2026-08-13): the 2026-08-11 audit (11.5k trades)
