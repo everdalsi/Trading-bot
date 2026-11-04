@@ -419,11 +419,11 @@ HL_LEADERBOARD_URL       = "https://stats-data.hyperliquid.xyz/Mainnet/leaderboa
 HL_MIN_ACCOUNT_VALUE     = float(os.environ.get("HL_MIN_ACCOUNT_VALUE", 500000))   # filter out tiny/noise accounts
 HL_MIN_MONTH_ROI         = float(os.environ.get("HL_MIN_MONTH_ROI", 0.05))         # >=5% ROI over 30d
 HL_MIN_WEEK_ROI          = float(os.environ.get("HL_MIN_WEEK_ROI", 0.0))           # still positive recently, not just a stale monthly number
-HL_TOP_N_WALLETS         = int(os.environ.get("HL_TOP_N_WALLETS", 7))   # 2026-11-04: lowered 15->7, this is now the crypto side's "7 best accounts", same philosophy as the 7 curated 13F filers on the stocks side -- except these 7 are picked from REAL, LIVE Hyperliquid leaderboard data (min account size + sustained week+month ROI, see fetch_hl_top_wallets), not hand-picked by anyone
+HL_TOP_N_WALLETS         = int(os.environ.get("HL_TOP_N_WALLETS", 75))   # 2026-11-04: raised 7->75 per explicit user instruction -- paper money, deliberately testing wider/noisier coverage (majors + meme + micro mixed in) before ever risking real capital; was briefly 7 (mirroring the stocks side's 7 curated filers) but the user wants volume/diversity now, not a tight curated list. Still a ceiling, not a guarantee: fetch_hl_top_wallets only returns whoever actually passes HL_MIN_ACCOUNT_VALUE/HL_MIN_MONTH_ROI/HL_MIN_WEEK_ROI, could come back with fewer than 75.
 HL_REFRESH_WALLETS_SEC   = int(os.environ.get("HL_REFRESH_WALLETS_SEC", 21600))    # 6h -- leaderboard payload is ~34MB, don't refetch every cycle
 CYCLE_HL_COPYTRADE        = int(os.environ.get("CYCLE_HL_COPYTRADE", 300))          # poll followed wallets' positions every 5min
 HL_SLEEVE_USD_PER_TRADE  = float(os.environ.get("HL_SLEEVE_USD_PER_TRADE", 25.0))
-HL_SLEEVE_MAX_CONCURRENT = int(os.environ.get("HL_SLEEVE_MAX_CONCURRENT", 10))
+HL_SLEEVE_MAX_CONCURRENT = int(os.environ.get("HL_SLEEVE_MAX_CONCURRENT", 40))   # 2026-11-04: raised 10->40 alongside HL_TOP_N_WALLETS -- following 75 wallets but still capping at 10 concurrent positions would silently skip most signals, defeating the point of widening coverage
 HL_SLEEVE_HARD_SL_PCT    = float(os.environ.get("HL_SLEEVE_HARD_SL_PCT", 0.15))    # independent safety net, see note above
 
 # CRYPTO COPY SLEEVE -- SEPARATE PORTFOLIO (added 2026-11-04, per explicit user
@@ -436,7 +436,7 @@ HL_SLEEVE_HARD_SL_PCT    = float(os.environ.get("HL_SLEEVE_HARD_SL_PCT", 0.15)) 
 # starting cash, own trade-id namespace, same DATA_DIR persistence pattern as
 # the Alpaca sleeve's ledger (survives a container recreate instead of
 # resetting, see that file's 2026-11-04 note for why that matters).
-HL_COPY_STARTING_CASH  = float(os.environ.get("HL_COPY_STARTING_CASH", 1000.0))
+HL_COPY_STARTING_CASH  = float(os.environ.get("HL_COPY_STARTING_CASH", 5000.0))   # 2026-11-04: raised 1000->5000 alongside the wallet-count/concurrency widening above -- 40 concurrent slots x $25/trade = $1,000 just to ever fill them all once, 5000 leaves real headroom for rotation (positions closing/reopening) instead of being cash-starved most of the time
 HL_COPY_LEDGER_PATH    = Path(os.environ.get("DATA_DIR") or ".") / "hl_copy_ledger.json"
 HL_COPY_LEDGER_LOCK    = threading.Lock()
 HL_COPY_TRADE_ID_BASE  = 90_000_000   # far above the shared sim's own trade ids (currently ~35k) so db_save_trade's "INSERT OR REPLACE" by id can never collide with an unrelated MICRO/legacy trade
