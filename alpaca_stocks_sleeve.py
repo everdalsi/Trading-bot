@@ -101,28 +101,41 @@ DYNAMIC COPY UNIVERSE (added 2026-11-04, additive only): the fixed 4-ticker
   UNIVERSE above only ever scores AAPL/MSFT/NVDA/SPY, no matter what a
   curated filer actually holds. get_dynamic_universe() below uses
   sec_13f_signal.resolve_top_weighted() (OpenFIGI CUSIP->ticker resolution,
-  added the same day) to pull COPY_FILER_NAME's current top COPY_TOP_N
-  holdings by value and add whichever of those tickers aren't already in
-  UNIVERSE to the symbols scored this cycle -- up to MAX_DYNAMIC_SYMBOLS of
-  them, so the universe can grow with what the copied filer actually holds
-  without becoming unbounded. A dynamically-added symbol is scored and
-  traded through the exact same path as the original 4 (same score_symbol,
-  same $500 USD_PER_TRADE, same decide() thresholds, same conviction
-  overlay -- its CUSIP is merged into the overlay's lookup map so
-  _compute_13f_directions sees it like any curated ticker). Nothing about
-  the original 4 tickers' behavior changes if this fails or returns nothing.
+  added the same day) to pull each of COPY_FILER_NAMES's current top
+  COPY_TOP_N holdings by value and add whichever of those tickers aren't
+  already in UNIVERSE to the symbols scored this cycle -- up to
+  MAX_DYNAMIC_SYMBOLS of them, so the universe can grow with what the
+  copied filers actually hold without becoming unbounded. A
+  dynamically-added symbol is scored and traded through the exact same
+  path as the original 4 (same score_symbol, same $500 USD_PER_TRADE, same
+  decide() thresholds, same conviction overlay -- its CUSIP is merged into
+  the overlay's lookup map so _compute_13f_directions sees it like any
+  curated ticker). Nothing about the original 4 tickers' behavior changes
+  if this fails or returns nothing.
+
+  Widened 2026-11-04 (same day, later -- per explicit user instruction to
+  cut the crypto sleeves and make this the bot's primary strategy):
+  COPY_FILER_NAMES now pulls from every one of the 7 CURATED_FILERS
+  (Berkshire, Scion/Burry, Bridgewater/Dalio, Duquesne/Druckenmiller,
+  Pershing Square/Ackman, Third Point/Loeb, Renaissance) instead of just
+  Berkshire, ranked by (number of filers holding it) then (summed
+  weight_pct across filers) so a name several of these managers converge
+  on outranks one held by only one of them. MAX_DYNAMIC_SYMBOLS raised
+  3 -> 15 to match -- still a hard cap, "widen" does not mean unbounded;
+  see get_dynamic_universe()'s docstring for the exact ranking rule.
 
   Cadence: disk-cached (own file, COPY_CACHE_PATH) for COPY_CACHE_MAX_AGE
-  (7 days) -- 13F only updates quarterly, no value refreshing more often,
-  and it keeps this to about one OpenFIGI call a week. Fail-open exactly
-  like the conviction overlay: any error (SEC fetch, OpenFIGI lookup,
-  corrupt cache) degrades to an empty dynamic universe, never raises, and
-  the cycle proceeds with just the original 4 tickers, unchanged from
-  before this feature existed.
+  (7 days) -- 13F only updates quarterly, no value refreshing more often.
+  Fail-open exactly like the conviction overlay: any error (one filer's
+  SEC fetch, an OpenFIGI lookup, a corrupt cache) degrades that filer's
+  contribution to empty and never raises; a total failure degrades to an
+  empty dynamic universe, and the cycle proceeds with just the original 4
+  tickers, unchanged from before this feature existed.
 """
 from __future__ import annotations
 
 import json
+import os
 import threading
 import time
 from datetime import datetime
@@ -187,17 +200,32 @@ TARGET_CUSIPS = {
 }
 
 CONGRESS_LOOKBACK_DAYS = 90  # see docstring: 30d missed real matches in research, 90d balances freshness vs Congress's slow/uneven filing lag
-CONVICTION_CACHE_PATH = Path(__file__).with_name("alpaca_stocks_conviction_cache.json")
+
+# PERSISTENCE FIX (2026-11-04): these 3 files used to be Path(__file__).with_name(...)
+# -- i.e. written next to this source file, inside /workspace in the
+# container, which is NOT the bind-mounted volume (only /opt/trading-bot/data
+# -> /app/data is, same DATA_DIR pattern bot.py's own DATA_FILE already
+# uses for sim_portfolio_v7.json). Every full container recreate (not just
+# a restart) rebuilds /workspace from the image, silently resetting this
+# sleeve's ledger -- i.e. losing its memory of which positions it already
+# holds -- discovered when today's redeploy showed open_positions=0 right
+# after a position had been confirmed open moments before. Moving these
+# under DATA_DIR makes them survive a redeploy exactly like the crypto
+# sleeves' state already does. Falls back to "next to this file" if
+# DATA_DIR isn't set (e.g. local dev without the env var), unchanged from
+# before for that case.
+_DATA_DIR = Path(os.environ.get("DATA_DIR") or Path(__file__).parent)
+CONVICTION_CACHE_PATH = _DATA_DIR / "alpaca_stocks_conviction_cache.json"
 CONVICTION_CACHE_MAX_AGE_SEC = 12 * 3600  # multi-day/week-lag signals; no value in refetching every 5-min cycle
 
 # Dynamic copy universe -- see module docstring "DYNAMIC COPY UNIVERSE".
-COPY_FILER_NAME = "Berkshire Hathaway"   # must be a key in sec_13f_signal.CURATED_FILERS
-COPY_TOP_N = 5                           # how many of the filer's biggest holdings to consider
-MAX_DYNAMIC_SYMBOLS = 3                  # cap on how many NEW tickers this can add to the scored universe
-COPY_CACHE_PATH = Path(__file__).with_name("alpaca_stocks_copy_cache.json")
+COPY_FILER_NAMES = None   # None = every key in sec_13f_signal.CURATED_FILERS; or pass an explicit list to narrow it
+COPY_TOP_N = 5                           # how many of EACH filer's biggest holdings to consider
+MAX_DYNAMIC_SYMBOLS = 15                 # cap on how many NEW tickers this can add to the scored universe
+COPY_CACHE_PATH = _DATA_DIR / "alpaca_stocks_copy_cache.json"
 COPY_CACHE_MAX_AGE_SEC = 7 * 24 * 3600    # 13F is quarterly -- weekly refresh is already generous
 
-LEDGER_PATH = Path(__file__).with_name("alpaca_stocks_ledger.json")
+LEDGER_PATH = _DATA_DIR / "alpaca_stocks_ledger.json"
 LEDGER_LOCK = threading.Lock()
 
 USD_PER_TRADE = 500.0          # fixed size per position, small vs $100k paper cash
@@ -362,12 +390,23 @@ def _save_copy_cache(data: dict) -> None:
 
 
 def get_dynamic_universe(send_fn=None) -> dict:
-    """Returns {ticker: cusip} for up to MAX_DYNAMIC_SYMBOLS tickers from
-    COPY_FILER_NAME's current top COPY_TOP_N holdings that aren't already
-    in UNIVERSE, disk-cached for COPY_CACHE_MAX_AGE_SEC. Never raises --
-    any failure (missing module, SEC down, no CIK for COPY_FILER_NAME,
-    OpenFIGI unavailable, unresolved tickers) degrades to {}, meaning the
-    sleeve scores exactly the original 4 tickers, unchanged."""
+    """Returns {ticker: cusip} for up to MAX_DYNAMIC_SYMBOLS tickers drawn
+    from COPY_FILER_NAMES's (default: every CURATED_FILER) current top
+    COPY_TOP_N holdings each, disk-cached for COPY_CACHE_MAX_AGE_SEC.
+
+    Ranking across filers: a ticker's rank key is
+    (how many of the queried filers hold it in their top COPY_TOP_N,
+     sum of its weight_pct across those filers) -- both descending, so a
+    name several managers independently converge on outranks one only one
+    of them holds, and within the same filer-count ties break on combined
+    conviction size. Already-in-UNIVERSE tickers are excluded before
+    ranking so the cap only spends its budget on genuinely new names.
+
+    Never raises -- any failure (missing module, SEC down for one or all
+    filers, no CIK for a name, OpenFIGI unavailable, unresolved tickers)
+    degrades that filer's contribution to nothing; a total failure
+    degrades to {}, meaning the sleeve scores exactly the original 4
+    tickers, unchanged."""
     cached = _load_copy_cache()
     if cached is not None:
         return cached.get("dynamic_symbols", {})
@@ -376,17 +415,29 @@ def get_dynamic_universe(send_fn=None) -> dict:
     try:
         if not _SEC_13F_IMPORT_OK:
             raise RuntimeError("sec_13f_signal not importable")
-        cik = sec_13f_signal.CURATED_FILERS.get(COPY_FILER_NAME)
-        if not cik:
-            raise KeyError(f"{COPY_FILER_NAME!r} not in CURATED_FILERS")
-        top = sec_13f_signal.resolve_top_weighted(cik, top_n=COPY_TOP_N)
-        for row in top:
-            ticker = row.get("ticker")
-            if not ticker or ticker in UNIVERSE or ticker in result:
-                continue
-            result[ticker] = row["cusip"]
-            if len(result) >= MAX_DYNAMIC_SYMBOLS:
-                break
+        filer_names = COPY_FILER_NAMES or list(sec_13f_signal.CURATED_FILERS.keys())
+
+        # {ticker: {"cusip": str, "filer_count": int, "total_weight": float}}
+        candidates: dict = {}
+        for filer_name in filer_names:
+            cik = sec_13f_signal.CURATED_FILERS.get(filer_name)
+            if not cik:
+                continue  # unknown filer name -- skip it, never abort the others
+            try:
+                top = sec_13f_signal.resolve_top_weighted(cik, top_n=COPY_TOP_N)
+            except Exception:
+                continue  # this filer's 13F unavailable this cycle -- fail-open, try the rest
+            for row in top:
+                ticker = row.get("ticker")
+                if not ticker or ticker in UNIVERSE:
+                    continue
+                entry = candidates.setdefault(ticker, {"cusip": row["cusip"], "filer_count": 0, "total_weight": 0.0})
+                entry["filer_count"] += 1
+                entry["total_weight"] += row.get("weight_pct", 0.0)
+
+        ranked = sorted(candidates.items(), key=lambda kv: (kv[1]["filer_count"], kv[1]["total_weight"]), reverse=True)
+        for ticker, entry in ranked[:MAX_DYNAMIC_SYMBOLS]:
+            result[ticker] = entry["cusip"]
     except Exception as e:
         _safe_send(send_fn, f"[ALPACA-STOCKS] Dynamic copy universe unavailable this cycle (non-blocking): {type(e).__name__}: {e}")
         result = {}

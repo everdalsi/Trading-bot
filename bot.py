@@ -444,6 +444,21 @@ HL_COIN_TO_BINANCE = {
 ALPACA_STOCKS_ENABLED = int(os.environ.get("ALPACA_STOCKS_ENABLED", 1)) and _ALPACA_STOCKS_AVAILABLE
 CYCLE_ALPACA_STOCKS   = int(os.environ.get("CYCLE_ALPACA_STOCKS", 300))   # 5min -- daily-bar signal, no need for tighter polling
 
+# CRYPTO KILL SWITCH (added 2026-11-04, per explicit user instruction): the
+# crypto sleeves (MICRO + the main 50-agent analysis/decision block it
+# shares a cycle gate with, MEME, COMPOUND) had a documented, un-fixed
+# "no net edge after fees" track record (505 trades, see project memory)
+# -- user asked to cut them entirely and make the Alpaca US-stocks sleeve
+# above the bot's primary strategy. Gates only the blocks that OPEN NEW
+# crypto positions (trading_loop's last_micro/last_meme/last_compound
+# blocks, flipped below); monitor_positions/monitor_micro_positions/
+# monitor_hl_copytrade_risk are NOT gated by this, so any already-open
+# crypto position still gets its SL/TP/trailing exit instead of being
+# abandoned unmonitored. HL_COPYTRADE_ENABLED already has its own existing
+# switch (set via env, not touched here). Default 1 (unchanged behavior)
+# so this is opt-out, not a behavior change until explicitly set to 0.
+CRYPTO_TRADING_ENABLED = int(os.environ.get("CRYPTO_TRADING_ENABLED", 1))
+
 # FIX (2026-07-27): only send higher-conviction MICRO signals (multi-indicator
 # agreement) to Claude verification -- see the note at its call site in
 # open_micro_trade() for why. Borderline signals (score just above
@@ -3985,7 +4000,7 @@ def trading_loop(send_fn):
             except Exception as _mon_e:
                 logger.debug(f"[MONITOR] exit-check error: {_mon_e}")
 
-        if now - last_micro >= CYCLE_MICRO:
+        if CRYPTO_TRADING_ENABLED and now - last_micro >= CYCLE_MICRO:
             last_micro = now
             performance_tracker.update_trade_results(memory, current_price)
 
@@ -4311,7 +4326,7 @@ def trading_loop(send_fn):
             except Exception as _sol_e:
                 logger.debug(f"[SOLANA-SMART-MONEY] snapshot error: {_sol_e}")
 
-        if now - last_meme >= CYCLE_MEME:
+        if CRYPTO_TRADING_ENABLED and now - last_meme >= CYCLE_MEME:
             last_meme = now
             meme_ctx = {
                 "shared_glossary": shared_glossary if 'shared_glossary' in globals() else {}, 
@@ -4340,7 +4355,7 @@ def trading_loop(send_fn):
             except Exception as meme_e:
                 logger.debug(f"[MEME] Cycle skipped: {meme_e}")
 
-        if now - last_compound >= CYCLE_COMPOUND:
+        if CRYPTO_TRADING_ENABLED and now - last_compound >= CYCLE_COMPOUND:
             last_compound = now
             try:
                 run_compound_sweep(send_fn)
