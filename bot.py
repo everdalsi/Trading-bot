@@ -32,12 +32,16 @@ except ImportError:
 # whatever context imports bot.py; either way this must never prevent the
 # existing crypto sleeves (MICRO, HL_COPY) from starting.
 try:
-    from alpaca_stocks_sleeve import run_alpaca_stocks_cycle
+    from alpaca_stocks_sleeve import run_alpaca_stocks_cycle, get_alpaca_stocks_summary
+    import alpaca_broker as _alpaca_broker_for_status
     _ALPACA_STOCKS_AVAILABLE = True
 except Exception as _alpaca_imp_e:
     _ALPACA_STOCKS_AVAILABLE = False
     def run_alpaca_stocks_cycle(send_fn):  # no-op fallback so call sites never need a hasattr check
         pass
+    def get_alpaca_stocks_summary():
+        return {}
+    _alpaca_broker_for_status = None
     logger.info(f"[ALPACA-STOCKS] sleeve non disponible ({type(_alpaca_imp_e).__name__}: {_alpaca_imp_e}) → désactivée")
 from dotenv import load_dotenv
 from ai_engine import (
@@ -4408,7 +4412,7 @@ def trading_loop(send_fn):
             except Exception as regime_e:
                 logger.debug(f"[REGIME] Mise à jour ignorée: {regime_e}")
 
-        if now - last_status >= 60:
+        if now - last_status >= _status_interval_sec():
             last_status = now
             try:
                 send_fn(generate_telegram_status())
@@ -4527,8 +4531,58 @@ def self_ping():
             pass
         time.sleep(270)
 
+def _status_interval_sec() -> int:
+    """How often to send the Telegram status heartbeat. 60s when crypto is
+    on (unchanged default). When crypto is off (CRYPTO_TRADING_ENABLED=0)
+    and the stock market is closed -- most of the day, since NYSE is only
+    open ~6.5h/weekday -- stretched to 30min instead of spamming a status
+    that can't change anyway while nothing can trade. Fail-open: any error
+    checking market hours falls back to 60s, unchanged from before this
+    existed."""
+    if CRYPTO_TRADING_ENABLED or _alpaca_broker_for_status is None:
+        return 60
+    try:
+        return 60 if _alpaca_broker_for_status.is_market_open() else 1800
+    except Exception:
+        return 60
+
+
+def generate_telegram_status_stocks() -> str:
+    """Stocks-only status message (added 2026-11-04) -- used instead of the
+    crypto one below once CRYPTO_TRADING_ENABLED=0, so this heartbeat
+    actually describes the strategy that's running instead of showing
+    BTC/ETH prices and a crypto win-rate from a sleeve that's been turned
+    off. Fail-open: any error (Alpaca down, sleeve unavailable) falls back
+    to a minimal "status unavailable" line rather than raising."""
+    try:
+        summary = get_alpaca_stocks_summary()
+        account = summary.get("account", {}) or {}
+        equity = account.get("portfolio_value") or account.get("equity") or 0
+        cash = account.get("cash", 0)
+        open_pos = summary.get("open_positions", {}) or {}
+        try:
+            market_open = _alpaca_broker_for_status.is_market_open() if _alpaca_broker_for_status else None
+        except Exception:
+            market_open = None
+        market_label = "🟢 OUVERT" if market_open else ("🔴 FERMÉ" if market_open is False else "❓ inconnu")
+        pos_label = ", ".join(open_pos.keys()) if open_pos else "aucune"
+        return (
+            f"🟢 BOT ACTIF — 📊 ACTIONS US (crypto coupée)\n"
+            f"━━━━━━━━━━━━━━━━━━━\n"
+            f"🏛 Marché NYSE : {market_label}\n"
+            f"💰 Portefeuille paper : ${equity:,.2f} (cash ${cash:,.2f})\n"
+            f"📍 Positions : {pos_label}\n"
+            f"📜 Décisions loggées : {summary.get('decisions_logged', 0)}\n"
+            f"⏰ {time.strftime('%H:%M:%S UTC', time.gmtime())}"
+        )
+    except Exception as e:
+        return f"🟢 BOT ACTIF — statut actions US indisponible ({type(e).__name__})\n⏰ {time.strftime('%H:%M:%S UTC', time.gmtime())}"
+
+
 def generate_telegram_status() -> str:
     """Génère un message texte court pour Telegram (sans HTML brut ni DOCTYPE)."""
+    if not CRYPTO_TRADING_ENABLED:
+        return generate_telegram_status_stocks()
     equity = get_equity_safe()
     pnl = equity - sim["initial"]
     pct = pnl / sim["initial"] * 100 if sim["initial"] > 0 else 0
