@@ -419,12 +419,27 @@ HL_LEADERBOARD_URL       = "https://stats-data.hyperliquid.xyz/Mainnet/leaderboa
 HL_MIN_ACCOUNT_VALUE     = float(os.environ.get("HL_MIN_ACCOUNT_VALUE", 500000))   # filter out tiny/noise accounts
 HL_MIN_MONTH_ROI         = float(os.environ.get("HL_MIN_MONTH_ROI", 0.05))         # >=5% ROI over 30d
 HL_MIN_WEEK_ROI          = float(os.environ.get("HL_MIN_WEEK_ROI", 0.0))           # still positive recently, not just a stale monthly number
-HL_TOP_N_WALLETS         = int(os.environ.get("HL_TOP_N_WALLETS", 15))
+HL_TOP_N_WALLETS         = int(os.environ.get("HL_TOP_N_WALLETS", 7))   # 2026-11-04: lowered 15->7, this is now the crypto side's "7 best accounts", same philosophy as the 7 curated 13F filers on the stocks side -- except these 7 are picked from REAL, LIVE Hyperliquid leaderboard data (min account size + sustained week+month ROI, see fetch_hl_top_wallets), not hand-picked by anyone
 HL_REFRESH_WALLETS_SEC   = int(os.environ.get("HL_REFRESH_WALLETS_SEC", 21600))    # 6h -- leaderboard payload is ~34MB, don't refetch every cycle
 CYCLE_HL_COPYTRADE        = int(os.environ.get("CYCLE_HL_COPYTRADE", 300))          # poll followed wallets' positions every 5min
 HL_SLEEVE_USD_PER_TRADE  = float(os.environ.get("HL_SLEEVE_USD_PER_TRADE", 25.0))
 HL_SLEEVE_MAX_CONCURRENT = int(os.environ.get("HL_SLEEVE_MAX_CONCURRENT", 10))
 HL_SLEEVE_HARD_SL_PCT    = float(os.environ.get("HL_SLEEVE_HARD_SL_PCT", 0.15))    # independent safety net, see note above
+
+# CRYPTO COPY SLEEVE -- SEPARATE PORTFOLIO (added 2026-11-04, per explicit user
+# instruction: two genuinely separate portfolios, one per market, mirroring
+# each other's "copy the best N accounts" philosophy -- stocks via 7 curated
+# 13F filers (alpaca_stocks_sleeve.py), crypto via these 7 live top-ROI
+# Hyperliquid wallets. Before this, HL_COPY mutated sim["cash"]/sim["positions"]
+# -- the SAME pool as the (now disabled) MICRO crypto sleeve, i.e. not a
+# separate portfolio at all, just a shared pot with it. Own ledger file, own
+# starting cash, own trade-id namespace, same DATA_DIR persistence pattern as
+# the Alpaca sleeve's ledger (survives a container recreate instead of
+# resetting, see that file's 2026-11-04 note for why that matters).
+HL_COPY_STARTING_CASH  = float(os.environ.get("HL_COPY_STARTING_CASH", 1000.0))
+HL_COPY_LEDGER_PATH    = Path(os.environ.get("DATA_DIR") or ".") / "hl_copy_ledger.json"
+HL_COPY_LEDGER_LOCK    = threading.Lock()
+HL_COPY_TRADE_ID_BASE  = 90_000_000   # far above the shared sim's own trade ids (currently ~35k) so db_save_trade's "INSERT OR REPLACE" by id can never collide with an unrelated MICRO/legacy trade
 HL_COIN_TO_BINANCE = {
     "BTC": "BTCUSDT", "ETH": "ETHUSDT", "SOL": "SOLUSDT", "BNB": "BNBUSDT",
     "XRP": "XRPUSDT", "DOGE": "DOGEUSDT", "AVAX": "AVAXUSDT", "LINK": "LINKUSDT",
@@ -2677,58 +2692,89 @@ def fetch_hl_wallet_positions(address: str) -> dict:
         }
     return out
 
+def _default_hl_copy_ledger() -> dict:
+    return {"cash": HL_COPY_STARTING_CASH, "positions": {}, "trades": [],
+            "wallets": [], "last_wallet_refresh": None, "wallet_positions": {}}
+
+
+def load_hl_copy_ledger() -> dict:
+    with HL_COPY_LEDGER_LOCK:
+        if not HL_COPY_LEDGER_PATH.exists():
+            return _default_hl_copy_ledger()
+        try:
+            with open(HL_COPY_LEDGER_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            for k, v in _default_hl_copy_ledger().items():
+                data.setdefault(k, v)
+            return data
+        except Exception:
+            # Corrupt/partial file -- never crash the sleeve over it, start
+            # fresh in memory (file on disk untouched until next save).
+            return _default_hl_copy_ledger()
+
+
+def save_hl_copy_ledger(ledger: dict) -> None:
+    with HL_COPY_LEDGER_LOCK:
+        tmp = HL_COPY_LEDGER_PATH.with_suffix(".json.tmp")
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(ledger, f, indent=2, default=str)
+        tmp.replace(HL_COPY_LEDGER_PATH)
+
+
 def _open_hl_mirror(symbol: str, price: float, side: str, source_addr: str,
                      source_coin: str, source_month_roi: float, send_fn):
-    with sim_lock:
-        amount = min(HL_SLEEVE_USD_PER_TRADE, sim["cash"] * 0.9)
-        qty = amount / price
-        sim["cash"] -= amount
-        trade = {
-            "id": len(sim["trades"]) + 1,
-            "symbol": symbol, "market": "HL_COPY", "side": side, "trade_type": "HL_COPY",
-            "price_in": price, "price_out": None, "qty": qty, "amount_usd": amount,
-            "confidence": 0, "reason": f"HL copy: {source_addr[:10]}... (ROI mois {source_month_roi*100:.1f}%)",
-            "exit_reason": None,
-            "time_in": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "time_out": None,
-            "pnl": None, "pnl_pct": None, "duration_min": None,
-            "patterns": [f"hl_source={source_addr}", f"hl_coin={source_coin}"],
-            "leverage": 1, "peak_price": price, "open_time": time.time(),
-            "hl_source_addr": source_addr, "hl_source_coin": source_coin,
-        }
-        pos_key = f"HLCOPY_{symbol}_{trade['id']}"
-        sim["trades"].append(trade)
-        sim["positions"][pos_key] = {**trade, "pos_key": pos_key}
-        db_save_trade(trade)
+    ledger = load_hl_copy_ledger()
+    amount = min(HL_SLEEVE_USD_PER_TRADE, ledger["cash"] * 0.9)
+    qty = amount / price
+    ledger["cash"] -= amount
+    trade = {
+        "id": HL_COPY_TRADE_ID_BASE + len(ledger["trades"]) + 1,
+        "symbol": symbol, "market": "HL_COPY", "side": side, "trade_type": "HL_COPY",
+        "price_in": price, "price_out": None, "qty": qty, "amount_usd": amount,
+        "confidence": 0, "reason": f"HL copy: {source_addr[:10]}... (ROI mois {source_month_roi*100:.1f}%)",
+        "exit_reason": None,
+        "time_in": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "time_out": None,
+        "pnl": None, "pnl_pct": None, "duration_min": None,
+        "patterns": [f"hl_source={source_addr}", f"hl_coin={source_coin}"],
+        "leverage": 1, "peak_price": price, "open_time": time.time(),
+        "hl_source_addr": source_addr, "hl_source_coin": source_coin,
+    }
+    pos_key = f"HLCOPY_{symbol}_{trade['id']}"
+    ledger["trades"].append(trade)
+    ledger["positions"][pos_key] = {**trade, "pos_key": pos_key}
+    save_hl_copy_ledger(ledger)
+    db_save_trade(trade)
     coin_label = symbol.replace("USDT", "")
     send_fn(f"🐋 HL-Copy OPEN {side} {coin_label} @ ${price:.4f} (wallet {source_addr[:8]}..., ROI mois {source_month_roi*100:.1f}%)")
 
 def _close_hl_mirror(pos_key: str, price: float, reason: str, send_fn):
-    with sim_lock:
-        pos = sim["positions"].get(pos_key)
-        if not pos:
-            return
-        entry = pos["price_in"]
-        is_short = pos.get("side") == "SHORT"
-        change = (entry - price) / entry if is_short else (price - entry) / entry
-        # FEE FIX (2026-09-24): same bug as monitor_micro_positions -- this closer
-        # bypasses close_trade() too, so the earlier fee fix never applied here either.
-        notional = pos["amount_usd"] * pos.get("leverage", 1)
-        gross_pnl = change * notional
-        fee_cost = notional * FEE_PCT * 2
-        pnl = gross_pnl - fee_cost
-        sim["cash"] += pos["amount_usd"] + pnl
-        elapsed = time.time() - pos.get("open_time", time.time())
-        trade = next((t for t in reversed(sim["trades"]) if t["id"] == pos["id"]), None)
-        if trade:
-            trade.update({
-                "price_out": price,
-                "time_out": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "pnl": round(pnl, 6), "pnl_pct": round((pnl / pos["amount_usd"]) * 100 if pos["amount_usd"] else 0.0, 3),
-                "exit_reason": reason, "duration_min": max(1, int(elapsed / 60)),
-            })
-            db_save_trade(trade)
-            learn_from_trade(trade, send_fn=None)
-        del sim["positions"][pos_key]
+    ledger = load_hl_copy_ledger()
+    pos = ledger["positions"].get(pos_key)
+    if not pos:
+        return
+    entry = pos["price_in"]
+    is_short = pos.get("side") == "SHORT"
+    change = (entry - price) / entry if is_short else (price - entry) / entry
+    # FEE FIX (2026-09-24): same bug as monitor_micro_positions -- this closer
+    # bypasses close_trade() too, so the earlier fee fix never applied here either.
+    notional = pos["amount_usd"] * pos.get("leverage", 1)
+    gross_pnl = change * notional
+    fee_cost = notional * FEE_PCT * 2
+    pnl = gross_pnl - fee_cost
+    ledger["cash"] += pos["amount_usd"] + pnl
+    elapsed = time.time() - pos.get("open_time", time.time())
+    trade = next((t for t in reversed(ledger["trades"]) if t["id"] == pos["id"]), None)
+    if trade:
+        trade.update({
+            "price_out": price,
+            "time_out": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "pnl": round(pnl, 6), "pnl_pct": round((pnl / pos["amount_usd"]) * 100 if pos["amount_usd"] else 0.0, 3),
+            "exit_reason": reason, "duration_min": max(1, int(elapsed / 60)),
+        })
+        db_save_trade(trade)
+        learn_from_trade(trade, send_fn=None)
+    del ledger["positions"][pos_key]
+    save_hl_copy_ledger(ledger)
     coin_label = pos["symbol"].replace("USDT", "")
     send_fn(f"{'✅' if pnl > 0 else '❌'} HL-Copy {coin_label}: ${pnl:+.4f} | {reason}")
 
@@ -2738,11 +2784,12 @@ def monitor_hl_copytrade_risk(send_fn):
     wallet-position poll in run_hl_copytrade_cycle(), which only sees a
     source-side close. Without this, a source wallet that stops updating (or
     a coin we lose track of between polls) would leave us holding an
-    uncapped-downside position."""
+    uncapped-downside position. Own ledger (see "CRYPTO COPY SLEEVE" note) --
+    no trade_type filter needed any more, this ledger only ever holds
+    HL_COPY positions by construction."""
+    ledger = load_hl_copy_ledger()
     prices = get_prices_batch()
-    for pos_key, pos in list(sim["positions"].items()):
-        if pos.get("trade_type") != "HL_COPY":
-            continue
+    for pos_key, pos in list(ledger["positions"].items()):
         symbol = pos["symbol"]
         price = prices.get(symbol) or get_current_price(symbol)
         if not price:
@@ -2752,7 +2799,6 @@ def monitor_hl_copytrade_risk(send_fn):
         change = (entry - price) / entry if is_short else (price - entry) / entry
         if change <= -HL_SLEEVE_HARD_SL_PCT:
             _close_hl_mirror(pos_key, price, f"🛑 HL-Copy hard SL ({change*100:+.2f}%)", send_fn)
-    save_data()
 
 _hl_copytrade_running = False
 
@@ -2774,6 +2820,25 @@ def run_hl_copytrade_cycle(send_fn):
     _hl_copytrade_running = True
     threading.Thread(target=_hl_copytrade_worker, args=(send_fn,), daemon=True).start()
 
+
+def get_hl_copy_summary() -> dict:
+    """Reporting-only helper (added 2026-11-04, mirrors
+    alpaca_stocks_sleeve.get_alpaca_stocks_summary()'s shape) for the
+    crypto copy sleeve's own isolated portfolio."""
+    ledger = load_hl_copy_ledger()
+    closed = [t for t in ledger["trades"] if t.get("pnl") is not None]
+    wr = round(len([t for t in closed if t["pnl"] > 0]) / len(closed) * 100, 1) if closed else 0.0
+    return {
+        "cash": ledger["cash"],
+        "open_positions": ledger["positions"],
+        "trades_logged": len(ledger["trades"]),
+        "closed_trades": len(closed),
+        "win_rate": wr,
+        "followed_wallets": len(ledger["wallets"]),
+        "last_wallet_refresh": ledger.get("last_wallet_refresh"),
+    }
+
+
 def _hl_copytrade_worker(send_fn):
     """Refresh the followed-wallet list (every HL_REFRESH_WALLETS_SEC) and
     poll their live positions (every CYCLE_HL_COPYTRADE) to mirror opens and
@@ -2789,40 +2854,40 @@ def _hl_copytrade_worker(send_fn):
         _hl_copytrade_running = False
 
 def _hl_copytrade_worker_body(send_fn):
-    state = sim.setdefault("hl_copytrade", {"wallets": [], "last_wallet_refresh": None, "wallet_positions": {}})
+    ledger = load_hl_copy_ledger()
     now = time.time()
 
-    if state["last_wallet_refresh"] is None or now - state["last_wallet_refresh"] >= HL_REFRESH_WALLETS_SEC:
+    if ledger["last_wallet_refresh"] is None or now - ledger["last_wallet_refresh"] >= HL_REFRESH_WALLETS_SEC:
         wallets = fetch_hl_top_wallets()
         if wallets:
-            state["wallets"] = wallets
-            state["last_wallet_refresh"] = now
+            ledger["wallets"] = wallets
+            ledger["last_wallet_refresh"] = now
             logger.info(f"[HL-COPY] Wallets suivis rafraichis: {len(wallets)} (meilleur ROI mois={wallets[0]['month_roi']*100:.1f}%)")
-            save_data()
+            save_hl_copy_ledger(ledger)
 
-    if not state["wallets"]:
+    if not ledger["wallets"]:
         return
 
     prices = get_prices_batch()
 
-    for w in state["wallets"]:
+    for w in ledger["wallets"]:
         addr = w["address"]
         live_positions = fetch_hl_wallet_positions(addr)
-        last_seen = state["wallet_positions"].get(addr, {})
+        last_seen = ledger["wallet_positions"].get(addr, {})
 
         for coin in list(last_seen.keys()):
             if coin not in live_positions:
                 symbol = HL_COIN_TO_BINANCE.get(coin)
                 if not symbol:
                     continue
-                mirror_key = next((pk for pk, p in sim["positions"].items()
-                                    if p.get("trade_type") == "HL_COPY"
-                                    and p.get("hl_source_addr") == addr
+                mirror_key = next((pk for pk, p in ledger["positions"].items()
+                                    if p.get("hl_source_addr") == addr
                                     and p.get("hl_source_coin") == coin), None)
                 if mirror_key:
                     price = prices.get(symbol) or get_current_price(symbol)
                     if price:
                         _close_hl_mirror(mirror_key, price, "🐋 HL-Copy source closed", send_fn)
+                        ledger = load_hl_copy_ledger()  # _close_hl_mirror just saved a newer version -- reload before this loop keeps mutating it
 
         for coin, pos in live_positions.items():
             if coin in last_seen:
@@ -2830,17 +2895,20 @@ def _hl_copytrade_worker_body(send_fn):
             symbol = HL_COIN_TO_BINANCE.get(coin)
             if not symbol or symbol in MANUAL_SYMBOL_BLACKLIST:
                 continue
-            open_hl_positions = [p for p in sim["positions"].values() if p.get("trade_type") == "HL_COPY"]
+            open_hl_positions = list(ledger["positions"].values())
             if len(open_hl_positions) >= HL_SLEEVE_MAX_CONCURRENT:
                 continue
             if any(p["symbol"] == symbol for p in open_hl_positions):
                 continue
             price = prices.get(symbol) or get_current_price(symbol)
-            if not price or sim["cash"] < HL_SLEEVE_USD_PER_TRADE:
+            if not price or ledger["cash"] < HL_SLEEVE_USD_PER_TRADE:
                 continue
             _open_hl_mirror(symbol, price, pos["side"], addr, coin, w["month_roi"], send_fn)
+            ledger = load_hl_copy_ledger()  # _open_hl_mirror just saved a newer version -- reload for the same reason as above
 
-        state["wallet_positions"][addr] = live_positions
+        ledger["wallet_positions"][addr] = live_positions
+
+    save_hl_copy_ledger(ledger)
 
     save_data()
 
@@ -4548,12 +4616,15 @@ def _status_interval_sec() -> int:
 
 
 def generate_telegram_status_stocks() -> str:
-    """Stocks-only status message (added 2026-11-04) -- used instead of the
-    crypto one below once CRYPTO_TRADING_ENABLED=0, so this heartbeat
-    actually describes the strategy that's running instead of showing
-    BTC/ETH prices and a crypto win-rate from a sleeve that's been turned
-    off. Fail-open: any error (Alpaca down, sleeve unavailable) falls back
-    to a minimal "status unavailable" line rather than raising."""
+    """Two-portfolio status message (added 2026-11-04, extended same day to
+    cover both separate portfolios) -- used instead of the crypto-MICRO one
+    below once CRYPTO_TRADING_ENABLED=0, so this heartbeat actually
+    describes what's running (US-stocks 13F-copy sleeve + the crypto
+    Hyperliquid-copy sleeve, each its own isolated ledger/cash) instead of
+    showing BTC/ETH prices and a win-rate from the sleeve that's been
+    turned off. Fail-open per block: either portfolio's own failure can
+    never hide the other's status."""
+    now_label = time.strftime("%H:%M:%S UTC", time.gmtime())
     try:
         summary = get_alpaca_stocks_summary()
         account = summary.get("account", {}) or {}
@@ -4566,17 +4637,38 @@ def generate_telegram_status_stocks() -> str:
             market_open = None
         market_label = "🟢 OUVERT" if market_open else ("🔴 FERMÉ" if market_open is False else "❓ inconnu")
         pos_label = ", ".join(open_pos.keys()) if open_pos else "aucune"
-        return (
-            f"🟢 BOT ACTIF — 📊 ACTIONS US (crypto coupée)\n"
-            f"━━━━━━━━━━━━━━━━━━━\n"
+        stocks_block = (
+            f"📊 ACTIONS US (copie 13F, 7 investisseurs)\n"
             f"🏛 Marché NYSE : {market_label}\n"
             f"💰 Portefeuille paper : ${equity:,.2f} (cash ${cash:,.2f})\n"
             f"📍 Positions : {pos_label}\n"
-            f"📜 Décisions loggées : {summary.get('decisions_logged', 0)}\n"
-            f"⏰ {time.strftime('%H:%M:%S UTC', time.gmtime())}"
+            f"📜 Décisions loggées : {summary.get('decisions_logged', 0)}"
         )
     except Exception as e:
-        return f"🟢 BOT ACTIF — statut actions US indisponible ({type(e).__name__})\n⏰ {time.strftime('%H:%M:%S UTC', time.gmtime())}"
+        stocks_block = f"📊 ACTIONS US — statut indisponible ({type(e).__name__})"
+
+    try:
+        hl_summary = get_hl_copy_summary()
+        hl_pos = hl_summary.get("open_positions", {}) or {}
+        hl_pos_label = ", ".join(hl_pos.keys()) if hl_pos else "aucune"
+        hl_status = "🟢 actif" if HL_COPYTRADE_ENABLED else "⏸ désactivé"
+        crypto_block = (
+            f"🐋 CRYPTO (copie {HL_TOP_N_WALLETS} meilleurs wallets Hyperliquid, {hl_status})\n"
+            f"💰 Portefeuille paper : ${hl_summary.get('cash', 0):,.2f}\n"
+            f"📍 Positions : {hl_pos_label}\n"
+            f"👛 Wallets suivis : {hl_summary.get('followed_wallets', 0)} | WR : {hl_summary.get('win_rate', 0)}% ({hl_summary.get('closed_trades', 0)} clôturés)"
+        )
+    except Exception as e:
+        crypto_block = f"🐋 CRYPTO — statut indisponible ({type(e).__name__})"
+
+    return (
+        f"🟢 BOT ACTIF — 2 portefeuilles séparés\n"
+        f"━━━━━━━━━━━━━━━━━━━\n"
+        f"{stocks_block}\n"
+        f"━━━━━━━━━━━━━━━━━━━\n"
+        f"{crypto_block}\n"
+        f"⏰ {now_label}"
+    )
 
 
 def generate_telegram_status() -> str:
