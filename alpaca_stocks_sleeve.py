@@ -96,6 +96,29 @@ CONVICTION OVERLAY (added 2026-09-09, additive only -- see verification below):
   because both sources move on a multi-day/week cadence -- refetching 13F
   (5 SEC requests per filer x 7 filers) or the ~11MB House dataset every
   5-minute cycle would be wasteful and needlessly hammer SEC's rate limit.
+
+DYNAMIC COPY UNIVERSE (added 2026-11-04, additive only): the fixed 4-ticker
+  UNIVERSE above only ever scores AAPL/MSFT/NVDA/SPY, no matter what a
+  curated filer actually holds. get_dynamic_universe() below uses
+  sec_13f_signal.resolve_top_weighted() (OpenFIGI CUSIP->ticker resolution,
+  added the same day) to pull COPY_FILER_NAME's current top COPY_TOP_N
+  holdings by value and add whichever of those tickers aren't already in
+  UNIVERSE to the symbols scored this cycle -- up to MAX_DYNAMIC_SYMBOLS of
+  them, so the universe can grow with what the copied filer actually holds
+  without becoming unbounded. A dynamically-added symbol is scored and
+  traded through the exact same path as the original 4 (same score_symbol,
+  same $500 USD_PER_TRADE, same decide() thresholds, same conviction
+  overlay -- its CUSIP is merged into the overlay's lookup map so
+  _compute_13f_directions sees it like any curated ticker). Nothing about
+  the original 4 tickers' behavior changes if this fails or returns nothing.
+
+  Cadence: disk-cached (own file, COPY_CACHE_PATH) for COPY_CACHE_MAX_AGE
+  (7 days) -- 13F only updates quarterly, no value refreshing more often,
+  and it keeps this to about one OpenFIGI call a week. Fail-open exactly
+  like the conviction overlay: any error (SEC fetch, OpenFIGI lookup,
+  corrupt cache) degrades to an empty dynamic universe, never raises, and
+  the cycle proceeds with just the original 4 tickers, unchanged from
+  before this feature existed.
 """
 from __future__ import annotations
 
@@ -167,11 +190,17 @@ CONGRESS_LOOKBACK_DAYS = 90  # see docstring: 30d missed real matches in researc
 CONVICTION_CACHE_PATH = Path(__file__).with_name("alpaca_stocks_conviction_cache.json")
 CONVICTION_CACHE_MAX_AGE_SEC = 12 * 3600  # multi-day/week-lag signals; no value in refetching every 5-min cycle
 
+# Dynamic copy universe -- see module docstring "DYNAMIC COPY UNIVERSE".
+COPY_FILER_NAME = "Berkshire Hathaway"   # must be a key in sec_13f_signal.CURATED_FILERS
+COPY_TOP_N = 5                           # how many of the filer's biggest holdings to consider
+MAX_DYNAMIC_SYMBOLS = 3                  # cap on how many NEW tickers this can add to the scored universe
+COPY_CACHE_PATH = Path(__file__).with_name("alpaca_stocks_copy_cache.json")
+COPY_CACHE_MAX_AGE_SEC = 7 * 24 * 3600    # 13F is quarterly -- weekly refresh is already generous
+
 LEDGER_PATH = Path(__file__).with_name("alpaca_stocks_ledger.json")
 LEDGER_LOCK = threading.Lock()
 
 USD_PER_TRADE = 500.0          # fixed size per position, small vs $100k paper cash
-MAX_CONCURRENT_POSITIONS = len(UNIVERSE)   # at most one position per symbol
 MAX_DECISIONS_KEPT = 500        # cap the decisions log so the ledger file doesn't grow forever
 
 _alpaca_stocks_running = False
@@ -181,14 +210,17 @@ _alpaca_stocks_running = False
 # Conviction overlay: 13F + Congress. Fail-open at every layer -- see the
 # "CONVICTION OVERLAY" section of the module docstring for the exact rule.
 # ---------------------------------------------------------------------- #
-def _compute_13f_directions() -> dict:
-    """Returns {symbol: -1/0/+1} across all 4 UNIVERSE tickers in one pass
-    (shares the per-filer filings fetch instead of refetching per symbol).
-    Any single filer failing (network, malformed filing, etc.) is skipped
-    for that filer only -- never raises, never aborts the other filers."""
-    counts = {s: 0 for s in UNIVERSE}
+def _compute_13f_directions(universe: list, cusip_map: dict) -> dict:
+    """Returns {symbol: -1/0/+1} across every ticker in `universe` in one
+    pass (shares the per-filer filings fetch instead of refetching per
+    symbol). `cusip_map` lets dynamically-added copy-universe tickers (see
+    get_dynamic_universe) be matched the same way as the hand-curated
+    TARGET_CUSIPS. Any single filer failing (network, malformed filing,
+    etc.) is skipped for that filer only -- never raises, never aborts the
+    other filers."""
+    counts = {s: 0 for s in universe}
     if not _SEC_13F_IMPORT_OK:
-        return {s: 0 for s in UNIVERSE}
+        return counts
 
     for filer_name, cik in sec_13f_signal.CURATED_FILERS.items():
         try:
@@ -199,7 +231,10 @@ def _compute_13f_directions() -> dict:
             prev = filings[1] if len(filings) > 1 else {"holdings": []}
             diffs = sec_13f_signal.diff_holdings(prev["holdings"], curr["holdings"])
             by_cusip = {d["cusip"]: d for d in diffs}
-            for symbol, cusip in TARGET_CUSIPS.items():
+            for symbol in universe:
+                cusip = cusip_map.get(symbol)
+                if not cusip:
+                    continue
                 row = by_cusip.get(cusip)
                 if not row:
                     continue
@@ -213,18 +248,19 @@ def _compute_13f_directions() -> dict:
     return {s: (1 if c >= 2 else (-1 if c <= -2 else 0)) for s, c in counts.items()}
 
 
-def _compute_congress_directions() -> dict:
-    """Returns {symbol: -1/0/+1} for all 4 UNIVERSE tickers from House PTR
-    disclosures. Fail-open: any error (fetch, parse, Senate NotImplementedError
-    if ever called) yields all-zero directions, never raises."""
-    directions = {s: 0 for s in UNIVERSE}
+def _compute_congress_directions(universe: list) -> dict:
+    """Returns {symbol: -1/0/+1} for every ticker in `universe` from House
+    PTR disclosures. Fail-open: any error (fetch, parse, Senate
+    NotImplementedError if ever called) yields all-zero directions, never
+    raises."""
+    directions = {s: 0 for s in universe}
     if not _CONGRESS_IMPORT_OK:
         return directions
     try:
         txs = congress_trades_signal.fetch_house_transactions()
         sig = congress_trades_signal.conviction(txs, lookback_days=CONGRESS_LOOKBACK_DAYS)
         by_ticker = {r["ticker"]: r for r in sig["by_ticker"]}
-        for symbol in UNIVERSE:
+        for symbol in universe:
             row = by_ticker.get(symbol)
             if not row or row["unique_filers"] < 2:
                 continue  # single-filer disclosures are too noisy for a conviction bonus
@@ -233,7 +269,7 @@ def _compute_congress_directions() -> dict:
             elif row["net_buy_pressure"] < 0:
                 directions[symbol] = -1
     except Exception:
-        return {s: 0 for s in UNIVERSE}
+        return {s: 0 for s in universe}
     return directions
 
 
@@ -260,30 +296,34 @@ def _save_conviction_cache(data: dict) -> None:
         pass  # caching is an optimization only -- never let it break the cycle
 
 
-def get_conviction_bonuses(send_fn=None) -> dict:
+def get_conviction_bonuses(universe: list, cusip_map: dict, send_fn=None) -> dict:
     """Returns {symbol: {"bonus": -1/0/+1, "13f_direction": int, "congress_direction": int}}
-    for every symbol in UNIVERSE, disk-cached for CONVICTION_CACHE_MAX_AGE_SEC.
+    for every symbol in `universe`, disk-cached for CONVICTION_CACHE_MAX_AGE_SEC.
     Never raises -- any failure anywhere in this function degrades to an
     all-zero-bonus dict so callers can add it to the technical score
     unconditionally."""
+    default = {s: {"bonus": 0, "13f_direction": 0, "congress_direction": 0} for s in universe}
     cached = _load_conviction_cache()
     if cached is not None:
-        return cached.get("by_symbol", {s: {"bonus": 0, "13f_direction": 0, "congress_direction": 0} for s in UNIVERSE})
+        by_symbol = cached.get("by_symbol", {})
+        # Cache may predate a symbol that just entered the dynamic universe
+        # (or no longer cover one that left it) -- fill gaps, don't refetch.
+        return {s: by_symbol.get(s, default[s]) for s in universe}
 
     try:
-        thirteenf_dirs = _compute_13f_directions()
+        thirteenf_dirs = _compute_13f_directions(universe, cusip_map)
     except Exception as e:
         _safe_send(send_fn, f"[ALPACA-STOCKS] 13F conviction overlay failed (non-blocking): {type(e).__name__}: {e}")
-        thirteenf_dirs = {s: 0 for s in UNIVERSE}
+        thirteenf_dirs = {s: 0 for s in universe}
 
     try:
-        congress_dirs = _compute_congress_directions()
+        congress_dirs = _compute_congress_directions(universe)
     except Exception as e:
         _safe_send(send_fn, f"[ALPACA-STOCKS] Congress conviction overlay failed (non-blocking): {type(e).__name__}: {e}")
-        congress_dirs = {s: 0 for s in UNIVERSE}
+        congress_dirs = {s: 0 for s in universe}
 
     by_symbol = {}
-    for s in UNIVERSE:
+    for s in universe:
         d13 = thirteenf_dirs.get(s, 0)
         dc = congress_dirs.get(s, 0)
         bonus = max(-1, min(1, d13 + dc))
@@ -291,6 +331,68 @@ def get_conviction_bonuses(send_fn=None) -> dict:
 
     _save_conviction_cache({"computed_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "by_symbol": by_symbol})
     return by_symbol
+
+
+# ---------------------------------------------------------------------- #
+# Dynamic copy universe: 13F top-N weighted holdings -> tickers to add.
+# See module docstring "DYNAMIC COPY UNIVERSE". Fail-open at every layer,
+# same contract as the conviction overlay above.
+# ---------------------------------------------------------------------- #
+def _load_copy_cache() -> Optional[dict]:
+    if not COPY_CACHE_PATH.exists():
+        return None
+    try:
+        age = time.time() - COPY_CACHE_PATH.stat().st_mtime
+        if age >= COPY_CACHE_MAX_AGE_SEC:
+            return None
+        with open(COPY_CACHE_PATH, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None  # corrupt/unreadable cache -- fail-open, recompute
+
+
+def _save_copy_cache(data: dict) -> None:
+    try:
+        tmp = COPY_CACHE_PATH.with_suffix(".json.tmp")
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, default=str)
+        tmp.replace(COPY_CACHE_PATH)
+    except Exception:
+        pass  # caching is an optimization only -- never let it break the cycle
+
+
+def get_dynamic_universe(send_fn=None) -> dict:
+    """Returns {ticker: cusip} for up to MAX_DYNAMIC_SYMBOLS tickers from
+    COPY_FILER_NAME's current top COPY_TOP_N holdings that aren't already
+    in UNIVERSE, disk-cached for COPY_CACHE_MAX_AGE_SEC. Never raises --
+    any failure (missing module, SEC down, no CIK for COPY_FILER_NAME,
+    OpenFIGI unavailable, unresolved tickers) degrades to {}, meaning the
+    sleeve scores exactly the original 4 tickers, unchanged."""
+    cached = _load_copy_cache()
+    if cached is not None:
+        return cached.get("dynamic_symbols", {})
+
+    result: dict = {}
+    try:
+        if not _SEC_13F_IMPORT_OK:
+            raise RuntimeError("sec_13f_signal not importable")
+        cik = sec_13f_signal.CURATED_FILERS.get(COPY_FILER_NAME)
+        if not cik:
+            raise KeyError(f"{COPY_FILER_NAME!r} not in CURATED_FILERS")
+        top = sec_13f_signal.resolve_top_weighted(cik, top_n=COPY_TOP_N)
+        for row in top:
+            ticker = row.get("ticker")
+            if not ticker or ticker in UNIVERSE or ticker in result:
+                continue
+            result[ticker] = row["cusip"]
+            if len(result) >= MAX_DYNAMIC_SYMBOLS:
+                break
+    except Exception as e:
+        _safe_send(send_fn, f"[ALPACA-STOCKS] Dynamic copy universe unavailable this cycle (non-blocking): {type(e).__name__}: {e}")
+        result = {}
+
+    _save_copy_cache({"computed_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "dynamic_symbols": result})
+    return result
 
 
 # ---------------------------------------------------------------------- #
@@ -400,19 +502,34 @@ def _alpaca_stocks_worker_body(send_fn) -> None:
     except Exception as e:
         _safe_send(send_fn, f"[ALPACA-STOCKS] Clock check failed (non-blocking): {type(e).__name__}: {e}")
 
+    # Fail-open by construction: get_dynamic_universe() never raises and
+    # never returns anything but a dict, defaulting to {} (original 4
+    # tickers only) on any error. See module docstring "DYNAMIC COPY
+    # UNIVERSE".
+    try:
+        dynamic_cusips = get_dynamic_universe(send_fn)
+    except Exception as e:
+        _safe_send(send_fn, f"[ALPACA-STOCKS] Dynamic copy universe unavailable this cycle (non-blocking): {type(e).__name__}: {e}")
+        dynamic_cusips = {}
+    effective_universe = UNIVERSE + [s for s in dynamic_cusips if s not in UNIVERSE]
+    combined_cusips = {**TARGET_CUSIPS, **dynamic_cusips}
+    if dynamic_cusips:
+        logger.info(f"[ALPACA-STOCKS] Dynamic copy universe this cycle: {dynamic_cusips}")
+
     # Fail-open by construction: get_conviction_bonuses() never raises and
     # never returns anything but a per-symbol dict, defaulting to bonus=0
     # (technical-only scoring) on any error. See module docstring.
     try:
-        conviction_bonuses = get_conviction_bonuses(send_fn)
+        conviction_bonuses = get_conviction_bonuses(effective_universe, combined_cusips, send_fn)
     except Exception as e:
         _safe_send(send_fn, f"[ALPACA-STOCKS] Conviction overlay unavailable this cycle (non-blocking): {type(e).__name__}: {e}")
-        conviction_bonuses = {s: {"bonus": 0, "13f_direction": 0, "congress_direction": 0} for s in UNIVERSE}
+        conviction_bonuses = {s: {"bonus": 0, "13f_direction": 0, "congress_direction": 0} for s in effective_universe}
 
+    max_positions = len(effective_universe)
     cycle_summary = []
-    for symbol in UNIVERSE:
+    for symbol in effective_universe:
         try:
-            result = _process_symbol(symbol, ledger, market_open, send_fn, conviction_bonuses.get(symbol, {"bonus": 0}))
+            result = _process_symbol(symbol, ledger, market_open, send_fn, conviction_bonuses.get(symbol, {"bonus": 0}), max_positions)
             cycle_summary.append(f"{symbol}={result}")
         except Exception as e:
             _safe_send(send_fn, f"[ALPACA-STOCKS] {symbol} error (isolated, skipped): {type(e).__name__}: {e}")
@@ -432,7 +549,7 @@ def _alpaca_stocks_worker_body(send_fn) -> None:
     )
 
 
-def _process_symbol(symbol: str, ledger: dict, market_open: bool, send_fn, conviction: Optional[dict] = None) -> str:
+def _process_symbol(symbol: str, ledger: dict, market_open: bool, send_fn, conviction: Optional[dict] = None, max_positions: int = len(UNIVERSE)) -> str:
     """Returns a short status string (e.g. "HOLD score=1", "BUY", "SELL",
     "BUY(skip:market_closed)") describing what happened for this symbol this
     cycle -- used only to build the cycle heartbeat log line in
@@ -463,7 +580,7 @@ def _process_symbol(symbol: str, ledger: dict, market_open: bool, send_fn, convi
 
     if action == "BUY" and not has_position:
         open_count = len(ledger["positions"])
-        if open_count >= MAX_CONCURRENT_POSITIONS:
+        if open_count >= max_positions:
             return f"BUY(skip:max_positions,score={score})"
         if not market_open:
             return f"BUY(skip:market_closed,score={score})"  # scored + logged above; no order while market is closed

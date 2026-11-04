@@ -66,6 +66,21 @@ USAGE:
     changes = diff_holdings(filings[1]["holdings"], filings[0]["holdings"])
     for c in changes[:10]:
         print(c)
+
+COPY-WEIGHTS EXTENSION (added 2026-11-04, additive only): resolve_top_weighted()
+below reconstructs a filer's top-N holdings as renormalized copy-weights
+(pct_of_top summing to 100 across just those N positions) and resolves each
+CUSIP to a ticker via OpenFIGI's free mapping endpoint (api.openfigi.com,
+10 CUSIPs/request, 25 requests/min without a key -- plenty for a 5-10
+position lookup that only needs to run once per cache window). This is the
+one capability the existing diff_holdings()-only signal above did not have:
+diff_holdings() tells you *direction* (NEW/INCREASED/EXIT/DECREASED) for a
+manually curated, hand-mapped set of tickers (TARGET_CUSIPS in
+alpaca_stocks_sleeve.py); resolve_top_weighted() tells you *which tickers*
+currently matter most to a filer and *how much*, without needing anyone to
+hand-maintain a CUSIP map first. Same fail-open contract as the rest of this
+module: OpenFIGI being down/rate-limited/malformed just means some or all
+positions come back with ticker=None, never an exception.
 """
 
 from __future__ import annotations
@@ -92,6 +107,12 @@ CURATED_FILERS: dict[str, str] = {
 SEC_EDGAR_CONTACT = os.environ.get("SEC_EDGAR_CONTACT", "trading-bot-research placeholder@example.com")
 SEC_MIN_REQUEST_INTERVAL_SEC = float(os.environ.get("SEC_MIN_REQUEST_INTERVAL_SEC", 0.25))  # <=4 req/s, under SEC's 10/s ask
 REQUEST_TIMEOUT_SEC = 20
+
+OPENFIGI_URL = "https://api.openfigi.com/v3/mapping"
+OPENFIGI_API_KEY = os.environ.get("OPENFIGI_API_KEY")  # optional; free tier works without one, just lower rate limit
+OPENFIGI_BATCH_NO_KEY = 10
+OPENFIGI_BATCH_WITH_KEY = 100
+OPENFIGI_PAUSE_SEC = 2.5  # stay well under the free 25 req/min ceiling between batches
 
 _last_request_ts = 0.0
 
@@ -234,6 +255,88 @@ def diff_holdings(prev_holdings: list[dict], curr_holdings: list[dict], new_posi
 
 
 # ---------------------------------------------------------------------- #
+# Copy-weights extension -- see module docstring "COPY-WEIGHTS EXTENSION".
+# ---------------------------------------------------------------------- #
+def top_weighted_positions(holdings: list[dict], top_n: int = 5, min_pct: float = 0.0) -> list[dict]:
+    """Takes a single filing's `holdings` (already summed by cusip, as
+    returned by parse_info_table_xml/fetch_holdings) and returns the top_n
+    by value, each with a `weight_pct` renormalized so the returned subset
+    sums to 100 -- i.e. "if you only copy these top_n names, split your
+    money this way", not each position's share of the filer's whole book.
+    min_pct filters AFTER renormalization (drops slices too thin to bother
+    copying), so the final list can sum to less than 100 if some were cut."""
+    ranked = sorted(holdings, key=lambda h: h.get("value", 0.0), reverse=True)[:max(top_n, 0)]
+    total = sum(h.get("value", 0.0) for h in ranked)
+    if total <= 0:
+        return []
+    out = []
+    for h in ranked:
+        weight_pct = round(100.0 * h.get("value", 0.0) / total, 2)
+        if weight_pct < min_pct:
+            continue
+        out.append({**h, "weight_pct": weight_pct})
+    return out
+
+
+def figi_lookup(cusips: list[str], api_key: Optional[str] = None, batch: Optional[int] = None) -> dict:
+    """CUSIP -> ticker via OpenFIGI's free mapping endpoint (US composite
+    equities). Fail-open per-chunk: a chunk that errors (network, rate
+    limit, malformed response) is skipped, never raises -- callers get
+    tickers for whichever chunks succeeded, never an exception."""
+    api_key = api_key or OPENFIGI_API_KEY
+    batch = batch or (OPENFIGI_BATCH_WITH_KEY if api_key else OPENFIGI_BATCH_NO_KEY)
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["X-OPENFIGI-APIKEY"] = api_key
+
+    out: dict[str, str] = {}
+    unique_cusips = list(dict.fromkeys(cusips))
+    for i in range(0, len(unique_cusips), batch):
+        chunk = unique_cusips[i : i + batch]
+        if i:
+            time.sleep(OPENFIGI_PAUSE_SEC)
+        jobs = [{"idType": "ID_CUSIP", "idValue": c, "exchCode": "US"} for c in chunk]
+        try:
+            req = urllib.request.Request(
+                OPENFIGI_URL, data=json.dumps(jobs).encode("utf-8"),
+                headers=headers, method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT_SEC) as resp:
+                answer = json.loads(resp.read().decode("utf-8"))
+        except Exception:
+            continue  # this chunk unavailable this cycle -- fail-open, try the rest
+        out.update(_parse_figi_answer(chunk, answer))
+    return out
+
+
+def _parse_figi_answer(cusips: list[str], answer: list) -> dict:
+    out = {}
+    for cusip, res in zip(cusips, answer or []):
+        data = (res or {}).get("data") or []
+        stocks = [d for d in data if d.get("marketSector") == "Equity"] or data
+        if stocks and stocks[0].get("ticker"):
+            out[cusip] = stocks[0]["ticker"].strip().upper()
+    return out
+
+
+def resolve_top_weighted(cik: str, top_n: int = 5, min_pct: float = 0.0, api_key: Optional[str] = None) -> list[dict]:
+    """One-call convenience: latest filing's top_n holdings by value,
+    renormalized weight_pct, each resolved to a ticker via OpenFIGI where
+    possible. Returns [{cusip, name_of_issuer, value, weight_pct, ticker}],
+    ticker is None if OpenFIGI had no match (caller should skip those, never
+    guess from the issuer name -- see module docstring's CUSIP-vs-name-
+    substring warning). Fail-open: any error fetching the filing itself
+    propagates (caller already wraps SEC calls per-filer), but a lookup
+    failure never does -- figi_lookup() degrades to an empty map instead."""
+    filings = get_last_two_filings(cik)
+    if not filings:
+        return []
+    top = top_weighted_positions(filings[0]["holdings"], top_n=top_n, min_pct=min_pct)
+    tickers = figi_lookup([h["cusip"] for h in top], api_key=api_key)
+    return [{**h, "ticker": tickers.get(h["cusip"])} for h in top]
+
+
+# ---------------------------------------------------------------------- #
 # Unit tests (stdlib only, NO network calls -- run with:
 #   python sec_13f_signal.py
 # ---------------------------------------------------------------------- #
@@ -332,5 +435,53 @@ if __name__ == "__main__":
             ]
             rows = diff_holdings(prev, curr)
             self.assertEqual(rows[0]["cusip"], "BBB")
+
+    class TestCopyWeightsExtension(unittest.TestCase):
+        def test_top_weighted_renormalizes_to_100(self):
+            holdings = [
+                {"cusip": "AAA", "name_of_issuer": "BIG", "value": 3000, "shares": 1},
+                {"cusip": "BBB", "name_of_issuer": "MED", "value": 2000, "shares": 1},
+                {"cusip": "CCC", "name_of_issuer": "SMALL", "value": 1000, "shares": 1},
+            ]
+            top = top_weighted_positions(holdings, top_n=3)
+            self.assertAlmostEqual(sum(h["weight_pct"] for h in top), 100.0)
+            self.assertEqual(top[0]["cusip"], "AAA")
+            self.assertAlmostEqual(top[0]["weight_pct"], 50.0)
+
+        def test_top_weighted_respects_top_n(self):
+            holdings = [{"cusip": str(i), "name_of_issuer": f"N{i}", "value": 100 - i, "shares": 1} for i in range(10)]
+            top = top_weighted_positions(holdings, top_n=3)
+            self.assertEqual(len(top), 3)
+
+        def test_top_weighted_min_pct_filter(self):
+            holdings = [
+                {"cusip": "AAA", "name_of_issuer": "BIG", "value": 9900, "shares": 1},
+                {"cusip": "BBB", "name_of_issuer": "TINY", "value": 100, "shares": 1},
+            ]
+            top = top_weighted_positions(holdings, top_n=2, min_pct=5.0)
+            cusips = [h["cusip"] for h in top]
+            self.assertIn("AAA", cusips)
+            self.assertNotIn("BBB", cusips)  # 1% < min_pct=5%, dropped
+
+        def test_top_weighted_empty_input(self):
+            self.assertEqual(top_weighted_positions([], top_n=5), [])
+
+        def test_parse_figi_answer_picks_equity_market_sector(self):
+            answer = [{"data": [
+                {"marketSector": "Equity", "ticker": "aapl"},
+                {"marketSector": "Corp", "ticker": "AAPL25C"},
+            ]}]
+            out = _parse_figi_answer(["037833100"], answer)
+            self.assertEqual(out["037833100"], "AAPL")  # normalized upper, equity row preferred
+
+        def test_parse_figi_answer_no_match_omits_cusip(self):
+            answer = [{"data": []}]
+            out = _parse_figi_answer(["000000000"], answer)
+            self.assertNotIn("000000000", out)
+
+        def test_parse_figi_answer_falls_back_when_no_equity_row(self):
+            answer = [{"data": [{"marketSector": "Corp", "ticker": "X"}]}]
+            out = _parse_figi_answer(["AAA"], answer)
+            self.assertEqual(out["AAA"], "X")  # no Equity row present -- use whatever came back rather than drop it
 
     unittest.main(verbosity=2)
