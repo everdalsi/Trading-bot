@@ -185,6 +185,16 @@ except Exception:
     congress_trades_signal = None
     _CONGRESS_IMPORT_OK = False
 
+# Optional social/news risk check (added 2026-11-04, per explicit user
+# instruction: label the risk on every BUY, never gate on it). Same
+# fail-open import contract as the two signals above.
+try:
+    import stock_sentiment
+    _STOCK_SENTIMENT_IMPORT_OK = True
+except Exception:
+    stock_sentiment = None
+    _STOCK_SENTIMENT_IMPORT_OK = False
+
 UNIVERSE = ["AAPL", "MSFT", "NVDA", "SPY"]
 
 # Verified live against SEC EDGAR 2026-09-09 (each cusip confirmed present,
@@ -600,6 +610,23 @@ def _alpaca_stocks_worker_body(send_fn) -> None:
     )
 
 
+def _compute_entry_risk(symbol: str) -> dict:
+    """Non-blocking social/news risk check before a BUY actually fires
+    (added 2026-11-04, per explicit user instruction: label the risk,
+    never gate on it). See stock_sentiment.py's module docstring for the
+    sources (Yahoo RSS + Reddit + X-via-Nitter) and risk_pct semantics --
+    same shape as bot.py's compute_crypto_risk_pct on the crypto side.
+    Fail-open: any error (module unavailable, network, timeout) yields
+    risk_pct=50 (unknown/neutral), never raises, never blocks the order
+    that's already decided to fire by the time this is called."""
+    if not _STOCK_SENTIMENT_IMPORT_OK:
+        return {"risk_pct": 50, "top_headline": None}
+    try:
+        return stock_sentiment.compute_risk_pct(symbol, "BUY")
+    except Exception:
+        return {"risk_pct": 50, "top_headline": None}
+
+
 def _process_symbol(symbol: str, ledger: dict, market_open: bool, send_fn, conviction: Optional[dict] = None, max_positions: int = len(UNIVERSE)) -> str:
     """Returns a short status string (e.g. "HOLD score=1", "BUY", "SELL",
     "BUY(skip:market_closed)") describing what happened for this symbol this
@@ -643,12 +670,15 @@ def _process_symbol(symbol: str, ledger: dict, market_open: bool, send_fn, convi
             return f"BUY(skip:qty<=0,score={score})"
         order = alpaca_broker.submit_market_order(symbol, "buy", qty)
         entry_price = order.get("filled_avg_price") or last_close
+        risk = _compute_entry_risk(symbol)
         ledger["positions"][symbol] = {
             "qty": qty, "entry_price": entry_price,
             "entry_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "order_id": order.get("id"), "score_at_entry": score,
+            "risk_pct_at_entry": risk.get("risk_pct"),
         }
-        _safe_send(send_fn, f"[ALPACA-STOCKS] BUY {symbol} qty={qty} ~${entry_price:.2f} (score={score})")
+        risk_line = f" | risque social/news: {risk['risk_pct']}%" + (f" ({risk['top_headline'][:60]})" if risk.get("top_headline") else "")
+        _safe_send(send_fn, f"[ALPACA-STOCKS] BUY {symbol} qty={qty} ~${entry_price:.2f} (score={score}){risk_line}")
         return f"BUY(qty={qty})"
 
     elif action == "SELL" and has_position:

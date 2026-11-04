@@ -2721,12 +2721,57 @@ def save_hl_copy_ledger(ledger: dict) -> None:
         tmp.replace(HL_COPY_LEDGER_PATH)
 
 
+def compute_crypto_risk_pct(symbol: str, side: str) -> dict:
+    """Non-blocking social/news risk check for a crypto copy-trade about to
+    be mirrored (added 2026-11-04, per explicit user instruction: label the
+    risk, never gate on it -- "il y va quand meme"). Reuses
+    orchestrator.social_listener (RSS + Reddit + X-via-Nitter, already
+    built for this bot's crypto side -- see social_listener_agent.py)
+    instead of building a parallel sentiment fetcher.
+
+    risk_pct in [0,100]: 100*(1 - alignment), where alignment is how well
+    the aggregated sentiment supports the side being copied (sentiment
+    itself for LONG, its mirror for SHORT) -- a bearish tape under a LONG
+    mirror reads as high risk, the same tape under a SHORT mirror reads as
+    low risk. +25 (capped 95) if social_listener flagged a critical
+    breaking-news alert in the last 30min. This is informational only --
+    the trade proceeds regardless of the number, per the user's instruction.
+
+    Runs its own asyncio.run() (not run_coroutine_threadsafe against
+    _main_loop) so a slow/hanging fetch can only block this HL-copy
+    background thread, never the main trading loop -- same isolation
+    reasoning already documented for why HL-copy runs in its own thread.
+    Fail-open: any error (timeout, Nitter down, agent exception) yields
+    risk_pct=50 (unknown/neutral), never raises, never blocks the mirror."""
+    try:
+        intel = asyncio.run(asyncio.wait_for(
+            orchestrator.social_listener.respond("pre-trade sentiment check", {"symbol": symbol}),
+            timeout=15.0,
+        ))
+        sentiment = float(intel.get("sentiment_score", 0.5))
+        is_critical = bool(intel.get("is_critical", False))
+        alignment = sentiment if side == "LONG" else (1.0 - sentiment)
+        risk_pct = 100.0 * (1.0 - alignment)
+        if is_critical:
+            risk_pct = min(95.0, risk_pct + 25.0)
+        return {
+            "risk_pct": round(max(0.0, min(100.0, risk_pct))),
+            "sentiment_score": sentiment, "is_critical": is_critical,
+            "top_headline": (intel.get("top_headlines") or [None])[0],
+        }
+    except Exception as e:
+        logger.debug(f"[HL-COPY] Risk check unavailable (non-blocking): {type(e).__name__}: {e}")
+        return {"risk_pct": 50, "sentiment_score": 0.5, "is_critical": False, "top_headline": None}
+
+
 def _open_hl_mirror(symbol: str, price: float, side: str, source_addr: str,
-                     source_coin: str, source_month_roi: float, send_fn):
+                     source_coin: str, source_month_roi: float, send_fn,
+                     risk: dict = None):
     ledger = load_hl_copy_ledger()
     amount = min(HL_SLEEVE_USD_PER_TRADE, ledger["cash"] * 0.9)
     qty = amount / price
     ledger["cash"] -= amount
+    risk = risk or {"risk_pct": 50, "top_headline": None}
     trade = {
         "id": HL_COPY_TRADE_ID_BASE + len(ledger["trades"]) + 1,
         "symbol": symbol, "market": "HL_COPY", "side": side, "trade_type": "HL_COPY",
@@ -2738,6 +2783,7 @@ def _open_hl_mirror(symbol: str, price: float, side: str, source_addr: str,
         "patterns": [f"hl_source={source_addr}", f"hl_coin={source_coin}"],
         "leverage": 1, "peak_price": price, "open_time": time.time(),
         "hl_source_addr": source_addr, "hl_source_coin": source_coin,
+        "risk_pct_at_entry": risk.get("risk_pct"),
     }
     pos_key = f"HLCOPY_{symbol}_{trade['id']}"
     ledger["trades"].append(trade)
@@ -2745,7 +2791,8 @@ def _open_hl_mirror(symbol: str, price: float, side: str, source_addr: str,
     save_hl_copy_ledger(ledger)
     db_save_trade(trade)
     coin_label = symbol.replace("USDT", "")
-    send_fn(f"🐋 HL-Copy OPEN {side} {coin_label} @ ${price:.4f} (wallet {source_addr[:8]}..., ROI mois {source_month_roi*100:.1f}%)")
+    risk_line = f"\n⚠️ Risque social/news estimé : {risk['risk_pct']}%" + (f" ({risk['top_headline'][:60]})" if risk.get("top_headline") else "")
+    send_fn(f"🐋 HL-Copy OPEN {side} {coin_label} @ ${price:.4f} (wallet {source_addr[:8]}..., ROI mois {source_month_roi*100:.1f}%){risk_line}")
 
 def _close_hl_mirror(pos_key: str, price: float, reason: str, send_fn):
     ledger = load_hl_copy_ledger()
@@ -2903,7 +2950,8 @@ def _hl_copytrade_worker_body(send_fn):
             price = prices.get(symbol) or get_current_price(symbol)
             if not price or ledger["cash"] < HL_SLEEVE_USD_PER_TRADE:
                 continue
-            _open_hl_mirror(symbol, price, pos["side"], addr, coin, w["month_roi"], send_fn)
+            risk = compute_crypto_risk_pct(symbol, pos["side"])  # informational only -- never gates the mirror, see docstring
+            _open_hl_mirror(symbol, price, pos["side"], addr, coin, w["month_roi"], send_fn, risk=risk)
             ledger = load_hl_copy_ledger()  # _open_hl_mirror just saved a newer version -- reload for the same reason as above
 
         ledger["wallet_positions"][addr] = live_positions
@@ -4600,14 +4648,17 @@ def self_ping():
         time.sleep(270)
 
 def _status_interval_sec() -> int:
-    """How often to send the Telegram status heartbeat. 60s when crypto is
-    on (unchanged default). When crypto is off (CRYPTO_TRADING_ENABLED=0)
-    and the stock market is closed -- most of the day, since NYSE is only
-    open ~6.5h/weekday -- stretched to 30min instead of spamming a status
-    that can't change anyway while nothing can trade. Fail-open: any error
-    checking market hours falls back to 60s, unchanged from before this
-    existed."""
-    if CRYPTO_TRADING_ENABLED or _alpaca_broker_for_status is None:
+    """How often to send the (now two-portfolio) Telegram status heartbeat.
+    60s whenever ANY crypto sleeve is active (legacy MICRO via
+    CRYPTO_TRADING_ENABLED, or the new HL-copy sleeve via
+    HL_COPYTRADE_ENABLED) -- crypto trades 24/7, a wallet copy or a close
+    can happen at any time, so it always deserves a per-minute heartbeat.
+    Only stretched to 30min when BOTH crypto sleeves are off AND the stock
+    market is closed -- most of the day, since NYSE is only open
+    ~6.5h/weekday -- to avoid spamming a status that can't change anyway
+    while nothing can trade on either side. Fail-open: any error checking
+    market hours falls back to 60s."""
+    if CRYPTO_TRADING_ENABLED or HL_COPYTRADE_ENABLED or _alpaca_broker_for_status is None:
         return 60
     try:
         return 60 if _alpaca_broker_for_status.is_market_open() else 1800
