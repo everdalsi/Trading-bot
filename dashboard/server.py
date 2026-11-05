@@ -68,6 +68,8 @@ def sync_from_vps() -> None:
         for k, fname in LEDGER_FILES.items():
             if ledgers.get(k) is not None:
                 (CACHE / fname).write_text(json.dumps(ledgers[k]), encoding="utf-8")
+        if isinstance(ledgers.get("lessons"), str):  # Professor's written lessons (lecons.md, raw text)
+            (CACHE / "lecons.md").write_text(ledgers["lessons"], encoding="utf-8")
         for cmd, fname in (("events 300", "agent_events.jsonl"), ("micro", "micro.json"), ("status", "status.txt")):
             try:
                 (CACHE / fname).write_text(_ssh(cmd), encoding="utf-8")
@@ -335,7 +337,11 @@ def _learning() -> dict:
     news = _json(CACHE / "news_flags.json", {}) or {}
     flags = [{"symbol": s, **f} for s, lst in (news.get("symbols") or {}).items() for f in lst if f.get("level") != "ambigu"]
     flags.sort(key=lambda f: -float(f.get("at", 0)))
-    return {"at": prof.get("at"), "trades": prof.get("trades"), "stats": prof.get("stats", {}),
+    try:
+        lessons = (CACHE / "lecons.md").read_text(encoding="utf-8")[-6000:]
+    except OSError:
+        lessons = ""
+    return {"lessons": lessons, "at": prof.get("at"), "trades": prof.get("trades"), "stats": prof.get("stats", {}),
             "weights": prof.get("wallet_weights", {}), "disabled": prof.get("disabled_wallets", []),
             "scalp_share": prof.get("scalp_share", {}), "news": flags[:12], "news_at": news.get("at")}
 

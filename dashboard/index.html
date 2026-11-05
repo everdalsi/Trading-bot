@@ -237,6 +237,8 @@ function render(st) {
   document.getElementById("learn").innerHTML = (row("Par portefeuille", stt.portfolio) + row("Par type (normal / scalping)", stt.type) + row("Par régime à l'entrée", stt.regime) + row("Par règle de sortie", stt.rule)
     + `<p class="mut" style="margin-top:8px">Wallets pondérés : ${Object.keys(Lr.weights || {}).length} · coupés par l'Auditeur : ${(Lr.disabled || []).length}${shares ? " · part du scalping : " + shares : ""}</p>`)
     || '<div class="empty">Le Professeur publie son premier bilan quelques minutes après le démarrage du bot, puis toutes les 6 h.</div>';
+  if (Lr.lessons) document.getElementById("learn").innerHTML += `<details style="margin-top:8px"><summary>Registre des leçons du Professeur</summary>
+    <pre style="white-space:pre-wrap;font-size:12px;max-height:320px;overflow:auto">${esc(Lr.lessons)}</pre></details>`;
 
   document.getElementById("newsat").textContent = Lr.news_at ? `il y a ${ago(Date.now() / 1000 - Lr.news_at)}` : "";
   document.getElementById("news").innerHTML = (Lr.news || []).map(f => `<div class="ag"><span class="tag ${f.level === "negatif_fort" ? "VETO" : "BUY"}">${f.level === "negatif_fort" ? "négatif" : "positif"}</span> ${chart(f.symbol)}
