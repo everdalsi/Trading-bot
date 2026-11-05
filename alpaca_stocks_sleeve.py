@@ -665,6 +665,16 @@ def _alpaca_stocks_worker_body(send_fn) -> None:
         log_event("DrawdownGuard", "actions_us", "VETO", "", dd.get("reason") or "", result="aucun achat ce cycle")
         logger.info(f"[ALPACA-STOCKS] Circuit breaker actif: {dd['reason']}")
 
+    # SPY brake (spy_brake.py): market falling -> no new longs / top-ups, R3 tightened; takes precedence over the fill
+    brake = {"on": False}
+    if market_open:
+        try:
+            import spy_brake
+            brake = spy_brake.state()
+        except Exception as e:
+            logger.info(f"[ALPACA-STOCKS] SPY brake unavailable (non-blocking): {type(e).__name__}: {e}")
+    ledger["_spy_brake"] = bool(brake.get("on"))
+
     max_positions = max(len(effective_universe), int(1 / POS_PCT))
     invested = sum(float(p.get("cost", 0)) for p in ledger["positions"].values())
     ledger["_fill_mode"] = invested < FILL_TARGET * max(1.0, virtual_equity)
@@ -680,7 +690,19 @@ def _alpaca_stocks_worker_body(send_fn) -> None:
             _safe_send(send_fn, f"[ALPACA-STOCKS] {symbol} error (isolated, skipped): {type(e).__name__}: {e}")
             cycle_summary.append(f"{symbol}=ERROR({type(e).__name__})")
 
-    if market_open and ledger.get("_fill_mode") and not trading_blocked:
+    if market_open and ledger.get("_fill_mode") and not trading_blocked and ledger.get("_spy_brake"):
+        try:
+            import spy_brake
+            pos_ = ledger["positions"]
+            eq = float(ledger.get("virtual_cash", VIRTUAL_STARTING_CASH)) + sum(float(p.get("cost", 0)) for p in pos_.values())
+            each = min(FILL_MAX_POS_PCT, FILL_TARGET / max(1, len(pos_))) * eq
+            for sym, p in pos_.items():
+                add = each - float(p.get("cost", 0))
+                if add >= 10:  # same size the top-up would have bought
+                    spy_brake.record_block(sym, None, add, "topup")
+        except Exception:
+            pass
+    elif market_open and ledger.get("_fill_mode") and not trading_blocked:
         try:
             _fill_topup(ledger, send_fn)
         except Exception as e:
@@ -693,6 +715,7 @@ def _alpaca_stocks_worker_body(send_fn) -> None:
             _safe_send(send_fn, f"[ALPACA-STOCKS] TradeManager error (non-blocking): {type(e).__name__}: {e}")
 
     ledger.pop("_fill_mode", None)
+    ledger.pop("_spy_brake", None)
     ledger["last_run"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     if len(ledger["decisions"]) > MAX_DECISIONS_KEPT:
         ledger["decisions"] = ledger["decisions"][-MAX_DECISIONS_KEPT:]
@@ -832,9 +855,20 @@ def _stocks_trade_manager(ledger: dict, send_fn) -> None:
         views.append({"symbol": symbol, "side": "LONG", "entry": pos["entry_price"], "price": bars[-1][4],
                       "opened_at": opened, "kind": "stocks", "state": pos, "support": sup, "atr": atr,
                       "resistance": chart_analyst.first_resistance(symbol, "1d")})
-    trade_manager.manage("actions_us", views,
-                         lambda v, rule, action, frac, why: _reduce_position(ledger, v["symbol"], frac, why, v["price"], send_fn),
-                         send_fn)
+        if ledger.get("_spy_brake"):
+            import spy_brake
+            views[-1]["r3_stop"] = spy_brake.TIGHT_R3_PCT
+
+    def _exec(v, rule, action, frac, why):
+        if rule == "R3" and v.get("r3_stop") and v["price"] / v["entry"] - 1 > trade_manager.rules()["r3_stop_stocks_pct"] / 100:
+            try:
+                import spy_brake
+                spy_brake.record_tight_close(v["symbol"], v["entry"], v["price"], float(v["state"].get("qty", 0)) * v["price"])
+            except Exception:
+                pass
+        _reduce_position(ledger, v["symbol"], frac, why, v["price"], send_fn)
+
+    trade_manager.manage("actions_us", views, _exec, send_fn)
 
 
 def _record_trade_outcome(ledger: dict, pnl: Optional[float]) -> None:
@@ -959,6 +993,15 @@ def _process_symbol(symbol: str, ledger: dict, market_open: bool, send_fn, convi
             return f"BUY(skip:circuit_breaker,score={score})"
         if not market_open:
             return f"BUY(skip:market_closed,score={score})"  # scored + logged above; no order while market is closed
+        if ledger.get("_spy_brake"):
+            try:
+                import spy_brake
+                lc = detail.get("last_close") or (closes[-1] if closes else 0)
+                eq = float(ledger.get("virtual_cash", VIRTUAL_STARTING_CASH)) + sum(float(p.get("cost", 0)) for p in ledger["positions"].values())
+                spy_brake.record_block(symbol, float(lc or 0), eq * POS_PCT, "new")
+            except Exception:
+                pass
+            return f"BUY(skip:spy_brake,score={score})"
         last_close = detail.get("last_close") or (closes[-1] if closes else None)
         if not last_close or last_close <= 0:
             return f"BUY(skip:no_price,score={score})"

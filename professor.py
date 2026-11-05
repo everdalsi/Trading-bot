@@ -250,6 +250,22 @@ def write_lessons(stats: dict, data: dict, prev: dict) -> None:
     for w, v in data["wallet_weights"].items():
         if abs(float(prev.get("wallet_weights", {}).get(w, 1.0)) - v) >= 0.05:
             journal.append(f"- {day} : poids du wallet {w[:10]} -> {v}")
+    try:  # SPY brake counterfactual (spy_brake.py): kept only if it saves money over >= 10 activations
+        import spy_brake
+        import alpaca_broker
+
+        def _px(sym):
+            bars = alpaca_broker.get_recent_bars(sym, "15m", 3)
+            return bars[-1][4] if bars else None
+        cf = spy_brake.evaluate(_px)
+        if cf.get("activations") or cf.get("n"):
+            verdict = ("a juger" if cf["activations"] < 10 else "a garder" if cf["saved_usd"] > 0 else "a retirer")
+            lines += ["## Frein SPY (actions US)",
+                      f"- {cf['activations']} activations, {cf['n']} cas mesures a J+1 ({cf.get('blocks', 0)} achats bloques, "
+                      f"{cf.get('tight_closes', 0)} stops resserres -4 %) : {cf['saved_usd']:+.2f} $ economises -> {verdict} "
+                      "(decision a partir de 10 activations)", ""]
+    except Exception:
+        pass
     lines += ["## Journal des decisions", *journal[-300:], ""]
     tmp = LESSONS.with_suffix(".md.tmp")
     tmp.write_text(chr(10).join(lines), encoding="utf-8")
