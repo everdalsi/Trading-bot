@@ -169,8 +169,18 @@ def expected_edge(portfolio: str, proxy: float) -> tuple[float, str, int]:
 
 def approve_entry(portfolio: str, symbol: str, price: float | None, proxy_edge: float,
                   context: dict | None = None) -> tuple[bool, str]:
-    """Final go / no-go for a NEW position. Logs one SeniorExpert line either way."""
-    context = context or {}
+    """Final go / no-go for a NEW position. Logs one SeniorExpert line either way. Fail-closed:
+    any unexpected error refuses the entry instead of reaching the trading loop."""
+    try:
+        return _approve_entry(portfolio, symbol, price, proxy_edge, context or {})
+    except Exception as e:
+        why = f"erreur interne {type(e).__name__}: {str(e)[:150]}"
+        log_event("SeniorExpert", portfolio, "VETO", symbol, why, result="refuse (fail-closed)")
+        return False, why
+
+
+def _approve_entry(portfolio: str, symbol: str, price: float | None, proxy_edge: float,
+                   context: dict) -> tuple[bool, str]:
     ok, why = data_guard.entry_ok(portfolio, symbol, price)
     if not ok:
         log_event("DataGuard", portfolio, "VETO", symbol, why, result="entree bloquee (sorties permises)")
