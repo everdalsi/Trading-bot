@@ -357,7 +357,8 @@ def _marks(symbol: str) -> list:
 
 def chart_data(symbol: str, interval: str) -> dict:
     c = _klines(symbol, interval)
-    analysis = (_json(CACHE / "chart_analysis.json", {}) or {}).get(symbol, {})
+    raw = _json(CACHE / "chart_analysis.json", {}) or {}
+    analysis = (raw.get("symbols") or raw).get(symbol, {})
     return {"symbol": symbol, "interval": interval, "candles": c, "supports": _levels(c, "support"),
             "resistances": _levels(c, "resistance"), "marks": _marks(symbol), "analysis": analysis}
 
