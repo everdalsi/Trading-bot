@@ -854,7 +854,7 @@ def _process_symbol(symbol: str, ledger: dict, market_open: bool, send_fn, convi
         # SeniorExpert (agence step 1). Proxy edge while < 100 closed trades: 0.5 % per score point
         # above the BUY threshold (decide(): score >= 2).
         approved, _why = agency.approve_entry("actions_us", symbol, last_close, 0.005 * max(0, score - 1),
-                                              {"score": score, "size_reduction": reduction})
+                                              {"score": score, "size_reduction": reduction, "side": "LONG"})
         if not approved:
             return f"BUY(veto:senior_expert,score={score})"
         order = alpaca_broker.submit_market_order(symbol, "buy", qty)
