@@ -246,7 +246,51 @@ USD_PER_TRADE = 250.0          # legacy fixed size, replaced by POS_PCT below
 # FILL_TARGET is invested, score 1 (the best below the normal BUY threshold of 2) also buys, best first.
 POS_PCT = float(os.environ.get("ALPACA_POS_PCT", 0.05))
 FILL_TARGET = float(os.environ.get("ALPACA_FILL_TARGET", 0.95))
-FILL_MIN_SCORE = int(os.environ.get("ALPACA_FILL_MIN_SCORE", 0))  # best scores first; SeniorExpert keeps its veto
+FILL_MIN_SCORE = int(os.environ.get("ALPACA_FILL_MIN_SCORE", 0))
+FILL_MAX_POS_PCT = float(os.environ.get("ALPACA_FILL_MAX_POS_PCT", 0.10))
+
+
+def _fill_topup(ledger: dict, send_fn) -> None:
+    """User request 2026-11-05 (~100 % invested): when every candidate with score >= FILL_MIN_SCORE is
+    already held at 5 %, top the held ones up toward FILL_TARGET / n positions (max 10 % each), best score
+    first, each add approved by the SeniorExpert."""
+    pos = ledger["positions"]
+    if not pos:
+        return
+    cash = float(ledger.get("virtual_cash", VIRTUAL_STARTING_CASH))
+    equity = cash + sum(float(p.get("cost", 0)) for p in pos.values())
+    invested = equity - cash
+    target_each = min(FILL_MAX_POS_PCT, FILL_TARGET / len(pos)) * equity
+    score = {}
+    for d in ledger.get("decisions", [])[-200:]:
+        if isinstance(d, dict) and d.get("symbol") in pos:
+            score[d["symbol"]] = d.get("score", 0)
+    for symbol in sorted(pos, key=lambda s: -(score.get(s) or 0)):
+        if invested >= FILL_TARGET * equity or (score.get(symbol) or 0) < FILL_MIN_SCORE:
+            continue
+        p = pos[symbol]
+        add = min(target_each - float(p.get("cost", 0)), cash - 5, FILL_TARGET * equity - invested)
+        price = float(p.get("ref_price") or p.get("entry_price") or 0)
+        if add < 10 or price <= 0:
+            continue
+        qty = round(add / price, 4)
+        ok, _why = agency.approve_entry("actions_us", symbol, price, 0.0025 * max(0, (score.get(symbol) or 0) + 1),
+                                        {"score": score.get(symbol), "side": "LONG", "fill_mode": True})
+        if not ok or qty <= 0:
+            continue
+        order = alpaca_broker.submit_market_order(symbol, "buy", qty)
+        fill = float(order.get("filled_avg_price") or price)
+        cost = round(qty * fill, 2)
+        p["qty"] = round(float(p.get("qty", 0)) + qty, 4)
+        p["cost"] = round(float(p.get("cost", 0)) + cost, 2)
+        p["entry_price"] = p["cost"] / p["qty"]
+        p["fill_mode"] = True
+        cash -= cost
+        invested += cost
+        ledger["virtual_cash"] = round(cash, 2)
+        log_event("Executor", "actions_us", "BUY", symbol, f"renfort remplissage vers {FILL_TARGET:.0%} investi "
+                  f"(score {score.get(symbol)})", score=score.get(symbol), result="renforce", price=fill, usd=cost, fill_mode=True)
+        _safe_send(send_fn, f"[ALPACA-STOCKS] renfort {symbol} +{qty} (~${cost:.0f}) | cash ${cash:.0f}")  # best scores first; SeniorExpert keeps its veto
 MAX_DECISIONS_KEPT = 500        # cap the decisions log so the ledger file doesn't grow forever
 
 # VIRTUAL PORTFOLIO (added 2026-11-04, per explicit user instruction: a
@@ -635,6 +679,12 @@ def _alpaca_stocks_worker_body(send_fn) -> None:
         except Exception as e:
             _safe_send(send_fn, f"[ALPACA-STOCKS] {symbol} error (isolated, skipped): {type(e).__name__}: {e}")
             cycle_summary.append(f"{symbol}=ERROR({type(e).__name__})")
+
+    if market_open and ledger.get("_fill_mode") and not trading_blocked:
+        try:
+            _fill_topup(ledger, send_fn)
+        except Exception as e:
+            _safe_send(send_fn, f"[ALPACA-STOCKS] top-up error (non-blocking): {type(e).__name__}: {e}")
 
     if market_open:  # orders only go through while the market is open
         try:
