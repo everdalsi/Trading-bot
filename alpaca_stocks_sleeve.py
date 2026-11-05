@@ -137,6 +137,7 @@ from __future__ import annotations
 import json
 import os
 from agent_events import log_event  # decision journal, never raises
+import agency  # SeniorExpert final gate (agence step 1)
 import threading
 import time
 from datetime import datetime
@@ -850,13 +851,19 @@ def _process_symbol(symbol: str, ledger: dict, market_open: bool, send_fn, convi
         qty = round(usd_size / last_close, 4)
         if qty <= 0:
             return f"BUY(skip:qty<=0,score={score})"
+        # SeniorExpert (agence step 1). Proxy edge while < 100 closed trades: 0.5 % per score point
+        # above the BUY threshold (decide(): score >= 2).
+        approved, _why = agency.approve_entry("actions_us", symbol, last_close, 0.005 * max(0, score - 1),
+                                              {"score": score, "size_reduction": reduction})
+        if not approved:
+            return f"BUY(veto:senior_expert,score={score})"
         order = alpaca_broker.submit_market_order(symbol, "buy", qty)
         entry_price = order.get("filled_avg_price") or last_close
         cost = round(qty * entry_price, 2)
         ledger["virtual_cash"] = round(virtual_cash - cost, 2)
         risk = _compute_entry_risk(symbol)
         ledger["positions"][symbol] = {
-            "qty": qty, "entry_price": entry_price, "cost": cost,
+            "qty": qty, "entry_price": entry_price, "cost": cost, "ref_price": last_close,
             "entry_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "order_id": order.get("id"), "score_at_entry": score,
             "risk_pct_at_entry": risk.get("risk_pct"),

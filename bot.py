@@ -2,6 +2,7 @@
 
 import os, time, threading, feedparser, requests, asyncio
 from agent_events import log_event  # decision journal (agent_events.jsonl), never raises
+import agency  # step 1 'agence': CostAnalyst, SeniorExpert, DataGuard, Watchdog
 import json, sqlite3, re, hashlib, base64, hmac, secrets
 import pandas as pd
 import numpy as np
@@ -2865,6 +2866,7 @@ def monitor_hl_copytrade_risk(send_fn):
     HL_COPY positions by construction."""
     ledger = load_hl_copy_ledger()
     prices = get_prices_batch()
+    agency.data_guard.observe(prices)
     seen_prices = {}
     for pos_key, pos in list(ledger["positions"].items()):
         symbol = pos["symbol"]
@@ -3039,6 +3041,15 @@ def _hl_copytrade_worker_body(send_fn):
             except Exception as e:
                 logger.debug(f"[HL-COPY] correlation_watcher unavailable (non-blocking): {type(e).__name__}: {e}")
             risk = compute_crypto_risk_pct(symbol, pos["side"])  # informational only -- never gates the mirror, see docstring
+            # SeniorExpert (agence step 1): no entry when expected edge - costs <= 0, thin liquidity
+            # or bad data. Proxy edge while < 100 closed trades: source wallet monthly ROI / 30, capped
+            # at 2 % per trade (followed wallets show 133 %..183 000 %/month: leverage and size, not a
+            # per-trade edge we can copy). Until 100 trades the real filters here are liquidity and data.
+            approved, _why = agency.approve_entry(
+                "crypto_copy", symbol, price, min(float(w["month_roi"]) / 30, 0.02),
+                {"size_reduction": size_reduction, "wallet_roi": w["month_roi"]})
+            if not approved:
+                continue
             _open_hl_mirror(symbol, price, pos["side"], addr, coin, w["month_roi"], send_fn, risk=risk, size_reduction=size_reduction)
             ledger = load_hl_copy_ledger()  # _open_hl_mirror just saved a newer version -- reload for the same reason as above
 
@@ -5539,6 +5550,7 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     send = make_send(TELEGRAM_CHAT_ID)
     threading.Thread(target=trading_loop,  args=(send,), daemon=True).start()
     threading.Thread(target=watchdog,      args=(send,), daemon=True).start()
+    agency.start_watchdog(send)
     threading.Thread(target=daily_summary, args=(send,), daemon=True).start()
 
 async def cmd_stop(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -7264,6 +7276,7 @@ def auto_start():
         pass  # Telegram optionnel
     threading.Thread(target=trading_loop,  args=(send,), daemon=True).start()
     threading.Thread(target=watchdog,      args=(send,), daemon=True).start()
+    agency.start_watchdog(send)
     threading.Thread(target=daily_summary, args=(send,), daemon=True).start()
 
 def _evolution_loop_MAIN():
