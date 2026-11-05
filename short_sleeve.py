@@ -279,10 +279,18 @@ def lane_a_rotate(ledger: dict, can_open: bool, send_fn) -> None:
         return
     eq = equity(ledger, prices)
     budget_left = eq * A_SHARE - sum(p["usd"] for p in ledger["positions"].values() if p["lane"] == "A")
+    # RiskManager (B1/V4): inverse-volatility weights over the missing targets, using the whole budget left
+    missing = [s for s in targets if f"A:{s}" not in ledger["positions"]][:max(0, A_MAX_POS - sum(
+        p["lane"] == "A" for p in ledger["positions"].values()))]
+    try:
+        import risk_manager
+        alloc = risk_manager.risk_parity(missing, budget_left)
+    except Exception:
+        alloc = {}
     for s in targets:
         if f"A:{s}" in ledger["positions"] or sum(p["lane"] == "A" for p in ledger["positions"].values()) >= A_MAX_POS:
             continue
-        usd = min(eq * A_POS_PCT, budget_left)
+        usd = min(alloc.get(s, eq * A_POS_PCT), budget_left)
         try:  # ChartAnalyst: no LONG entry less than 0.5 ATR under a major 4 h resistance (spec C)
             import chart_analyst
             if side == "LONG" and chart_analyst.near_resistance(s, "4h", 0.5):

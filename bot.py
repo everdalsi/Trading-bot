@@ -5,6 +5,7 @@ from agent_events import log_event  # decision journal (agent_events.jsonl), nev
 import agency  # step 1 'agence': CostAnalyst, SeniorExpert, DataGuard, Watchdog
 import chart_analyst  # candle analysis for held symbols (chart_analysis.json)
 import macro_analyst, sentiment_analyst, fundamental_analyst  # agents v2 (Desktop), measurement only
+import risk_manager  # B1: vol-targeted sizing + portfolio risk snapshot (risk_manager.json)
 import top_traders  # best HL wallets + consensus per coin (top_traders.json)
 import trade_manager  # rules R1-R10 on open positions (never opens)
 import short_sleeve  # 3rd paper portfolio 'court terme' (SHORT_SLEEVE_ENABLED)
@@ -2839,6 +2840,12 @@ def _open_hl_mirror(symbol: str, price: float, side: str, source_addr: str,
     # Professor: wallet weight 0.5-1.5 from its own net results (1.0 until 20 closed trades)
     # weight capped at 1.0: a strong wallet never breaks the 5 %-per-position spread the user asked for
     base_amount = min(_hl_position_size(ledger) * min(1.0, professor.wallet_weight(source_addr)), ledger["cash"] * 0.99)
+    # RiskManager (B1/V4): volatility targeting, 0.5x-1.5x of the 5 % size (same daily risk per coin)
+    try:
+        vm = risk_manager.vol_mult(symbol)
+    except Exception:
+        vm = 1.0
+    base_amount = min(base_amount * vm, ledger["cash"] * 0.99)
     amount = base_amount * (1.0 - max(0.0, min(1.0, size_reduction)))
     qty = amount / price
     ledger["cash"] -= amount
@@ -5732,6 +5739,8 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     agency.start_watchdog(send)
     chart_analyst.start()
     top_traders.start()
+    risk_manager.category_fn = _hl_category
+    risk_manager.start()
     macro_analyst.start()
     sentiment_analyst.start()
     fundamental_analyst.start()
@@ -7468,6 +7477,8 @@ def auto_start():
     agency.start_watchdog(send)
     chart_analyst.start()
     top_traders.start()
+    risk_manager.category_fn = _hl_category
+    risk_manager.start()
     macro_analyst.start()
     sentiment_analyst.start()
     fundamental_analyst.start()
