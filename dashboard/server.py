@@ -61,10 +61,11 @@ def sync_from_vps() -> None:
         for k, fname in LEDGER_FILES.items():
             if ledgers.get(k) is not None:
                 (CACHE / fname).write_text(json.dumps(ledgers[k]), encoding="utf-8")
-        try:
-            (CACHE / "agent_events.jsonl").write_text(_ssh("events 300"), encoding="utf-8")
-        except Exception:
-            pass  # journal not deployed yet
+        for cmd, fname in (("events 300", "agent_events.jsonl"), ("micro", "micro.json"), ("status", "status.txt")):
+            try:
+                (CACHE / fname).write_text(_ssh(cmd), encoding="utf-8")
+            except Exception:
+                pass
     except Exception as e:
         state["error"] = str(e)[:200]
     SYNC_STATE.write_text(json.dumps(state), encoding="utf-8")
@@ -183,12 +184,76 @@ def _agents(events: list[dict]) -> list[dict]:
     return sorted(cards, key=lambda c: (c["age_s"] is None, c["age_s"] or 0))
 
 
+import re as _re
+
+
+def _logs() -> dict:
+    """Container state + what the bot's own agents last said (regime, soul, stocks cycle)."""
+    try:
+        txt = (CACHE / "status.txt").read_text(encoding="utf-8", errors="replace")
+    except Exception:
+        return {}
+    lines = txt.splitlines()
+    out = {"container": lines[0].strip() if lines else "", "log": [l for l in lines[1:] if l.strip()][-40:]}
+    for l in reversed(lines):
+        if "regime" not in out and (m := _re.search(r"Régime: (\w+) \| conf: (\d+)%", l)):
+            out["regime"], out["regime_conf"] = m.group(1), int(m.group(2))
+        if "soul" not in out and (m := _re.search(r"phase=(\w+) \| conf=(\d+)% \| kelly=([\d.]+)%", l)):
+            out["soul"] = {"phase": m.group(1), "conf": int(m.group(2)), "kelly": float(m.group(3))}
+        if "agents_total" not in out and (m := _re.search(r"(\d+) agents initialisés", l)):
+            out["agents_total"] = int(m.group(1))
+        if "pairs" not in out and (m := _re.search(r"(\d+) paires USDT actives", l)):
+            out["pairs"] = int(m.group(1))
+    return out
+
+
+def _micro() -> dict:
+    d = _json(CACHE / "micro.json", {})
+    trades = d.get("last_trades") or []
+    rows = []
+    for t in trades[::-1][:25]:
+        deb = t.get("debate") or {}
+        rows.append({"symbol": t.get("symbol"), "side": t.get("side"), "usd": round(_num(t.get("amount_usd")), 2),
+                     "pnl": _num(t.get("pnl")), "pnl_pct": _num(t.get("pnl_pct")), "conf": t.get("confidence"),
+                     "reason": t.get("reason", ""), "exit": t.get("exit_reason", ""), "time": t.get("time_out") or t.get("time_in"),
+                     "verdict": deb.get("verdict", ""), "bull": (deb.get("bull_case") or [""])[0],
+                     "bear": (deb.get("bear_case") or [""])[0], "regime": (t.get("ohlc") or {}).get("chop_regime", ""),
+                     "structure": (t.get("smc") or {}).get("structure", ""), "orderbook": t.get("ob_pressure", "")})
+    pnls = [r["pnl"] for r in rows]
+    return {"cash": round(_num(d.get("cash")), 2), "closed": d.get("closed_trades"), "realized": d.get("realized_pnl"),
+            "open": d.get("open_positions"), "trades": rows,
+            "recent_wr": round(100 * sum(1 for x in pnls if x > 0) / len(pnls), 1) if pnls else None}
+
+
+def _stocks() -> dict:
+    d = _json(CACHE / "alpaca_stocks_portfolio.json", {})
+    latest = {}
+    for x in d.get("decisions") or []:
+        latest[x.get("symbol")] = x
+    rows = sorted(latest.values(), key=lambda x: -abs(_num(x.get("score"))))[:16]
+    return {"risk": d.get("risk_state") or {}, "last_run": d.get("last_run"),
+            "signals": [{"symbol": x.get("symbol"), "action": x.get("action"), "score": x.get("score"),
+                         "tech": x.get("technical_score"), "f13": x.get("13f_direction"), "congress": x.get("congress_direction"),
+                         "ret5": x.get("ret_5d_pct"), "close": x.get("last_close"), "open": x.get("market_open")} for x in rows]}
+
+
+def _wallets() -> list:
+    d = _json(CACHE / "hl_copy_portfolio.json", {})
+    w = d.get("wallets") or []
+    return [{"addr": x.get("address", "")[:6] + "…" + x.get("address", "")[-4:], "value": x.get("account_value"),
+             "roi_m": x.get("month_roi"), "roi_w": x.get("week_roi")} for x in sorted(w, key=lambda x: -_num(x.get("month_roi")))[:10]]
+
+
 def status() -> dict:
     events = _events()
     for e in events:
         e["ts"] = _ts(e.get("ts"))
-    return {"now": time.strftime("%H:%M:%S"), "sync": _json(SYNC_STATE, {}),
-            "portfolios": [_portfolio(p) for p in PORTFOLIOS], "agents": _agents(events), "events": events[:80]}
+    books = [_portfolio(p) for p in PORTFOLIOS]
+    micro = _micro()
+    return {"now": time.strftime("%H:%M:%S"), "sync": _json(SYNC_STATE, {}), "portfolios": books,
+            "agents": _agents(events), "events": events[:80], "logs": _logs(), "micro": micro,
+            "stocks": _stocks(), "wallets": _wallets(),
+            "total_equity": round(sum(b.get("equity", 0) for b in books if b.get("available")) + _num(micro.get("cash")), 2)}
 
 
 class Handler(BaseHTTPRequestHandler):
