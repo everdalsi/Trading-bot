@@ -3282,7 +3282,7 @@ def hl_consensus_fill(send_fn):
     # Hedge leg (2026-11-05): neutral regime, both crypto books heavily net short and still cash left ->
     # LONG BTC then ETH (short alts / long majors = relative value, the lane A thesis). Invests the idle
     # cash AND reduces the net exposure; capped by the 30 % LONG majors rule; chart veto kept.
-    for sym in ("BTCUSDT", "ETHUSDT"):
+    for sym in ("BTCUSDT", "ETHUSDT", "SOLUSDT"):  # majors not shorted by the book, in that order
         if label != "neutral" or net > -HL_HEDGE_NET or invested + _hl_position_size(ledger) > eq * 1.0001:
             break
         hedged = sum(float(p.get("amount_usd", 0)) for p in ledger["positions"].values()
