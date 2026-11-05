@@ -3079,7 +3079,20 @@ HL_CONSENSUS_ADDR = "consensus"  # pseudo-wallet: positions opened by the fill e
 HL_FILL_TARGET = float(os.environ.get("HL_FILL_TARGET", 0.95))
 HL_FILL_WAIT_S = int(os.environ.get("HL_FILL_WAIT_S", 1800))
 HL_FILL_MIN_CONS, HL_FILL_MIN_HOLDERS, HL_FILL_EXIT_CONS = 0.4, 5, 0.1
-_hl_under_since = {"t": None}
+_HL_FILL_STATE = HL_COPY_LEDGER_PATH.parent / "hl_fill_state.json"  # survives restarts (Desktop review)
+
+
+def _fill_state(t=..., **kw) -> dict:
+    try:
+        st = json.loads(_HL_FILL_STATE.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        st = {"under_since": None}
+    if t is not ... or kw:
+        if t is not ...:
+            st["under_since"] = t
+        st.update(kw)
+        _HL_FILL_STATE.write_text(json.dumps(st), encoding="utf-8")
+    return st
 
 
 def hl_consensus_fill(send_fn):
@@ -3122,11 +3135,13 @@ def hl_consensus_fill(send_fn):
     eq = _hl_equity(ledger)
     invested = sum(float(p.get("amount_usd", 0)) for p in ledger["positions"].values())
     if eq <= 0 or invested >= HL_FILL_TARGET * eq:
-        _hl_under_since["t"] = None
+        if _fill_state().get("under_since") is not None:
+            _fill_state(None)
         return
-    if _hl_under_since["t"] is None:
-        _hl_under_since["t"] = time.time()
-    if time.time() - _hl_under_since["t"] < HL_FILL_WAIT_S:
+    since = _fill_state().get("under_since")
+    if since is None:
+        since = _fill_state(time.time())["under_since"]
+    if time.time() - since < HL_FILL_WAIT_S:
         return
     try:
         import regime
@@ -3134,6 +3149,7 @@ def hl_consensus_fill(send_fn):
     except Exception:
         label = "neutral"
     held = {p["symbol"] for p in ledger["positions"].values()}
+    why = {"regime": 0, "repartition": 0, "graphique": 0, "senior": 0, "deja_detenu": 0, "ouverts": 0}
     cands = sorted(((c, v) for c, v in cons.items() if abs(v) >= HL_FILL_MIN_CONS and holders.get(c, 0) >= HL_FILL_MIN_HOLDERS),
                    key=lambda cv: -abs(cv[1]) * min(1.0, holders.get(cv[0], 0) / 10))
     for coin, c in cands:
@@ -3142,13 +3158,16 @@ def hl_consensus_fill(send_fn):
         symbol = HL_COIN_TO_BINANCE.get(coin) or HL_COIN_TO_BINANCE.get("k" + coin) or f"{coin}USDT"
         side = "LONG" if c > 0 else "SHORT"
         if symbol in held or symbol in MANUAL_SYMBOL_BLACKLIST:
+            why["deja_detenu"] += 1
             continue
         if (label == "risk_on" and side == "SHORT") or (label == "risk_off" and side == "LONG"):
+            why["regime"] += 1
             log_event("RiskLimits", "crypto_copy", "SKIP", coin, f"remplissage {side} contre le regime {label}", score=c)
             continue
-        ok, why = _hl_spread_ok(ledger, symbol, side, HL_CONSENSUS_ADDR)
+        ok, why_ = _hl_spread_ok(ledger, symbol, side, HL_CONSENSUS_ADDR)
         if not ok:
-            log_event("RiskLimits", "crypto_copy", "SKIP", coin, f"remplissage : {why}", score=c)
+            why["repartition"] += 1
+            log_event("RiskLimits", "crypto_copy", "SKIP", coin, f"remplissage : {why_}", score=c)
             continue
         price = get_current_price(symbol)
         if not price:
@@ -3158,6 +3177,7 @@ def hl_consensus_fill(send_fn):
             t1, t4 = (ca.get("1h") or {}).get("trend"), (ca.get("4h") or {}).get("trend")
             if (side == "LONG" and t1 == t4 == "down") or (side == "SHORT" and t1 == t4 == "up"):
                 log_event("ChartAnalyst", "crypto_copy", "VETO", coin, f"remplissage {side} contre la tendance 1 h ET 4 h ({t1})")
+                why["graphique"] += 1
                 continue
         except Exception:
             pass
@@ -3165,7 +3185,9 @@ def hl_consensus_fill(send_fn):
         approved, _ = agency.approve_entry("crypto_copy", symbol, price, 0.01 * abs(c),
                                            {"side": side, "score": c, "fill_mode": True})
         if not approved:
+            why["senior"] += 1
             continue
+        why["ouverts"] += 1
         _open_hl_mirror(symbol, price, side, HL_CONSENSUS_ADDR, coin, 0.0, send_fn, strategy="HL_CONSENSUS")
         log_event("FillEngine", "crypto_copy", "BUY" if side == "LONG" else "SELL", coin,
                   f"remplissage vers 100 % : consensus top wallets {c:+.2f} ({holders.get(coin)} wallets), regime {label}",
@@ -3174,6 +3196,9 @@ def hl_consensus_fill(send_fn):
         held.add(symbol)
         invested = sum(float(p.get("amount_usd", 0)) for p in ledger["positions"].values())
         eq = _hl_equity(ledger)
+    # one summary per cycle so the Trading Floor shows WHY the book is not full (Desktop review)
+    log_event("FillEngine", "crypto_copy", "INFO", "", f"remplissage : investi {invested / eq:.0%}, {len(cands)} candidats "
+              f"consensus, regime {label}", result=why, invested_pct=round(invested / eq, 3), candidates=len(cands))
 
 
 def _hl_copytrade_worker(send_fn):

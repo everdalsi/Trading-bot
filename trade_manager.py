@@ -16,6 +16,7 @@ R2 copied wallet left / cut its position by >= half -> close
 R3 catastrophe stop (-8 % crypto, -6 % stocks)      -> close
    stops set by earlier rules (entry stop, trailing, support stop) -> close
 R4 regime turns down (BTC < MA50 and MA50 falling), long  -> reduce 50 %, stop to entry
+R4S mirror (Desktop 2026-11-05): risk_on regime AND BTC >= +3 % in 24 h (short squeeze), short -> reduce 50 %, stop to entry
 R5 strong news AGAINST us < 1 h (negative vs long, positive vs short) -> reduce 50 %, close if reduced
 R6 top-50 consensus against us <= -0.4 (once)        -> reduce 50 %
 R7 gain >= +6 % (or price at the first 1 h resistance) -> take 1/3, trailing stop 3 %
@@ -65,6 +66,27 @@ def rules() -> dict:
 
 
 # ---------------------------------------------------------------- inputs from the other agents
+
+_squeeze = {"at": 0.0, "v": (False, "")}
+
+
+def regime_squeeze() -> tuple[bool, str]:
+    """risk_on regime (regime.py) AND BTC up >= 3 % over 24 h: shorts get squeezed. Cached 5 min."""
+    if time.time() - _squeeze["at"] < 300:
+        return _squeeze["v"]
+    v = (False, "")
+    try:
+        import regime
+        import requests
+        label = regime.current()["label"]
+        chg = float(requests.get("https://api.binance.com/api/v3/ticker/24hr", params={"symbol": "BTCUSDT"},
+                                 timeout=10).json()["priceChangePercent"])
+        v = (label == "risk_on" and chg >= 3.0, f"regime {label}, BTC {chg:+.1f} % sur 24 h")
+    except Exception:
+        pass
+    _squeeze.update(at=time.time(), v=v)
+    return v
+
 
 def regime_down() -> tuple[bool, str]:
     """BTC daily close < MA50 and MA50 lower than 5 days ago, from the single RegimeAgent (regime.py)."""
@@ -152,6 +174,10 @@ def decide(view: dict, r: dict, now: float | None = None) -> tuple[str, str, flo
     if not capped and down and side != "SHORT" and not st.get("tm_reduced"):
         upd.update(tm_reduced=True, tm_stop=max(stop or 0, entry), tm_stop_why="au prix d'entree")
         return "R4", "REDUCE", r["r4_reduce"], f"regime baissier ({why})", upd
+    squeeze, swhy = view.get("regime_squeeze", (False, ""))
+    if not capped and squeeze and side == "SHORT" and not st.get("tm_reduced"):
+        upd.update(tm_reduced=True, tm_stop=min(stop, entry) if stop else entry, tm_stop_why="au prix d'entree")
+        return "R4S", "REDUCE", r["r4_reduce"], f"squeeze haussier ({swhy})", upd
     news = view.get("news", "")
     if not capped and news:
         if st.get("tm_reduced"):
@@ -188,9 +214,11 @@ def manage(portfolio: str, views: list[dict], execute, send_fn=None) -> int:
     if not r.get("enabled", True):
         return 0
     down = regime_down()
+    squeeze = regime_squeeze() if any(v["side"] == "SHORT" for v in views) else (False, "")
     n = 0
     for v in views:
         v.setdefault("regime_down", down)
+        v.setdefault("regime_squeeze", squeeze)
         v.setdefault("news", news_against(v["symbol"], v["side"], r["r5_news_window_min"] * 60))
         v.setdefault("consensus", consensus(v["symbol"]))
         try:
