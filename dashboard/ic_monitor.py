@@ -59,6 +59,8 @@ def snapshot() -> dict:
         put("TopTraders", sym, v.get("consensus") if isinstance(v, dict) else v)
     for sym, c in (_json("polymarket.json").get("coins") or {}).items():
         put("Polymarket", sym, c.get("sentiment"))
+    for sym, c in (_json("options.json").get("coins") or {}).items():
+        put("OptionsAnalyst", sym, c.get("score"))
     macro = _json("macro.json").get("score")
     if macro is not None:
         put("MacroAnalyst", "BTCUSDT", macro)

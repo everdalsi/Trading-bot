@@ -248,6 +248,8 @@ function render(st) {
     ["Sentiment", `<div class="eq" style="font-size:22px">${FG.value ?? "—"} <span class="mut" style="font-size:13px">Fear & Greed · ${esc(FG.label || "")}</span></div>
       <div style="font-size:12px;margin-top:6px">${lst((A.sentiment || []).slice(0, 8), r => `${esc(r[0].replace("USDT", ""))} ${sc(r[1])}`)}</div>`],
     ["Meilleurs traders (consensus)", `<div style="font-size:12px">${lst(A.consensus, r => `${esc(String(r[0]).replace("USDT", ""))} ${sc(r[1])} <span class="mut">${r[1] > 0 ? "majorité acheteuse" : r[1] < 0 ? "majorité vendeuse" : ""}</span>`)}</div>`],
+    ["Options (Deribit)", `<div style="font-size:12px">${lst(Object.entries(A.options || {}), ([s, o]) => `<b>${esc(s.replace("USDT", ""))}</b> ${sc(o.score)} <span class="mut">skew ${o.skew_10pct ?? "—"} pts · IV ${o.iv_atm ?? "—"} % · puts/calls ${o.pcr_expiry ?? "—"}</span>`)}
+      <p class="mut" style="margin-top:6px">skew positif = puts plus chers que les calls = le marché se protège contre une baisse</p></div>`],
     ["Fondamentaux actions US", `<div style="font-size:12px">${lst(A.fundamentals, r => `<b>${esc(r[0])}</b> ${sc(r[1])} <span class="mut">CA ${r[2] ?? "—"} % · PER ${r[3] ?? "—"}</span>`)}</div>`],
   ].map(([t, h]) => `<div class="book"><h3>${t}</h3>${h}</div>`).join("");
 
