@@ -2692,6 +2692,13 @@ def fetch_hl_top_wallets() -> list:
             week_roi  = float(perf.get("week", {}).get("roi", 0) or 0)
             if month_roi < HL_MIN_MONTH_ROI or week_roi < HL_MIN_WEEK_ROI:
                 continue
+            # V2 (trading-agents-v3.md): good in 2 DISJOINT windows - day -30 -> -7 (month minus week) AND the
+            # last week - plus all-time PnL > 0. One lucky week or one lucky month is not enough.
+            m_pnl = float(perf.get("month", {}).get("pnl", 0) or 0)
+            w_pnl = float(perf.get("week", {}).get("pnl", 0) or 0)
+            all_pnl = float(perf.get("allTime", {}).get("pnl", 0) or 0)
+            if m_pnl - w_pnl <= 0 or w_pnl <= 0 or all_pnl <= 0:
+                continue
             addr = row.get("ethAddress")
             if not addr:
                 continue
@@ -2701,7 +2708,18 @@ def fetch_hl_top_wallets() -> list:
             })
         except Exception:
             continue
-    candidates.sort(key=lambda c: c["month_roi"], reverse=True)
+    # V2/V3: wallets kept by TopTraders (regular, not lucky, not market makers) first, by their score;
+    # then the rest by month ROI capped at 100 % (183 000 %/month = leverage, not skill)
+    try:
+        tt = json.loads((HL_COPY_LEDGER_PATH.parent / "top_traders.json").read_text(encoding="utf-8"))
+        tt_score = {w["address"].lower(): w["score"] for ws in tt.get("categories", {}).values() for w in ws}
+    except (OSError, ValueError, KeyError):
+        tt_score = {}
+    for c in candidates:
+        c["tt_score"] = tt_score.get(c["address"].lower())
+    candidates.sort(key=lambda c: (c["tt_score"] is not None, c["tt_score"] or 0, min(c["month_roi"], 1.0)), reverse=True)
+    logger.info(f"[HL-COPY] {len(candidates)} wallets pass V2 (2 windows + all-time), "
+                f"{sum(c['tt_score'] is not None for c in candidates)} also regular per TopTraders")
     return candidates[:HL_TOP_N_WALLETS]
 
 def fetch_hl_wallet_positions(address: str) -> dict:
