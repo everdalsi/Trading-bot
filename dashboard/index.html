@@ -64,6 +64,12 @@
   .tag.BUY, .tag.LONG, .tag.bull { color:var(--green); } .tag.SELL, .tag.SHORT, .tag.bear { color:var(--red); }
   .tag.HOLD, .tag.split { color:var(--amber); } .tag.VETO, .tag.HALT { color:var(--red); }
   .bar { display:inline-block; height:6px; border-radius:4px; vertical-align:middle; }
+  .roster { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:8px; }
+  .rm { background:var(--panel2); border:1px solid var(--line); border-radius:9px; padding:9px 10px; position:relative; font-size:12px; }
+  .rm b { font-size:12.5px; } .rm p { margin:3px 0 0; color:var(--muted); font-size:11.5px; }
+  .rm .st { position:absolute; top:9px; right:9px; font-size:10px; font-weight:700; }
+  .rm.live { border-color:#1d6b55; box-shadow:0 0 16px -8px var(--green); } .rm.planned { opacity:.55; }
+  .rm .last { margin-top:5px; font-size:11px; color:#c8dad6; }
   .log { font:11.5px/1.5 Consolas, monospace; background:#050a09; border-radius:8px; padding:10px; max-height:300px; overflow:auto; white-space:pre-wrap; color:#b9cdc9; }
   .empty { color:var(--muted); font-size:12.5px; padding:6px 0; }
   .foot { color:var(--muted); font-size:11px; padding:0 22px 18px; }
@@ -82,6 +88,7 @@
   <section class="panel s12"><div class="kpis" id="kpis"></div></section>
   <section class="s12"><div class="regime" id="regime"></div></section>
   <section class="panel s12"><h2><span>L'agence : de l'analyse à l'exécution</span><span id="agcount"></span></h2><div class="pipe" id="pipe"></div></section>
+  <section class="panel s12"><h2><span>L'équipe de l'agence</span><span class="mut">vert = en service · gris = à venir (étape du plan)</span></h2><div class="roster" id="roster"></div></section>
   <section class="panel s12"><h2>Portefeuilles</h2><div class="books" id="books"></div></section>
   <section class="panel s7"><h2><span>Derniers trades MICRO : la décision et le débat</span><span id="mwr"></span></h2><div class="scroll"><table>
     <thead><tr><th>Heure</th><th>Actif</th><th>Pourquoi l'achat</th><th>Débat</th><th>Sortie</th><th class="n">PnL</th></tr></thead><tbody id="micro"></tbody></table></div></section>
@@ -214,6 +221,9 @@ function render(st) {
     <b> ${esc(e.agent)}</b> <span class="tag ${esc(e.action)}">${esc(e.action)}</span> <b>${esc(e.symbol || "")}</b><p>${esc(e.reason || "")}${e.score != null ? " · score " + esc(e.score) : ""}</p></div>`).join("")
     || '<div class="empty">Le journal est en service sur le serveur : les décisions apparaîtront ici à la prochaine action d\'un agent (ouverture de la bourse US, nouveau wallet à copier, signal momentum).</div>';
 
+  document.getElementById("roster").innerHTML = (st.roster || []).map(r => `<div class="rm ${r.state}">
+    <span class="st ${r.state === "planned" ? "mut" : "up"}">${r.state === "live" ? "● en action" : r.state === "on" ? "en service" : "étape " + r.step}</span>
+    <b>${esc(r.label)}</b><p>${esc(r.role)}</p>${r.last ? `<div class="last"><span class="tag ${esc(r.last.action)}">${esc(r.last.action)}</span> ${esc(r.last.symbol || "")} ${esc(r.last.reason || "").slice(0, 70)} <span class="mut">· il y a ${ago(r.last.age_s)}</span></div>` : ""}</div>`).join("");
   const lg = document.getElementById("log"), atEnd = lg.scrollTop + lg.clientHeight >= lg.scrollHeight - 20;
   lg.textContent = (L.log || []).map(l => l.replace(/^\d{4}-\d\d-\d\d /, "").replace(/\[INFO\] root — /, "")).join("\n");
   if (atEnd) lg.scrollTop = lg.scrollHeight;

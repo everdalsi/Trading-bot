@@ -244,6 +244,44 @@ def _wallets() -> list:
              "roi_m": x.get("month_roi"), "roi_w": x.get("week_roi")} for x in sorted(w, key=lambda x: -_num(x.get("month_roi")))[:10]]
 
 
+
+# The agency (plan ~/.claude/plans/trading-agence-pro.md): name in agent_events.jsonl -> (label, role, step)
+ROSTER = [
+    ("Coordinator", "Coordinateur", "répartit le capital entre portefeuilles, coupe ceux qui perdent", 2),
+    ("SeniorExpert", "Expert senior", "veto si le gain espéré ne paie pas les frais", 1),
+    ("Professor", "Professeur", "apprend de chaque trade, propose des réglages", 3),
+    ("Auditor", "Auditeur", "n'adopte un changement que s'il bat l'ancien sur 200 trades", 3),
+    ("CostAnalyst", "Analyste des coûts", "frais + glissement réels attendus", 1),
+    ("Pruner", "Élagueur", "réduit ce qui perd par stratégie / symbole / régime", 2),
+    ("SizingAgent", "Dimensionnement", "même risque par trade selon la volatilité", 2),
+    ("RegimeAgent", "Régime de marché", "tendance / range / baisse", 0),
+    ("SignalAgent", "Signal", "momentum et scores d'entrée", 0),
+    ("DrawdownGuard", "Garde-fou drawdown", "veto si la perte devient trop forte", 0),
+    ("CorrelationWatcher", "Surveillant corrélation", "réduit les positions trop liées", 0),
+    ("Executor", "Exécuteur", "passe les ordres (fictifs)", 0),
+    ("DataGuard", "Gardien des données", "bloque les entrées si un prix est faux ou figé", 1),
+    ("Watchdog", "Veilleur technique", "santé du bot + alertes Telegram", 1),
+    ("EventAgent", "Agent événements", "pause autour de la Fed, inflation, piratages", 4),
+    ("DerivativesAnalyst", "Analyste dérivés", "funding, positions ouvertes, liquidations", 4),
+    ("MemeScout", "Éclaireur memecoins", "observe les memecoins (sans trader)", 0),
+]
+
+
+def _roster(events: list[dict]) -> list[dict]:
+    seen = {}
+    for e in events:  # newest first
+        seen.setdefault(e.get("agent"), e)
+    now = time.time()
+    out = []
+    for key, label, role, step in ROSTER:
+        e = seen.get(key)
+        age = (now - e["ts"]) if e and e.get("ts") else None
+        out.append({"key": key, "label": label, "role": role, "step": step,
+                    "state": "live" if age is not None and age < 900 else "on" if e or step == 0 else "planned",
+                    "last": ({"action": e.get("action"), "symbol": e.get("symbol"), "reason": e.get("reason"), "age_s": int(age)}
+                             if e else None)})
+    return out
+
 def status() -> dict:
     events = _events()
     for e in events:
@@ -251,7 +289,7 @@ def status() -> dict:
     books = [_portfolio(p) for p in PORTFOLIOS]
     micro = _micro()
     return {"now": time.strftime("%H:%M:%S"), "sync": _json(SYNC_STATE, {}), "portfolios": books,
-            "agents": _agents(events), "events": events[:80], "logs": _logs(), "micro": micro,
+            "agents": _agents(events), "roster": _roster(events), "events": events[:80], "logs": _logs(), "micro": micro,
             "stocks": _stocks(), "wallets": _wallets(),
             "total_equity": round(sum(b.get("equity", 0) for b in books if b.get("available")) + _num(micro.get("cash")), 2)}
 
