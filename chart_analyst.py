@@ -198,8 +198,8 @@ def ensure(symbol: str, max_age_s: float = 900) -> dict:
     (candidates that are not held yet), merged into chart_analysis.json."""
     data = load()
     cur = data.get("symbols", {}).get(symbol)
-    if cur and all(time.time() - (a.get("at") or 0) < max_age_s + 4 * 3600 for a in cur.values() if "at" in a) \
-            and time.time() - data.get("at", 0) < max_age_s:
+    analysed_at = max(float(data.get("ensured", {}).get(symbol, 0)), float(data.get("at", 0)) if cur else 0.0)
+    if cur and time.time() - analysed_at < max_age_s:
         return cur
     tfs = CRYPTO_TF if symbol.endswith("USDT") else STOCK_TF
     res = {}
@@ -213,6 +213,7 @@ def ensure(symbol: str, max_age_s: float = 900) -> dict:
     with _LOCK:
         data = load()
         data.setdefault("symbols", {})[symbol] = res
+        data.setdefault("ensured", {})[symbol] = time.time()
         tmp = OUT.with_suffix(".json.tmp")
         tmp.write_text(json.dumps(data), encoding="utf-8")
         tmp.replace(OUT)
