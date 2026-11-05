@@ -3285,14 +3285,17 @@ def hl_consensus_fill(send_fn):
     for sym in ("BTCUSDT", "ETHUSDT"):
         if label != "neutral" or net > -HL_HEDGE_NET or invested + _hl_position_size(ledger) > eq * 1.0001:
             break
-        if sym in held:
-            continue
-        if _recently_closed(ledger, sym):
+        hedged = sum(float(p.get("amount_usd", 0)) for p in ledger["positions"].values()
+                     if p["symbol"] == sym and p.get("strategy") == "HL_HEDGE")
+        if sym in held and not hedged:
+            continue  # held by a directional copy (e.g. a legacy ETH short): not a hedge leg
+        if not hedged and _recently_closed(ledger, sym):
             why["cooldown"] = why.get("cooldown", 0) + 1
             continue
-        # sized to the gap toward the fill target, max HL_HEDGE_MAX_PCT of equity per leg: a hedge REDUCES the
-        # net exposure, so the 30 % side+category rule (written for directional copies) does not cap it
-        size = min(HL_FILL_TARGET * eq - invested, HL_HEDGE_MAX_PCT * eq, ledger["cash"] * 0.99)
+        # sized to the gap toward the fill target, max HL_HEDGE_MAX_PCT of equity per leg (an existing hedge on
+        # the same coin is topped up as an extra tranche): a hedge REDUCES the net exposure, so the 30 %
+        # side+category rule (written for directional copies) does not cap it
+        size = min(HL_FILL_TARGET * eq - invested, HL_HEDGE_MAX_PCT * eq - hedged, ledger["cash"] * 0.99)
         if size < HL_SLEEVE_USD_PER_TRADE:
             break
         price = get_current_price(sym)
