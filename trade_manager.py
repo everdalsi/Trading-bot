@@ -154,6 +154,8 @@ def decide(view: dict, r: dict, now: float | None = None) -> tuple[str, str, flo
     stop3 = r["r3_stop_crypto_pct"] if view["kind"] == "crypto" else r["r3_stop_stocks_pct"]
     if pnl <= stop3:
         return "R3", "CLOSE", 1, f"stop catastrophe : {pnl:+.2f} % <= {stop3:.0f} %", upd
+    if view.get("hedge"):  # hedge legs are against the consensus BY DESIGN: only R1/R3 + their own exit (bot.py)
+        return "", "NONE", 0, "", upd
     stop = st.get("tm_stop")
     if stop and _against(side, price, stop):
         return "STOP", "CLOSE", 1, f"stop {st.get('tm_stop_why', '')} touche a {stop:.6g} ({pnl:+.2f} %)", upd

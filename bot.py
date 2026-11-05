@@ -2995,6 +2995,7 @@ def _hl_trade_manager(seen_prices: dict, send_fn) -> None:
         sup, atr = chart_analyst.nearest_support(pos["symbol"], "1h")
         views.append({"key": key, "symbol": pos["symbol"], "side": pos.get("side", "LONG"), "entry": pos["price_in"],
                       "price": price, "opened_at": pos.get("open_time", time.time()), "kind": "crypto", "state": pos,
+                      "hedge": pos.get("strategy") == "HL_HEDGE",
                       "data_bad_s": agency.data_guard.stale_s(pos["symbol"]),
                       "source_ratio": size_now / pos["tm_src0"] if pos.get("tm_src0") else None,
                       "support": sup, "atr": atr, "resistance": chart_analyst.first_resistance(pos["symbol"], "1h")})
@@ -3144,6 +3145,20 @@ def _crypto_net_exposure(hl_ledger: dict) -> float:
 HL_FILL_NET_LIMIT = float(os.environ.get("HL_FILL_NET_LIMIT", 0.60))
 HL_HEDGE_NET = float(os.environ.get("HL_HEDGE_NET", 0.30))
 HL_HEDGE_MAX_PCT = float(os.environ.get("HL_HEDGE_MAX_PCT", 0.40))
+HL_FILL_COOLDOWN_S = int(os.environ.get("HL_FILL_COOLDOWN_S", 3600))
+
+
+def _recently_closed(ledger: dict, symbol: str, within_s: int = HL_FILL_COOLDOWN_S) -> bool:
+    """Anti-churn (Desktop 2026-11-05): the fill never reopens a symbol closed less than within_s ago."""
+    cut = datetime.now() - timedelta(seconds=within_s)
+    for t in reversed(ledger.get("trades", [])[-200:]):
+        if t.get("symbol") == symbol and t.get("time_out"):
+            try:
+                if datetime.strptime(t["time_out"], "%Y-%m-%d %H:%M:%S") >= cut:
+                    return True
+            except ValueError:
+                continue
+    return False
 
 
 def hl_consensus_fill(send_fn):
@@ -3220,6 +3235,9 @@ def hl_consensus_fill(send_fn):
         if symbol in held or symbol in MANUAL_SYMBOL_BLACKLIST:
             why["deja_detenu"] += 1
             continue
+        if _recently_closed(ledger, symbol):
+            why["cooldown"] = why.get("cooldown", 0) + 1
+            continue
         if (label == "risk_on" and side == "SHORT") or (label == "risk_off" and side == "LONG"):
             why["regime"] += 1
             continue
@@ -3268,6 +3286,9 @@ def hl_consensus_fill(send_fn):
         if label != "neutral" or net > -HL_HEDGE_NET or invested + _hl_position_size(ledger) > eq * 1.0001:
             break
         if sym in held:
+            continue
+        if _recently_closed(ledger, sym):
+            why["cooldown"] = why.get("cooldown", 0) + 1
             continue
         # sized to the gap toward the fill target, max HL_HEDGE_MAX_PCT of equity per leg: a hedge REDUCES the
         # net exposure, so the 30 % side+category rule (written for directional copies) does not cap it
