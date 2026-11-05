@@ -121,6 +121,15 @@ class DataGuard:
                 changed = now if not old or old[0] != p else old[2]
                 self.last[s] = (p, now, changed)
 
+    def stale_s(self, symbol: str) -> float:
+        """Seconds this symbol's price has not moved while BTC kept moving (0 = fine)."""
+        now = time.time()
+        with self.lock:
+            s, btc = self.last.get(symbol), self.last.get("BTCUSDT")
+        if not s or not btc or now - btc[2] > 120:
+            return 0.0
+        return max(0.0, now - s[2] - 120)
+
     def venue_ok(self, portfolio: str) -> tuple[bool, str]:
         if portfolio != "crypto_copy":
             return True, ""

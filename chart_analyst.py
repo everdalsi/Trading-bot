@@ -183,7 +183,8 @@ def run(symbols: list[str], held: set[str] | None = None) -> dict:
             if tf in ("1h", "4h", "1d") and s in held and p and p != old.get(s, {}).get(tf, {}).get("pattern"):
                 a = out[s][tf]
                 log_event("ChartAnalyst", "graphiques", "SIGNAL", s, f"{tf} : {p.replace('_', ' ')}",
-                          score=a["score"], result=a["trend"], timeframe=tf, rsi=a["rsi"], atr_pct=a["atr_pct"])
+                          score=a["score"], result="haussier" if a["score"] > 0.15 else "baissier" if a["score"] < -0.15 else "neutre",
+                          trend=a["trend"], timeframe=tf, rsi=a["rsi"], atr_pct=a["atr_pct"])
     data = {"at": time.time(), "symbols": out}
     with _LOCK:
         tmp = OUT.with_suffix(".json.tmp")

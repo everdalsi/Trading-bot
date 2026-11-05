@@ -4,6 +4,7 @@ import os, time, threading, feedparser, requests, asyncio
 from agent_events import log_event  # decision journal (agent_events.jsonl), never raises
 import agency  # step 1 'agence': CostAnalyst, SeniorExpert, DataGuard, Watchdog
 import chart_analyst  # candle analysis for held symbols (chart_analysis.json)
+import trade_manager  # rules R1-R10 on open positions (never opens)
 import json, sqlite3, re, hashlib, base64, hmac, secrets
 import pandas as pd
 import numpy as np
@@ -2856,6 +2857,81 @@ def _close_hl_mirror(pos_key: str, price: float, reason: str, send_fn):
     send_fn(f"{'✅' if pnl > 0 else '❌'} HL-Copy {coin_label}: ${pnl:+.4f} | {reason}")
     log_event("Executor", "crypto_copy", "CLOSE", coin_label, reason, result=round(pnl, 4), price=price)
 
+def _reduce_hl_mirror(pos_key: str, price: float, fraction: float, reason: str, send_fn):
+    """Sell `fraction` of a copy position at `price` (same fee model as a full close). The sold
+    part is booked as its own closed trade (partial_of = position id) so PnL stats include it."""
+    if fraction >= 0.999:
+        return _close_hl_mirror(pos_key, price, reason, send_fn)
+    ledger = load_hl_copy_ledger()
+    pos = ledger["positions"].get(pos_key)
+    if not pos or fraction <= 0:
+        return
+    entry = pos["price_in"]
+    is_short = pos.get("side") == "SHORT"
+    change = (entry - price) / entry if is_short else (price - entry) / entry
+    part = pos["amount_usd"] * fraction
+    notional = part * pos.get("leverage", 1)
+    pnl = change * notional - notional * FEE_PCT * 2
+    ledger["cash"] += part + pnl
+    pos["amount_usd"] -= part
+    pos["qty"] = pos.get("qty", 0) * (1 - fraction)
+    ledger["trades"].append({
+        "id": HL_COPY_TRADE_ID_BASE + len(ledger["trades"]) + 1, "partial_of": pos["id"],
+        "symbol": pos["symbol"], "market": "HL_COPY", "side": pos.get("side"), "trade_type": "HL_COPY",
+        "price_in": entry, "price_out": price, "amount_usd": part, "leverage": pos.get("leverage", 1),
+        "time_in": pos.get("time_in"), "time_out": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "pnl": round(pnl, 6), "pnl_pct": round(pnl / part * 100 if part else 0.0, 3), "exit_reason": reason,
+    })
+    save_hl_copy_ledger(ledger)
+    coin_label = pos["symbol"].replace("USDT", "")
+    send_fn(f"✂️ HL-Copy {coin_label} réduite de {fraction:.0%} : ${pnl:+.4f} | {reason}")
+    log_event("Executor", "crypto_copy", "REDUCE", coin_label, reason, result=round(pnl, 4), price=price,
+              fraction=round(fraction, 3))
+
+
+_TM_FIELDS = ("tm_best", "tm_stop", "tm_stop_why", "tm_trail", "tm_reduced", "tm_r6", "tm_partial", "tm_actions",
+              "tm_src0", "management_log")
+
+
+def _hl_trade_manager(seen_prices: dict, send_fn) -> None:
+    """TradeManager on the copy positions. Actions are queued, the rule state is saved on a FRESH
+    ledger, then the actions run through the normal close / reduce path (no stale-save race)."""
+    ledger = load_hl_copy_ledger()
+    views, pending = [], []
+    for key, pos in ledger["positions"].items():
+        price = seen_prices.get(key)
+        if not price:
+            continue
+        cur = (ledger.get("wallet_positions", {}).get(pos.get("hl_source_addr"), {}) or {}).get(pos.get("hl_source_coin"))
+        size_now = float(cur["size"]) if cur and cur.get("side") == pos.get("side") else 0.0
+        if not pos.get("tm_src0") and size_now > 0:
+            pos["tm_src0"] = size_now
+        sup, atr = chart_analyst.nearest_support(pos["symbol"], "1h")
+        views.append({"key": key, "symbol": pos["symbol"], "side": pos.get("side", "LONG"), "entry": pos["price_in"],
+                      "price": price, "opened_at": pos.get("open_time", time.time()), "kind": "crypto", "state": pos,
+                      "data_bad_s": agency.data_guard.stale_s(pos["symbol"]),
+                      "source_ratio": size_now / pos["tm_src0"] if pos.get("tm_src0") else None,
+                      "support": sup, "atr": atr, "resistance": chart_analyst.first_resistance(pos["symbol"], "1h")})
+    trade_manager.manage("crypto_copy", views, lambda v, rule, action, frac, why: pending.append((v["key"], v["price"], frac, why)), send_fn)
+    # R10: portfolio drawdown from its peak
+    equity = ledger["cash"] + sum(v["state"]["amount_usd"] * (1 + trade_manager._pnl_pct(v["side"], v["entry"], v["price"]) / 100)
+                                  for v in views)
+    peak = max(float(ledger.get("tm_peak_equity") or 0), equity)
+    for v in trade_manager.r10_worst("crypto_copy", views, equity, peak, float(ledger.get("tm_r10_at") or 0)):
+        pending.append((v["key"], v["price"], trade_manager.rules()["r10_reduce"], "R10 : drawdown du portefeuille"))
+        ledger["tm_r10_at"] = time.time()
+    fresh = load_hl_copy_ledger()
+    for key, pos in ledger["positions"].items():
+        if key in fresh["positions"]:
+            fresh["positions"][key].update({f: pos[f] for f in _TM_FIELDS if f in pos})
+    fresh["tm_peak_equity"] = peak
+    if "tm_r10_at" in ledger:
+        fresh["tm_r10_at"] = ledger["tm_r10_at"]
+    save_hl_copy_ledger(fresh)
+    for key, price, frac, why in pending:
+        _reduce_hl_mirror(key, price, frac, why, send_fn)
+
+
 def monitor_hl_copytrade_risk(send_fn):
     """Independent safety net for the HL copy sleeve, checked every
     CYCLE_MONITOR (same cadence as MICRO's SL/TP) -- separate from the 5min
@@ -2884,6 +2960,10 @@ def monitor_hl_copytrade_risk(send_fn):
     # Separate small file on purpose: rewriting the ledger here could race with the copy worker
     # thread (load/modify/save on the same file) and drop a position it just opened.
     if seen_prices:
+        try:
+            _hl_trade_manager(seen_prices, send_fn)
+        except Exception as e:
+            logger.warning(f"[HL-COPY] TradeManager error (non-blocking): {type(e).__name__}: {e}")
         try:
             out = HL_COPY_LEDGER_PATH.with_name("hl_copy_prices.json")
             tmp = out.with_suffix(".json.tmp")

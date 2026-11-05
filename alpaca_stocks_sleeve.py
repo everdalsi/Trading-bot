@@ -138,6 +138,7 @@ import json
 import os
 from agent_events import log_event  # decision journal, never raises
 import agency  # SeniorExpert final gate (agence step 1)
+import trade_manager  # rules R1-R10 on open positions
 import threading
 import time
 from datetime import datetime
@@ -625,6 +626,12 @@ def _alpaca_stocks_worker_body(send_fn) -> None:
             _safe_send(send_fn, f"[ALPACA-STOCKS] {symbol} error (isolated, skipped): {type(e).__name__}: {e}")
             cycle_summary.append(f"{symbol}=ERROR({type(e).__name__})")
 
+    if market_open:  # orders only go through while the market is open
+        try:
+            _stocks_trade_manager(ledger, send_fn)
+        except Exception as e:
+            _safe_send(send_fn, f"[ALPACA-STOCKS] TradeManager error (non-blocking): {type(e).__name__}: {e}")
+
     ledger["last_run"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     if len(ledger["decisions"]) > MAX_DECISIONS_KEPT:
         ledger["decisions"] = ledger["decisions"][-MAX_DECISIONS_KEPT:]
@@ -718,6 +725,55 @@ def check_drawdown_guard(ledger: dict, equity: float) -> dict:
         return {"blocked": False, "reason": None}
     except Exception:
         return {"blocked": False, "reason": None}
+
+
+def _reduce_position(ledger: dict, symbol: str, fraction: float, reason: str, price: float, send_fn) -> None:
+    """Sell `fraction` (1 = everything) of a position at market, booked like a normal SELL."""
+    pos = ledger["positions"].get(symbol)
+    if not pos:
+        return
+    qty = pos["qty"] if fraction >= 0.999 else round(pos["qty"] * fraction, 4)
+    if qty <= 0:
+        return
+    order = alpaca_broker.submit_market_order(symbol, "sell", qty)
+    exit_price = order.get("filled_avg_price") or price
+    pnl = round((exit_price - pos["entry_price"]) * qty, 2) if exit_price and pos.get("entry_price") else None
+    part_cost = round(pos.get("cost", qty * pos["entry_price"]) * qty / pos["qty"], 2)
+    ledger["closed_trades"].append({**{k: v for k, v in pos.items() if k != "management_log"}, "symbol": symbol,
+                                    "qty": qty, "cost": part_cost, "exit_price": exit_price, "pnl": pnl,
+                                    "exit_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                    "exit_order_id": order.get("id"), "exit_reason": reason,
+                                    "partial": fraction < 0.999})
+    ledger["virtual_cash"] = round(float(ledger.get("virtual_cash", VIRTUAL_STARTING_CASH)) + part_cost + (pnl or 0), 2)
+    if fraction >= 0.999:
+        del ledger["positions"][symbol]
+    else:
+        pos["qty"] = round(pos["qty"] - qty, 4)
+        pos["cost"] = round(pos.get("cost", 0) - part_cost, 2)
+    _record_trade_outcome(ledger, pnl)
+    _safe_send(send_fn, f"[ALPACA-STOCKS] {'SELL' if fraction >= 0.999 else 'REDUCE'} {symbol} qty={qty} pnl=${pnl} | {reason}")
+    log_event("Executor", "actions_us", "CLOSE" if fraction >= 0.999 else "REDUCE", symbol, reason, result=pnl,
+              price=exit_price, fraction=round(fraction, 3))
+
+
+def _stocks_trade_manager(ledger: dict, send_fn) -> None:
+    views = []
+    for symbol, pos in ledger["positions"].items():
+        bars = alpaca_broker.get_recent_bars(symbol, "15m", 3)
+        if not bars or not pos.get("entry_price"):
+            continue
+        try:
+            opened = datetime.strptime(pos.get("entry_time", ""), "%Y-%m-%d %H:%M:%S").timestamp()
+        except ValueError:
+            opened = time.time()
+        import chart_analyst
+        sup, atr = chart_analyst.nearest_support(symbol, "1d")
+        views.append({"symbol": symbol, "side": "LONG", "entry": pos["entry_price"], "price": bars[-1][4],
+                      "opened_at": opened, "kind": "stocks", "state": pos, "support": sup, "atr": atr,
+                      "resistance": chart_analyst.first_resistance(symbol, "1d")})
+    trade_manager.manage("actions_us", views,
+                         lambda v, rule, action, frac, why: _reduce_position(ledger, v["symbol"], frac, why, v["price"], send_fn),
+                         send_fn)
 
 
 def _record_trade_outcome(ledger: dict, pnl: Optional[float]) -> None:
