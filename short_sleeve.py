@@ -222,6 +222,14 @@ def lane_a_rotate(ledger: dict, can_open: bool, send_fn) -> None:
         if f"A:{s}" in ledger["positions"] or sum(p["lane"] == "A" for p in ledger["positions"].values()) >= A_MAX_POS:
             continue
         usd = min(eq * A_POS_PCT, budget_left)
+        try:  # ChartAnalyst: no entry less than 0.5 ATR under a major 4 h resistance (spec C)
+            import chart_analyst
+            if chart_analyst.near_resistance(s, "4h", 0.5):
+                log_event("ChartAnalyst", "court_terme", "VETO", s, "a moins de 0,5 ATR sous une resistance 4 h",
+                          result="entree refusee")
+                continue
+        except Exception:
+            pass
         if s in prices and usd >= 5:
             _open(ledger, "A", s, prices[s], usd, A_COST, {"r14": round(r14[s], 4)})
             budget_left -= usd

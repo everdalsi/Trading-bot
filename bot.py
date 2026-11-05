@@ -3,6 +3,7 @@
 import os, time, threading, feedparser, requests, asyncio
 from agent_events import log_event  # decision journal (agent_events.jsonl), never raises
 import agency  # step 1 'agence': CostAnalyst, SeniorExpert, DataGuard, Watchdog
+import chart_analyst  # candle analysis for held symbols (chart_analysis.json)
 import json, sqlite3, re, hashlib, base64, hmac, secrets
 import pandas as pd
 import numpy as np
@@ -3047,7 +3048,7 @@ def _hl_copytrade_worker_body(send_fn):
             # per-trade edge we can copy). Until 100 trades the real filters here are liquidity and data.
             approved, _why = agency.approve_entry(
                 "crypto_copy", symbol, price, min(float(w["month_roi"]) / 30, 0.02),
-                {"size_reduction": size_reduction, "wallet_roi": w["month_roi"]})
+                {"size_reduction": size_reduction, "wallet_roi": w["month_roi"], "side": pos["side"]})
             if not approved:
                 continue
             _open_hl_mirror(symbol, price, pos["side"], addr, coin, w["month_roi"], send_fn, risk=risk, size_reduction=size_reduction)
@@ -5551,6 +5552,7 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     threading.Thread(target=trading_loop,  args=(send,), daemon=True).start()
     threading.Thread(target=watchdog,      args=(send,), daemon=True).start()
     agency.start_watchdog(send)
+    chart_analyst.start()
     threading.Thread(target=daily_summary, args=(send,), daemon=True).start()
 
 async def cmd_stop(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -7277,6 +7279,7 @@ def auto_start():
     threading.Thread(target=trading_loop,  args=(send,), daemon=True).start()
     threading.Thread(target=watchdog,      args=(send,), daemon=True).start()
     agency.start_watchdog(send)
+    chart_analyst.start()
     threading.Thread(target=daily_summary, args=(send,), daemon=True).start()
 
 def _evolution_loop_MAIN():

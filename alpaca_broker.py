@@ -98,6 +98,19 @@ def get_recent_closes(symbol: str, lookback_days: int = 90) -> list:
     return [float(b.close) for b in symbol_bars]
 
 
+def get_recent_bars(symbol: str, timeframe: str = "1d", lookback_days: int = 200) -> list:
+    """OHLCV bars, oldest first, as (open_time_ms, open, high, low, close, volume) tuples.
+    timeframe "15m" or "1d". Same explicit start/end window as get_recent_closes (see its note)."""
+    from alpaca.data.timeframe import TimeFrameUnit
+    tf = TimeFrame(15, TimeFrameUnit.Minute) if timeframe == "15m" else TimeFrame.Day
+    data_client = StockHistoricalDataClient(ALPACA_API_KEY, ALPACA_SECRET_KEY)
+    end = datetime.now(timezone.utc) - timedelta(minutes=20)
+    start = end - timedelta(days=lookback_days)
+    bars = data_client.get_stock_bars(StockBarsRequest(symbol_or_symbols=symbol, timeframe=tf, start=start, end=end))
+    return [(int(b.timestamp.timestamp() * 1000), float(b.open), float(b.high), float(b.low), float(b.close),
+             float(b.volume)) for b in bars.data.get(symbol, [])]
+
+
 def submit_market_order(symbol: str, side: str, qty: float) -> dict:
     """Submit a paper market order. side is 'buy' or 'sell'. Returns a plain
     dict (id, status, filled_avg_price if already filled) -- never the raw

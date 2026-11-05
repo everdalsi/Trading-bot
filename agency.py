@@ -33,6 +33,7 @@ MIN_SAMPLE = 100
 FEE_SIDE = {"crypto_copy": float(os.environ.get("FEE_PCT", 0.001)), "actions_us": 0.0}  # Alpaca: no commission
 SLIP_ASSUMED = {"crypto_copy": 0.0005, "actions_us": 0.0005}  # per side, until measured on our fills
 MIN_QUOTE_VOL_USD = float(os.environ.get("AGENCY_MIN_QUOTE_VOL", 5_000_000))
+CHART_TREND_MALUS = float(os.environ.get("AGENCY_CHART_MALUS", 0.0025))  # 0.25 % of edge
 LEDGERS = {"crypto_copy": DATA_DIR / "hl_copy_ledger.json", "actions_us": DATA_DIR / "alpaca_stocks_ledger.json"}
 
 
@@ -193,10 +194,23 @@ def _approve_entry(portfolio: str, symbol: str, price: float | None, proxy_edge:
             return False, why
     cost, cost_src = round_trip_cost(portfolio)
     edge, edge_src, n = expected_edge(portfolio, proxy_edge)
+    # ChartAnalyst: 4 h trend against our side (daily chart for stocks) = malus, logged for the A/B check
+    malus = 0.0
+    try:
+        import chart_analyst
+        trend = chart_analyst.trend_4h(symbol)
+        side = context.get("side", "LONG")
+        if (side == "LONG" and trend == "down") or (side == "SHORT" and trend == "up"):
+            malus = CHART_TREND_MALUS
+            edge -= malus
+            edge_src += f", malus tendance 4 h contraire -{malus * 100:.2f} %"
+    except Exception:
+        pass
+    context["chart_malus"] = malus
     net = edge - cost
     detail = (f"avantage espere {edge * 100:+.2f} % ({edge_src}) - couts {cost * 100:.2f} % ({cost_src}) "
               f"= {net * 100:+.2f} %")
-    extra = {k: v for k, v in context.items() if k in ("size_reduction", "drawdown", "score", "wallet_roi")}
+    extra = {k: v for k, v in context.items() if k in ("size_reduction", "drawdown", "score", "wallet_roi", "chart_malus", "side")}
     if net <= 0:
         log_event("SeniorExpert", portfolio, "VETO", symbol, detail, score=round(net, 5), result="refuse", **extra)
         return False, detail
