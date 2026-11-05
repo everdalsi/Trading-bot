@@ -4,6 +4,7 @@ import os, time, threading, feedparser, requests, asyncio
 from agent_events import log_event  # decision journal (agent_events.jsonl), never raises
 import agency  # step 1 'agence': CostAnalyst, SeniorExpert, DataGuard, Watchdog
 import chart_analyst  # candle analysis for held symbols (chart_analysis.json)
+import top_traders  # best HL wallets + consensus per coin (top_traders.json)
 import trade_manager  # rules R1-R10 on open positions (never opens)
 import short_sleeve  # 3rd paper portfolio 'court terme' (SHORT_SLEEVE_ENABLED)
 import news_agent  # RSS headlines around held symbols (news_flags.json)
@@ -3156,8 +3157,12 @@ def _hl_copytrade_worker_body(send_fn):
             if not symbol or symbol in MANUAL_SYMBOL_BLACKLIST:
                 continue
             open_hl_positions = list(ledger["positions"].values())
-            if len(open_hl_positions) >= HL_SLEEVE_MAX_CONCURRENT:
-                log_event("RiskLimits", "crypto_copy", "SKIP", coin, f"{HL_SLEEVE_MAX_CONCURRENT} positions deja ouvertes")
+            # 2026-11-05 user request: ~100 % invested -> EXPOSURE cap (invested + this position <= equity)
+            # instead of a count (20 x legacy $25 positions blocked the sleeve at ~50 %)
+            invested = sum(float(p.get("amount_usd", 0)) for p in open_hl_positions)
+            if invested + _hl_position_size(ledger) > _hl_equity(ledger) * 1.0001:
+                log_event("RiskLimits", "crypto_copy", "SKIP", coin,
+                          f"exposition {invested / max(1, _hl_equity(ledger)):.0%} : une position de plus depasserait 100 %")
                 continue
             if any(p["symbol"] == symbol for p in open_hl_positions):
                 continue
@@ -5725,6 +5730,7 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     threading.Thread(target=watchdog,      args=(send,), daemon=True).start()
     agency.start_watchdog(send)
     chart_analyst.start()
+    top_traders.start()
     short_sleeve.start(send)
     news_agent.start()
     professor.start()
@@ -7457,6 +7463,7 @@ def auto_start():
     threading.Thread(target=watchdog,      args=(send,), daemon=True).start()
     agency.start_watchdog(send)
     chart_analyst.start()
+    top_traders.start()
     short_sleeve.start(send)
     news_agent.start()
     professor.start()

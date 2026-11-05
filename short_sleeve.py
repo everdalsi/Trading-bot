@@ -101,30 +101,39 @@ def equity(ledger: dict, prices: dict[str, float] | None = None) -> float:
     total = ledger["cash"]
     for p in ledger["positions"].values():
         px = (prices or {}).get(p["symbol"], p.get("last_price", p["entry"]))
-        total += p["qty"] * px
+        if p.get("side") == "SHORT":
+            total += p["usd"] + p["qty"] * (p["entry"] - px)  # collateral + unrealised short PnL
+        else:
+            total += p["qty"] * px
     return total
 
 
-def _open(ledger: dict, lane: str, symbol: str, price: float, usd: float, cost: float, extra: dict) -> None:
+def _open(ledger: dict, lane: str, symbol: str, price: float, usd: float, cost: float, extra: dict,
+          side: str = "LONG") -> None:
     usd = min(usd, ledger["cash"])
     if usd < 5:
         return
-    fill = price * (1 + cost)  # pay fee + slippage on entry
+    # fee + slippage on entry: a long buys higher, a (simulated) short sells lower
+    fill = price * (1 + cost) if side == "LONG" else price * (1 - cost)
     qty = usd / fill
     tid = ledger["next_id"]; ledger["next_id"] += 1
     ledger["cash"] -= usd
     ledger["positions"][f"{lane}:{symbol}"] = {
-        "id": tid, "lane": lane, "symbol": symbol, "entry": fill, "qty": qty, "usd": usd,
+        "id": tid, "lane": lane, "symbol": symbol, "entry": fill, "qty": qty, "usd": usd, "side": side,
         "peak": price, "last_price": price, "opened": time.time(), **extra}
-    log.info(f"[SHORT] {lane} BUY {symbol} ${usd:.2f} @ {price:.6g}")
-    log_event("Executor", "court_terme", "BUY", symbol, f"voie {lane}", score=extra.get("r14"), result="ouvert",
-              price=price, usd=round(usd, 2), lane=lane)
+    log.info(f"[SHORT] {lane} {side} {symbol} ${usd:.2f} @ {price:.6g}")
+    log_event("Executor", "court_terme", "BUY" if side == "LONG" else "SELL", symbol, f"voie {lane} {side}",
+              score=extra.get("r14"), result="ouvert", price=price, usd=round(usd, 2), lane=lane, side=side)
 
 
 def _close(ledger: dict, key: str, price: float, cost: float, reason: str, send_fn) -> float:
     p = ledger["positions"].pop(key)
-    proceeds = p["qty"] * price * (1 - cost)  # fee + slippage on exit too
-    pnl = proceeds - p["usd"]
+    if p.get("side") == "SHORT":  # buy back higher by the cost: fee + slippage on exit too
+        pnl = p["qty"] * (p["entry"] - price * (1 + cost))
+        proceeds = p["usd"] + pnl
+    else:
+        proceeds = p["qty"] * price * (1 - cost)  # fee + slippage on exit too
+        pnl = proceeds - p["usd"]
     ledger["cash"] += proceeds
     ledger["trades"].append({"id": p["id"], "lane": p["lane"], "symbol": p["symbol"], "entry": p["entry"],
                              "exit": price, "usd": p["usd"], "pnl": round(pnl, 4),
@@ -206,21 +215,30 @@ def lane_a_targets() -> tuple[list[str], bool, dict[str, float]]:
         r14[s] = c[-1] / c[-1 - A_LOOKBACK] - 1
     ranked = sorted((s for s, r in r14.items() if r > 0 and r > btc_r and s != "BTCUSDT"),
                     key=lambda s: r14[s], reverse=True)
+    # mirror for risk off (user request 2026-11-05, ~100 % invested in both regimes): the weakest coins,
+    # 14-day return < 0 and < BTC's, shorted
+    weak = sorted((s for s, r in r14.items() if r < 0 and r < btc_r and s != "BTCUSDT"), key=lambda s: r14[s])
+    lane_a_targets.weak = weak[:A_MAX_POS]
     return ranked[:A_MAX_POS], btc_ok, r14
 
 
 def lane_a_rotate(ledger: dict, can_open: bool, send_fn) -> None:
-    targets, btc_ok, r14 = lane_a_targets()
+    longs, btc_ok, r14 = lane_a_targets()
+    side = "LONG" if btc_ok else "SHORT"  # direction set by the regime, never against it
+    targets = longs if side == "LONG" else getattr(lane_a_targets, "weak", [])
     log_event("RegimeAgent", "court_terme", "SIGNAL", "BTC", "BTC au-dessus de sa MM50" if btc_ok else "BTC sous sa MM50",
               result="risk_on" if btc_ok else "risk_off")
-    log_event("SignalAgent", "court_terme", "SIGNAL", ",".join(targets), "top 5 momentum 14 j (> 0 et > BTC)",
+    log_event("SignalAgent", "court_terme", "SIGNAL", ",".join(targets),
+              "momentum 14 j : les plus forts (achat)" if side == "LONG" else "momentum 14 j : les plus faibles (vente a decouvert)",
               result={s: round(r14[s], 4) for s in targets})
     prices = _price_a(list({*targets, *(p["symbol"] for p in ledger["positions"].values() if p["lane"] == "A")}))
     for key, p in list(ledger["positions"].items()):
-        if p["lane"] == "A" and (p["symbol"] not in targets or r14.get(p["symbol"], -1) < 0):
+        wrong = p.get("side", "LONG") != side
+        faded = r14.get(p["symbol"], -1) < 0 if p.get("side", "LONG") == "LONG" else r14.get(p["symbol"], 1) > 0
+        if p["lane"] == "A" and (wrong or p["symbol"] not in targets or faded):
             _close(ledger, key, prices.get(p["symbol"], p["last_price"]), A_COST, "rotation", send_fn)
-    if not (can_open and btc_ok):
-        log.info(f"[SHORT] A: no new entries (risk={can_open}, BTC>MA50={btc_ok})")
+    if not can_open:
+        log.info(f"[SHORT] A: no new entries (risk limits, BTC>MA50={btc_ok})")
         return
     eq = equity(ledger, prices)
     budget_left = eq * A_SHARE - sum(p["usd"] for p in ledger["positions"].values() if p["lane"] == "A")
@@ -228,16 +246,16 @@ def lane_a_rotate(ledger: dict, can_open: bool, send_fn) -> None:
         if f"A:{s}" in ledger["positions"] or sum(p["lane"] == "A" for p in ledger["positions"].values()) >= A_MAX_POS:
             continue
         usd = min(eq * A_POS_PCT, budget_left)
-        try:  # ChartAnalyst: no entry less than 0.5 ATR under a major 4 h resistance (spec C)
+        try:  # ChartAnalyst: no LONG entry less than 0.5 ATR under a major 4 h resistance (spec C)
             import chart_analyst
-            if chart_analyst.near_resistance(s, "4h", 0.5):
+            if side == "LONG" and chart_analyst.near_resistance(s, "4h", 0.5):
                 log_event("ChartAnalyst", "court_terme", "VETO", s, "a moins de 0,5 ATR sous une resistance 4 h",
                           result="entree refusee")
                 continue
         except Exception:
             pass
         if s in prices and usd >= 5:
-            _open(ledger, "A", s, prices[s], usd, A_COST, {"r14": round(r14[s], 4)})
+            _open(ledger, "A", s, prices[s], usd, A_COST, {"r14": round(r14[s], 4)}, side=side)
             budget_left -= usd
 
 
@@ -257,9 +275,14 @@ def lane_a_watch(ledger: dict, send_fn) -> dict[str, float]:
         if p["lane"] != "A":
             continue
         px = prices[p["symbol"]]
-        p["last_price"], p["peak"] = px, max(p["peak"], px)
-        if px <= p["peak"] * (1 - A_TRAIL):
-            _close(ledger, key, px, A_COST, f"stop suiveur -{A_TRAIL:.0%}", send_fn)
+        if p.get("side") == "SHORT":  # best price of a short = lowest; stop when it bounces A_TRAIL above it
+            p["last_price"], p["peak"] = px, min(p["peak"], px)
+            if px >= p["peak"] * (1 + A_TRAIL):
+                _close(ledger, key, px, A_COST, f"stop suiveur short +{A_TRAIL:.0%}", send_fn)
+        else:
+            p["last_price"], p["peak"] = px, max(p["peak"], px)
+            if px <= p["peak"] * (1 - A_TRAIL):
+                _close(ledger, key, px, A_COST, f"stop suiveur -{A_TRAIL:.0%}", send_fn)
     return prices
 
 
@@ -483,7 +506,8 @@ def summary() -> dict:
     gains = sum(t["pnl"] for t in closed if t["pnl"] > 0)
     losses = -sum(t["pnl"] for t in closed if t["pnl"] < 0)
     return {"total": round(equity(ledger), 2), "cash": round(ledger["cash"], 2),
-            "invested": round(sum(p["qty"] * p.get("last_price", p["entry"]) for p in pos.values()), 2),
+            "invested": round(sum(p["usd"] if p.get("side") == "SHORT" else p["qty"] * p.get("last_price", p["entry"])
+                                 for p in pos.values()), 2),
             "starting_cash": ledger["starting_cash"], "open_positions": {k.split(":", 1)[1]: v["lane"] for k, v in pos.items()},
             "realized_pnl": round(sum(t["pnl"] for t in closed), 2), "closed_trades": len(closed),
             "win_rate": round(wins / len(closed) * 100, 1) if closed else 0.0,

@@ -39,7 +39,7 @@ TP = float(os.environ.get("SCALP_TP", 0.0050))
 SL = float(os.environ.get("SCALP_SL", 0.0030))
 FEE = {"crypto_copy": float(os.environ.get("SCALP_FEE_CRYPTO_COPY", 0.00045)),
        "court_terme": float(os.environ.get("SCALP_FEE_COURT_TERME", 0.0010))}
-MAX_OPEN, DAY_STOP = 5, 0.03
+MAX_OPEN, DAY_STOP = 8, 0.03  # 2026-11-05: 5 -> 8 so the sleeve's capital works when signals come
 CRYPTO_SLIP_MIN, STOCK_SLIP = 0.0002, 0.0002
 MAX_SPREAD = 0.0003
 STOCKS = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "AMZN", "TSLA", "META", "GOOGL", "AMD"]

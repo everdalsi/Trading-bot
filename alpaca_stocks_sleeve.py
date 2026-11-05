@@ -246,6 +246,7 @@ USD_PER_TRADE = 250.0          # legacy fixed size, replaced by POS_PCT below
 # FILL_TARGET is invested, score 1 (the best below the normal BUY threshold of 2) also buys, best first.
 POS_PCT = float(os.environ.get("ALPACA_POS_PCT", 0.05))
 FILL_TARGET = float(os.environ.get("ALPACA_FILL_TARGET", 0.95))
+FILL_MIN_SCORE = int(os.environ.get("ALPACA_FILL_MIN_SCORE", 0))  # best scores first; SeniorExpert keeps its veto
 MAX_DECISIONS_KEPT = 500        # cap the decisions log so the ledger file doesn't grow forever
 
 # VIRTUAL PORTFOLIO (added 2026-11-04, per explicit user instruction: a
@@ -896,7 +897,7 @@ def _process_symbol(symbol: str, ledger: dict, market_open: bool, send_fn, convi
 
     has_position = symbol in ledger["positions"]
 
-    if action == "HOLD" and not has_position and score >= 1 and ledger.get("_fill_mode"):
+    if action == "HOLD" and not has_position and score >= FILL_MIN_SCORE and ledger.get("_fill_mode"):
         action = "BUY"  # filling toward ~100 % invested with the best candidates below the usual threshold
     if action == "BUY" and not has_position:
         open_count = len(ledger["positions"])
@@ -923,7 +924,9 @@ def _process_symbol(symbol: str, ledger: dict, market_open: bool, send_fn, convi
             return f"BUY(skip:qty<=0,score={score})"
         # SeniorExpert (agence step 1). Proxy edge while < 100 closed trades: 0.5 % per score point
         # above the BUY threshold (decide(): score >= 2).
-        approved, _why = agency.approve_entry("actions_us", symbol, last_close, 0.005 * max(0, score - 1),
+        # proxy edge while < 100 closed trades: 0.25 % per score step from -1 (score 0 -> 0.25 %, 2 -> 0.75 %).
+        # The old 0.5 % x (score - 1) gave 0 at score 1 -> a systematic veto: fill mode could never buy.
+        approved, _why = agency.approve_entry("actions_us", symbol, last_close, 0.0025 * max(0, score + 1),
                                               {"score": score, "size_reduction": reduction, "side": "LONG"})
         if not approved:
             return f"BUY(veto:senior_expert,score={score})"
