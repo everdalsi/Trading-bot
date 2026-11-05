@@ -2834,7 +2834,8 @@ def _open_hl_mirror(symbol: str, price: float, side: str, source_addr: str,
                      risk: dict = None, size_reduction: float = 0.0):
     ledger = load_hl_copy_ledger()
     # Professor: wallet weight 0.5-1.5 from its own net results (1.0 until 20 closed trades)
-    base_amount = min(_hl_position_size(ledger) * professor.wallet_weight(source_addr), ledger["cash"] * 0.99)
+    # weight capped at 1.0: a strong wallet never breaks the 5 %-per-position spread the user asked for
+    base_amount = min(_hl_position_size(ledger) * min(1.0, professor.wallet_weight(source_addr)), ledger["cash"] * 0.99)
     amount = base_amount * (1.0 - max(0.0, min(1.0, size_reduction)))
     qty = amount / price
     ledger["cash"] -= amount

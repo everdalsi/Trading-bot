@@ -30,15 +30,28 @@ DATA_DIR = Path(os.environ.get("DATA_DIR") or ".")
 BINANCE = "https://api.binance.com"
 PARENT_CASH = {"crypto_copy": 1000.0, "court_terme": 1000.0, "actions_us": 1000.0}
 STRATEGY = {"crypto_copy": "A", "court_terme": "B", "actions_us": "A"}
-TP, SL, TRAIL_ON, TRAIL, MAX_HOLD_S = 0.0035, 0.0025, 0.0020, 0.0015, 300
+TRAIL_ON, TRAIL, MAX_HOLD_S = 0.0020, 0.0015, 300
+# Desktop review 2026-11-05: with 0.10 %/side + slippage, TP 0.35 % / SL 0.25 % needs ~82 % winners to
+# break even (a guaranteed loss that teaches nothing). TP 0.50 % / SL 0.30 %, and each sleeve pays its
+# own venue's taker fee: crypto copy = Hyperliquid 0.045 %, short term = Binance 0.10 % (the Professor
+# compares both cost levels). Overridable: SCALP_TP, SCALP_SL, SCALP_FEE_<PORTFOLIO>.
+TP = float(os.environ.get("SCALP_TP", 0.0050))
+SL = float(os.environ.get("SCALP_SL", 0.0030))
+FEE = {"crypto_copy": float(os.environ.get("SCALP_FEE_CRYPTO_COPY", 0.00045)),
+       "court_terme": float(os.environ.get("SCALP_FEE_COURT_TERME", 0.0010))}
 MAX_OPEN, DAY_STOP = 5, 0.03
-CRYPTO_FEE, CRYPTO_SLIP_MIN, STOCK_SLIP = 0.0010, 0.0002, 0.0002
+CRYPTO_SLIP_MIN, STOCK_SLIP = 0.0002, 0.0002
 MAX_SPREAD = 0.0003
 STOCKS = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "AMZN", "TSLA", "META", "GOOGL", "AMD"]
 # stablecoins, tokenised gold and tokenised stocks: not crypto price action
 STABLES = {"USDC", "FDUSD", "TUSD", "BUSD", "DAI", "USDP", "USDE", "EUR", "TRY", "BRL", "PAXG", "WBTC", "USD1",
            "RLUSD", "XAUT", "U", "SNDKB", "SOXLB", "BFUSD", "XUSD", "AEUR", "EURI", "PYUSD"}
 _LOCK = threading.Lock()
+
+
+def _capital(pf: str) -> float:
+    """Capital this sleeve may use now = parent capital x current share (20 %, or 5 % after the Auditor)."""
+    return PARENT_CASH[pf] * _share(pf)
 
 
 def _path(pf: str) -> Path:
@@ -157,7 +170,7 @@ def _cost_side(pf: str, bid: float, ask: float) -> float:
     if pf == "actions_us":
         return STOCK_SLIP
     mid = (bid + ask) / 2
-    return CRYPTO_FEE + max(CRYPTO_SLIP_MIN, (ask - bid) / 2 / mid if mid else CRYPTO_SLIP_MIN)
+    return FEE.get(pf, 0.0010) + max(CRYPTO_SLIP_MIN, (ask - bid) / 2 / mid if mid else CRYPTO_SLIP_MIN)
 
 
 def _close(pf: str, led: dict, key: str, bid: float, ask: float, reason: str) -> None:
@@ -178,7 +191,7 @@ def _close(pf: str, led: dict, key: str, bid: float, ask: float, reason: str) ->
 
 
 def _open(pf: str, led: dict, symbol: str, side: str, bid: float, ask: float, strategy: str) -> None:
-    usd = min(led["cash"], led["start"] / MAX_OPEN)
+    usd = min(led["cash"], _capital(pf) / MAX_OPEN)  # current share (the Auditor may have cut it to 5 %)
     if usd < 5:
         return
     px = ask if side == "LONG" else bid
@@ -216,9 +229,12 @@ def entries(pf: str, led: dict, symbols: list[str], quotes: dict[str, tuple[floa
     eq = led["cash"] + sum(p["usd"] for p in led["positions"].values())
     if led["day"] != day:
         led.update(day=day, day_start=eq)
+    if len(led["positions"]) == 0 and eq > _capital(pf) * 1.5:
+        return  # share cut by the Auditor: the extra cash stays idle, never traded
+    stop_base = min(led["day_start"], _capital(pf))
     if led["halted_day"] == day:
         return
-    if eq < led["day_start"] * (1 - DAY_STOP):
+    if eq < led["day_start"] - stop_base * DAY_STOP:
         led["halted_day"] = day
         log_event("Scalper", pf, "HALT", "", f"stop journalier -{DAY_STOP:.0%} du sleeve atteint", result="plus d'entree aujourd'hui")
         return
@@ -243,6 +259,8 @@ def entries(pf: str, led: dict, symbols: list[str], quotes: dict[str, tuple[floa
 
 
 def _stock_quotes() -> dict[str, tuple[float, float]]:
+    """LIMITATION: last 1-minute close as both bid and ask (no live quote in alpaca_broker), so stock
+    TP/SL are checked up to 1 min late and filled at the close (optimistic on gaps)."""
     out = {}
     for s in STOCKS:
         try:
