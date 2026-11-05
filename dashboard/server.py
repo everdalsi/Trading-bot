@@ -41,7 +41,8 @@ def _json(p: Path, default):
 
 VPS = "root@169.58.57.59"
 KEY = Path.home() / ".ssh" / "id_ed25519_vps_readonly"   # forced-command key: can only read
-LEDGER_FILES = {"hl_copy": "hl_copy_portfolio.json", "alpaca": "alpaca_stocks_portfolio.json", "short": "meme_sim.json"}
+LEDGER_FILES = {"hl_copy": "hl_copy_portfolio.json", "alpaca": "alpaca_stocks_portfolio.json", "short": "meme_sim.json",
+                "hl_prices": "hl_copy_prices.json"}
 
 
 def _ssh(cmd: str, timeout: int = 40) -> str:
@@ -106,11 +107,22 @@ def _portfolio(pid: str) -> dict:
         return {"id": pid, "label": label, "available": False}
     positions = d.get("positions") or d.get("open_positions") or {}
     if isinstance(positions, dict):
-        positions = list(positions.values())
+        positions = [{**v, "_key": k} for k, v in positions.items()]
+    live = (_json(CACHE / "hl_copy_prices.json", {}) or {}).get("prices", {}) if pid == "hl_copy" else {}
+    for pos in positions:
+        if pos.get("_key") in live:
+            pos["last_price"] = live[pos["_key"]]
     trades = d.get("trades") or d.get("closed_trades") or d.get("history") or []
     trades = [t for t in trades if isinstance(t, dict) and (t.get("pnl") is not None or t.get("pnl_usd") is not None)]
     cash = _num(d.get("cash"), d.get("virtual_cash"))
-    in_trade = sum(_num(p.get("amount_usd"), p.get("usd"), p.get("size_usd"), p.get("cost"), p.get("value")) for p in positions)
+    def _value(p):
+        usd = _num(p.get("amount_usd"), p.get("usd"), p.get("size_usd"), p.get("cost"), p.get("value"))
+        entry, last = _num(p.get("price_in"), p.get("entry")), _num(p.get("last_price"))
+        if entry and last:
+            move = (last - entry) / entry
+            return usd * (1 - move if str(p.get("side", "")).upper() == "SHORT" else 1 + move)
+        return usd
+    in_trade = sum(_value(p) for p in positions)
     start = _num(d.get("starting_cash"), d.get("start_cash"), default=1000.0)
     pnl_closed = sum(_num(t.get("pnl"), t.get("pnl_usd")) for t in trades)
     wins = sum(1 for t in trades if _num(t.get("pnl"), t.get("pnl_usd")) > 0)
@@ -129,6 +141,7 @@ def _portfolio(pid: str) -> dict:
         "halted": d.get("halted") or d.get("circuit_breaker") or "",
         "positions": [{
             "symbol": p.get("symbol") or p.get("ticker") or p.get("coin") or "?",
+            "short": str(p.get("side", "")).upper() == "SHORT",
             "lane": p.get("lane", ""), "side": p.get("side", "long"),
             "entry": _num(p.get("price_in"), p.get("entry"), p.get("entry_price"), p.get("fill")),
             "last": _num(p.get("last_price"), p.get("current_price"), p.get("price"), p.get("current")),

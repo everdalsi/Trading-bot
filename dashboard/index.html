@@ -110,8 +110,8 @@ function render(st) {
   }).join("") : '<div class="empty">En attente des premières décisions…</div>';
   const pos = st.portfolios.flatMap(p => (p.positions || []).map(x => ({...x, book: p.label})));
   document.getElementById("pos").innerHTML = pos.length ? pos.map(x => {
-    const ch = x.entry && x.last ? 100 * (x.last - x.entry) / x.entry : null;
-    return `<tr><td><b>${esc(x.symbol)}</b> ${esc(x.lane)}</td><td>${esc(x.book).split(" (")[0]}</td><td>${money(x.usd)}</td>
+    const ch = x.entry && x.last ? (x.short ? -1 : 1) * 100 * (x.last - x.entry) / x.entry : null;
+    return `<tr><td><b>${esc(x.symbol)}</b> ${x.short ? "<span class=\"tag sell\">short</span>" : ""} ${esc(x.lane)}</td><td>${esc(x.book).split(" (")[0]}</td><td>${money(x.usd)}</td>
       <td>${x.entry || "—"}</td><td class="${ch == null ? "" : ch >= 0 ? "up" : "down"}">${ch == null ? "—" : ch.toFixed(1) + " %"}</td></tr>`;
   }).join("") : '<tr><td colspan="5" class="empty">Aucune position ouverte</td></tr>';
 }
