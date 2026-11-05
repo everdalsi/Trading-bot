@@ -45,7 +45,9 @@ BINANCE = "https://api.binance.com"
 DEX = "https://api.dexscreener.com"
 
 # lane A
-A_SHARE, A_POS_PCT, A_MAX_POS = 0.70, 0.02, 5
+# 2026-11-05 user request (paper): ~100 % invested, spread at 5 % per position (up to 20 positions, the
+# best momentum first). Lane M stays observation-only, so lane A gets the whole capital.
+A_SHARE, A_POS_PCT, A_MAX_POS = 1.0, 0.05, 20
 A_TOP_N, A_LOOKBACK, A_TRAIL = 50, 14, 0.12
 A_COST = 0.0010 + 0.0020          # fee + slippage, each side
 A_MIN_AGE_DAYS = 90

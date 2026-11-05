@@ -241,7 +241,11 @@ COPY_CACHE_MAX_AGE_SEC = 7 * 24 * 3600    # 13F is quarterly -- weekly refresh i
 LEDGER_PATH = _DATA_DIR / "alpaca_stocks_ledger.json"
 LEDGER_LOCK = threading.Lock()
 
-USD_PER_TRADE = 250.0          # fixed size per position (2026-11-05: 500->250 so the $1,000 bankroll can hold 4 positions)
+USD_PER_TRADE = 250.0          # legacy fixed size, replaced by POS_PCT below
+# 2026-11-05 user request (paper): ~100 % invested, spread at 5 % of equity per position. While less than
+# FILL_TARGET is invested, score 1 (the best below the normal BUY threshold of 2) also buys, best first.
+POS_PCT = float(os.environ.get("ALPACA_POS_PCT", 0.05))
+FILL_TARGET = float(os.environ.get("ALPACA_FILL_TARGET", 0.95))
 MAX_DECISIONS_KEPT = 500        # cap the decisions log so the ledger file doesn't grow forever
 
 # VIRTUAL PORTFOLIO (added 2026-11-04, per explicit user instruction: a
@@ -616,7 +620,12 @@ def _alpaca_stocks_worker_body(send_fn) -> None:
         log_event("DrawdownGuard", "actions_us", "VETO", "", dd.get("reason") or "", result="aucun achat ce cycle")
         logger.info(f"[ALPACA-STOCKS] Circuit breaker actif: {dd['reason']}")
 
-    max_positions = len(effective_universe)
+    max_positions = max(len(effective_universe), int(1 / POS_PCT))
+    invested = sum(float(p.get("cost", 0)) for p in ledger["positions"].values())
+    ledger["_fill_mode"] = invested < FILL_TARGET * max(1.0, virtual_equity)
+    # best-scored candidates first when filling: order the universe by last cycle's scores
+    last = {d.get("symbol"): d.get("score", 0) for d in ledger.get("decisions", [])[-200:] if isinstance(d, dict)}
+    effective_universe = sorted(effective_universe, key=lambda s: -(last.get(s) or 0))
     cycle_summary = []
     for symbol in effective_universe:
         try:
@@ -632,6 +641,7 @@ def _alpaca_stocks_worker_body(send_fn) -> None:
         except Exception as e:
             _safe_send(send_fn, f"[ALPACA-STOCKS] TradeManager error (non-blocking): {type(e).__name__}: {e}")
 
+    ledger.pop("_fill_mode", None)
     ledger["last_run"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     if len(ledger["decisions"]) > MAX_DECISIONS_KEPT:
         ledger["decisions"] = ledger["decisions"][-MAX_DECISIONS_KEPT:]
@@ -886,6 +896,8 @@ def _process_symbol(symbol: str, ledger: dict, market_open: bool, send_fn, convi
 
     has_position = symbol in ledger["positions"]
 
+    if action == "HOLD" and not has_position and score >= 1 and ledger.get("_fill_mode"):
+        action = "BUY"  # filling toward ~100 % invested with the best candidates below the usual threshold
     if action == "BUY" and not has_position:
         open_count = len(ledger["positions"])
         if open_count >= max_positions:
@@ -900,10 +912,12 @@ def _process_symbol(symbol: str, ledger: dict, market_open: bool, send_fn, convi
         # Virtual bankroll: the real Alpaca paper account holds ~$100k, but this
         # sleeve only ever spends what its own virtual_cash allows.
         virtual_cash = float(ledger.get("virtual_cash", VIRTUAL_STARTING_CASH))
-        if virtual_cash < USD_PER_TRADE:
+        equity = virtual_cash + sum(float(p.get("cost", 0)) for p in ledger["positions"].values())
+        size = equity * POS_PCT
+        if virtual_cash < size * 0.5:
             return f"BUY(skip:cash_insuffisant ${virtual_cash:.0f},score={score})"
         reduction = compute_correlation_reduction(symbol, closes, ledger["positions"])
-        usd_size = USD_PER_TRADE * (1 - reduction)
+        usd_size = min(size, virtual_cash) * (1 - reduction)
         qty = round(usd_size / last_close, 4)
         if qty <= 0:
             return f"BUY(skip:qty<=0,score={score})"

@@ -430,7 +430,13 @@ HL_MIN_WEEK_ROI          = float(os.environ.get("HL_MIN_WEEK_ROI", 0.0))        
 HL_TOP_N_WALLETS         = int(os.environ.get("HL_TOP_N_WALLETS", 75))   # 2026-11-04: raised 7->75 per explicit user instruction -- paper money, deliberately testing wider/noisier coverage (majors + meme + micro mixed in) before ever risking real capital; was briefly 7 (mirroring the stocks side's 7 curated filers) but the user wants volume/diversity now, not a tight curated list. Still a ceiling, not a guarantee: fetch_hl_top_wallets only returns whoever actually passes HL_MIN_ACCOUNT_VALUE/HL_MIN_MONTH_ROI/HL_MIN_WEEK_ROI, could come back with fewer than 75.
 HL_REFRESH_WALLETS_SEC   = int(os.environ.get("HL_REFRESH_WALLETS_SEC", 21600))    # 6h -- leaderboard payload is ~34MB, don't refetch every cycle
 CYCLE_HL_COPYTRADE        = int(os.environ.get("CYCLE_HL_COPYTRADE", 300))          # poll followed wallets' positions every 5min
-HL_SLEEVE_USD_PER_TRADE  = float(os.environ.get("HL_SLEEVE_USD_PER_TRADE", 25.0))
+HL_SLEEVE_USD_PER_TRADE  = float(os.environ.get("HL_SLEEVE_USD_PER_TRADE", 25.0))  # legacy floor, see HL_POS_PCT
+# 2026-11-05 user request (paper): ~100 % of the capital invested, but SPREAD: 5 % of equity per position,
+# at most 30 % of equity on one side + category (e.g. crypto shorts on alts), at most 3 copies per wallet.
+HL_POS_PCT               = float(os.environ.get("HL_POS_PCT", 0.05))
+HL_MAX_SIDE_CAT_PCT      = float(os.environ.get("HL_MAX_SIDE_CAT_PCT", 0.30))
+HL_MAX_PER_WALLET        = int(os.environ.get("HL_MAX_PER_WALLET", 3))
+HL_MAJORS = {"BTCUSDT", "ETHUSDT", "SOLUSDT"}
 HL_SLEEVE_MAX_CONCURRENT = int(os.environ.get("HL_SLEEVE_MAX_CONCURRENT", 20))   # 2026-11-05: 40->20 (user request) so the $1,000 bankroll keeps rotation headroom (20 x $25 = $500). Earlier: 2026-11-04: raised 10->40 alongside HL_TOP_N_WALLETS -- following 75 wallets but still capping at 10 concurrent positions would silently skip most signals, defeating the point of widening coverage
 HL_SLEEVE_HARD_SL_PCT    = float(os.environ.get("HL_SLEEVE_HARD_SL_PCT", 0.15))    # independent safety net, see note above
 
@@ -2788,11 +2794,44 @@ def compute_crypto_risk_pct(symbol: str, side: str) -> dict:
         return {"risk_pct": 50, "sentiment_score": 0.5, "is_critical": False, "top_headline": None}
 
 
+def _hl_equity(ledger: dict) -> float:
+    return float(ledger["cash"]) + sum(float(p.get("amount_usd", 0)) for p in ledger["positions"].values())
+
+
+def _hl_position_size(ledger: dict) -> float:
+    """5 % of the portfolio's equity (cost basis), never below the legacy $25 floor."""
+    return max(HL_SLEEVE_USD_PER_TRADE, _hl_equity(ledger) * HL_POS_PCT)
+
+
+def _hl_category(symbol: str) -> str:
+    if symbol in HL_MAJORS:
+        return "majors"
+    if symbol in set(MEMECOIN_SOLANA) | set(MEMECOIN_ETH):
+        return "memes"
+    return "alts"
+
+
+def _hl_spread_ok(ledger: dict, symbol: str, side: str, addr: str) -> tuple[bool, str]:
+    """Spread rules before a copy: max HL_MAX_PER_WALLET copies per wallet and max
+    HL_MAX_SIDE_CAT_PCT of equity on one side + category once this position is added."""
+    pos = list(ledger["positions"].values())
+    same_wallet = sum(1 for p in pos if p.get("hl_source_addr") == addr)
+    if same_wallet >= HL_MAX_PER_WALLET:
+        return False, f"deja {same_wallet} copies de ce wallet (max {HL_MAX_PER_WALLET})"
+    eq = _hl_equity(ledger)
+    cat = _hl_category(symbol)
+    bucket = sum(float(p.get("amount_usd", 0)) for p in pos if p.get("side") == side and _hl_category(p["symbol"]) == cat)
+    after = bucket + _hl_position_size(ledger)
+    if eq > 0 and after / eq > HL_MAX_SIDE_CAT_PCT:
+        return False, f"{side} {cat} deja a {bucket / eq:.0%} du portefeuille (max {HL_MAX_SIDE_CAT_PCT:.0%})"
+    return True, ""
+
+
 def _open_hl_mirror(symbol: str, price: float, side: str, source_addr: str,
                      source_coin: str, source_month_roi: float, send_fn,
                      risk: dict = None, size_reduction: float = 0.0):
     ledger = load_hl_copy_ledger()
-    base_amount = min(HL_SLEEVE_USD_PER_TRADE, ledger["cash"] * 0.9)
+    base_amount = min(_hl_position_size(ledger), ledger["cash"] * 0.99)
     amount = base_amount * (1.0 - max(0.0, min(1.0, size_reduction)))
     qty = amount / price
     ledger["cash"] -= amount
@@ -3111,7 +3150,11 @@ def _hl_copytrade_worker_body(send_fn):
             if any(p["symbol"] == symbol for p in open_hl_positions):
                 continue
             price = prices.get(symbol) or get_current_price(symbol)
-            if not price or ledger["cash"] < HL_SLEEVE_USD_PER_TRADE:
+            if not price or ledger["cash"] < min(_hl_position_size(ledger), HL_SLEEVE_USD_PER_TRADE):
+                continue
+            spread_ok, spread_why = _hl_spread_ok(ledger, symbol, pos["side"], addr)
+            if not spread_ok:  # never concentrate (7 copies of one wallet, 24/26 shorts before this rule)
+                log_event("RiskLimits", "crypto_copy", "SKIP", coin, spread_why, wallet=addr[:10], side=pos["side"])
                 continue
             # Fresh entries only (2026-11-05, Desktop review): a position the wallet already held when we
             # started following it is a baseline, not a signal (after the reset this opened 26 copies at
