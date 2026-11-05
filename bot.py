@@ -5,6 +5,7 @@ from agent_events import log_event  # decision journal (agent_events.jsonl), nev
 import agency  # step 1 'agence': CostAnalyst, SeniorExpert, DataGuard, Watchdog
 import chart_analyst  # candle analysis for held symbols (chart_analysis.json)
 import trade_manager  # rules R1-R10 on open positions (never opens)
+import short_sleeve  # 3rd paper portfolio 'court terme' (SHORT_SLEEVE_ENABLED)
 import json, sqlite3, re, hashlib, base64, hmac, secrets
 import pandas as pd
 import numpy as np
@@ -5633,6 +5634,7 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     threading.Thread(target=watchdog,      args=(send,), daemon=True).start()
     agency.start_watchdog(send)
     chart_analyst.start()
+    short_sleeve.start(send)
     threading.Thread(target=daily_summary, args=(send,), daemon=True).start()
 
 async def cmd_stop(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -7360,6 +7362,7 @@ def auto_start():
     threading.Thread(target=watchdog,      args=(send,), daemon=True).start()
     agency.start_watchdog(send)
     chart_analyst.start()
+    short_sleeve.start(send)
     threading.Thread(target=daily_summary, args=(send,), daemon=True).start()
 
 def _evolution_loop_MAIN():
