@@ -3101,6 +3101,28 @@ def _fill_state(t=..., **kw) -> dict:
     return st
 
 
+def _crypto_net_exposure(hl_ledger: dict) -> float:
+    """(long - short) / equity over BOTH crypto books (HL copy + court terme), in [-1, +1]."""
+    lng = sht = 0.0
+    eq = _hl_equity(hl_ledger)
+    for p in hl_ledger["positions"].values():
+        a = float(p.get("amount_usd", 0))
+        lng, sht = (lng + a, sht) if p.get("side") != "SHORT" else (lng, sht + a)
+    try:
+        ct = json.loads((HL_COPY_LEDGER_PATH.parent / "meme_sim.json").read_text(encoding="utf-8"))
+        eq += float(ct.get("cash", 0))
+        for p in ct.get("positions", {}).values():
+            a = float(p.get("usd", 0))
+            eq += a
+            lng, sht = (lng + a, sht) if p.get("side", "LONG") != "SHORT" else (lng, sht + a)
+    except (OSError, ValueError):
+        pass
+    return (lng - sht) / eq if eq > 0 else 0.0
+
+
+HL_FILL_NET_LIMIT = float(os.environ.get("HL_FILL_NET_LIMIT", 0.60))
+
+
 def hl_consensus_fill(send_fn):
     """Fill engine (user request 2026-11-05: use the whole crypto portfolio, compounding).
     Copies only enter on a FRESH wallet entry, so cash sat idle at ~50 %. When invested < 95 % of
@@ -3155,7 +3177,8 @@ def hl_consensus_fill(send_fn):
     except Exception:
         label = "neutral"
     held = {p["symbol"] for p in ledger["positions"].values()}
-    why = {"regime": 0, "repartition": 0, "graphique": 0, "senior": 0, "deja_detenu": 0, "ouverts": 0}
+    why = {"regime": 0, "repartition": 0, "graphique": 0, "senior": 0, "deja_detenu": 0, "ouverts": 0, "expo_nette": 0}
+    net = _crypto_net_exposure(ledger)
     cands = sorted(((c, v) for c, v in cons.items() if abs(v) >= HL_FILL_MIN_CONS and holders.get(c, 0) >= HL_FILL_MIN_HOLDERS),
                    key=lambda cv: -abs(cv[1]) * min(1.0, holders.get(cv[0], 0) / 10))
     for coin, c in cands:
@@ -3168,7 +3191,14 @@ def hl_consensus_fill(send_fn):
             continue
         if (label == "risk_on" and side == "SHORT") or (label == "risk_off" and side == "LONG"):
             why["regime"] += 1
-            log_event("RiskLimits", "crypto_copy", "SKIP", coin, f"remplissage {side} contre le regime {label}", score=c)
+            continue
+        # neutral regime (Desktop 2026-11-05): only the side that reduces the net crypto exposure of both books,
+        # and nothing on the heavy side beyond +/- HL_FILL_NET_LIMIT
+        if label == "neutral" and ((side == "SHORT" and net < 0 and net <= -HL_FILL_NET_LIMIT)
+                                   or (side == "LONG" and net > 0 and net >= HL_FILL_NET_LIMIT)):
+            why["expo_nette"] += 1
+            log_event("RiskLimits", "crypto_copy", "SKIP", coin,
+                      f"remplissage {side} : expo nette crypto des 2 portefeuilles deja {net:+.0%}", score=c)
             continue
         ok, why_ = _hl_spread_ok(ledger, symbol, side, HL_CONSENSUS_ADDR)
         if not ok:
@@ -3202,9 +3232,11 @@ def hl_consensus_fill(send_fn):
         held.add(symbol)
         invested = sum(float(p.get("amount_usd", 0)) for p in ledger["positions"].values())
         eq = _hl_equity(ledger)
+        net = _crypto_net_exposure(ledger)
     # one summary per cycle so the Trading Floor shows WHY the book is not full (Desktop review)
     log_event("FillEngine", "crypto_copy", "INFO", "", f"remplissage : investi {invested / eq:.0%}, {len(cands)} candidats "
-              f"consensus, regime {label}", result=why, invested_pct=round(invested / eq, 3), candidates=len(cands))
+              f"consensus, regime {label}, expo nette crypto {net:+.0%}", result=why, invested_pct=round(invested / eq, 3),
+              candidates=len(cands), net_exposure=round(net, 3))
 
 
 def _hl_copytrade_worker(send_fn):
