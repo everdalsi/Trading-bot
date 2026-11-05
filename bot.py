@@ -4897,12 +4897,18 @@ def generate_telegram_status_stocks() -> str:
     except Exception as e:
         crypto_block = f"🐋 CRYPTO — statut indisponible ({type(e).__name__})"
 
+    try:
+        short_block = short_sleeve.telegram_block()
+    except Exception as e:
+        short_block = f"⚡ COURT TERME — statut indisponible ({type(e).__name__})"
     return (
-        f"🟢 BOT ACTIF — 2 portefeuilles séparés\n"
+        f"🟢 BOT ACTIF — 3 portefeuilles séparés\n"
         f"━━━━━━━━━━━━━━━━━━━\n"
         f"{stocks_block}\n"
         f"━━━━━━━━━━━━━━━━━━━\n"
         f"{crypto_block}\n"
+        f"━━━━━━━━━━━━━━━━━━━\n"
+        f"{short_block}\n"
         f"⏰ {now_label}"
     )
 
