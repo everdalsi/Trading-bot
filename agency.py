@@ -241,6 +241,13 @@ def _approve_entry(portfolio: str, symbol: str, price: float | None, proxy_edge:
     detail = (f"avantage espere {edge * 100:+.2f} % ({edge_src}) - couts {cost * 100:.2f} % ({cost_src}) "
               f"= {net * 100:+.2f} %")
     extra = {k: v for k, v in context.items() if k in ("size_reduction", "drawdown", "score", "wallet_roi", "chart_malus", "side")}
+    try:  # Polymarket sentiment RECORDED next to each decision (not weighted yet: measured first)
+        import polymarket_analyst
+        pm = polymarket_analyst.sentiment(symbol)
+        if pm and pm.get("sentiment") is not None:
+            extra["polymarket"] = pm["sentiment"]
+    except Exception:
+        pass
     if net <= 0:
         log_event("SeniorExpert", portfolio, "VETO", symbol, detail, score=round(net, 5), result="refuse", **extra)
         return False, detail

@@ -9,6 +9,7 @@ import short_sleeve  # 3rd paper portfolio 'court terme' (SHORT_SLEEVE_ENABLED)
 import news_agent  # RSS headlines around held symbols (news_flags.json)
 import professor  # self-improvement loop v1: stats, wallet weights, Auditor (professor.json)
 import scalper  # 1-5 min scalping sleeves, paper, separate ledgers (scalp_<portfolio>.json)
+import polymarket_analyst  # read-only Polymarket sentiment (polymarket.json), never bets
 import json, sqlite3, re, hashlib, base64, hmac, secrets
 import pandas as pd
 import numpy as np
@@ -5728,6 +5729,7 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     news_agent.start()
     professor.start()
     scalper.start()
+    polymarket_analyst.start()
     threading.Thread(target=daily_summary, args=(send,), daemon=True).start()
 
 async def cmd_stop(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -5885,17 +5887,17 @@ async def cmd_arbitrage(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("\n".join(lines))
 
 async def cmd_polymarket(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Read-only Polymarket sentiment (polymarket_analyst.py). It called get_polymarket_markets(),
+    which was never defined anywhere (crash): replaced 2026-11-05."""
     if not _auth(update): return
-    markets = get_polymarket_markets()
-    if not markets:
-        await update.message.reply_text("Aucune inefficacité.")
-        return
-    lines = ["🎯 POLYMARKET\n━━━━━━━━━━━━━"]
-    for m in markets:
-        lines.append(
-            f"❓ {m['question']}\n  YES:{m['yes_price']:.2f} NO:{m['no_price']:.2f} "
-            f"(ineff:{m['inefficiency']:.1f}%)"
-        )
+    lines = ["🎯 POLYMARKET (lecture seule, aucun pari)\n━━━━━━━━━━━━━"]
+    for sym in ("BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT"):
+        r = polymarket_analyst.sentiment(sym) or {}
+        if r.get("sentiment") is None:
+            lines.append(f"{sym[:-4]} : pas de signal (aucun marche qui encadre 50 %)")
+        else:
+            lines.append(f"{sym[:-4]} : mediane implicite {r['implied_median']:,} $ vs {r['spot']:,.0f} $ ({r['date']}) "
+                         f"-> sentiment {r['sentiment']:+.2f}" + (f", risque de chute -15 % : {r['crash_prob']:.0%}" if r.get("crash_prob") is not None else ""))
     await update.message.reply_text("\n".join(lines))
 
 async def cmd_spread(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -7459,6 +7461,7 @@ def auto_start():
     news_agent.start()
     professor.start()
     scalper.start()
+    polymarket_analyst.start()
     threading.Thread(target=daily_summary, args=(send,), daemon=True).start()
 
 def _evolution_loop_MAIN():
