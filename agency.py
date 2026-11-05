@@ -45,7 +45,19 @@ def _load(path: Path) -> dict:
 
 
 def _closed(portfolio: str) -> list[dict]:
-    return [t for t in _load(LEDGERS[portfolio]).get("trades", []) if t.get("pnl") is not None]
+    """Closed trades with pnl and pnl_pct. The US-stocks ledger keeps them in "closed_trades"
+    without pnl_pct (computed here from cost); the crypto copy ledger in "trades"."""
+    led = _load(LEDGERS[portfolio])
+    rows = led.get("closed_trades") if "closed_trades" in led else led.get("trades", [])
+    out = []
+    for t in rows or []:
+        if t.get("pnl") is None:
+            continue
+        if t.get("pnl_pct") is None:
+            base = float(t.get("cost") or t.get("amount_usd") or 0)
+            t = {**t, "pnl_pct": float(t["pnl"]) / base * 100 if base else 0.0}
+        out.append(t)
+    return out
 
 
 # ---------------------------------------------------------------- CostAnalyst
@@ -53,7 +65,7 @@ def _closed(portfolio: str) -> list[dict]:
 def measured_slippage(portfolio: str) -> tuple[float | None, int]:
     """Median |fill - reference| / reference on our own entries that recorded a reference price."""
     led = _load(LEDGERS[portfolio])
-    rows = list(led.get("positions", {}).values()) + led.get("trades", [])
+    rows = list(led.get("positions", {}).values()) + led.get("trades", []) + led.get("closed_trades", [])
     samples = []
     for r in rows:
         ref, fill = r.get("ref_price"), r.get("entry_price") or r.get("price_in")
