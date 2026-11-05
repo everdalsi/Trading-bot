@@ -2865,16 +2865,29 @@ def monitor_hl_copytrade_risk(send_fn):
     HL_COPY positions by construction."""
     ledger = load_hl_copy_ledger()
     prices = get_prices_batch()
+    seen_prices = {}
     for pos_key, pos in list(ledger["positions"].items()):
         symbol = pos["symbol"]
         price = prices.get(symbol) or get_current_price(symbol)
         if not price:
             continue
+        seen_prices[pos_key] = price
         entry = pos["price_in"]
         is_short = pos.get("side") == "SHORT"
         change = (entry - price) / entry if is_short else (price - entry) / entry
         if change <= -HL_SLEEVE_HARD_SL_PCT:
             _close_hl_mirror(pos_key, price, f"🛑 HL-Copy hard SL ({change*100:+.2f}%)", send_fn)
+    # 2026-11-05: current price per open position for the trading dashboard (reporting only).
+    # Separate small file on purpose: rewriting the ledger here could race with the copy worker
+    # thread (load/modify/save on the same file) and drop a position it just opened.
+    if seen_prices:
+        try:
+            out = HL_COPY_LEDGER_PATH.with_name("hl_copy_prices.json")
+            tmp = out.with_suffix(".json.tmp")
+            tmp.write_text(json.dumps({"at": time.time(), "prices": seen_prices}), encoding="utf-8")
+            tmp.replace(out)
+        except Exception as e:
+            logger.debug(f"[HL-COPY] price snapshot not written (non-blocking): {e}")
 
 _hl_copytrade_running = False
 
