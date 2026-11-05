@@ -257,6 +257,7 @@ ROSTER = [
     ("RegimeAgent", "Régime de marché", "tendance / range / baisse", 0),
     ("ChartAnalyst", "Analyseur de courbes", "tendance, RSI, supports / résistances, figures", 1),
     ("SignalAgent", "Signal", "momentum et scores d'entrée", 0),
+    ("TradeManager", "Gestionnaire de trades", "10 règles : ferme, réduit, encaisse, ajuste les stops", 1),
     ("DrawdownGuard", "Garde-fou drawdown", "veto si la perte devient trop forte", 0),
     ("CorrelationWatcher", "Surveillant corrélation", "réduit les positions trop liées", 0),
     ("Executor", "Exécuteur", "passe les ordres (fictifs)", 0),
@@ -288,11 +289,21 @@ def status() -> dict:
     for e in events:
         e["ts"] = _ts(e.get("ts"))
     books = [_portfolio(p) for p in PORTFOLIOS]
-    micro = _micro()
+    day0 = time.time() - 86400
+    today = [e for e in _events(2000) if _ts(e.get("ts")) >= day0]
+    counts = dict(Counter(e.get("action", "?") for e in today))
+    last_by = {}
+    for e in events:  # newest first
+        last_by.setdefault((e.get("agent"), e.get("action")), e)
+    picks = {k: last_by.get(k) for k in (("SeniorExpert", "APPROVE"), ("SeniorExpert", "VETO"), ("DataGuard", "VETO"),
+                                          ("ChartAnalyst", "SIGNAL"), ("ChartAnalyst", "VETO"))}
+    exe = next((e for e in events if e.get("action") in ("BUY", "SELL", "CLOSE", "REDUCE")), None)
     return {"now": time.strftime("%H:%M:%S"), "sync": _json(SYNC_STATE, {}), "portfolios": books,
-            "agents": _agents(events), "roster": _roster(events), "events": events[:80], "logs": _logs(), "micro": micro,
-            "stocks": _stocks(), "wallets": _wallets(),
-            "total_equity": round(sum(b.get("equity", 0) for b in books if b.get("available")) + _num(micro.get("cash")), 2)}
+            "roster": _roster(events), "events": events[:80], "logs": _logs(), "stocks": _stocks(),
+            "wallets": _wallets(), "today": counts, "n_today": len(today),
+            "last": {f"{k[0]}:{k[1]}": v for k, v in picks.items() if v}, "last_exec": exe,
+            "total_equity": round(sum(b.get("equity", 0) for b in books if b.get("available")), 2),
+            "total_start": sum(b.get("start", 0) for b in books if b.get("available"))}
 
 
 
