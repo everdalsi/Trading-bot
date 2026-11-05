@@ -255,6 +255,7 @@ ROSTER = [
     ("Pruner", "Élagueur", "réduit ce qui perd par stratégie / symbole / régime", 2),
     ("SizingAgent", "Dimensionnement", "même risque par trade selon la volatilité", 2),
     ("RegimeAgent", "Régime de marché", "tendance / range / baisse", 0),
+    ("ChartAnalyst", "Analyseur de courbes", "tendance, RSI, supports / résistances, figures", 1),
     ("SignalAgent", "Signal", "momentum et scores d'entrée", 0),
     ("DrawdownGuard", "Garde-fou drawdown", "veto si la perte devient trop forte", 0),
     ("CorrelationWatcher", "Surveillant corrélation", "réduit les positions trop liées", 0),
