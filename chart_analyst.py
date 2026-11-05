@@ -179,7 +179,8 @@ def run(symbols: list[str], held: set[str] | None = None) -> dict:
             except Exception as e:  # one symbol never stops the others
                 out[s][tf] = {"error": f"{type(e).__name__}: {str(e)[:80]}"}
             p = out[s].get(tf, {}).get("pattern")
-            if s in held and p and p != old.get(s, {}).get(tf, {}).get("pattern"):
+            # SIGNAL only on 1h / 4h / 1d: 5m and 15m patterns change every run and would flood the journal
+            if tf in ("1h", "4h", "1d") and s in held and p and p != old.get(s, {}).get(tf, {}).get("pattern"):
                 a = out[s][tf]
                 log_event("ChartAnalyst", "graphiques", "SIGNAL", s, f"{tf} : {p.replace('_', ' ')}",
                           score=a["score"], result=a["trend"], timeframe=tf, rsi=a["rsi"], atr_pct=a["atr_pct"])
