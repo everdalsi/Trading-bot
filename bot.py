@@ -4,6 +4,7 @@ import os, time, threading, feedparser, requests, asyncio
 from agent_events import log_event  # decision journal (agent_events.jsonl), never raises
 import agency  # step 1 'agence': CostAnalyst, SeniorExpert, DataGuard, Watchdog
 import chart_analyst  # candle analysis for held symbols (chart_analysis.json)
+import macro_analyst, sentiment_analyst, fundamental_analyst  # agents v2 (Desktop), measurement only
 import top_traders  # best HL wallets + consensus per coin (top_traders.json)
 import trade_manager  # rules R1-R10 on open positions (never opens)
 import short_sleeve  # 3rd paper portfolio 'court terme' (SHORT_SLEEVE_ENABLED)
@@ -5731,6 +5732,9 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     agency.start_watchdog(send)
     chart_analyst.start()
     top_traders.start()
+    macro_analyst.start()
+    sentiment_analyst.start()
+    fundamental_analyst.start()
     short_sleeve.start(send)
     news_agent.start()
     professor.start()
@@ -7464,6 +7468,9 @@ def auto_start():
     agency.start_watchdog(send)
     chart_analyst.start()
     top_traders.start()
+    macro_analyst.start()
+    sentiment_analyst.start()
+    fundamental_analyst.start()
     short_sleeve.start(send)
     news_agent.start()
     professor.start()

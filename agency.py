@@ -241,6 +241,15 @@ def _approve_entry(portfolio: str, symbol: str, price: float | None, proxy_edge:
     detail = (f"avantage espere {edge * 100:+.2f} % ({edge_src}) - couts {cost * 100:.2f} % ({cost_src}) "
               f"= {net * 100:+.2f} %")
     extra = {k: v for k, v in context.items() if k in ("size_reduction", "drawdown", "score", "wallet_roi", "chart_malus", "side")}
+    try:  # agents v2 (Desktop): macro / sentiment / fundamentals RECORDED with each decision, no weight yet
+        import macro_analyst, sentiment_analyst
+        extra.update({k: v for k, v in macro_analyst.read().items() if v is not None})
+        extra.update({k: v for k, v in sentiment_analyst.read(symbol).items() if v is not None})
+        if portfolio == "actions_us":
+            import fundamental_analyst
+            extra.update({k: v for k, v in fundamental_analyst.read(symbol).items() if v is not None})
+    except Exception:
+        pass
     try:  # Polymarket sentiment RECORDED next to each decision (not weighted yet: measured first)
         import polymarket_analyst
         pm = polymarket_analyst.sentiment(symbol)
