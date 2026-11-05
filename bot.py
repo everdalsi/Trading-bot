@@ -4,7 +4,7 @@ import os, time, threading, feedparser, requests, asyncio
 from agent_events import log_event  # decision journal (agent_events.jsonl), never raises
 import agency  # step 1 'agence': CostAnalyst, SeniorExpert, DataGuard, Watchdog
 import chart_analyst  # candle analysis for held symbols (chart_analysis.json)
-import macro_analyst, sentiment_analyst, fundamental_analyst  # agents v2 (Desktop), measurement only
+import macro_analyst, sentiment_analyst, fundamental_analyst, options_analyst  # agents v2 (Desktop), measurement only
 import risk_manager  # B1: vol-targeted sizing + portfolio risk snapshot (risk_manager.json)
 import top_traders  # best HL wallets + consensus per coin (top_traders.json)
 import trade_manager  # rules R1-R10 on open positions (never opens)
@@ -2822,7 +2822,7 @@ def _hl_spread_ok(ledger: dict, symbol: str, side: str, addr: str) -> tuple[bool
     HL_MAX_SIDE_CAT_PCT of equity on one side + category once this position is added."""
     pos = list(ledger["positions"].values())
     same_wallet = sum(1 for p in pos if p.get("hl_source_addr") == addr)
-    if same_wallet >= HL_MAX_PER_WALLET:
+    if addr != HL_CONSENSUS_ADDR and same_wallet >= HL_MAX_PER_WALLET:
         return False, f"deja {same_wallet} copies de ce wallet (max {HL_MAX_PER_WALLET})"
     eq = _hl_equity(ledger)
     cat = _hl_category(symbol)
@@ -2835,7 +2835,7 @@ def _hl_spread_ok(ledger: dict, symbol: str, side: str, addr: str) -> tuple[bool
 
 def _open_hl_mirror(symbol: str, price: float, side: str, source_addr: str,
                      source_coin: str, source_month_roi: float, send_fn,
-                     risk: dict = None, size_reduction: float = 0.0):
+                     risk: dict = None, size_reduction: float = 0.0, strategy: str = "HL_COPY"):
     ledger = load_hl_copy_ledger()
     # Professor: wallet weight 0.5-1.5 from its own net results (1.0 until 20 closed trades)
     # weight capped at 1.0: a strong wallet never breaks the 5 %-per-position spread the user asked for
@@ -2862,6 +2862,7 @@ def _open_hl_mirror(symbol: str, price: float, side: str, source_addr: str,
         "leverage": 1, "peak_price": price, "open_time": time.time(),
         "hl_source_addr": source_addr, "hl_source_coin": source_coin,
         "risk_pct_at_entry": risk.get("risk_pct"), "size_reduction_at_entry": size_reduction,
+        "strategy": strategy,
     }
     pos_key = f"HLCOPY_{symbol}_{trade['id']}"
     ledger["trades"].append(trade)
@@ -3074,6 +3075,107 @@ def get_hl_copy_summary() -> dict:
     }
 
 
+HL_CONSENSUS_ADDR = "consensus"  # pseudo-wallet: positions opened by the fill engine
+HL_FILL_TARGET = float(os.environ.get("HL_FILL_TARGET", 0.95))
+HL_FILL_WAIT_S = int(os.environ.get("HL_FILL_WAIT_S", 1800))
+HL_FILL_MIN_CONS, HL_FILL_MIN_HOLDERS, HL_FILL_EXIT_CONS = 0.4, 5, 0.1
+_hl_under_since = {"t": None}
+
+
+def hl_consensus_fill(send_fn):
+    """Fill engine (user request 2026-11-05: use the whole crypto portfolio, compounding).
+    Copies only enter on a FRESH wallet entry, so cash sat idle at ~50 %. When invested < 95 % of
+    equity for > 30 min, the remainder goes to the TopTraders consensus (top_traders.json): coins with
+    |consensus| >= 0.4 held by >= 5 regular wallets, in the consensus direction, strongest first,
+    5 % of CURRENT equity each (vol-adjusted by the RiskManager: compounding, never martingale), with
+    the 30 % side+category rule, ChartAnalyst and SeniorExpert unchanged, and never against the
+    regime (no new short in risk_on, no new long in risk_off). Positions carry strategy HL_CONSENSUS
+    and source "consensus" so the Professor measures them apart. Exit: consensus fades below 0.1 in
+    our direction (plus every TradeManager rule, like any copy)."""
+    try:
+        tt = json.loads((HL_COPY_LEDGER_PATH.parent / "top_traders.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return
+    if time.time() - float(tt.get("at", 0)) > 6 * 3600:
+        return
+    cons, holders = tt.get("consensus", {}), tt.get("holders", {})
+    ledger = load_hl_copy_ledger()
+
+    def _coin(sym: str) -> str:
+        c = sym.replace("USDT", "")
+        return c[4:] if c.startswith("1000") else c
+
+    # exits: consensus faded or flipped against a consensus position
+    for key, p in list(ledger["positions"].items()):
+        if p.get("hl_source_addr") != HL_CONSENSUS_ADDR:
+            continue
+        c = cons.get(_coin(p["symbol"]))
+        if c is None:
+            continue
+        with_us = c if p.get("side") == "LONG" else -c
+        if with_us < HL_FILL_EXIT_CONS:
+            price = get_current_price(p["symbol"])
+            if price:
+                _close_hl_mirror(key, price, f"consensus top wallets retombe a {c:+.2f}", send_fn)
+                ledger = load_hl_copy_ledger()
+
+    eq = _hl_equity(ledger)
+    invested = sum(float(p.get("amount_usd", 0)) for p in ledger["positions"].values())
+    if eq <= 0 or invested >= HL_FILL_TARGET * eq:
+        _hl_under_since["t"] = None
+        return
+    if _hl_under_since["t"] is None:
+        _hl_under_since["t"] = time.time()
+    if time.time() - _hl_under_since["t"] < HL_FILL_WAIT_S:
+        return
+    try:
+        import regime
+        label = regime.current()["label"]
+    except Exception:
+        label = "neutral"
+    held = {p["symbol"] for p in ledger["positions"].values()}
+    cands = sorted(((c, v) for c, v in cons.items() if abs(v) >= HL_FILL_MIN_CONS and holders.get(c, 0) >= HL_FILL_MIN_HOLDERS),
+                   key=lambda cv: -abs(cv[1]) * min(1.0, holders.get(cv[0], 0) / 10))
+    for coin, c in cands:
+        if invested + _hl_position_size(ledger) > eq * 1.0001:
+            break
+        symbol = HL_COIN_TO_BINANCE.get(coin) or HL_COIN_TO_BINANCE.get("k" + coin) or f"{coin}USDT"
+        side = "LONG" if c > 0 else "SHORT"
+        if symbol in held or symbol in MANUAL_SYMBOL_BLACKLIST:
+            continue
+        if (label == "risk_on" and side == "SHORT") or (label == "risk_off" and side == "LONG"):
+            log_event("RiskLimits", "crypto_copy", "SKIP", coin, f"remplissage {side} contre le regime {label}", score=c)
+            continue
+        ok, why = _hl_spread_ok(ledger, symbol, side, HL_CONSENSUS_ADDR)
+        if not ok:
+            log_event("RiskLimits", "crypto_copy", "SKIP", coin, f"remplissage : {why}", score=c)
+            continue
+        price = get_current_price(symbol)
+        if not price:
+            continue
+        try:
+            ca = chart_analyst.ensure(symbol)
+            t1, t4 = (ca.get("1h") or {}).get("trend"), (ca.get("4h") or {}).get("trend")
+            if (side == "LONG" and t1 == t4 == "down") or (side == "SHORT" and t1 == t4 == "up"):
+                log_event("ChartAnalyst", "crypto_copy", "VETO", coin, f"remplissage {side} contre la tendance 1 h ET 4 h ({t1})")
+                continue
+        except Exception:
+            pass
+        # proxy edge while < 100 closed trades: 1 % x |consensus| (consensus 0.4 -> 0.4 %)
+        approved, _ = agency.approve_entry("crypto_copy", symbol, price, 0.01 * abs(c),
+                                           {"side": side, "score": c, "fill_mode": True})
+        if not approved:
+            continue
+        _open_hl_mirror(symbol, price, side, HL_CONSENSUS_ADDR, coin, 0.0, send_fn, strategy="HL_CONSENSUS")
+        log_event("FillEngine", "crypto_copy", "BUY" if side == "LONG" else "SELL", coin,
+                  f"remplissage vers 100 % : consensus top wallets {c:+.2f} ({holders.get(coin)} wallets), regime {label}",
+                  score=c, result="ouvert")
+        ledger = load_hl_copy_ledger()
+        held.add(symbol)
+        invested = sum(float(p.get("amount_usd", 0)) for p in ledger["positions"].values())
+        eq = _hl_equity(ledger)
+
+
 def _hl_copytrade_worker(send_fn):
     """Refresh the followed-wallet list (every HL_REFRESH_WALLETS_SEC) and
     poll their live positions (every CYCLE_HL_COPYTRADE) to mirror opens and
@@ -3085,6 +3187,10 @@ def _hl_copytrade_worker(send_fn):
         _hl_copytrade_worker_body(send_fn)
     except Exception as e:
         logger.warning(f"[HL-COPY] Worker error: {type(e).__name__}: {e}")
+    try:
+        hl_consensus_fill(send_fn)
+    except Exception as e:
+        logger.warning(f"[HL-FILL] error: {type(e).__name__}: {e}")
     finally:
         _hl_copytrade_running = False
 
@@ -5744,6 +5850,7 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     macro_analyst.start()
     sentiment_analyst.start()
     fundamental_analyst.start()
+    options_analyst.start()
     short_sleeve.start(send)
     news_agent.start()
     professor.start()
@@ -7482,6 +7589,7 @@ def auto_start():
     macro_analyst.start()
     sentiment_analyst.start()
     fundamental_analyst.start()
+    options_analyst.start()
     short_sleeve.start(send)
     news_agent.start()
     professor.start()

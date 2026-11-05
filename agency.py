@@ -245,6 +245,11 @@ def _approve_entry(portfolio: str, symbol: str, price: float | None, proxy_edge:
         import macro_analyst, sentiment_analyst
         extra.update({k: v for k, v in macro_analyst.read().items() if v is not None})
         extra.update({k: v for k, v in sentiment_analyst.read(symbol).items() if v is not None})
+        try:
+            import options_analyst
+            extra.update({k: v for k, v in options_analyst.read(symbol).items() if v is not None})
+        except Exception:
+            pass
         if portfolio == "actions_us":
             import fundamental_analyst
             extra.update({k: v for k, v in fundamental_analyst.read(symbol).items() if v is not None})

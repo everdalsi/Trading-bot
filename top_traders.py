@@ -159,7 +159,7 @@ def start(every_s: int = 7200) -> None:
     _started = True
 
     def loop():
-        time.sleep(400)
+        time.sleep(120)
         while True:
             try:
                 run()
