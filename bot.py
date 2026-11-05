@@ -1,6 +1,7 @@
 """Trading Bo v8.2 — Autonomous multi-agent crypto trading system."""
 
 import os, time, threading, feedparser, requests, asyncio
+from agent_events import log_event  # decision journal (agent_events.jsonl), never raises
 import json, sqlite3, re, hashlib, base64, hmac, secrets
 import pandas as pd
 import numpy as np
@@ -2812,6 +2813,10 @@ def _open_hl_mirror(symbol: str, price: float, side: str, source_addr: str,
     risk_line = f"\n⚠️ Risque social/news estimé : {risk['risk_pct']}%" + (f" ({risk['top_headline'][:60]})" if risk.get("top_headline") else "")
     corr_line = f" | 🔗 taille réduite -{int(size_reduction*100)}% (corrélation portefeuille)" if size_reduction > 0 else ""
     send_fn(f"🐋 HL-Copy OPEN {side} {coin_label} @ ${price:.4f} (wallet {source_addr[:8]}..., ROI mois {source_month_roi*100:.1f}%){corr_line}{risk_line}")
+    log_event("Executor", "crypto_copy", "BUY" if side == "LONG" else "SELL", coin_label,
+              f"copie du wallet {source_addr[:8]} (ROI mois {source_month_roi*100:.1f}%)",
+              score=round(source_month_roi, 4), result="ouvert", price=price, side=side,
+              size_reduction=size_reduction, news_risk_pct=risk.get("risk_pct") if risk else None)
 
 def _close_hl_mirror(pos_key: str, price: float, reason: str, send_fn):
     ledger = load_hl_copy_ledger()
@@ -2847,6 +2852,7 @@ def _close_hl_mirror(pos_key: str, price: float, reason: str, send_fn):
         logger.debug(f"[HL-COPY] drawdown_guard record error (non-blocking): {e}")
     coin_label = pos["symbol"].replace("USDT", "")
     send_fn(f"{'✅' if pnl > 0 else '❌'} HL-Copy {coin_label}: ${pnl:+.4f} | {reason}")
+    log_event("Executor", "crypto_copy", "CLOSE", coin_label, reason, result=round(pnl, 4), price=price)
 
 def monitor_hl_copytrade_risk(send_fn):
     """Independent safety net for the HL copy sleeve, checked every
@@ -2961,6 +2967,9 @@ def _hl_copytrade_worker_body(send_fn):
             "initial_equity": HL_COPY_STARTING_CASH,
         }))
         trading_blocked = bool(guard_resp.get("veto"))
+        if trading_blocked:
+            log_event("DrawdownGuard", "crypto_copy", "VETO", "", guard_resp.get("summary", "pause active"),
+                      result="aucune nouvelle position ce cycle", equity=round(equity, 2))
         if trading_blocked and guard_resp.get("telegram_alert"):
             send_fn(f"🛑 HL-Copy circuit breaker: {guard_resp.get('summary', 'pause active')}")
     except Exception as e:
@@ -2997,6 +3006,7 @@ def _hl_copytrade_worker_body(send_fn):
                 continue
             open_hl_positions = list(ledger["positions"].values())
             if len(open_hl_positions) >= HL_SLEEVE_MAX_CONCURRENT:
+                log_event("RiskLimits", "crypto_copy", "SKIP", coin, f"{HL_SLEEVE_MAX_CONCURRENT} positions deja ouvertes")
                 continue
             if any(p["symbol"] == symbol for p in open_hl_positions):
                 continue
@@ -3009,6 +3019,10 @@ def _hl_copytrade_worker_body(send_fn):
                     "symbol": symbol, "open_positions_detail": open_hl_positions,
                 }))
                 size_reduction = float(corr_resp.get("size_reduction", 0.0))
+                if size_reduction > 0:
+                    log_event("CorrelationWatcher", "crypto_copy", "REDUCE", symbol.replace("USDT", ""),
+                              corr_resp.get("summary", "correlation avec le portefeuille"),
+                              score=size_reduction, result=f"taille -{int(size_reduction * 100)}%")
             except Exception as e:
                 logger.debug(f"[HL-COPY] correlation_watcher unavailable (non-blocking): {type(e).__name__}: {e}")
             risk = compute_crypto_risk_pct(symbol, pos["side"])  # informational only -- never gates the mirror, see docstring

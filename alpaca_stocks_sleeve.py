@@ -136,6 +136,7 @@ from __future__ import annotations
 
 import json
 import os
+from agent_events import log_event  # decision journal, never raises
 import threading
 import time
 from datetime import datetime
@@ -610,6 +611,7 @@ def _alpaca_stocks_worker_body(send_fn) -> None:
     dd = check_drawdown_guard(ledger, virtual_equity)
     trading_blocked = dd["blocked"]
     if trading_blocked:
+        log_event("DrawdownGuard", "actions_us", "VETO", "", dd.get("reason") or "", result="aucun achat ce cycle")
         logger.info(f"[ALPACA-STOCKS] Circuit breaker actif: {dd['reason']}")
 
     max_positions = len(effective_universe)
@@ -863,6 +865,8 @@ def _process_symbol(symbol: str, ledger: dict, market_open: bool, send_fn, convi
         risk_line = f" | risque social/news: {risk['risk_pct']}%" + (f" ({risk['top_headline'][:60]})" if risk.get("top_headline") else "")
         corr_line = f" | taille reduite de {reduction:.0%} (correlee a une position ouverte)" if reduction else ""
         _safe_send(send_fn, f"[ALPACA-STOCKS] BUY {symbol} qty={qty} ~${entry_price:.2f} (${cost:.0f}, score={score}){corr_line}{risk_line} | cash restant ${ledger['virtual_cash']:.0f}")
+        log_event("Executor", "actions_us", "BUY", symbol, f"score {score} (13F + tendance)", score=score,
+                  result="achete", price=entry_price, usd=round(cost, 2))
         return f"BUY(qty={qty})"
 
     elif action == "SELL" and has_position:
@@ -884,6 +888,7 @@ def _process_symbol(symbol: str, ledger: dict, market_open: bool, send_fn, convi
         ledger["virtual_cash"] = round(float(ledger.get("virtual_cash", VIRTUAL_STARTING_CASH)) + cost + (pnl or 0), 2)
         _record_trade_outcome(ledger, pnl)
         _safe_send(send_fn, f"[ALPACA-STOCKS] SELL {symbol} qty={pos['qty']} pnl=${pnl} (score={score}) | cash ${ledger['virtual_cash']:.0f}")
+        log_event("Executor", "actions_us", "SELL", symbol, f"score {score}", score=score, result=pnl)
         return f"SELL(pnl={pnl})"
 
     return f"{action}(score={score},has_position={has_position})"

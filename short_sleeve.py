@@ -31,6 +31,8 @@ from pathlib import Path
 
 import requests
 
+from agent_events import log_event  # decision journal, never raises
+
 log = logging.getLogger("short_sleeve")
 
 ENABLED = int(os.environ.get("SHORT_SLEEVE_ENABLED", 0))
@@ -113,6 +115,8 @@ def _open(ledger: dict, lane: str, symbol: str, price: float, usd: float, cost: 
         "id": tid, "lane": lane, "symbol": symbol, "entry": fill, "qty": qty, "usd": usd,
         "peak": price, "last_price": price, "opened": time.time(), **extra}
     log.info(f"[SHORT] {lane} BUY {symbol} ${usd:.2f} @ {price:.6g}")
+    log_event("Executor", "court_terme", "BUY", symbol, f"voie {lane}", score=extra.get("r14"), result="ouvert",
+              price=price, usd=round(usd, 2), lane=lane)
 
 
 def _close(ledger: dict, key: str, price: float, cost: float, reason: str, send_fn) -> float:
@@ -126,6 +130,7 @@ def _close(ledger: dict, key: str, price: float, cost: float, reason: str, send_
                              "opened": p["opened"], "closed": time.time()})
     ledger["loss_streak"] = 0 if pnl > 0 else ledger["loss_streak"] + 1
     send_fn(f"{'✅' if pnl > 0 else '❌'} COURT TERME {p['lane']} {p['symbol']} ${pnl:+.2f} ({reason})")
+    log_event("Executor", "court_terme", "CLOSE", p["symbol"], reason, result=round(pnl, 4), lane=p["lane"])
     return pnl
 
 
@@ -149,6 +154,7 @@ def _risk(ledger: dict, eq: float, send_fn) -> bool:
         why = "prix absents depuis plus de 5 min"
     if why and not ledger["halted"]:
         ledger["halted"] = why
+        log_event("CircuitBreaker", "court_terme", "HALT", "", why, result="portefeuille arrete")
         send_fn(f"🛑 COURT TERME : coupe-circuit ({why}). Portefeuille arrete, rien ne s'ouvre plus. "
                 f"Reprise manuelle uniquement (halted='' dans meme_sim.json apres analyse).")
     if ledger["halted"]:
@@ -199,6 +205,10 @@ def lane_a_targets() -> tuple[list[str], bool, dict[str, float]]:
 
 def lane_a_rotate(ledger: dict, can_open: bool, send_fn) -> None:
     targets, btc_ok, r14 = lane_a_targets()
+    log_event("RegimeAgent", "court_terme", "SIGNAL", "BTC", "BTC au-dessus de sa MM50" if btc_ok else "BTC sous sa MM50",
+              result="risk_on" if btc_ok else "risk_off")
+    log_event("SignalAgent", "court_terme", "SIGNAL", ",".join(targets), "top 5 momentum 14 j (> 0 et > BTC)",
+              result={s: round(r14[s], 4) for s in targets})
     prices = _price_a(list({*targets, *(p["symbol"] for p in ledger["positions"].values() if p["lane"] == "A")}))
     for key, p in list(ledger["positions"].items()):
         if p["lane"] == "A" and (p["symbol"] not in targets or r14.get(p["symbol"], -1) < 0):
@@ -361,6 +371,8 @@ def lane_m_observe() -> int:
                "age_h": round(age_h, 1), "vol_h1": h1, "vol_h24": h24, "chg_h1": chg.get("h1"),
                "filters_ok": ok, "filters": why, "follow": {}}
         _append_obs(rec)
+        log_event("MemeScout", "court_terme", "OBSERVE", rec["symbol"] or "", why, score=round(h1 / max(1, h24 / 24), 2),
+                  result="propre" if ok else "rejete", chain=c["chain"], pair=p["pairAddress"])
         n += 1
     return n
 
