@@ -256,6 +256,21 @@ function render(st) {
     ["Meilleurs traders (consensus)", `<div style="font-size:12px">${lst(A.consensus, r => `${esc(String(r[0]).replace("USDT", ""))} ${sc(r[1])} <span class="mut">${r[1] > 0 ? "majorité acheteuse" : r[1] < 0 ? "majorité vendeuse" : ""}</span>`)}</div>`],
     ["Options (Deribit)", `<div style="font-size:12px">${lst(Object.entries(A.options || {}), ([s, o]) => `<b>${esc(s.replace("USDT", ""))}</b> ${sc(o.score)} <span class="mut">skew ${o.skew_10pct ?? "—"} pts · IV ${o.iv_atm ?? "—"} % · puts/calls ${o.pcr_expiry ?? "—"}</span>`)}
       <p class="mut" style="margin-top:6px">skew positif = puts plus chers que les calls = le marché se protège contre une baisse</p></div>`],
+    ["Remplissage copie crypto", (() => {
+      const f = A.fill; if (!f) return '<span class="mut">premier cycle en attente</span>';
+      const r = typeof f.result === "object" && f.result ? f.result : {};
+      return `<div class="eq" style="font-size:22px">${f.invested_pct != null ? Math.round(100 * f.invested_pct) + " %" : "—"} <span class="mut" style="font-size:13px">investi</span></div>
+        <div class="kv">${Object.entries(r).map(([k, v]) => `<span>${esc(k.replace("_", " "))}</span><b>${esc(v)}</b>`).join("")}</div>
+        <p class="mut" style="font-size:12px">${esc(f.reason || "")} · il y a ${ago(Date.now() / 1000 - f.ts)}</p>`;
+    })()],
+    ["Chasseur de memecoins (mesure)", (() => {
+      const m = A.memes || {}; if (!Object.keys(m).length) return '<span class="mut">en attente</span>';
+      const pct = v => v == null ? "—" : Math.round(100 * v) + " %";
+      return `<div class="kv"><span>Candidats suivis</span><b>${m.candidates ?? "—"}</b><span>Veto sécurité</span><b>${m.security_veto ?? "—"}</b>
+        <span>Signaux de trade</span><b>${m.trade_signals ?? "—"}</b><span>x2 en 24 h (tous)</span><b>${pct(m.hit_x2_all_24h)}</b>
+        <span>x2 parmi les vetos (faux veto)</span><b>${pct(m.hit_x2_vetoed_24h ?? m.vetoed)}</b><span>Trades fantômes net</span><b class="${cls(m.shadow_net)}">${money(m.shadow_net)}</b>
+        <span>Latence médiane</span><b>${m.latency_median_s ?? "—"} s</b><span>Argent papier autorisé</span><b>${m.paper_allowed ? "oui" : "non (500 candidats + ton accord)"}</b></div>`;
+    })()],
     ["Fondamentaux actions US", `<div style="font-size:12px">${lst(A.fundamentals, r => `<b>${esc(r[0])}</b> ${sc(r[1])} <span class="mut">CA ${r[2] ?? "—"} % · PER ${r[3] ?? "—"}</span>`)}</div>`],
   ].map(([t, h]) => `<div class="book"><h3>${t}</h3>${h}</div>`).join("");
 

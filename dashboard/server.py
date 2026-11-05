@@ -46,7 +46,8 @@ LEDGER_FILES = {"hl_copy": "hl_copy_portfolio.json", "alpaca": "alpaca_stocks_po
                 "scalp_crypto_copy": "scalp_crypto_copy.json", "scalp_court_terme": "scalp_court_terme.json",
                 "scalp_actions_us": "scalp_actions_us.json", "professor": "professor.json", "news_flags": "news_flags.json",
                 "macro": "macro.json", "sentiment": "sentiment.json", "fundamentals": "fundamentals.json",
-                "top_traders": "top_traders.json", "polymarket": "polymarket.json", "options": "options.json"}
+                "top_traders": "top_traders.json", "polymarket": "polymarket.json", "options": "options.json",
+                "memes": "meme_hunter.json", "risk": "risk_manager.json"}
 SCALP_NAMES = {"crypto_copy": "Copie crypto (A cassure, frais HL)", "court_terme": "Court terme (B retour moyenne, frais Binance)",
                "actions_us": "Actions US (A, heures de marche)"}
 
@@ -362,6 +363,8 @@ def _analysts() -> dict:
         "polymarket": {s: {"sentiment": c.get("sentiment"), "crash_prob": c.get("crash_prob")} for s, c in
                        (poly.get("coins") or {}).items()},
         "options": {s: {k: c.get(k) for k in ("score", "skew_10pct", "iv_atm", "pcr_expiry", "expiry")} for s, c in opts.items()},
+        "memes": _json(CACHE / "meme_hunter.json", {}) or {},
+        "fill": next((e for e in _events(300) if e.get("agent") == "FillEngine" and e.get("action") == "INFO"), None),
         "ic": ic,
     }
 
