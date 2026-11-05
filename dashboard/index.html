@@ -265,10 +265,11 @@ function render(st) {
     })()],
     ["Chasseur de memecoins (mesure)", (() => {
       const m = A.memes || {}; if (!Object.keys(m).length) return '<span class="mut">en attente</span>';
-      const pct = v => v == null ? "—" : Math.round(100 * v) + " %";
+      const pct = v => { if (v && typeof v === "object") return v.rate == null ? `— (${v.n || 0} mesurés)` : `${Math.round(100 * v.rate)} % (${v.x2}/${v.n})`;
+                         return v == null ? "—" : Math.round(100 * v) + " %"; };
       return `<div class="kv"><span>Candidats suivis</span><b>${m.candidates ?? "—"}</b><span>Veto sécurité</span><b>${m.security_veto ?? "—"}</b>
         <span>Signaux de trade</span><b>${m.trade_signals ?? "—"}</b><span>x2 en 24 h (tous)</span><b>${pct(m.hit_x2_all_24h)}</b>
-        <span>x2 parmi les vetos (faux veto)</span><b>${pct(m.hit_x2_vetoed_24h ?? m.vetoed)}</b><span>Trades fantômes net</span><b class="${cls(m.shadow_net)}">${money(m.shadow_net)}</b>
+        <span>x2 parmi les vetos (faux veto)</span><b>${pct(m.hit_x2_vetoed_24h)}</b><span>Trades fantômes net</span><b class="${cls(m.shadow_net)}">${money(m.shadow_net)}</b>
         <span>Latence médiane</span><b>${m.latency_median_s ?? "—"} s</b><span>Argent papier autorisé</span><b>${m.paper_allowed ? "oui" : "non (500 candidats + ton accord)"}</b></div>`;
     })()],
     ["Fondamentaux actions US", `<div style="font-size:12px">${lst(A.fundamentals, r => `<b>${esc(r[0])}</b> ${sc(r[1])} <span class="mut">CA ${r[2] ?? "—"} % · PER ${r[3] ?? "—"}</span>`)}</div>`],
