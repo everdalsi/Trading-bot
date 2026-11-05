@@ -17,6 +17,8 @@ R3 catastrophe stop (-8 % crypto, -6 % stocks)      -> close
    stops set by earlier rules (entry stop, trailing, support stop) -> close
 R4 regime turns down (BTC < MA50 and MA50 falling), long  -> reduce 50 %, stop to entry
 R4S mirror (Desktop 2026-11-05): risk_on regime AND BTC >= +3 % in 24 h (short squeeze), short -> reduce 50 %, stop to entry
+R4F flush (Desktop 2026-11-05): BTC <= -4 % in 24 h, crypto long (hedges excluded) -> reduce 50 %, stop to entry
+   (the daily regime is too slow for a 1-day crash)
 R5 strong news AGAINST us < 1 h (negative vs long, positive vs short) -> reduce 50 %, close if reduced
 R6 top-50 consensus against us <= -0.4 (once)        -> reduce 50 %
 R7 gain >= +6 % (or price at the first 1 h resistance) -> take 1/3, trailing stop 3 %
@@ -40,7 +42,7 @@ DEFAULT_RULES = {
     "r1_bad_data_min": 10,
     "r2_source_cut_ratio": 0.5,
     "r3_stop_crypto_pct": -8.0, "r3_stop_stocks_pct": -6.0,
-    "r4_reduce": 0.5,
+    "r4_reduce": 0.5, "r4f_btc_24h_pct": -4.0,
     "r5_news_window_min": 60, "r5_reduce": 0.5,
     "r6_consensus": -0.4, "r6_reduce": 0.5,
     "r7_gain_pct": 6.0, "r7_take": 1 / 3, "r7_trail_pct": 3.0,
@@ -85,6 +87,24 @@ def regime_squeeze() -> tuple[bool, str]:
     except Exception:
         pass
     _squeeze.update(at=time.time(), v=v)
+    return v
+
+
+_flush = {"at": 0.0, "v": (False, "")}
+
+
+def regime_flush(limit_pct: float = -4.0) -> tuple[bool, str]:
+    """BTC down <= limit over 24 h (Binance 24 h ticker): crypto longs get flushed. Cached 5 min."""
+    if time.time() - _flush["at"] < 300:
+        return _flush["v"]
+    v = (False, "")
+    try:
+        chg = float(requests.get("https://api.binance.com/api/v3/ticker/24hr", params={"symbol": "BTCUSDT"},
+                                 timeout=10).json()["priceChangePercent"])
+        v = (chg <= limit_pct, f"BTC {chg:+.1f} % sur 24 h")
+    except Exception:
+        pass
+    _flush.update(at=time.time(), v=v)
     return v
 
 
@@ -182,6 +202,10 @@ def decide(view: dict, r: dict, now: float | None = None) -> tuple[str, str, flo
     if not capped and squeeze and side == "SHORT" and not st.get("tm_reduced"):
         upd.update(tm_reduced=True, tm_stop=min(stop, entry) if stop else entry, tm_stop_why="au prix d'entree")
         return "R4S", "REDUCE", r["r4_reduce"], f"squeeze haussier ({swhy})", upd
+    flush, fwhy = view.get("regime_flush", (False, ""))
+    if not capped and flush and side != "SHORT" and view["kind"] == "crypto" and not st.get("tm_reduced"):
+        upd.update(tm_reduced=True, tm_stop=max(stop or 0, entry), tm_stop_why="au prix d'entree")
+        return "R4F", "REDUCE", r["r4_reduce"], f"krach BTC en cours ({fwhy})", upd
     news = view.get("news", "")
     if not capped and news:
         if st.get("tm_reduced"):
@@ -219,8 +243,11 @@ def manage(portfolio: str, views: list[dict], execute, send_fn=None) -> int:
         return 0
     down = regime_down()
     squeeze = regime_squeeze() if any(v["side"] == "SHORT" for v in views) else (False, "")
+    flush = regime_flush(r.get("r4f_btc_24h_pct", -4.0)) if any(v["side"] != "SHORT" and v["kind"] == "crypto"
+                                                                 for v in views) else (False, "")
     n = 0
     for v in views:
+        v.setdefault("regime_flush", flush)
         v.setdefault("regime_down", down)
         v.setdefault("regime_squeeze", squeeze)
         v.setdefault("news", news_against(v["symbol"], v["side"], r["r5_news_window_min"] * 60))
