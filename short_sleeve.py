@@ -482,8 +482,12 @@ def tick(send_fn, now: datetime | None = None) -> None:
     can_open = _risk(ledger, equity(ledger, prices), send_fn)
     now = now or datetime.now(timezone.utc)
     today = now.strftime("%Y-%m-%d")
-    if not ledger["halted"] and ledger["last_rotation"] != today and (now.hour, now.minute) >= (0, 5):
+    # daily rotation; plus an hourly retry while lane A is empty (startup, or a day with no target)
+    empty_a = not any(p["lane"] == "A" for p in ledger["positions"].values())
+    retry = empty_a and time.time() - ledger.get("last_rotation_try", 0) >= 3600
+    if not ledger["halted"] and (ledger["last_rotation"] != today or retry) and (now.hour, now.minute) >= (0, 5):
         try:
+            ledger["last_rotation_try"] = time.time()
             lane_a_rotate(ledger, can_open, send_fn)
             ledger["last_rotation"] = today
         except requests.RequestException as e:
