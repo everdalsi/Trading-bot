@@ -372,10 +372,10 @@ def lane_m_observe() -> int:
         above_6h = float(chg.get("h6") or 0) > 0
         if age_h < M_MIN_AGE_H or liq < M_MIN_LIQ or not (breakout and not_after_peak and above_6h):
             continue
-        try:
-            ok, why = (_rugcheck_ok(c["token"]) if c["chain"] == "solana" else _goplus_ok(c["chain"], c["token"]))
-        except (requests.RequestException, ValueError) as e:
-            ok, why = False, f"filtre indisponible {type(e).__name__}"
+        # shared SecurityAgent (veto, fail-closed): DexScreener + RugCheck / GoPlus + honeypot.is
+        import security_agent
+        ok, reasons, _sec = security_agent.check(c["chain"], c["token"], "court_terme")
+        why = "ok" if ok else " ; ".join(reasons)[:200]
         rec = {"at": time.time(), "chain": c["chain"], "token": c["token"], "pair": p["pairAddress"],
                "symbol": (p.get("baseToken") or {}).get("symbol"), "price": float(p["priceUsd"]), "liq": liq,
                "age_h": round(age_h, 1), "vol_h1": h1, "vol_h24": h24, "chg_h1": chg.get("h1"),
