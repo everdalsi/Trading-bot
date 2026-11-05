@@ -28,7 +28,7 @@ from agent_events import log_event
 
 DATA_DIR = Path(os.environ.get("DATA_DIR") or ".")
 OUT = DATA_DIR / "news_flags.json"
-UA = {"User-Agent": "trading-research-bot/1.0 (paper trading, contact via repository owner)"}
+UA = {"User-Agent": "TradingResearchBot/1.0 paper-trading research (contact: bot-admin@example.org)"}
 CRYPTO_FEEDS = {
     "CoinDesk": "https://www.coindesk.com/arc/outboundfeeds/rss/",
     "Cointelegraph": "https://cointelegraph.com/rss",
@@ -52,12 +52,13 @@ NEG = [r"hack(ed|er|ers)?", r"exploit(ed)?", r"drain(ed)?", r"delist(s|ed|ing)?"
        r"halts? withdrawals", r"depeg(ged)?", r"security breach", r"fraud", r"ponzi", r"indict(ed|ment)",
        r"class action", r"trading halt(ed)?", r"suspend(s|ed) trading", r"retrait de cotation",
        r"\bban(s|ned)?\b", r"(network|chain|blockchain|mainnet) (halt(s|ed)?|outage|down|stall(s|ed)?)", r"51% attack"]
-POS = [r"\blists\b", r"listing on", r"etf (approved|approval)", r"approves? .*etf", r"partnership with",
+POS = [r"listing on", r"etf (approved|approval)", r"approves? .*etf", r"partnership with",
        r"strategic partnership", r"beats? (estimates|expectations)", r"earnings beat", r"record revenue",
        r"raises? guidance"]
 AMBIG = [r"investigat", r"probe", r"outage", r"warn(s|ing)", r"downgrad", r"upgrad", r"surge", r"plunge",
          r"crash", r"soar", r"slump", r"sell-?off", r"rall(y|ies)", r"whale", r"liquidat"]
-_NEG, _POS, _AMB = (re.compile("|".join(x), re.I) for x in (NEG, POS, AMBIG))
+# whole words only: "sued" must not match "issued", "hack" not "hackathon", "drain" not "drainage"
+_NEG, _POS, _AMB = (re.compile(r"\b(?:" + "|".join(x) + r")\b", re.I) for x in (NEG, POS, AMBIG))
 _LOCK = threading.Lock()
 
 
@@ -101,7 +102,9 @@ def _entries(url: str, source: str) -> list[dict]:
     out = []
     for e in feed.entries[:60]:
         ts = e.get("published_parsed") or e.get("updated_parsed")
-        at = calendar.timegm(ts) if ts else time.time()
+        if not ts:
+            continue  # undated: would look "fresh" at every run and re-trigger vetoes forever
+        at = calendar.timegm(ts)
         out.append({"title": e.get("title", ""), "link": e.get("link", ""), "source": source, "at": at})
     return out
 
@@ -170,12 +173,24 @@ def run(symbols: list[str], held: set[str] | None = None) -> dict:
     return data
 
 
-def strong_negative(symbol: str, within_s: float) -> str:
-    """Title of a strong negative flag on this symbol within the window, else ''."""
-    for f in load().get("symbols", {}).get(symbol, []):
-        if f.get("level") == "negatif_fort" and time.time() - float(f.get("at", 0)) <= within_s:
+def strong_flag(symbol: str, level: str, within_s: float) -> str:
+    """Title of a flag of this level on the symbol (SOLUSDT or SOL) within the window, else ''."""
+    flags = load().get("symbols", {})
+    base = symbol.replace("USDT", "")
+    for f in flags.get(symbol, []) + flags.get(base, []) + flags.get(base + "USDT", []):
+        if f.get("level") == level and time.time() - float(f.get("at", 0)) <= within_s:
             return f.get("title", "")
     return ""
+
+
+def strong_negative(symbol: str, within_s: float) -> str:
+    return strong_flag(symbol, "negatif_fort", within_s)
+
+
+def against(symbol: str, side: str, within_s: float) -> str:
+    """News that goes AGAINST a position on this side: strong negative for a LONG,
+    strong positive for a SHORT (a hack is good news for a short)."""
+    return strong_flag(symbol, "positif_fort" if side == "SHORT" else "negatif_fort", within_s)
 
 
 _started = False

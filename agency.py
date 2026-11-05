@@ -207,11 +207,11 @@ def _approve_entry(portfolio: str, symbol: str, price: float | None, proxy_edge:
     if not ok:
         log_event("DataGuard", portfolio, "VETO", symbol, why, result="entree bloquee (sorties permises)")
         return False, why
-    try:  # NewsAgent: no entry < 6 h after a strong negative headline on this symbol
+    try:  # NewsAgent: no entry < 6 h after a strong headline AGAINST our side on this symbol
         import news_agent
-        bad = news_agent.strong_negative(symbol, 6 * 3600)
+        bad = news_agent.against(symbol, context.get("side", "LONG"), 6 * 3600)
         if bad:
-            why = f"news negative forte < 6 h : {bad[:120]}"
+            why = f"news forte contre une entree {context.get('side', 'LONG')} < 6 h : {bad[:120]}"
             log_event("SeniorExpert", portfolio, "VETO", symbol, why, result="refuse")
             return False, why
     except ImportError:

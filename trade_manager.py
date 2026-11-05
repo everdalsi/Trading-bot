@@ -16,7 +16,7 @@ R2 copied wallet left / cut its position by >= half -> close
 R3 catastrophe stop (-8 % crypto, -6 % stocks)      -> close
    stops set by earlier rules (entry stop, trailing, support stop) -> close
 R4 regime turns down (BTC < MA50 and MA50 falling), long  -> reduce 50 %, stop to entry
-R5 strong negative news < 1 h on the symbol          -> reduce 50 %, close if already reduced
+R5 strong news AGAINST us < 1 h (negative vs long, positive vs short) -> reduce 50 %, close if reduced
 R6 top-50 consensus against us <= -0.4 (once)        -> reduce 50 %
 R7 gain >= +6 % (or price at the first 1 h resistance) -> take 1/3, trailing stop 3 %
 R8 gain >= +12 % and consensus >= +0.4 with us       -> trailing stop widened to 5 % (no sale)
@@ -94,13 +94,15 @@ def _json(name: str) -> dict:
         return {}
 
 
-def news_negative(symbol: str, window_s: float) -> str:
-    """Title of a strong negative news flag on this symbol within the window, else ''."""
+def news_against(symbol: str, side: str, window_s: float) -> str:
+    """Title of a strong news flag AGAINST the position within the window, else '':
+    strong negative for a LONG, strong positive for a SHORT."""
+    level = "positif_fort" if side == "SHORT" else "negatif_fort"
     base = symbol.replace("USDT", "")
     flags = (_json("news_flags.json").get("symbols") or {})
     for f in flags.get(symbol, []) + flags.get(base, []):
-        if f.get("level") == "negatif_fort" and time.time() - float(f.get("at", 0)) <= window_s:
-            return f.get("title", "drapeau negatif fort")
+        if f.get("level") == level and time.time() - float(f.get("at", 0)) <= window_s:
+            return f.get("title", "drapeau fort")
     return ""
 
 
@@ -162,9 +164,9 @@ def decide(view: dict, r: dict, now: float | None = None) -> tuple[str, str, flo
     news = view.get("news", "")
     if not capped and news:
         if st.get("tm_reduced"):
-            return "R5", "CLOSE", 1, f"news negative forte (deja reduite) : {news[:120]}", upd
+            return "R5", "CLOSE", 1, f"news forte contre la position (deja reduite) : {news[:120]}", upd
         upd["tm_reduced"] = True
-        return "R5", "REDUCE", r["r5_reduce"], f"news negative forte : {news[:120]}", upd
+        return "R5", "REDUCE", r["r5_reduce"], f"news forte contre la position : {news[:120]}", upd
     cons = view.get("consensus")
     if cons is not None and side == "SHORT":
         cons = -cons  # consensus is long-positive; "with us" for a short is negative
@@ -198,7 +200,7 @@ def manage(portfolio: str, views: list[dict], execute, send_fn=None) -> int:
     n = 0
     for v in views:
         v.setdefault("regime_down", down)
-        v.setdefault("news", news_negative(v["symbol"], r["r5_news_window_min"] * 60))
+        v.setdefault("news", news_against(v["symbol"], v["side"], r["r5_news_window_min"] * 60))
         v.setdefault("consensus", consensus(v["symbol"]))
         try:
             rule, action, frac, reason, upd = decide(v, r)
