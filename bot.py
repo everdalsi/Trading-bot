@@ -446,6 +446,7 @@ HL_SLEEVE_HARD_SL_PCT    = float(os.environ.get("HL_SLEEVE_HARD_SL_PCT", 0.15)) 
 HL_COPY_STARTING_CASH  = float(os.environ.get("HL_COPY_STARTING_CASH", 1000.0))   # 2026-11-05: back to 1000 (user request: crypto and US-stocks portfolios both restart at $1,000). Note 40 slots x $25 = $1,000, so no rotation headroom when fully invested.
 HL_COPY_LEDGER_PATH    = Path(os.environ.get("DATA_DIR") or ".") / "hl_copy_ledger.json"
 HL_COPY_LEDGER_LOCK    = threading.Lock()
+HL_FRESH_MAX_MOVE      = float(os.environ.get("HL_FRESH_MAX_MOVE", 0.01))  # copy only if price within 1 % of the wallet's entry
 HL_COPY_TRADE_ID_BASE  = 90_000_000   # far above the shared sim's own trade ids (currently ~35k) so db_save_trade's "INSERT OR REPLACE" by id can never collide with an unrelated MICRO/legacy trade
 
 # Dedicated DrawdownGuard/CorrelationWatcher instances for THIS portfolio
@@ -3078,6 +3079,7 @@ def _hl_copytrade_worker_body(send_fn):
         addr = w["address"]
         live_positions = fetch_hl_wallet_positions(addr)
         last_seen = ledger["wallet_positions"].get(addr, {})
+        first_poll = addr not in ledger["wallet_positions"]  # positions already open when we started following
 
         for coin in list(last_seen.keys()):
             if coin not in live_positions:
@@ -3110,6 +3112,33 @@ def _hl_copytrade_worker_body(send_fn):
             price = prices.get(symbol) or get_current_price(symbol)
             if not price or ledger["cash"] < HL_SLEEVE_USD_PER_TRADE:
                 continue
+            # Fresh entries only (2026-11-05, Desktop review): a position the wallet already held when we
+            # started following it is a baseline, not a signal (after the reset this opened 26 copies at
+            # once, late); afterwards copy only if the price is still within HL_FRESH_MAX_MOVE of its entry.
+            coin_label = coin
+            if first_poll:
+                log_event("FreshEntryFilter", "crypto_copy", "SKIP", coin_label,
+                          "position deja ouverte avant le suivi de ce wallet (reference, pas un signal)",
+                          wallet=addr[:10])
+                continue
+            src_entry = float(pos.get("entry_px") or 0)
+            if src_entry:
+                moved = abs(price - src_entry) / src_entry
+                if moved > HL_FRESH_MAX_MOVE:
+                    log_event("FreshEntryFilter", "crypto_copy", "SKIP", coin_label,
+                              f"entree tardive : le prix a bouge de {moved:.1%} depuis l'entree du wallet ({src_entry:.6g})",
+                              score=round(moved, 4), wallet=addr[:10])
+                    continue
+            # Chart coherence: no copy against BOTH the 1 h and the 4 h trend
+            try:
+                ca = chart_analyst.ensure(symbol)
+                t1, t4 = (ca.get("1h") or {}).get("trend"), (ca.get("4h") or {}).get("trend")
+                if (pos["side"] == "LONG" and t1 == t4 == "down") or (pos["side"] == "SHORT" and t1 == t4 == "up"):
+                    log_event("ChartAnalyst", "crypto_copy", "VETO", coin_label,
+                              f"copie {pos['side']} contre la tendance 1 h ET 4 h ({t1})", wallet=addr[:10])
+                    continue
+            except Exception as e:
+                logger.debug(f"[HL-COPY] chart check unavailable (non-blocking): {e}")
             size_reduction = 0.0
             try:
                 corr_resp = asyncio.run(_hl_correlation_watcher.respond("correlation check", {

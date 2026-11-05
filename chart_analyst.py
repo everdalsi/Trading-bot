@@ -193,6 +193,32 @@ def run(symbols: list[str], held: set[str] | None = None) -> dict:
     return data
 
 
+def ensure(symbol: str, max_age_s: float = 900) -> dict:
+    """Analysis of one symbol, computed on demand when missing or older than max_age_s
+    (candidates that are not held yet), merged into chart_analysis.json."""
+    data = load()
+    cur = data.get("symbols", {}).get(symbol)
+    if cur and all(time.time() - (a.get("at") or 0) < max_age_s + 4 * 3600 for a in cur.values() if "at" in a) \
+            and time.time() - data.get("at", 0) < max_age_s:
+        return cur
+    tfs = CRYPTO_TF if symbol.endswith("USDT") else STOCK_TF
+    res = {}
+    for tf in tfs:
+        try:
+            c = candles(symbol, tf)
+            if len(c) >= 60:
+                res[tf] = analyse(c)
+        except Exception as e:
+            res[tf] = {"error": f"{type(e).__name__}: {str(e)[:80]}"}
+    with _LOCK:
+        data = load()
+        data.setdefault("symbols", {})[symbol] = res
+        tmp = OUT.with_suffix(".json.tmp")
+        tmp.write_text(json.dumps(data), encoding="utf-8")
+        tmp.replace(OUT)
+    return res
+
+
 def _tf(symbol: str, tf: str) -> dict:
     return load().get("symbols", {}).get(symbol, {}).get(tf, {}) or {}
 
