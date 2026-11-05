@@ -2837,7 +2837,8 @@ def _hl_spread_ok(ledger: dict, symbol: str, side: str, addr: str) -> tuple[bool
 
 def _open_hl_mirror(symbol: str, price: float, side: str, source_addr: str,
                      source_coin: str, source_month_roi: float, send_fn,
-                     risk: dict = None, size_reduction: float = 0.0, strategy: str = "HL_COPY"):
+                     risk: dict = None, size_reduction: float = 0.0, strategy: str = "HL_COPY",
+                     amount_override: float | None = None):
     ledger = load_hl_copy_ledger()
     # Professor: wallet weight 0.5-1.5 from its own net results (1.0 until 20 closed trades)
     # weight capped at 1.0: a strong wallet never breaks the 5 %-per-position spread the user asked for
@@ -2848,6 +2849,8 @@ def _open_hl_mirror(symbol: str, price: float, side: str, source_addr: str,
     except Exception:
         vm = 1.0
     base_amount = min(base_amount * vm, ledger["cash"] * 0.99)
+    if amount_override:
+        base_amount = min(amount_override, ledger["cash"] * 0.99)
     amount = base_amount * (1.0 - max(0.0, min(1.0, size_reduction)))
     qty = amount / price
     try:  # ExecutionController (B6): the copy fills at the last price, no slippage modelled
@@ -3122,6 +3125,7 @@ def _crypto_net_exposure(hl_ledger: dict) -> float:
 
 HL_FILL_NET_LIMIT = float(os.environ.get("HL_FILL_NET_LIMIT", 0.60))
 HL_HEDGE_NET = float(os.environ.get("HL_HEDGE_NET", 0.30))
+HL_HEDGE_MAX_PCT = float(os.environ.get("HL_HEDGE_MAX_PCT", 0.40))
 
 
 def hl_consensus_fill(send_fn):
@@ -3250,9 +3254,10 @@ def hl_consensus_fill(send_fn):
             break
         if sym in held:
             continue
-        ok, why_ = _hl_spread_ok(ledger, sym, "LONG", HL_CONSENSUS_ADDR)
-        if not ok:
-            why["repartition"] += 1
+        # sized to the gap toward the fill target, max HL_HEDGE_MAX_PCT of equity per leg: a hedge REDUCES the
+        # net exposure, so the 30 % side+category rule (written for directional copies) does not cap it
+        size = min(HL_FILL_TARGET * eq - invested, HL_HEDGE_MAX_PCT * eq, ledger["cash"] * 0.99)
+        if size < HL_SLEEVE_USD_PER_TRADE:
             break
         price = get_current_price(sym)
         if not price:
@@ -3268,7 +3273,8 @@ def hl_consensus_fill(send_fn):
         if not approved:
             why["senior"] += 1
             continue
-        _open_hl_mirror(sym, price, "LONG", HL_CONSENSUS_ADDR, sym.replace("USDT", ""), 0.0, send_fn, strategy="HL_HEDGE")
+        _open_hl_mirror(sym, price, "LONG", HL_CONSENSUS_ADDR, sym.replace("USDT", ""), 0.0, send_fn, strategy="HL_HEDGE",
+                        amount_override=size)
         log_event("FillEngine", "crypto_copy", "BUY", sym.replace("USDT", ""),
                   f"couverture : LONG majeure contre un livre crypto net {net:+.0%} (regime neutre)", result="ouvert")
         why["ouverts"] += 1
