@@ -62,7 +62,7 @@ _LOCK = threading.Lock()
 
 
 MAJORS = {"BTC", "ETH"}  # hit by third-party hacks (exchanges, protocols) without being affected themselves
-_MAJOR_NEG = re.compile(r"(bitcoin|ethereum|btc|eth) (network|protocol|blockchain|core)|ban(s|ned)?|51% attack", re.I)
+_MAJOR_NEG = re.compile(r"(bitcoin|ethereum|\bbtc\b|\beth\b) (network|protocol|blockchain|core)|\bban(s|ned)?\b|51% attack", re.I)
 
 
 def classify(title: str, symbol: str = "") -> str:
