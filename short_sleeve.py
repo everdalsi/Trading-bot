@@ -184,6 +184,23 @@ def _daily_closes(symbol: str, n: int = 100) -> list[float]:
     return [float(k[4]) for k in r.json()[:-1]]  # last candle still open: dropped
 
 
+_coin_perps = {"at": 0.0, "set": set()}
+
+
+def coin_perps() -> set[str]:
+    """USDT-M perpetuals whose underlying is a crypto COIN (Binance futures exchangeInfo), cached 6 h.
+    Excludes tokenised stocks / gold (GOOGLBUSDT, PAXG...) and matches where a short is possible."""
+    if time.time() - _coin_perps["at"] > 6 * 3600 or not _coin_perps["set"]:
+        try:
+            d = requests.get("https://fapi.binance.com/fapi/v1/exchangeInfo", timeout=20).json()
+            _coin_perps["set"] = {x["symbol"] for x in d["symbols"] if x.get("underlyingType") == "COIN"
+                                  and x.get("contractType") == "PERPETUAL" and x.get("status") == "TRADING"}
+            _coin_perps["at"] = time.time()
+        except Exception:
+            pass  # keep the last set (empty -> no filter)
+    return _coin_perps["set"]
+
+
 def universe() -> list[str]:
     r = requests.get(f"{BINANCE}/api/v3/ticker/24hr", timeout=15)
     r.raise_for_status()
@@ -191,7 +208,8 @@ def universe() -> list[str]:
     def ok(sym):
         base = sym[:-4]
         return base not in STABLES and not base.endswith(("UP", "DOWN", "BULL", "BEAR"))
-    rows = [d for d in rows if ok(d["symbol"])]
+    perps = coin_perps()
+    rows = [d for d in rows if ok(d["symbol"]) and (not perps or d["symbol"] in perps)]
     rows.sort(key=lambda d: float(d["quoteVolume"]), reverse=True)
     return [d["symbol"] for d in rows[:A_TOP_N]]
 
@@ -484,7 +502,9 @@ def tick(send_fn, now: datetime | None = None) -> None:
     today = now.strftime("%Y-%m-%d")
     # daily rotation; plus an hourly retry while lane A is empty (startup, or a day with no target)
     empty_a = not any(p["lane"] == "A" for p in ledger["positions"].values())
-    retry = empty_a and time.time() - ledger.get("last_rotation_try", 0) >= 3600
+    perps = coin_perps()
+    off = perps and any(p["lane"] == "A" and p["symbol"] not in perps for p in ledger["positions"].values())
+    retry = (empty_a or off) and time.time() - ledger.get("last_rotation_try", 0) >= 3600
     if not ledger["halted"] and (ledger["last_rotation"] != today or retry) and (now.hour, now.minute) >= (0, 5):
         try:
             ledger["last_rotation_try"] = time.time()
