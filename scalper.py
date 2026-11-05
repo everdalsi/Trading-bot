@@ -39,6 +39,17 @@ TP = float(os.environ.get("SCALP_TP", 0.0050))
 SL = float(os.environ.get("SCALP_SL", 0.0030))
 FEE = {"crypto_copy": float(os.environ.get("SCALP_FEE_CRYPTO_COPY", 0.00045)),
        "court_terme": float(os.environ.get("SCALP_FEE_COURT_TERME", 0.0010))}
+# V1 (trading-agents-v3.md, 2026-11-05): a 1-5 min taker scalper has negative expectancy after costs.
+# Crypto sleeves now SIMULATE post-only maker orders: entry = limit at our side of the book (bid for a
+# LONG, ask for a SHORT); filled only when the market later trades THROUGH it (opposite best price
+# strictly beyond our limit: conservative queue model, adverse selection included); unfilled after
+# MAKER_TTL_S -> cancelled. TP exit = resting maker limit, filled when the book trades through it.
+# SL / trailing / 5-min exit stay taker (fee + slippage). Fill rate measured in led["maker"].
+MAKER = bool(int(os.environ.get("SCALP_MAKER", 1)))
+MAKER_TTL_S = int(os.environ.get("SCALP_MAKER_TTL_S", 60))
+MAKER_FEE = {"crypto_copy": float(os.environ.get("SCALP_MAKER_FEE_CRYPTO_COPY", 0.00015)),   # Hyperliquid maker
+             "court_terme": float(os.environ.get("SCALP_MAKER_FEE_COURT_TERME", 0.0002))}    # Binance USDT-M maker
+CUT_AFTER = int(os.environ.get("SCALP_CUT_AFTER", 300))  # net < 0 after 300 maker trades -> 5 %, after 600 -> 0 %
 MAX_OPEN, DAY_STOP = 8, 0.03  # 2026-11-05: 5 -> 8 so the sleeve's capital works when signals come
 CRYPTO_SLIP_MIN, STOCK_SLIP = 0.0002, 0.0002
 MAX_SPREAD = 0.0003
@@ -59,6 +70,12 @@ def _path(pf: str) -> Path:
 
 
 def _share(pf: str) -> float:
+    try:
+        cut = maker_share_cut(pf) if MAKER and pf in MAKER_FEE else None
+        if cut is not None:
+            return cut
+    except Exception:
+        pass
     try:
         import professor
         return professor.scalp_share(pf)
@@ -173,34 +190,67 @@ def _cost_side(pf: str, bid: float, ask: float) -> float:
     return FEE.get(pf, 0.0010) + max(CRYPTO_SLIP_MIN, (ask - bid) / 2 / mid if mid else CRYPTO_SLIP_MIN)
 
 
-def _close(pf: str, led: dict, key: str, bid: float, ask: float, reason: str) -> None:
+def _close(pf: str, led: dict, key: str, bid: float, ask: float, reason: str, maker_px: float | None = None) -> None:
     p = led["positions"].pop(key)
-    px = bid if p["side"] == "LONG" else ask
+    px = maker_px if maker_px else (bid if p["side"] == "LONG" else ask)
     move = (px - p["entry"]) / p["entry"] * (1 if p["side"] == "LONG" else -1)
     gross = p["usd"] * move
-    cost = p["usd"] * (p["cost_in"] + _cost_side(pf, bid, ask))
+    cost = p["usd"] * (p["cost_in"] + (MAKER_FEE.get(pf, 0.0002) if maker_px else _cost_side(pf, bid, ask)))
     net = gross - cost
     led["cash"] += p["usd"] + net
     led["trades"].append({"symbol": p["symbol"], "side": p["side"], "strategy": p["strategy"], "trade_type": "SCALP",
                           "entry": p["entry"], "exit": px, "usd": p["usd"], "gross": round(gross, 5),
                           "pnl": round(net, 5), "pnl_pct": round(net / p["usd"] * 100, 4), "reason": reason,
+                          "exec": p.get("exec", "taker"), "exit_exec": "maker" if maker_px else "taker",
                           "opened": p["opened"], "closed": time.time(), "hold_s": int(time.time() - p["opened"])})
     led["trades"] = led["trades"][-5000:]
     log_event("Scalper", pf, "CLOSE", p["symbol"], f"{p['strategy']} {p['side']} : {reason}", score=round(move * 100, 3),
               result=round(net, 4), gross=round(gross, 4), costs=round(cost, 4), hold_s=int(time.time() - p["opened"]))
 
 
-def _open(pf: str, led: dict, symbol: str, side: str, bid: float, ask: float, strategy: str) -> None:
+def _open(pf: str, led: dict, symbol: str, side: str, bid: float, ask: float, strategy: str,
+          maker_px: float | None = None) -> None:
     usd = min(led["cash"], _capital(pf) / MAX_OPEN)  # current share (the Auditor may have cut it to 5 %)
     if usd < 5:
         return
-    px = ask if side == "LONG" else bid
+    px = maker_px if maker_px else (ask if side == "LONG" else bid)
     led["cash"] -= usd
     led["positions"][f"{symbol}:{int(time.time())}"] = {
         "symbol": symbol, "side": side, "entry": px, "usd": usd, "best": px, "opened": time.time(),
-        "strategy": strategy, "cost_in": _cost_side(pf, bid, ask)}
+        "strategy": strategy, "exec": "maker" if maker_px else "taker",
+        "cost_in": MAKER_FEE.get(pf, 0.0002) if maker_px else _cost_side(pf, bid, ask)}
     log_event("Scalper", pf, "BUY" if side == "LONG" else "SELL", symbol, f"strategie {strategy} : {side} 1-5 min",
               result="ouvert", price=px, usd=round(usd, 2))
+
+
+def _maker_stat(led: dict, k: str) -> None:
+    st = led.setdefault("maker", {"placed": 0, "filled": 0, "expired": 0})
+    st[k] = st.get(k, 0) + 1
+
+
+def pending_fills(pf: str, led: dict, quotes: dict[str, tuple[float, float]]) -> None:
+    """Resting post-only entry limits: filled only if the opposite best price traded THROUGH the limit."""
+    now = time.time()
+    for s, o in list(led.get("pending", {}).items()):
+        q = quotes.get(s)
+        if q and ((o["side"] == "LONG" and q[1] < o["limit"]) or (o["side"] == "SHORT" and q[0] > o["limit"])):
+            del led["pending"][s]
+            _maker_stat(led, "filled")
+            _open(pf, led, s, o["side"], q[0], q[1], o["strategy"], maker_px=o["limit"])
+        elif now - o["at"] >= MAKER_TTL_S:
+            del led["pending"][s]
+            _maker_stat(led, "expired")
+
+
+def maker_share_cut(pf: str) -> float | None:
+    """V1 automatic cut: maker trades net < 0 after CUT_AFTER trades -> 5 %, after 2 x CUT_AFTER -> 0 %."""
+    try:  # read the file directly: load() calls _share() on a fresh ledger (no recursion)
+        t = [x for x in json.loads(_path(pf).read_text(encoding="utf-8"))["trades"] if x.get("exec") == "maker"]
+    except (OSError, ValueError, KeyError):
+        return None
+    if len(t) < CUT_AFTER or sum(x["pnl"] for x in t) >= 0:
+        return None
+    return 0.0 if len(t) >= 2 * CUT_AFTER else 0.05
 
 
 def manage(pf: str, led: dict, quotes: dict[str, tuple[float, float]]) -> None:
@@ -214,7 +264,10 @@ def manage(pf: str, led: dict, quotes: dict[str, tuple[float, float]]) -> None:
         move = (px - p["entry"]) / p["entry"] * (1 if p["side"] == "LONG" else -1)
         p["best"] = max(p["best"], px) if p["side"] == "LONG" else min(p["best"], px)
         best_move = (p["best"] - p["entry"]) / p["entry"] * (1 if p["side"] == "LONG" else -1)
-        if move >= TP:
+        tp_px = p["entry"] * (1 + TP) if p["side"] == "LONG" else p["entry"] * (1 - TP)
+        if p.get("exec") == "maker" and ((p["side"] == "LONG" and bid > tp_px) or (p["side"] == "SHORT" and ask < tp_px)):
+            _close(pf, led, key, bid, ask, f"TP maker +{TP * 100:.2f} %", maker_px=tp_px)
+        elif p.get("exec") != "maker" and move >= TP:
             _close(pf, led, key, bid, ask, f"TP +{TP * 100:.2f} %")
         elif move <= -SL:
             _close(pf, led, key, bid, ask, f"SL -{SL * 100:.2f} %")
@@ -238,9 +291,9 @@ def entries(pf: str, led: dict, symbols: list[str], quotes: dict[str, tuple[floa
         led["halted_day"] = day
         log_event("Scalper", pf, "HALT", "", f"stop journalier -{DAY_STOP:.0%} du sleeve atteint", result="plus d'entree aujourd'hui")
         return
-    held = {p["symbol"] for p in led["positions"].values()}
+    held = {p["symbol"] for p in led["positions"].values()} | set(led.get("pending", {}))
     for s in symbols:
-        if len(led["positions"]) >= MAX_OPEN:
+        if len(led["positions"]) + len(led.get("pending", {})) >= MAX_OPEN:
             break
         q = quotes.get(s)
         if s in held or not q or q[0] <= 0:
@@ -253,7 +306,12 @@ def entries(pf: str, led: dict, symbols: list[str], quotes: dict[str, tuple[floa
             continue  # one decision per closed 1-minute candle
         led["last_bar"][s] = b[-1][0]
         side = signal_a(b) if STRATEGY[pf] == "A" else signal_b(s, b)
-        if side:
+        if side and MAKER and pf in MAKER_FEE:
+            led.setdefault("pending", {})[s] = {"side": side, "limit": bid if side == "LONG" else ask,
+                                                "at": time.time(), "strategy": STRATEGY[pf]}
+            _maker_stat(led, "placed")
+            held.add(s)
+        elif side:
             _open(pf, led, s, side, bid, ask, STRATEGY[pf])
             held.add(s)
 
@@ -285,10 +343,11 @@ def tick() -> None:
     new_minute = minute != _last_minute["m"]  # entries once per closed 1-minute candle, exits every tick
     _last_minute["m"] = minute
     syms = crypto_universe()
-    quotes = book(syms + [p["symbol"] for pf in ("crypto_copy", "court_terme")
-                          for p in load(pf)["positions"].values()])
+    quotes = book(syms + [s for pf in ("crypto_copy", "court_terme") for led_ in (load(pf),)
+                          for s in [p["symbol"] for p in led_["positions"].values()] + list(led_.get("pending", {}))])
     for pf in ("crypto_copy", "court_terme"):
         led = load(pf)
+        pending_fills(pf, led, quotes)
         manage(pf, led, quotes)
         if new_minute:
             entries(pf, led, syms, quotes)
@@ -307,7 +366,8 @@ def summary(pf: str) -> dict:
     t = led["trades"]
     return {"cash": round(led["cash"], 2), "start": led["start"], "open": len(led["positions"]), "trades": len(t),
             "gross": round(sum(x["gross"] for x in t), 2), "net": round(sum(x["pnl"] for x in t), 2),
-            "win_rate": round(sum(x["pnl"] > 0 for x in t) / len(t) * 100, 1) if t else 0.0}
+            "win_rate": round(sum(x["pnl"] > 0 for x in t) / len(t) * 100, 1) if t else 0.0,
+            "maker": led.get("maker"), "pending": len(led.get("pending", {}))}
 
 
 _started = False

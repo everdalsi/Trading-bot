@@ -240,7 +240,7 @@ def _approve_entry(portfolio: str, symbol: str, price: float | None, proxy_edge:
     net = edge - cost
     detail = (f"avantage espere {edge * 100:+.2f} % ({edge_src}) - couts {cost * 100:.2f} % ({cost_src}) "
               f"= {net * 100:+.2f} %")
-    extra = {k: v for k, v in context.items() if k in ("size_reduction", "drawdown", "score", "wallet_roi", "chart_malus", "side")}
+    extra = {k: v for k, v in context.items() if k in ("size_reduction", "drawdown", "score", "wallet_roi", "chart_malus", "side", "fill_mode")}
     try:  # agents v2 (Desktop): macro / sentiment / fundamentals RECORDED with each decision, no weight yet
         import macro_analyst, sentiment_analyst
         extra.update({k: v for k, v in macro_analyst.read().items() if v is not None})

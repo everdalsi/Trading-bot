@@ -897,8 +897,10 @@ def _process_symbol(symbol: str, ledger: dict, market_open: bool, send_fn, convi
 
     has_position = symbol in ledger["positions"]
 
+    fill_entry = False
     if action == "HOLD" and not has_position and score >= FILL_MIN_SCORE and ledger.get("_fill_mode"):
         action = "BUY"  # filling toward ~100 % invested with the best candidates below the usual threshold
+        fill_entry = True
     if action == "BUY" and not has_position:
         open_count = len(ledger["positions"])
         if open_count >= max_positions:
@@ -922,12 +924,10 @@ def _process_symbol(symbol: str, ledger: dict, market_open: bool, send_fn, convi
         qty = round(usd_size / last_close, 4)
         if qty <= 0:
             return f"BUY(skip:qty<=0,score={score})"
-        # SeniorExpert (agence step 1). Proxy edge while < 100 closed trades: 0.5 % per score point
-        # above the BUY threshold (decide(): score >= 2).
         # proxy edge while < 100 closed trades: 0.25 % per score step from -1 (score 0 -> 0.25 %, 2 -> 0.75 %).
         # The old 0.5 % x (score - 1) gave 0 at score 1 -> a systematic veto: fill mode could never buy.
         approved, _why = agency.approve_entry("actions_us", symbol, last_close, 0.0025 * max(0, score + 1),
-                                              {"score": score, "size_reduction": reduction, "side": "LONG"})
+                                              {"score": score, "size_reduction": reduction, "side": "LONG", "fill_mode": fill_entry})
         if not approved:
             return f"BUY(veto:senior_expert,score={score})"
         order = alpaca_broker.submit_market_order(symbol, "buy", qty)
@@ -940,13 +940,13 @@ def _process_symbol(symbol: str, ledger: dict, market_open: bool, send_fn, convi
             "entry_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "order_id": order.get("id"), "score_at_entry": score,
             "risk_pct_at_entry": risk.get("risk_pct"),
-            "corr_reduction": reduction,
+            "corr_reduction": reduction, "fill_mode": fill_entry,
         }
         risk_line = f" | risque social/news: {risk['risk_pct']}%" + (f" ({risk['top_headline'][:60]})" if risk.get("top_headline") else "")
         corr_line = f" | taille reduite de {reduction:.0%} (correlee a une position ouverte)" if reduction else ""
         _safe_send(send_fn, f"[ALPACA-STOCKS] BUY {symbol} qty={qty} ~${entry_price:.2f} (${cost:.0f}, score={score}){corr_line}{risk_line} | cash restant ${ledger['virtual_cash']:.0f}")
         log_event("Executor", "actions_us", "BUY", symbol, f"score {score} (13F + tendance)", score=score,
-                  result="achete", price=entry_price, usd=round(cost, 2))
+                  result="achete", price=entry_price, usd=round(cost, 2), fill_mode=fill_entry)
         return f"BUY(qty={qty})"
 
     elif action == "SELL" and has_position:

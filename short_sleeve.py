@@ -49,6 +49,7 @@ DEX = "https://api.dexscreener.com"
 # best momentum first). Lane M stays observation-only, so lane A gets the whole capital.
 A_SHARE, A_POS_PCT, A_MAX_POS = 1.0, 0.05, 20
 A_TOP_N, A_LOOKBACK, A_TRAIL = 50, 14, 0.12
+A_HYST = float(os.environ.get("SHORT_A_HYST", 0.01))  # regime switch only 1 % beyond BTC's MA50
 A_COST = 0.0010 + 0.0020          # fee + slippage, each side
 A_MIN_AGE_DAYS = 90
 STABLES = {"USDT", "USDC", "FDUSD", "TUSD", "BUSD", "DAI", "USDP", "USDD", "PYUSD", "EUR", "TRY", "BRL",
@@ -224,7 +225,25 @@ def lane_a_targets() -> tuple[list[str], bool, dict[str, float]]:
 
 def lane_a_rotate(ledger: dict, can_open: bool, send_fn) -> None:
     longs, btc_ok, r14 = lane_a_targets()
-    side = "LONG" if btc_ok else "SHORT"  # direction set by the regime, never against it
+    # Direction set by the regime, never against it, with hysteresis: switch side only when BTC closes
+    # more than A_HYST beyond its MA50 (a flip costs ~2 x A_COST on the whole lane).
+    held = {p.get("side", "LONG") for p in ledger["positions"].values() if p["lane"] == "A"}
+    prev = ledger.get("a_side") or (held.pop() if len(held) == 1 else ("LONG" if btc_ok else "SHORT"))
+    side = prev
+    try:
+        import regime
+        st = regime.current()
+        if prev == "LONG" and st["close"] < st["ma50"] * (1 - A_HYST):
+            side = "SHORT"
+        elif prev == "SHORT" and st["close"] > st["ma50"] * (1 + A_HYST):
+            side = "LONG"
+    except Exception:
+        side = "LONG" if btc_ok else "SHORT"
+    if side != prev:
+        log_event("RegimeAgent", "court_terme", "SIGNAL", "BTC", f"bascule voie A {prev} -> {side} (MM50 +/-{A_HYST:.0%})",
+                  result=side)
+    ledger["a_side"] = side
+    btc_ok = side == "LONG"
     targets = longs if side == "LONG" else getattr(lane_a_targets, "weak", [])
     log_event("RegimeAgent", "court_terme", "SIGNAL", "BTC", "BTC au-dessus de sa MM50" if btc_ok else "BTC sous sa MM50",
               result="risk_on" if btc_ok else "risk_off")
