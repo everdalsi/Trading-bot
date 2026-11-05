@@ -238,8 +238,21 @@ COPY_CACHE_MAX_AGE_SEC = 7 * 24 * 3600    # 13F is quarterly -- weekly refresh i
 LEDGER_PATH = _DATA_DIR / "alpaca_stocks_ledger.json"
 LEDGER_LOCK = threading.Lock()
 
-USD_PER_TRADE = 500.0          # fixed size per position, small vs $100k paper cash
+USD_PER_TRADE = 500.0          # fixed size per position
 MAX_DECISIONS_KEPT = 500        # cap the decisions log so the ledger file doesn't grow forever
+
+# VIRTUAL PORTFOLIO (added 2026-11-04, per explicit user instruction: a
+# real $1,000 starting bankroll, mirroring the crypto HL-copy sleeve's own
+# isolated "cash" ledger field, tracked and reported SEPARATELY from the
+# real Alpaca account balance. Alpaca's own paper account can't be reset
+# to a custom figure via its API -- only to its default $100k -- so real
+# orders still execute against that real (much larger) account, but
+# position-sizing and every "how much do we have" report use this
+# self-tracked virtual_cash instead, exactly the way the crypto ledger's
+# "cash" already works. USD_PER_TRADE=$500 means at most ~2 positions can
+# ever be funded out of $1,000 -- a real, known consequence of keeping
+# USD_PER_TRADE unchanged rather than something hidden.
+VIRTUAL_STARTING_CASH = 1000.0
 
 _alpaca_stocks_running = False
 
@@ -460,7 +473,8 @@ def get_dynamic_universe(send_fn=None) -> dict:
 # Ledger (own JSON file, separate from crypto sim_portfolio_v7.json)
 # ---------------------------------------------------------------------- #
 def _default_ledger() -> dict:
-    return {"positions": {}, "decisions": [], "closed_trades": [], "last_run": None}
+    return {"positions": {}, "decisions": [], "closed_trades": [], "last_run": None,
+            "virtual_cash": VIRTUAL_STARTING_CASH}
 
 
 def load_ledger() -> dict:
@@ -586,11 +600,23 @@ def _alpaca_stocks_worker_body(send_fn) -> None:
         _safe_send(send_fn, f"[ALPACA-STOCKS] Conviction overlay unavailable this cycle (non-blocking): {type(e).__name__}: {e}")
         conviction_bonuses = {s: {"bonus": 0, "13f_direction": 0, "congress_direction": 0} for s in effective_universe}
 
+    # Portfolio-level circuit breaker (added 2026-11-04) -- checked once per
+    # cycle against the virtual $1,000 bankroll, not the real (much larger)
+    # Alpaca balance. Blocks new BUYs only this cycle; SELLs (closing a
+    # position) are never blocked -- see check_drawdown_guard's docstring.
+    virtual_equity = ledger.get("virtual_cash", VIRTUAL_STARTING_CASH) + sum(
+        p.get("qty", 0) * p.get("entry_price", 0) for p in ledger["positions"].values()
+    )
+    dd = check_drawdown_guard(ledger, virtual_equity)
+    trading_blocked = dd["blocked"]
+    if trading_blocked:
+        logger.info(f"[ALPACA-STOCKS] Circuit breaker actif: {dd['reason']}")
+
     max_positions = len(effective_universe)
     cycle_summary = []
     for symbol in effective_universe:
         try:
-            result = _process_symbol(symbol, ledger, market_open, send_fn, conviction_bonuses.get(symbol, {"bonus": 0}), max_positions)
+            result = _process_symbol(symbol, ledger, market_open, send_fn, conviction_bonuses.get(symbol, {"bonus": 0}), max_positions, trading_blocked)
             cycle_summary.append(f"{symbol}={result}")
         except Exception as e:
             _safe_send(send_fn, f"[ALPACA-STOCKS] {symbol} error (isolated, skipped): {type(e).__name__}: {e}")
@@ -610,6 +636,151 @@ def _alpaca_stocks_worker_body(send_fn) -> None:
     )
 
 
+# ---------------------------------------------------------------------- #
+# Portfolio-level risk guards (added 2026-11-04, per explicit user
+# instruction after reviewing agents/drawdown_guard_agent.py and
+# agents/correlation_watcher_agent.py for reuse). Deliberately NOT
+# importing those agents directly -- this module's whole design is
+# self-contained/no-bot.py-coupling (see module docstring), and
+# agents.base_agent pulls in a ChromaDB-backed KnowledgeBase, a much
+# heavier dependency than this sleeve otherwise needs. These are
+# lightweight, standalone equivalents of the same two ideas instead:
+#   - Drawdown guard: persisted in the ledger (ledger["risk_state"]), NOT
+#     in-memory like the crypto side's agent instance -- this actually
+#     makes it MORE robust than the crypto version, since it survives a
+#     container recreate instead of losing its loss-streak memory.
+#   - Correlation watcher: Pearson correlation on the same closes data
+#     already fetched per symbol (alpaca_broker.get_recent_closes), no
+#     extra network calls beyond what each cycle already makes.
+# Both are informational/sizing-only except the drawdown guard's full
+# stop, which blocks NEW buys only -- never blocks a SELL (closing a
+# position is risk-reducing, never something to veto).
+# ---------------------------------------------------------------------- #
+MAX_DAILY_DD_PCT = 0.12     # -12%/day = block new buys for the rest of the day
+MAX_OVERALL_DD_PCT = 0.20   # -20% from peak = block new buys for 12h
+CORR_HIGH_THRESHOLD = 0.80
+CORR_VERY_HIGH = 0.90
+REDUCTION_HIGH = 0.40
+REDUCTION_VERY_HIGH = 0.65
+
+
+def _default_risk_state() -> dict:
+    return {"consecutive_losses": 0, "pause_until": None, "peak_equity": 0.0,
+            "daily_start_equity": 0.0, "daily_start_date": None}
+
+
+def check_drawdown_guard(ledger: dict, equity: float) -> dict:
+    """Portfolio-level circuit breaker. Returns {"blocked": bool, "reason":
+    str|None}. Never raises -- any error degrades to not-blocked (fail-open,
+    same contract as every other overlay in this file) since a guard that
+    can silently disable itself is safer than one that can silently freeze
+    all trading forever on an unrelated bug."""
+    try:
+        state = ledger.setdefault("risk_state", _default_risk_state())
+        today = datetime.now().strftime("%Y-%m-%d")
+        if state.get("daily_start_date") != today:
+            state["daily_start_equity"] = equity
+            state["daily_start_date"] = today
+        if equity > state.get("peak_equity", 0):
+            state["peak_equity"] = equity
+
+        now = time.time()
+        if state.get("pause_until") and now < state["pause_until"]:
+            remaining = int((state["pause_until"] - now) / 60)
+            return {"blocked": True, "reason": f"pause active ({remaining}min restantes)"}
+        state["pause_until"] = None  # auto-resume once the pause has elapsed
+
+        daily_start = state.get("daily_start_equity") or equity
+        peak = state.get("peak_equity") or equity
+        dd_daily = (equity - daily_start) / daily_start if daily_start else 0.0
+        dd_overall = (equity - peak) / peak if peak else 0.0
+
+        if dd_daily <= -MAX_DAILY_DD_PCT:
+            state["pause_until"] = now + 4 * 3600
+            return {"blocked": True, "reason": f"drawdown journalier {dd_daily:.1%}"}
+        if dd_overall <= -MAX_OVERALL_DD_PCT:
+            state["pause_until"] = now + 12 * 3600
+            return {"blocked": True, "reason": f"drawdown total {dd_overall:.1%}"}
+
+        losses = state.get("consecutive_losses", 0)
+        if losses >= 8:
+            state["pause_until"] = now + 24 * 3600
+            return {"blocked": True, "reason": f"{losses} pertes consecutives"}
+        if losses >= 5:
+            state["pause_until"] = now + 3600
+            return {"blocked": True, "reason": f"{losses} pertes consecutives"}
+        if losses >= 3:
+            state["pause_until"] = now + 900
+            return {"blocked": True, "reason": f"{losses} pertes consecutives"}
+        return {"blocked": False, "reason": None}
+    except Exception:
+        return {"blocked": False, "reason": None}
+
+
+def _record_trade_outcome(ledger: dict, pnl: Optional[float]) -> None:
+    """Updates the consecutive-loss streak after a position closes. Never
+    raises -- a bookkeeping failure here must never block/break the sleeve."""
+    try:
+        state = ledger.setdefault("risk_state", _default_risk_state())
+        if pnl is None:
+            return
+        if pnl > 0:
+            state["consecutive_losses"] = max(0, state.get("consecutive_losses", 0) - 1)
+        elif pnl < 0:
+            state["consecutive_losses"] = state.get("consecutive_losses", 0) + 1
+    except Exception:
+        pass
+
+
+def _returns_from_closes(closes: list) -> list:
+    if not closes or len(closes) < 6:
+        return []
+    return [(closes[i] - closes[i - 1]) / closes[i - 1] for i in range(1, len(closes)) if closes[i - 1]]
+
+
+def _pearson(x: list, y: list) -> float:
+    n = min(len(x), len(y))
+    if n < 5:
+        return 0.0
+    x, y = x[:n], y[:n]
+    mean_x, mean_y = sum(x) / n, sum(y) / n
+    num = sum((xi - mean_x) * (yi - mean_y) for xi, yi in zip(x, y))
+    den_x = sum((xi - mean_x) ** 2 for xi in x) ** 0.5
+    den_y = sum((yi - mean_y) ** 2 for yi in y) ** 0.5
+    return (num / (den_x * den_y)) if den_x * den_y else 0.0
+
+
+def compute_correlation_reduction(symbol: str, closes: list, open_positions: dict) -> float:
+    """Returns a size-reduction fraction in [0, 0.65] -- 0 means "no
+    reduction needed". Fails open to 0.0 (no reduction) on any error,
+    never raises, never blocks a BUY entirely (same "label the risk,
+    don't gate on it" principle the social/news risk check already uses)."""
+    try:
+        if not open_positions:
+            return 0.0
+        new_returns = _returns_from_closes(closes)
+        if not new_returns:
+            return 0.0
+        corrs = []
+        for other_symbol in open_positions:
+            if other_symbol == symbol:
+                continue
+            other_closes = alpaca_broker.get_recent_closes(other_symbol)
+            other_returns = _returns_from_closes(other_closes)
+            if other_returns:
+                corrs.append(_pearson(new_returns, other_returns))
+        if not corrs:
+            return 0.0
+        max_corr = max(corrs)
+        if max_corr >= CORR_VERY_HIGH:
+            return REDUCTION_VERY_HIGH
+        if max_corr >= CORR_HIGH_THRESHOLD:
+            return REDUCTION_HIGH
+        return 0.0
+    except Exception:
+        return 0.0
+
+
 def _compute_entry_risk(symbol: str) -> dict:
     """Non-blocking social/news risk check before a BUY actually fires
     (added 2026-11-04, per explicit user instruction: label the risk,
@@ -627,7 +798,7 @@ def _compute_entry_risk(symbol: str) -> dict:
         return {"risk_pct": 50, "top_headline": None}
 
 
-def _process_symbol(symbol: str, ledger: dict, market_open: bool, send_fn, conviction: Optional[dict] = None, max_positions: int = len(UNIVERSE)) -> str:
+def _process_symbol(symbol: str, ledger: dict, market_open: bool, send_fn, conviction: Optional[dict] = None, max_positions: int = len(UNIVERSE), trading_blocked: bool = False) -> str:
     """Returns a short status string (e.g. "HOLD score=1", "BUY", "SELL",
     "BUY(skip:market_closed)") describing what happened for this symbol this
     cycle -- used only to build the cycle heartbeat log line in
@@ -660,25 +831,38 @@ def _process_symbol(symbol: str, ledger: dict, market_open: bool, send_fn, convi
         open_count = len(ledger["positions"])
         if open_count >= max_positions:
             return f"BUY(skip:max_positions,score={score})"
+        if trading_blocked:
+            return f"BUY(skip:circuit_breaker,score={score})"
         if not market_open:
             return f"BUY(skip:market_closed,score={score})"  # scored + logged above; no order while market is closed
         last_close = detail.get("last_close") or (closes[-1] if closes else None)
         if not last_close or last_close <= 0:
             return f"BUY(skip:no_price,score={score})"
-        qty = round(USD_PER_TRADE / last_close, 4)
+        # Virtual bankroll: the real Alpaca paper account holds ~$100k, but this
+        # sleeve only ever spends what its own virtual_cash allows.
+        virtual_cash = float(ledger.get("virtual_cash", VIRTUAL_STARTING_CASH))
+        if virtual_cash < USD_PER_TRADE:
+            return f"BUY(skip:cash_insuffisant ${virtual_cash:.0f},score={score})"
+        reduction = compute_correlation_reduction(symbol, closes, ledger["positions"])
+        usd_size = USD_PER_TRADE * (1 - reduction)
+        qty = round(usd_size / last_close, 4)
         if qty <= 0:
             return f"BUY(skip:qty<=0,score={score})"
         order = alpaca_broker.submit_market_order(symbol, "buy", qty)
         entry_price = order.get("filled_avg_price") or last_close
+        cost = round(qty * entry_price, 2)
+        ledger["virtual_cash"] = round(virtual_cash - cost, 2)
         risk = _compute_entry_risk(symbol)
         ledger["positions"][symbol] = {
-            "qty": qty, "entry_price": entry_price,
+            "qty": qty, "entry_price": entry_price, "cost": cost,
             "entry_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "order_id": order.get("id"), "score_at_entry": score,
             "risk_pct_at_entry": risk.get("risk_pct"),
+            "corr_reduction": reduction,
         }
         risk_line = f" | risque social/news: {risk['risk_pct']}%" + (f" ({risk['top_headline'][:60]})" if risk.get("top_headline") else "")
-        _safe_send(send_fn, f"[ALPACA-STOCKS] BUY {symbol} qty={qty} ~${entry_price:.2f} (score={score}){risk_line}")
+        corr_line = f" | taille reduite de {reduction:.0%} (correlee a une position ouverte)" if reduction else ""
+        _safe_send(send_fn, f"[ALPACA-STOCKS] BUY {symbol} qty={qty} ~${entry_price:.2f} (${cost:.0f}, score={score}){corr_line}{risk_line} | cash restant ${ledger['virtual_cash']:.0f}")
         return f"BUY(qty={qty})"
 
     elif action == "SELL" and has_position:
@@ -696,7 +880,10 @@ def _process_symbol(symbol: str, ledger: dict, market_open: bool, send_fn, convi
             "exit_order_id": order.get("id"),
         })
         del ledger["positions"][symbol]
-        _safe_send(send_fn, f"[ALPACA-STOCKS] SELL {symbol} qty={pos['qty']} pnl=${pnl} (score={score})")
+        cost = pos.get("cost") or round(pos["qty"] * (pos.get("entry_price") or 0), 2)
+        ledger["virtual_cash"] = round(float(ledger.get("virtual_cash", VIRTUAL_STARTING_CASH)) + cost + (pnl or 0), 2)
+        _record_trade_outcome(ledger, pnl)
+        _safe_send(send_fn, f"[ALPACA-STOCKS] SELL {symbol} qty={pos['qty']} pnl=${pnl} (score={score}) | cash ${ledger['virtual_cash']:.0f}")
         return f"SELL(pnl={pnl})"
 
     return f"{action}(score={score},has_position={has_position})"
@@ -712,8 +899,16 @@ def get_alpaca_stocks_summary() -> dict:
         account = alpaca_broker.get_account_balance()
     except Exception:
         account = {}
+    invested = round(sum(p.get("cost") or p.get("qty", 0) * p.get("entry_price", 0)
+                         for p in ledger["positions"].values()), 2)
+    virtual_cash = round(float(ledger.get("virtual_cash", VIRTUAL_STARTING_CASH)), 2)
     return {
         "account": account,
+        "virtual_cash": virtual_cash,
+        "invested": invested,
+        "total": round(virtual_cash + invested, 2),
+        "starting_cash": VIRTUAL_STARTING_CASH,
+        "realized_pnl": round(sum(t.get("pnl") or 0 for t in ledger["closed_trades"]), 2),
         "open_positions": ledger["positions"],
         "decisions_logged": len(ledger["decisions"]),
         "closed_trades": len(ledger["closed_trades"]),

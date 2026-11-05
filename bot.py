@@ -17,6 +17,8 @@ from memory import Memory
 from agents.orchestrator import Orchestrator
 from agents.quant_ml_agent import QuantMLAgent
 from agents.base_agent import BaseAgent
+from agents.drawdown_guard_agent import DrawdownGuardAgent
+from agents.correlation_watcher_agent import CorrelationWatcherAgent
 try:
     from agents.soul_agent import SoulAgent as _SoulAgent
     _SOUL_AVAILABLE = True
@@ -436,10 +438,25 @@ HL_SLEEVE_HARD_SL_PCT    = float(os.environ.get("HL_SLEEVE_HARD_SL_PCT", 0.15)) 
 # starting cash, own trade-id namespace, same DATA_DIR persistence pattern as
 # the Alpaca sleeve's ledger (survives a container recreate instead of
 # resetting, see that file's 2026-11-04 note for why that matters).
-HL_COPY_STARTING_CASH  = float(os.environ.get("HL_COPY_STARTING_CASH", 5000.0))   # 2026-11-04: raised 1000->5000 alongside the wallet-count/concurrency widening above -- 40 concurrent slots x $25/trade = $1,000 just to ever fill them all once, 5000 leaves real headroom for rotation (positions closing/reopening) instead of being cash-starved most of the time
+HL_COPY_STARTING_CASH  = float(os.environ.get("HL_COPY_STARTING_CASH", 1000.0))   # 2026-11-05: back to 1000 (user request: crypto and US-stocks portfolios both restart at $1,000). Note 40 slots x $25 = $1,000, so no rotation headroom when fully invested.
 HL_COPY_LEDGER_PATH    = Path(os.environ.get("DATA_DIR") or ".") / "hl_copy_ledger.json"
 HL_COPY_LEDGER_LOCK    = threading.Lock()
 HL_COPY_TRADE_ID_BASE  = 90_000_000   # far above the shared sim's own trade ids (currently ~35k) so db_save_trade's "INSERT OR REPLACE" by id can never collide with an unrelated MICRO/legacy trade
+
+# Dedicated DrawdownGuard/CorrelationWatcher instances for THIS portfolio
+# (added 2026-11-04, per explicit user instruction after reviewing existing
+# agents for reuse). Deliberately NOT orchestrator.drawdown_guard/
+# correlation_watcher -- those are the (now-dormant, since
+# CRYPTO_TRADING_ENABLED=0) MICRO sleeve's instances, carrying whatever
+# internal state (consecutive-loss count, peak equity) they last had from
+# MICRO. Reusing them here would mix an unrelated portfolio's risk history
+# into this one -- same "genuinely separate portfolios" principle as the
+# isolated ledger. NOTE: unlike the ledger, this state is in-memory only
+# (these agents don't persist to disk) -- a container recreate resets the
+# loss-streak/peak-equity memory, though the ledger's actual cash/positions
+# (the thing that matters financially) stay correctly persisted regardless.
+_hl_drawdown_guard = DrawdownGuardAgent()
+_hl_correlation_watcher = CorrelationWatcherAgent()
 HL_COIN_TO_BINANCE = {
     "BTC": "BTCUSDT", "ETH": "ETHUSDT", "SOL": "SOLUSDT", "BNB": "BNBUSDT",
     "XRP": "XRPUSDT", "DOGE": "DOGEUSDT", "AVAX": "AVAXUSDT", "LINK": "LINKUSDT",
@@ -2766,9 +2783,10 @@ def compute_crypto_risk_pct(symbol: str, side: str) -> dict:
 
 def _open_hl_mirror(symbol: str, price: float, side: str, source_addr: str,
                      source_coin: str, source_month_roi: float, send_fn,
-                     risk: dict = None):
+                     risk: dict = None, size_reduction: float = 0.0):
     ledger = load_hl_copy_ledger()
-    amount = min(HL_SLEEVE_USD_PER_TRADE, ledger["cash"] * 0.9)
+    base_amount = min(HL_SLEEVE_USD_PER_TRADE, ledger["cash"] * 0.9)
+    amount = base_amount * (1.0 - max(0.0, min(1.0, size_reduction)))
     qty = amount / price
     ledger["cash"] -= amount
     risk = risk or {"risk_pct": 50, "top_headline": None}
@@ -2783,7 +2801,7 @@ def _open_hl_mirror(symbol: str, price: float, side: str, source_addr: str,
         "patterns": [f"hl_source={source_addr}", f"hl_coin={source_coin}"],
         "leverage": 1, "peak_price": price, "open_time": time.time(),
         "hl_source_addr": source_addr, "hl_source_coin": source_coin,
-        "risk_pct_at_entry": risk.get("risk_pct"),
+        "risk_pct_at_entry": risk.get("risk_pct"), "size_reduction_at_entry": size_reduction,
     }
     pos_key = f"HLCOPY_{symbol}_{trade['id']}"
     ledger["trades"].append(trade)
@@ -2792,7 +2810,8 @@ def _open_hl_mirror(symbol: str, price: float, side: str, source_addr: str,
     db_save_trade(trade)
     coin_label = symbol.replace("USDT", "")
     risk_line = f"\n⚠️ Risque social/news estimé : {risk['risk_pct']}%" + (f" ({risk['top_headline'][:60]})" if risk.get("top_headline") else "")
-    send_fn(f"🐋 HL-Copy OPEN {side} {coin_label} @ ${price:.4f} (wallet {source_addr[:8]}..., ROI mois {source_month_roi*100:.1f}%){risk_line}")
+    corr_line = f" | 🔗 taille réduite -{int(size_reduction*100)}% (corrélation portefeuille)" if size_reduction > 0 else ""
+    send_fn(f"🐋 HL-Copy OPEN {side} {coin_label} @ ${price:.4f} (wallet {source_addr[:8]}..., ROI mois {source_month_roi*100:.1f}%){corr_line}{risk_line}")
 
 def _close_hl_mirror(pos_key: str, price: float, reason: str, send_fn):
     ledger = load_hl_copy_ledger()
@@ -2822,6 +2841,10 @@ def _close_hl_mirror(pos_key: str, price: float, reason: str, send_fn):
         learn_from_trade(trade, send_fn=None)
     del ledger["positions"][pos_key]
     save_hl_copy_ledger(ledger)
+    try:
+        _hl_drawdown_guard.record_trade_result(won=pnl > 0, pnl_usd=pnl, symbol=pos["symbol"], current_equity=ledger["cash"])
+    except Exception as e:
+        logger.debug(f"[HL-COPY] drawdown_guard record error (non-blocking): {e}")
     coin_label = pos["symbol"].replace("USDT", "")
     send_fn(f"{'✅' if pnl > 0 else '❌'} HL-Copy {coin_label}: ${pnl:+.4f} | {reason}")
 
@@ -2875,8 +2898,13 @@ def get_hl_copy_summary() -> dict:
     ledger = load_hl_copy_ledger()
     closed = [t for t in ledger["trades"] if t.get("pnl") is not None]
     wr = round(len([t for t in closed if t["pnl"] > 0]) / len(closed) * 100, 1) if closed else 0.0
+    invested = round(sum(p.get("amount_usd", 0) for p in ledger["positions"].values()), 2)
     return {
         "cash": ledger["cash"],
+        "invested": invested,
+        "total": round(ledger["cash"] + invested, 2),
+        "starting_cash": HL_COPY_STARTING_CASH,
+        "realized_pnl": round(sum(t["pnl"] for t in closed), 2),
         "open_positions": ledger["positions"],
         "trades_logged": len(ledger["trades"]),
         "closed_trades": len(closed),
@@ -2915,6 +2943,29 @@ def _hl_copytrade_worker_body(send_fn):
     if not ledger["wallets"]:
         return
 
+    # Portfolio-level circuit breaker (added 2026-11-04) -- checked once per
+    # cycle, not per-wallet: a daily/overall drawdown breach or a losing
+    # streak should block ALL new opens this cycle, not just the one being
+    # evaluated when the threshold was crossed. Never blocks closes/monitoring
+    # (monitor_hl_copytrade_risk runs independently) -- only new mirrors.
+    equity = ledger["cash"] + sum(p.get("amount_usd", 0) for p in ledger["positions"].values())
+    today = datetime.now().strftime("%Y-%m-%d")
+    if ledger.get("daily_start_date") != today:
+        ledger["daily_start_equity"] = equity
+        ledger["daily_start_date"] = today
+    trading_blocked = False
+    try:
+        guard_resp = asyncio.run(_hl_drawdown_guard.respond("drawdown check", {
+            "equity": equity,
+            "daily_start_equity": ledger.get("daily_start_equity", equity),
+            "initial_equity": HL_COPY_STARTING_CASH,
+        }))
+        trading_blocked = bool(guard_resp.get("veto"))
+        if trading_blocked and guard_resp.get("telegram_alert"):
+            send_fn(f"🛑 HL-Copy circuit breaker: {guard_resp.get('summary', 'pause active')}")
+    except Exception as e:
+        logger.debug(f"[HL-COPY] drawdown_guard check unavailable (non-blocking): {type(e).__name__}: {e}")
+
     prices = get_prices_batch()
 
     for w in ledger["wallets"]:
@@ -2939,6 +2990,8 @@ def _hl_copytrade_worker_body(send_fn):
         for coin, pos in live_positions.items():
             if coin in last_seen:
                 continue
+            if trading_blocked:
+                continue  # circuit breaker active this cycle -- see check above, never gates closes/monitoring, only new opens
             symbol = HL_COIN_TO_BINANCE.get(coin)
             if not symbol or symbol in MANUAL_SYMBOL_BLACKLIST:
                 continue
@@ -2950,8 +3003,16 @@ def _hl_copytrade_worker_body(send_fn):
             price = prices.get(symbol) or get_current_price(symbol)
             if not price or ledger["cash"] < HL_SLEEVE_USD_PER_TRADE:
                 continue
+            size_reduction = 0.0
+            try:
+                corr_resp = asyncio.run(_hl_correlation_watcher.respond("correlation check", {
+                    "symbol": symbol, "open_positions_detail": open_hl_positions,
+                }))
+                size_reduction = float(corr_resp.get("size_reduction", 0.0))
+            except Exception as e:
+                logger.debug(f"[HL-COPY] correlation_watcher unavailable (non-blocking): {type(e).__name__}: {e}")
             risk = compute_crypto_risk_pct(symbol, pos["side"])  # informational only -- never gates the mirror, see docstring
-            _open_hl_mirror(symbol, price, pos["side"], addr, coin, w["month_roi"], send_fn, risk=risk)
+            _open_hl_mirror(symbol, price, pos["side"], addr, coin, w["month_roi"], send_fn, risk=risk, size_reduction=size_reduction)
             ledger = load_hl_copy_ledger()  # _open_hl_mirror just saved a newer version -- reload for the same reason as above
 
         ledger["wallet_positions"][addr] = live_positions
@@ -4679,8 +4740,9 @@ def generate_telegram_status_stocks() -> str:
     try:
         summary = get_alpaca_stocks_summary()
         account = summary.get("account", {}) or {}
-        equity = account.get("portfolio_value") or account.get("equity") or 0
-        cash = account.get("cash", 0)
+        v_cash = summary.get("virtual_cash", 0)
+        v_invested = summary.get("invested", 0)
+        v_total = summary.get("total", v_cash + v_invested)
         open_pos = summary.get("open_positions", {}) or {}
         try:
             market_open = _alpaca_broker_for_status.is_market_open() if _alpaca_broker_for_status else None
@@ -4691,9 +4753,10 @@ def generate_telegram_status_stocks() -> str:
         stocks_block = (
             f"📊 ACTIONS US (copie 13F, 7 investisseurs)\n"
             f"🏛 Marché NYSE : {market_label}\n"
-            f"💰 Portefeuille paper : ${equity:,.2f} (cash ${cash:,.2f})\n"
-            f"📍 Positions : {pos_label}\n"
-            f"📜 Décisions loggées : {summary.get('decisions_logged', 0)}"
+            f"💰 Total : ${v_total:,.2f} (départ ${summary.get('starting_cash', 1000):,.0f})\n"
+            f"📈 En trade : ${v_invested:,.2f} | 💵 Cash libre : ${v_cash:,.2f}\n"
+            f"📍 Positions ({len(open_pos)}) : {pos_label}\n"
+            f"✅ PnL réalisé : ${summary.get('realized_pnl', 0):+,.2f} ({summary.get('closed_trades', 0)} clôturés)"
         )
     except Exception as e:
         stocks_block = f"📊 ACTIONS US — statut indisponible ({type(e).__name__})"
@@ -4705,8 +4768,10 @@ def generate_telegram_status_stocks() -> str:
         hl_status = "🟢 actif" if HL_COPYTRADE_ENABLED else "⏸ désactivé"
         crypto_block = (
             f"🐋 CRYPTO (copie {HL_TOP_N_WALLETS} meilleurs wallets Hyperliquid, {hl_status})\n"
-            f"💰 Portefeuille paper : ${hl_summary.get('cash', 0):,.2f}\n"
-            f"📍 Positions : {hl_pos_label}\n"
+            f"💰 Total : ${hl_summary.get('total', 0):,.2f} (départ ${hl_summary.get('starting_cash', 1000):,.0f})\n"
+            f"📈 En trade : ${hl_summary.get('invested', 0):,.2f} | 💵 Cash libre : ${hl_summary.get('cash', 0):,.2f}\n"
+            f"📍 Positions ({len(hl_pos)}) : {hl_pos_label}\n"
+            f"✅ PnL réalisé : ${hl_summary.get('realized_pnl', 0):+,.2f}\n"
             f"👛 Wallets suivis : {hl_summary.get('followed_wallets', 0)} | WR : {hl_summary.get('win_rate', 0)}% ({hl_summary.get('closed_trades', 0)} clôturés)"
         )
     except Exception as e:
