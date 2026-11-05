@@ -84,6 +84,11 @@ def closed_trades() -> list[dict]:
                     "pnl_pct": float(t["pnl"]) / cost * 100 if cost else 0.0, "wallet": "",
                     "exit": t.get("exit_reason", "signal"), "type": t.get("trade_type", "NORMAL"),
                     "opened": _open_ts(t), "closed": _ts(t)})
+    for pf in ("crypto_copy", "court_terme", "actions_us"):  # scalping sleeves, judged apart (type SCALP)
+        for t in _json(DATA_DIR / f"scalp_{pf}.json").get("trades", []):
+            out.append({"portfolio": pf, "symbol": t.get("symbol"), "side": t.get("side"), "pnl": float(t.get("pnl") or 0),
+                        "pnl_pct": float(t.get("pnl_pct") or 0), "wallet": "", "exit": t.get("reason", ""),
+                        "type": "SCALP", "opened": float(t.get("opened") or 0), "closed": float(t.get("closed") or 0)})
     sh = _json(DATA_DIR / "meme_sim.json")
     for t in sh.get("trades", []):
         out.append({"portfolio": "court_terme", "symbol": t.get("symbol"), "side": t.get("side", "LONG"),

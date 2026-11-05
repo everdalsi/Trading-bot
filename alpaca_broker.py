@@ -100,9 +100,9 @@ def get_recent_closes(symbol: str, lookback_days: int = 90) -> list:
 
 def get_recent_bars(symbol: str, timeframe: str = "1d", lookback_days: int = 200) -> list:
     """OHLCV bars, oldest first, as (open_time_ms, open, high, low, close, volume) tuples.
-    timeframe "15m" or "1d". Same explicit start/end window as get_recent_closes (see its note)."""
+    timeframe "1m", "15m" or "1d". Same explicit start/end window as get_recent_closes (see its note)."""
     from alpaca.data.timeframe import TimeFrameUnit
-    tf = TimeFrame(15, TimeFrameUnit.Minute) if timeframe == "15m" else TimeFrame.Day
+    tf = {"1m": TimeFrame(1, TimeFrameUnit.Minute), "15m": TimeFrame(15, TimeFrameUnit.Minute)}.get(timeframe, TimeFrame.Day)
     data_client = StockHistoricalDataClient(ALPACA_API_KEY, ALPACA_SECRET_KEY)
     end = datetime.now(timezone.utc) - timedelta(minutes=20)
     start = end - timedelta(days=lookback_days)
