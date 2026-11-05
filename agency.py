@@ -240,7 +240,9 @@ def _approve_entry(portfolio: str, symbol: str, price: float | None, proxy_edge:
     net = edge - cost
     detail = (f"avantage espere {edge * 100:+.2f} % ({edge_src}) - couts {cost * 100:.2f} % ({cost_src}) "
               f"= {net * 100:+.2f} %")
-    extra = {k: v for k, v in context.items() if k in ("size_reduction", "drawdown", "score", "wallet_roi", "chart_malus", "side", "fill_mode")}
+    extra = {k: v for k, v in context.items() if k in ("size_reduction", "drawdown", "wallet_roi", "chart_malus", "side", "fill_mode")}
+    if "score" in context:  # log_event already has its own score (net edge): the signal score goes apart
+        extra["signal_score"] = context["score"]
     try:  # agents v2 (Desktop): macro / sentiment / fundamentals RECORDED with each decision, no weight yet
         import macro_analyst, sentiment_analyst
         extra.update({k: v for k, v in macro_analyst.read().items() if v is not None})
