@@ -111,22 +111,13 @@ def _rule(exit_reason: str) -> str:
 
 
 def _regimes() -> dict[str, str]:
-    """Market regime per UTC day, recomputed from BTC daily closes with the TradeManager's rule
-    (close < MA50 and MA50 lower than 5 days before = risk_off, else risk_on). Works for trades
-    opened before the RegimeAgent started logging (those all showed "inconnu")."""
+    """Market regime per UTC day from the single RegimeAgent (regime.by_day: risk_on / neutral /
+    risk_off). Works for trades opened before the RegimeAgent started logging."""
     try:
-        import requests
-        k = requests.get("https://api.binance.com/api/v3/klines",
-                         params={"symbol": "BTCUSDT", "interval": "1d", "limit": 400}, timeout=20).json()
+        import regime
+        return regime.by_day()
     except Exception:
         return {}
-    closes = [(datetime.fromtimestamp(x[0] / 1000, timezone.utc).strftime("%Y-%m-%d"), float(x[4])) for x in k]
-    out = {}
-    for i in range(55, len(closes)):
-        c = [v for _, v in closes[:i + 1]]
-        ma, ma_prev = sum(c[-50:]) / 50, sum(c[-55:-5]) / 50
-        out[closes[i][0]] = "risk_off" if c[-1] < ma and ma < ma_prev else "risk_on"
-    return out
 
 
 def _regime_at(ts: float, reg: dict[str, str]) -> str:

@@ -190,7 +190,11 @@ def lane_a_targets() -> tuple[list[str], bool, dict[str, float]]:
     """(top-5 symbols, BTC above MA50, r14 per symbol)."""
     btc = _daily_closes("BTCUSDT")
     btc_r = btc[-1] / btc[-1 - A_LOOKBACK] - 1
-    btc_ok = btc[-1] > sum(btc[-50:]) / 50
+    try:  # single RegimeAgent (regime.py): same rule, close > MA50
+        import regime
+        btc_ok = regime.current()["above_ma50"]
+    except Exception:
+        btc_ok = btc[-1] > sum(btc[-50:]) / 50
     r14 = {}
     for s in universe():
         try:

@@ -66,25 +66,16 @@ def rules() -> dict:
 
 # ---------------------------------------------------------------- inputs from the other agents
 
-_regime = {"at": 0.0, "down": False, "why": ""}
-
-
 def regime_down() -> tuple[bool, str]:
-    """BTC daily close < MA50 and MA50 lower than 5 days ago (cached 1 h)."""
-    if time.time() - _regime["at"] > 3600:
-        try:
-            k = requests.get("https://api.binance.com/api/v3/klines",
-                             params={"symbol": "BTCUSDT", "interval": "1d", "limit": 60}, timeout=15).json()
-            c = [float(x[4]) for x in k[:-1]]
-            ma = sum(c[-50:]) / 50
-            ma_prev = sum(c[-55:-5]) / 50
-            down = c[-1] < ma and ma < ma_prev
-            _regime.update(at=time.time(), down=down,
-                           why=f"BTC {c[-1]:,.0f} {'<' if c[-1] < ma else '>'} MM50 {ma:,.0f}, MM50 {'en baisse' if ma < ma_prev else 'en hausse'}")
-            log_event("RegimeAgent", "marche", "SIGNAL", "BTC", _regime["why"], result="risk_off" if down else "risk_on")
-        except Exception:
-            pass
-    return _regime["down"], _regime["why"]
+    """BTC daily close < MA50 and MA50 lower than 5 days ago, from the single RegimeAgent (regime.py)."""
+    try:
+        import regime
+        st = regime.current()
+        why = f"BTC {st['close']:,.0f} {'<' if st['close'] < st['ma50'] else '>'} MM50 {st['ma50']:,.0f}, " \
+              f"MM50 {'en baisse' if st['ma50'] < st['ma50_prev'] else 'en hausse'}"
+        return st["down"], why
+    except Exception:
+        return False, "regime indisponible"
 
 
 def _json(name: str) -> dict:
