@@ -2892,7 +2892,9 @@ def _close_hl_mirror(pos_key: str, price: float, reason: str, send_fn):
             "exit_reason": reason, "duration_min": max(1, int(elapsed / 60)),
         })
         db_save_trade(trade)
-        learn_from_trade(trade, send_fn=None)
+        # 2026-11-05 (inventory + Desktop review): no learn_from_trade() here any more. It credited the
+        # stale outputs of the (disabled) MICRO agents with each HL copy result and skewed their weights.
+        # HL copy trades are judged by professor.py from the ledger instead.
     del ledger["positions"][pos_key]
     save_hl_copy_ledger(ledger)
     try:
