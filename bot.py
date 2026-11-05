@@ -3210,13 +3210,10 @@ def hl_consensus_fill(send_fn):
         if label == "neutral" and ((side == "SHORT" and net < 0 and net <= -HL_FILL_NET_LIMIT)
                                    or (side == "LONG" and net > 0 and net >= HL_FILL_NET_LIMIT)):
             why["expo_nette"] += 1
-            log_event("RiskLimits", "crypto_copy", "SKIP", coin,
-                      f"remplissage {side} : expo nette crypto des 2 portefeuilles deja {net:+.0%}", score=c)
             continue
         ok, why_ = _hl_spread_ok(ledger, symbol, side, HL_CONSENSUS_ADDR)
         if not ok:
             why["repartition"] += 1
-            log_event("RiskLimits", "crypto_copy", "SKIP", coin, f"remplissage : {why_}", score=c)
             continue
         price = get_current_price(symbol)
         if not price:
