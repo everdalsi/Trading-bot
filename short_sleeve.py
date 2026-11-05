@@ -189,6 +189,22 @@ def _daily_closes(symbol: str, n: int = 100) -> list[float]:
     return [float(k[4]) for k in r.json()[:-1]]  # last candle still open: dropped
 
 
+def funding_z(symbol: str) -> float | None:
+    """V6: z-score of the latest perp funding rate vs its last 30 days (90 x 8 h). None if unavailable."""
+    try:
+        rows = requests.get("https://fapi.binance.com/fapi/v1/fundingRate", params={"symbol": symbol, "limit": 90},
+                            timeout=10).json()
+        f = [float(r["fundingRate"]) for r in rows]
+    except Exception:
+        return None
+    if len(f) < 30:
+        return None
+    m = sum(f) / len(f)
+    sd = (sum((x - m) ** 2 for x in f) / len(f)) ** 0.5
+    return (f[-1] - m) / sd if sd > 0 else 0.0
+
+
+FUNDING_Z_MAX = float(os.environ.get("SHORT_A_FUNDING_Z", 2.0))
 _coin_perps = {"at": 0.0, "set": set()}
 
 
@@ -296,6 +312,11 @@ def lane_a_rotate(ledger: dict, can_open: bool, send_fn) -> None:
         if f"A:{s}" in ledger["positions"] or sum(p["lane"] == "A" for p in ledger["positions"].values()) >= A_MAX_POS:
             continue
         usd = min(alloc.get(s, eq * A_POS_PCT), budget_left)
+        z = funding_z(s)  # V6: no entry on the crowded side (longs paying > +2 sigma / shorts < -2 sigma)
+        if z is not None and ((side == "LONG" and z > FUNDING_Z_MAX) or (side == "SHORT" and z < -FUNDING_Z_MAX)):
+            log_event("FundingFilter", "court_terme", "VETO", s, f"{side} : funding a {z:+.1f} sigma (cote encombre)",
+                      score=round(z, 2), result="entree refusee")
+            continue
         try:  # ChartAnalyst: no LONG entry less than 0.5 ATR under a major 4 h resistance (spec C)
             import chart_analyst
             if side == "LONG" and chart_analyst.near_resistance(s, "4h", 0.5):
