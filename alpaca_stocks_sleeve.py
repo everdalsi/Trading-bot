@@ -238,7 +238,7 @@ COPY_CACHE_MAX_AGE_SEC = 7 * 24 * 3600    # 13F is quarterly -- weekly refresh i
 LEDGER_PATH = _DATA_DIR / "alpaca_stocks_ledger.json"
 LEDGER_LOCK = threading.Lock()
 
-USD_PER_TRADE = 500.0          # fixed size per position
+USD_PER_TRADE = 250.0          # fixed size per position (2026-11-05: 500->250 so the $1,000 bankroll can hold 4 positions)
 MAX_DECISIONS_KEPT = 500        # cap the decisions log so the ledger file doesn't grow forever
 
 # VIRTUAL PORTFOLIO (added 2026-11-04, per explicit user instruction: a

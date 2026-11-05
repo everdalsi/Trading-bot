@@ -425,7 +425,7 @@ HL_TOP_N_WALLETS         = int(os.environ.get("HL_TOP_N_WALLETS", 75))   # 2026-
 HL_REFRESH_WALLETS_SEC   = int(os.environ.get("HL_REFRESH_WALLETS_SEC", 21600))    # 6h -- leaderboard payload is ~34MB, don't refetch every cycle
 CYCLE_HL_COPYTRADE        = int(os.environ.get("CYCLE_HL_COPYTRADE", 300))          # poll followed wallets' positions every 5min
 HL_SLEEVE_USD_PER_TRADE  = float(os.environ.get("HL_SLEEVE_USD_PER_TRADE", 25.0))
-HL_SLEEVE_MAX_CONCURRENT = int(os.environ.get("HL_SLEEVE_MAX_CONCURRENT", 40))   # 2026-11-04: raised 10->40 alongside HL_TOP_N_WALLETS -- following 75 wallets but still capping at 10 concurrent positions would silently skip most signals, defeating the point of widening coverage
+HL_SLEEVE_MAX_CONCURRENT = int(os.environ.get("HL_SLEEVE_MAX_CONCURRENT", 20))   # 2026-11-05: 40->20 (user request) so the $1,000 bankroll keeps rotation headroom (20 x $25 = $500). Earlier: 2026-11-04: raised 10->40 alongside HL_TOP_N_WALLETS -- following 75 wallets but still capping at 10 concurrent positions would silently skip most signals, defeating the point of widening coverage
 HL_SLEEVE_HARD_SL_PCT    = float(os.environ.get("HL_SLEEVE_HARD_SL_PCT", 0.15))    # independent safety net, see note above
 
 # CRYPTO COPY SLEEVE -- SEPARATE PORTFOLIO (added 2026-11-04, per explicit user
