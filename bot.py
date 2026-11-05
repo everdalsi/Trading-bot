@@ -5,6 +5,7 @@ from agent_events import log_event  # decision journal (agent_events.jsonl), nev
 import agency  # step 1 'agence': CostAnalyst, SeniorExpert, DataGuard, Watchdog
 import chart_analyst  # candle analysis for held symbols (chart_analysis.json)
 import macro_analyst, sentiment_analyst, fundamental_analyst, options_analyst  # agents v2 (Desktop), measurement only
+import meme_hunter  # B2: portfolio 3 memecoins, measurement mode (meme_candidates.jsonl)
 import risk_manager  # B1: vol-targeted sizing + portfolio risk snapshot (risk_manager.json)
 import top_traders  # best HL wallets + consensus per coin (top_traders.json)
 import trade_manager  # rules R1-R10 on open positions (never opens)
@@ -5872,6 +5873,7 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     top_traders.start()
     risk_manager.category_fn = _hl_category
     risk_manager.start()
+    meme_hunter.start()
     macro_analyst.start()
     sentiment_analyst.start()
     fundamental_analyst.start()
@@ -7611,6 +7613,7 @@ def auto_start():
     top_traders.start()
     risk_manager.category_fn = _hl_category
     risk_manager.start()
+    meme_hunter.start()
     macro_analyst.start()
     sentiment_analyst.start()
     fundamental_analyst.start()

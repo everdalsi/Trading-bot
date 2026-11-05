@@ -146,6 +146,32 @@ def load() -> dict:
         return {"at": 0, "symbols": {}}
 
 
+def firecrawl_flags() -> list[tuple[str, dict]]:
+    """Items of DATA_DIR/firecrawl_news.json (pushed from the PC every 30 min; written by Desktop's
+    Firecrawl watch, levels already judged). Ignored when the file is older than 4 h."""
+    try:
+        d = json.loads((DATA_DIR / "firecrawl_news.json").read_text(encoding="utf-8"))
+        from datetime import datetime
+        if time.time() - datetime.fromisoformat(d["at"].replace("Z", "+00:00")).timestamp() > 4 * 3600:
+            return []
+    except Exception:
+        return []
+    out = []
+    for it in d.get("items", []):
+        lvl, sym = it.get("level"), (it.get("symbol") or "").upper()
+        if lvl not in ("positif_fort", "negatif_fort", "ambigu") or not sym:
+            continue
+        sym = sym if sym.endswith("USDT") else sym + "USDT"
+        try:
+            at = datetime.fromisoformat(it["published"].replace("Z", "+00:00")).timestamp()
+        except Exception:
+            at = time.time()
+        key = it.get("url") or it.get("title", "")
+        out.append((sym, {"at": at, "level": lvl, "title": (it.get("title") or "")[:200], "source": "Firecrawl",
+                          "link": it.get("url", ""), "id": hashlib.md5(key.encode()).hexdigest()[:10]}))
+    return out
+
+
 def run(symbols: list[str], held: set[str] | None = None) -> dict:
     held = held or set(symbols)
     old = load().get("symbols", {})
@@ -165,6 +191,15 @@ def run(symbols: list[str], held: set[str] | None = None) -> dict:
             seen.add(key)
             log_event("NewsAgent", "infos", "SIGNAL", s, f"{it['source']} : {it['title'][:160]}",
                       result=level, link=it["link"])
+    for s, flag in firecrawl_flags():  # Desktop's Firecrawl watch, already judged (same R5 / 6 h veto logic)
+        lst = out.setdefault(s, [])
+        if all(f["id"] != flag["id"] for f in lst):
+            lst.append(flag)
+        key = flag["link"] or flag["title"]
+        if flag["level"] != "ambigu" and key not in seen and s in held:
+            seen.add(key)
+            log_event("NewsAgent", "infos", "SIGNAL", s, f"Firecrawl : {flag['title'][:160]}", result=flag["level"],
+                      link=flag["link"])
     data = {"at": time.time(), "symbols": {s: sorted(v, key=lambda f: -f["at"])[:20] for s, v in out.items()}}
     with _LOCK:
         tmp = OUT.with_suffix(".json.tmp")
