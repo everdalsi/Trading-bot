@@ -31,6 +31,7 @@ OUT = DATA_DIR / "top_traders.json"
 LEADERBOARD = "https://stats-data.hyperliquid.xyz/Mainnet/leaderboard"
 INFO = "https://api.hyperliquid.xyz/info"
 MIN_ACCOUNT, CANDIDATES, MIN_TRADES, MAX_DD, TOP_PER_CAT, MIN_HOLDERS = 50_000, 200, 20, 0.60, 50, 5
+MAX_CLOSES_30D, TOP3_MAX_SHARE = 3000, 0.50
 MAJORS = {"BTC", "ETH", "SOL"}
 MEMES = {"kPEPE", "PEPE", "WIF", "kBONK", "BONK", "POPCAT", "kSHIB", "SHIB", "DOGE", "kFLOKI", "FLOKI", "MEW",
          "BRETT", "TURBO", "MOODENG", "GOAT", "PNUT", "FARTCOIN", "TRUMP", "PENGU", "SPX", "kNEIRO", "NEIRO"}
@@ -80,8 +81,25 @@ def regularity(w: dict) -> dict | None:
     dd_pct = dd / max(w["account"], 1.0)
     if dd_pct > MAX_DD:
         return None
+    # V3 (trading-agents-v3.md): luck and market-making filters on the same 30-day fills
+    total = sum(closes)
+    if len(closes) > MAX_CLOSES_30D:  # market-maker / HFT pattern, not copyable
+        return None
+    if total <= 0 or sum(sorted(closes, reverse=True)[:3]) > TOP3_MAX_SHARE * total:
+        return None  # profit made by 3 trades = luck, not skill
+    if len(closes) >= 30 and _bootstrap_p5(closes) <= 0:
+        return None  # mean trade not robustly > 0
     score = min(w["month_roi"], 1.0) * (1 - dd_pct) * min(1.0, len(closes) / 50)
     return {**w, "trades_30d": len(closes), "max_dd": round(dd_pct, 3), "score": round(score, 4)}
+
+
+def _bootstrap_p5(closes: list[float], n: int = 500) -> float:
+    """5th percentile of the mean closed PnL over n bootstrap resamples (seeded: reproducible)."""
+    import random
+    rnd = random.Random(42)
+    k = len(closes)
+    means = sorted(sum(rnd.choice(closes) for _ in range(k)) / k for _ in range(n))
+    return means[int(0.05 * n)]
 
 
 def positions(addr: str) -> dict[str, tuple[str, float]]:
