@@ -139,7 +139,13 @@ function render(st) {
     ["Capital investi", st.total_equity ? Math.round(100 * invested / st.total_equity) + " %" : "—", money(invested, 0) + " en positions"],
     ["Décisions (24 h)", st.n_today ?? 0, `${T.BUY || 0} achats · ${(T.SELL || 0) + (T.CLOSE || 0)} ventes`],
     ["Vetos (24 h)", `<span class="${(T.VETO || 0) ? "warn" : ""}">${T.VETO || 0}</span>`, `${T.APPROVE || 0} trades approuvés`],
-    ["Marchés surveillés", L.pairs ?? "—", "paires USDT Binance + actions US"],
+    (() => {
+      const cp = pos.filter(x => !/actions/i.test(x.book || "")), eqc = st.portfolios.filter(p => p.available && !/actions/i.test(p.label)).reduce((a, p) => a + (p.equity || 0), 0);
+      const lg = cp.filter(x => !x.short).reduce((a, x) => a + (x.usd || 0), 0), sh = cp.filter(x => x.short).reduce((a, x) => a + (x.usd || 0), 0);
+      const net = eqc ? Math.round(100 * (lg - sh) / eqc) : 0;
+      return ["Exposition nette crypto", `<span class="${Math.abs(net) > 80 ? "warn" : ""}">${net > 0 ? "+" : ""}${net} %</span>`,
+              `${money(lg, 0)} à la hausse · ${money(sh, 0)} à la baisse (tous portefeuilles crypto)`];
+    })(),
   ];
   document.getElementById("kpis").innerHTML = kp.map(([a, v, i]) => `<div class="kpi"><span>${a}</span><b>${v}</b><i>${i}</i></div>`).join("");
 
