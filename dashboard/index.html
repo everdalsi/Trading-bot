@@ -164,7 +164,10 @@ function render(st) {
   document.getElementById("books").innerHTML = st.portfolios.map(p => {
     if (!p.available) return `<div class="book"><h3>${esc(p.label)}</h3><div class="empty" style="margin-top:8px">Démarrage en cours (argent fictif)</div></div>`;
     const d = p.equity - p.start;
+    const invPct = p.equity ? Math.round(100 * (p.in_trade || 0) / p.equity) : 0;
     return `<div class="book ${p.halted ? "halt" : ""}"><h3>${esc(p.label)}</h3><div class="eq">${money(p.equity, 0)} <span class="${cls(d)}" style="font-size:13px">${pct(100 * d / p.start)}</span></div>
+      <div style="margin:6px 0 2px;font-size:12px" class="mut">Capital investi <b style="color:var(--text,#e8f0ec)">${invPct} %</b> (objectif 100 %)</div>
+      <div class="meter" style="height:6px"><i style="width:${Math.min(100, invPct)}%"></i></div>
       ${p.halted ? `<div class="down" style="font-size:12px">coupe-circuit : ${esc(p.halted)}</div>` : ""}${spark(p.curve, p.start)}
       <div class="kv"><span>Cash libre</span><b>${money(p.cash, 0)}</b><span>En positions</span><b>${money(p.in_trade, 0)}</b>
       <span>Trades clôturés</span><b>${p.n_trades}</b><span>Réussite</span><b>${p.win_rate == null ? "—" : p.win_rate + " %"}</b>
