@@ -7,6 +7,7 @@ import chart_analyst  # candle analysis for held symbols (chart_analysis.json)
 import trade_manager  # rules R1-R10 on open positions (never opens)
 import short_sleeve  # 3rd paper portfolio 'court terme' (SHORT_SLEEVE_ENABLED)
 import news_agent  # RSS headlines around held symbols (news_flags.json)
+import professor  # self-improvement loop v1: stats, wallet weights, Auditor (professor.json)
 import json, sqlite3, re, hashlib, base64, hmac, secrets
 import pandas as pd
 import numpy as np
@@ -2831,7 +2832,8 @@ def _open_hl_mirror(symbol: str, price: float, side: str, source_addr: str,
                      source_coin: str, source_month_roi: float, send_fn,
                      risk: dict = None, size_reduction: float = 0.0):
     ledger = load_hl_copy_ledger()
-    base_amount = min(_hl_position_size(ledger), ledger["cash"] * 0.99)
+    # Professor: wallet weight 0.5-1.5 from its own net results (1.0 until 20 closed trades)
+    base_amount = min(_hl_position_size(ledger) * professor.wallet_weight(source_addr), ledger["cash"] * 0.99)
     amount = base_amount * (1.0 - max(0.0, min(1.0, size_reduction)))
     qty = amount / price
     ledger["cash"] -= amount
@@ -3135,8 +3137,13 @@ def _hl_copytrade_worker_body(send_fn):
                         _close_hl_mirror(mirror_key, price, "🐋 HL-Copy source closed", send_fn)
                         ledger = load_hl_copy_ledger()  # _close_hl_mirror just saved a newer version -- reload before this loop keeps mutating it
 
+        copy_disabled = professor.wallet_disabled(addr)  # Auditor: negative net expectancy over >= 50 trades
         for coin, pos in live_positions.items():
             if coin in last_seen:
+                continue
+            if copy_disabled:
+                log_event("Auditor", "crypto_copy", "SKIP", coin, "wallet coupe par l'Auditor (esperance nette negative)",
+                          wallet=addr[:10])
                 continue
             if trading_blocked:
                 continue  # circuit breaker active this cycle -- see check above, never gates closes/monitoring, only new opens
@@ -5715,6 +5722,7 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     chart_analyst.start()
     short_sleeve.start(send)
     news_agent.start()
+    professor.start()
     threading.Thread(target=daily_summary, args=(send,), daemon=True).start()
 
 async def cmd_stop(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -7444,6 +7452,7 @@ def auto_start():
     chart_analyst.start()
     short_sleeve.start(send)
     news_agent.start()
+    professor.start()
     threading.Thread(target=daily_summary, args=(send,), daemon=True).start()
 
 def _evolution_loop_MAIN():
