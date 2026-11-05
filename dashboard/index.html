@@ -91,6 +91,8 @@
   <section class="panel s12"><h2><span>Scalping 1-5 min</span><span class="mut">capital à part (200 $ virtuels par sleeve) · résultat brut vs net après frais</span></h2><div class="books" id="scalp"></div></section>
   <section class="panel s7"><h2><span>Apprentissage (Professeur + Auditeur)</span><span id="learnat" class="mut"></span></h2><div id="learn"></div></section>
   <section class="panel s5"><h2><span>Infos fortes (NewsAgent)</span><span id="newsat" class="mut"></span></h2><div class="scroll" id="news"></div></section>
+  <section class="panel s12"><h2><span>Analystes en mode mesure</span><span class="mut">aucun poids dans les décisions tant que leur IC n'a pas prouvé qu'ils prédisent</span></h2><div class="books" id="analysts"></div></section>
+  <section class="panel s12"><h2><span>Les agents prédisent-ils ? (moniteur d'IC)</span><span id="icat" class="mut"></span></h2><div id="ic"></div></section>
   <section class="panel s12"><h2><span>L'équipe de l'agence</span><span class="mut">vert = en service · estompé = étape à venir</span></h2><div class="roster" id="roster"></div></section>
   <section class="panel s6"><h2>Analyste actions US : signaux du dernier cycle</h2><div class="scroll"><table>
     <thead><tr><th>Action</th><th>Décision</th><th class="n">Score</th><th>13F</th><th>Congrès</th><th class="n">5 j</th></tr></thead><tbody id="stocks"></tbody></table></div></section>
@@ -234,6 +236,29 @@ function render(st) {
   document.getElementById("news").innerHTML = (Lr.news || []).map(f => `<div class="ag"><span class="tag ${f.level === "negatif_fort" ? "VETO" : "BUY"}">${f.level === "negatif_fort" ? "négatif" : "positif"}</span> ${chart(f.symbol)}
     <p>${f.link ? `<a href="${esc(f.link)}" target="_blank" rel="noopener">${esc(f.title)}</a>` : esc(f.title)}<br><span class="mut">${esc(f.source)} · il y a ${ago(Date.now() / 1000 - f.at)}</span></p></div>`).join("")
     || '<div class="empty">Aucune info forte sur nos positions dans les dernières 24 h</div>';
+
+  const A = st.analysts || {}, M = A.macro || {}, FG = A.fear_greed || {};
+  const sc = v => v == null ? "—" : `<span class="${cls(v)}">${(v >= 0 ? "+" : "") + Number(v).toFixed(2)}</span>`;
+  const lst = (rows, f) => (rows || []).length ? rows.map(f).join("<br>") : '<span class="mut">en attente des premières données</span>';
+  document.getElementById("analysts").innerHTML = [
+    ["Macro (marché)", `<div class="eq" style="font-size:22px">${sc(M.score)} <span class="mut" style="font-size:13px">${esc(M.label || "")}</span></div>
+      ${M.blackout ? '<div class="down" style="font-size:12px">annonce US forte imminente</div>' : ""}
+      <div class="kv">${Object.entries(M.parts || {}).map(([k, v]) => `<span>${esc(k)}</span><b>${sc(v)}</b>`).join("")}</div>
+      ${M.next_event ? `<p class="mut" style="font-size:12px">prochaine annonce : ${esc(M.next_event.title)} · ${new Date(M.next_event.at).toLocaleString("fr-FR")}</p>` : ""}`],
+    ["Sentiment", `<div class="eq" style="font-size:22px">${FG.value ?? "—"} <span class="mut" style="font-size:13px">Fear & Greed · ${esc(FG.label || "")}</span></div>
+      <div style="font-size:12px;margin-top:6px">${lst((A.sentiment || []).slice(0, 8), r => `${esc(r[0].replace("USDT", ""))} ${sc(r[1])}`)}</div>`],
+    ["Meilleurs traders (consensus)", `<div style="font-size:12px">${lst(A.consensus, r => `${esc(String(r[0]).replace("USDT", ""))} ${sc(r[1])} <span class="mut">${r[1] > 0 ? "majorité acheteuse" : r[1] < 0 ? "majorité vendeuse" : ""}</span>`)}</div>`],
+    ["Fondamentaux actions US", `<div style="font-size:12px">${lst(A.fundamentals, r => `<b>${esc(r[0])}</b> ${sc(r[1])} <span class="mut">CA ${r[2] ?? "—"} % · PER ${r[3] ?? "—"}</span>`)}</div>`],
+  ].map(([t, h]) => `<div class="book"><h3>${t}</h3>${h}</div>`).join("");
+
+  const IC = A.ic || {}, ag = IC.agents || {};
+  document.getElementById("icat").textContent = IC.snapshots ? `${IC.snapshots} instantanés horaires · ${IC.first ? "depuis " + new Date(IC.first * 1000).toLocaleString("fr-FR") : ""}` : "premier instantané dans l'heure";
+  const ks = Object.keys(ag);
+  document.getElementById("ic").innerHTML = ks.length ? `<table><thead><tr><th>Agent</th><th class="n">IC 4 h</th><th class="n">IC 24 h</th><th class="n">Stabilité (ICIR 24 h)</th><th class="n">Mesures</th><th>Verdict</th></tr></thead><tbody>${ks.map(k => {
+      const a = ag[k] || {}, h4 = a["4h"] || {}, h24 = a["24h"] || {};
+      return `<tr><td>${esc(k)}</td><td class="n">${sc(h4.ic)}</td><td class="n">${sc(h24.ic)}</td><td class="n">${h24.icir ?? "—"}</td><td class="n">${h24.n ?? h4.n ?? 0}</td><td>${esc(h24.verdict || h4.verdict || "—")}</td></tr>`;
+    }).join("")}</tbody></table><p class="mut" style="font-size:12px;margin-top:6px">IC = corrélation entre l'avis de l'agent et le mouvement réel du prix ensuite (au-dessus de +0,02 et stable pendant 8 semaines = l'agent mérite un poids).</p>`
+    : '<div class="empty">Les premiers IC apparaissent 4 h après le premier instantané (24 h pour l\'horizon long). Il faut plusieurs semaines pour conclure.</div>';
 
   const lg = document.getElementById("log");
   lg.textContent = (L.log || []).map(l => l.replace(/^\d{4}-\d\d-\d\d /, "").replace(/\[INFO\] root — /, "")).join("\n");

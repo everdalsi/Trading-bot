@@ -44,7 +44,9 @@ KEY = Path.home() / ".ssh" / "id_ed25519_vps_readonly"   # forced-command key: c
 LEDGER_FILES = {"hl_copy": "hl_copy_portfolio.json", "alpaca": "alpaca_stocks_portfolio.json", "short": "meme_sim.json",
                 "hl_prices": "hl_copy_prices.json", "charts": "chart_analysis.json",
                 "scalp_crypto_copy": "scalp_crypto_copy.json", "scalp_court_terme": "scalp_court_terme.json",
-                "scalp_actions_us": "scalp_actions_us.json", "professor": "professor.json", "news_flags": "news_flags.json"}
+                "scalp_actions_us": "scalp_actions_us.json", "professor": "professor.json", "news_flags": "news_flags.json",
+                "macro": "macro.json", "sentiment": "sentiment.json", "fundamentals": "fundamentals.json",
+                "top_traders": "top_traders.json", "polymarket": "polymarket.json"}
 SCALP_NAMES = {"crypto_copy": "Copie crypto (A cassure, frais HL)", "court_terme": "Court terme (B retour moyenne, frais Binance)",
                "actions_us": "Actions US (A, heures de marche)"}
 
@@ -76,8 +78,17 @@ def sync_from_vps() -> None:
 
 
 def _sync_loop() -> None:
+    last_ic = 0.0
     while True:
         sync_from_vps()
+        if time.time() - last_ic >= 3600:  # agents' IC monitor: hourly snapshot + recompute (trading v3, V5)
+            last_ic = time.time()
+            try:
+                import ic_monitor
+                ic_monitor.record()
+                ic_monitor.compute()
+            except Exception as e:
+                print("ic_monitor:", type(e).__name__, str(e)[:120])
         time.sleep(30)
 
 
@@ -328,6 +339,31 @@ def _learning() -> dict:
             "scalp_share": prof.get("scalp_share", {}), "news": flags[:12], "news_at": news.get("at")}
 
 
+def _analysts() -> dict:
+    """Agents v2 (measurement mode) + the IC monitor: what each analyst says now and whether it predicts."""
+    macro = _json(CACHE / "macro.json", {}) or {}
+    sent = _json(CACHE / "sentiment.json", {}) or {}
+    fund = _json(CACHE / "fundamentals.json", {}) or {}
+    tops = _json(CACHE / "top_traders.json", {}) or {}
+    poly = _json(CACHE / "polymarket.json", {}) or {}
+    ic = _json(CACHE / "ic_monitor.json", {}) or {}
+    cons = tops.get("consensus") or {}
+    return {
+        "macro": {"score": macro.get("score"), "label": macro.get("label"), "blackout": macro.get("blackout"),
+                  "next_event": macro.get("next_event"),
+                  "parts": {k: v.get("score") for k, v in (macro.get("components") or {}).items() if isinstance(v, dict)}},
+        "fear_greed": (sent.get("market") or {}),
+        "sentiment": sorted(([s, c.get("score")] for s, c in (sent.get("coins") or {}).items()), key=lambda x: -(x[1] or 0)),
+        "fundamentals": sorted(([t, v.get("score"), v.get("revenue_yoy_pct"), v.get("pe")] for t, v in
+                                (fund.get("tickers") or {}).items()), key=lambda x: -(x[1] or 0))[:12],
+        "consensus": sorted(([s, (v.get("consensus") if isinstance(v, dict) else v)] for s, v in cons.items()),
+                            key=lambda x: -abs(x[1] or 0))[:12],
+        "polymarket": {s: {"sentiment": c.get("sentiment"), "crash_prob": c.get("crash_prob")} for s, c in
+                       (poly.get("coins") or {}).items()},
+        "ic": ic,
+    }
+
+
 def status() -> dict:
     events = _events()
     for e in events:
@@ -345,7 +381,7 @@ def status() -> dict:
     return {"now": time.strftime("%H:%M:%S"), "sync": _json(SYNC_STATE, {}), "portfolios": books,
             "roster": _roster(events), "events": events[:80], "logs": _logs(), "stocks": _stocks(),
             "wallets": _wallets(), "today": counts, "n_today": len(today),
-            "scalp": _scalp(), "learning": _learning(),
+            "scalp": _scalp(), "learning": _learning(), "analysts": _analysts(),
             "last": {f"{k[0]}:{k[1]}": v for k, v in picks.items() if v}, "last_exec": exe,
             "total_equity": round(sum(b.get("equity", 0) for b in books if b.get("available")), 2),
             "total_start": sum(b.get("start", 0) for b in books if b.get("available"))}
