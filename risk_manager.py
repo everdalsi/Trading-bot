@@ -123,6 +123,8 @@ def snapshot() -> dict:
         out["crypto_copy"] = {"equity": round(eq, 2), "invested": round(inv, 2), "positions": len(pos)}
         buckets = {}
         for p in pos:
+            if p.get("strategy") == "HL_HEDGE":
+                continue  # hedge legs reduce the net exposure: outside the 30 % side+category rule by design
             try:
                 cat = category_fn(p["symbol"]) if category_fn else "?"
             except Exception:
