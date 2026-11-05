@@ -42,7 +42,7 @@ def _json(p: Path, default):
 VPS = "root@169.58.57.59"
 KEY = Path.home() / ".ssh" / "id_ed25519_vps_readonly"   # forced-command key: can only read
 LEDGER_FILES = {"hl_copy": "hl_copy_portfolio.json", "alpaca": "alpaca_stocks_portfolio.json", "short": "meme_sim.json",
-                "hl_prices": "hl_copy_prices.json"}
+                "hl_prices": "hl_copy_prices.json", "charts": "chart_analysis.json"}
 
 
 def _ssh(cmd: str, timeout: int = 40) -> str:
@@ -294,6 +294,74 @@ def status() -> dict:
             "total_equity": round(sum(b.get("equity", 0) for b in books if b.get("available")) + _num(micro.get("cash")), 2)}
 
 
+
+# ---------------------------------------------------------------- charts (public Binance candles, read-only)
+import urllib.parse
+import urllib.request
+
+_kcache: dict = {}
+
+
+def _klines(symbol: str, interval: str, limit: int = 300) -> list:
+    key = (symbol, interval)
+    if key in _kcache and time.time() - _kcache[key][0] < 30:
+        return _kcache[key][1]
+    q = urllib.parse.urlencode({"symbol": symbol, "interval": interval, "limit": limit})
+    with urllib.request.urlopen(f"https://api.binance.com/api/v3/klines?{q}", timeout=15) as r:
+        rows = json.loads(r.read())
+    data = [{"time": int(k[0] / 1000), "open": float(k[1]), "high": float(k[2]), "low": float(k[3]),
+             "close": float(k[4]), "volume": float(k[5])} for k in rows]
+    _kcache[key] = (time.time(), data)
+    return data
+
+
+def _levels(c: list, side: str, n: int = 3) -> list:
+    """Support/resistance: swing pivots (5 bars each side) clustered within 0.5 ATR, most touched first."""
+    if len(c) < 30:
+        return []
+    trs = [max(c[i]["high"] - c[i]["low"], abs(c[i]["high"] - c[i - 1]["close"]), abs(c[i]["low"] - c[i - 1]["close"]))
+           for i in range(1, len(c))]
+    atr = sum(trs[-14:]) / 14
+    key = "low" if side == "support" else "high"
+    piv = [c[i][key] for i in range(5, len(c) - 5)
+           if all((c[i][key] <= c[j][key]) if side == "support" else (c[i][key] >= c[j][key]) for j in range(i - 5, i + 6))]
+    clusters: list = []
+    for v in sorted(piv):
+        if clusters and abs(v - clusters[-1]["px"]) <= 0.5 * atr:
+            cl = clusters[-1]
+            cl["px"] = (cl["px"] * cl["n"] + v) / (cl["n"] + 1)
+            cl["n"] += 1
+        else:
+            clusters.append({"px": v, "n": 1})
+    last = c[-1]["close"]
+    cand = [x for x in clusters if (x["px"] < last if side == "support" else x["px"] > last)]
+    return [round(x["px"], 8) for x in sorted(cand, key=lambda x: (-x["n"], abs(x["px"] - last)))[:n]]
+
+
+def _marks(symbol: str) -> list:
+    """Our entries / exits on this symbol from the ledgers (crypto copy)."""
+    d = _json(CACHE / "hl_copy_portfolio.json", {})
+    out = []
+    pos = d.get("positions") or {}
+    items = list(pos.values()) if isinstance(pos, dict) else pos
+    for t in items + (d.get("trades") or []):
+        if t.get("symbol") != symbol:
+            continue
+        if t.get("open_time") or t.get("time_in"):
+            out.append({"t": _ts(t.get("open_time") or t.get("time_in")), "px": t.get("price_in"), "kind": "entry",
+                        "side": t.get("side", "LONG")})
+        if t.get("price_out") and t.get("time_out"):
+            out.append({"t": _ts(t.get("time_out")), "px": t.get("price_out"), "kind": "exit", "pnl": t.get("pnl")})
+    return out
+
+
+def chart_data(symbol: str, interval: str) -> dict:
+    c = _klines(symbol, interval)
+    analysis = (_json(CACHE / "chart_analysis.json", {}) or {}).get(symbol, {})
+    return {"symbol": symbol, "interval": interval, "candles": c, "supports": _levels(c, "support"),
+            "resistances": _levels(c, "resistance"), "marks": _marks(symbol), "analysis": analysis}
+
+
 class Handler(BaseHTTPRequestHandler):
     def _send(self, code: int, body: bytes, ctype: str) -> None:
         self.send_response(code)
@@ -305,6 +373,18 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):  # noqa: N802
         if self.path in ("/", "/index.html"):
             return self._send(200, (HERE / "index.html").read_bytes(), "text/html; charset=utf-8")
+        if self.path.startswith("/chart"):
+            return self._send(200, (HERE / "chart.html").read_bytes(), "text/html; charset=utf-8")
+        if self.path.startswith("/api/chart"):
+            q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            sym = (q.get("symbol", ["BTCUSDT"])[0] or "BTCUSDT").upper()
+            itv = q.get("interval", ["1h"])[0]
+            if itv not in ("5m", "15m", "1h", "4h", "1d") or not sym.isalnum():
+                return self._send(400, b"bad request", "text/plain")
+            try:
+                return self._send(200, json.dumps(chart_data(sym, itv)).encode(), "application/json")
+            except Exception as e:
+                return self._send(502, json.dumps({"error": str(e)[:200]}).encode(), "application/json")
         if self.path.startswith("/api/status"):
             return self._send(200, json.dumps(status(), ensure_ascii=False).encode(), "application/json")
         self._send(404, b"not found", "text/plain")

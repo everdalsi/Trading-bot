@@ -194,7 +194,7 @@ function render(st) {
 
   document.getElementById("mwr").textContent = M.recent_wr != null ? `réussite ${M.recent_wr} % sur les 25 derniers` : "";
   document.getElementById("micro").innerHTML = (M.trades || []).map(t => `<tr><td class="mut">${esc((t.time || "").slice(11, 16))}</td>
-    <td><b>${esc((t.symbol || "").replace("USDT", ""))}</b><br><span class="tag ${esc(t.side)}">${esc(t.side)}</span></td>
+    <td><a href="/chart?symbol=${encodeURIComponent(t.symbol || "")}" style="color:var(--ink)"><b>${esc((t.symbol || "").replace("USDT", ""))}</b> 📈</a><br><span class="tag ${esc(t.side)}">${esc(t.side)}</span></td>
     <td>${esc(t.reason).slice(0, 80)}<br><span class="mut">conf. ${t.conf ?? "—"} % · ${esc(t.regime)}</span></td>
     <td><span class="tag ${esc(t.verdict)}">${esc(t.verdict || "—")}</span></td>
     <td class="mut">${esc(t.exit).slice(0, 26)}</td><td class="n ${cls(t.pnl)}">${money(t.pnl, 3)}<br><span class="mut">${pct(t.pnl_pct)}</span></td></tr>`).join("")
@@ -208,7 +208,7 @@ function render(st) {
     || '<tr><td colspan="7" class="empty">Pas de cycle récent</td></tr>';
 
   document.getElementById("poscount").textContent = pos.length ? `${pos.length} ouvertes · PnL ${money(openPnl)}` : "";
-  document.getElementById("pos").innerHTML = pos.sort((a, b) => (b.pnl || 0) - (a.pnl || 0)).map(x => `<tr><td><b>${esc(x.symbol.replace("USDT", ""))}</b> ${x.short ? '<span class="tag SHORT">short</span>' : '<span class="tag LONG">long</span>'}</td>
+  document.getElementById("pos").innerHTML = pos.sort((a, b) => (b.pnl || 0) - (a.pnl || 0)).map(x => `<tr><td><a href="/chart?symbol=${encodeURIComponent(x.symbol)}" style="color:var(--ink)"><b>${esc(x.symbol.replace("USDT", ""))}</b> 📈</a> ${x.short ? '<span class="tag SHORT">short</span>' : '<span class="tag LONG">long</span>'}</td>
     <td class="mut">${esc(x.book)}</td><td class="n">${money(x.usd, 0)}</td><td class="n">${x.entry || "—"}</td><td class="n">${x.last || "—"}</td>
     <td class="n ${cls(x.pnl)}">${x.pnl == null ? "—" : money(x.pnl)}<br><span class="mut">${x.ch == null ? "" : pct(100 * x.ch)}</span></td></tr>`).join("")
     || '<tr><td colspan="6" class="empty">Aucune position ouverte</td></tr>';

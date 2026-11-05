@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Graphique · Salle des marchés</title>
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+  :root { --bg:#070d0c; --panel:#0e1817; --panel2:#122120; --line:#1d322f; --ink:#e8f2f0; --muted:#86a09c;
+          --green:#2fe39a; --red:#ff5d6c; --amber:#ffc24a; --cyan:#3fd0ff; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.45 "Segoe UI", system-ui, sans-serif; }
+  header { display:flex; align-items:center; gap:12px; padding:12px 20px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  a { color:var(--cyan); text-decoration:none; }
+  .sym { font-size:20px; font-weight:800; }
+  .btn { background:var(--panel2); border:1px solid var(--line); color:var(--ink); padding:4px 10px; border-radius:7px; cursor:pointer; font:inherit; font-size:12.5px; }
+  .btn.on { border-color:var(--green); color:var(--green); }
+  input { background:var(--panel2); border:1px solid var(--line); color:var(--ink); padding:4px 8px; border-radius:7px; width:120px; font:inherit; }
+  main { display:grid; grid-template-columns:1fr 300px; gap:14px; padding:14px 20px; }
+  @media (max-width:1000px) { main { grid-template-columns:1fr; } }
+  #chart { height:520px; background:var(--panel); border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+  #rsi { height:130px; background:var(--panel); border:1px solid var(--line); border-radius:12px; overflow:hidden; margin-top:10px; }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-bottom:12px; }
+  .panel h2 { margin:0 0 8px; font-size:11.5px; text-transform:uppercase; letter-spacing:1.2px; color:var(--muted); }
+  .row { display:flex; justify-content:space-between; font-size:13px; padding:3px 0; border-bottom:1px solid var(--line); }
+  .up { color:var(--green); } .down { color:var(--red); } .mut { color:var(--muted); } .warn { color:var(--amber); }
+  .verdict { font-size:18px; font-weight:800; }
+</style>
+</head>
+<body>
+<header>
+  <a href="/">← Salle des marchés</a>
+  <span class="sym" id="sym">…</span>
+  <span id="last" class="mut"></span>
+  <span style="flex:1"></span>
+  <span id="itv"></span>
+  <input id="go" placeholder="ex. SOLUSDT">
+</header>
+<main>
+  <div><div id="chart"></div><div id="rsi"></div></div>
+  <div>
+    <div class="panel"><h2>Lecture de la courbe</h2><div id="read"></div></div>
+    <div class="panel"><h2>Niveaux détectés</h2><div id="levels"></div></div>
+    <div class="panel"><h2>Analyse de l'agent (ChartAnalyst)</h2><div id="agent" class="mut">En attente : l'agent d'analyse des courbes sera branché dans le bot à l'étape suivante.</div></div>
+    <div class="panel"><h2>Nos trades sur cet actif</h2><div id="ours"></div></div>
+  </div>
+</main>
+<script>
+const q = new URLSearchParams(location.search);
+let symbol = (q.get("symbol") || "BTCUSDT").toUpperCase(), interval = q.get("interval") || "1h";
+const fmt = v => v == null ? "—" : Number(v) >= 100 ? Number(v).toFixed(2) : Number(v).toPrecision(5);
+const theme = { layout: { background: { color: "#0e1817" }, textColor: "#86a09c" },
+  grid: { vertLines: { color: "#15262420" }, horzLines: { color: "#1d322f" } }, rightPriceScale: { borderColor: "#1d322f" },
+  timeScale: { borderColor: "#1d322f", timeVisible: true } };
+const chart = LightweightCharts.createChart(document.getElementById("chart"), { ...theme, autoSize: true });
+const candles = chart.addCandlestickSeries({ upColor: "#2fe39a", downColor: "#ff5d6c", borderVisible: false, wickUpColor: "#2fe39a", wickDownColor: "#ff5d6c" });
+const ma20 = chart.addLineSeries({ color: "#3fd0ff", lineWidth: 1.5, priceLineVisible: false, lastValueVisible: false });
+const ma50 = chart.addLineSeries({ color: "#ffc24a", lineWidth: 1.5, priceLineVisible: false, lastValueVisible: false });
+const vol = chart.addHistogramSeries({ priceFormat: { type: "volume" }, priceScaleId: "", color: "#2a403c" });
+vol.priceScale().applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
+const rsiChart = LightweightCharts.createChart(document.getElementById("rsi"), { ...theme, autoSize: true });
+const rsi = rsiChart.addLineSeries({ color: "#a98bff", lineWidth: 1.5 });
+[70, 30].forEach(v => rsi.createPriceLine({ price: v, color: "#3a4f4c", lineStyle: 2, lineWidth: 1, axisLabelVisible: true }));
+let lines = [];
+
+function sma(c, n) { const out = []; let s = 0; c.forEach((x, i) => { s += x.close; if (i >= n) s -= c[i - n].close; if (i >= n - 1) out.push({ time: x.time, value: s / n }); }); return out; }
+function rsiCalc(c, n = 14) { const out = []; let g = 0, l = 0;
+  for (let i = 1; i < c.length; i++) { const d = c[i].close - c[i - 1].close, up = Math.max(d, 0), dn = Math.max(-d, 0);
+    if (i <= n) { g += up / n; l += dn / n; } else { g = (g * (n - 1) + up) / n; l = (l * (n - 1) + dn) / n; }
+    if (i >= n) out.push({ time: c[i].time, value: l === 0 ? 100 : 100 - 100 / (1 + g / l) }); } return out; }
+
+async function load() {
+  document.getElementById("sym").textContent = symbol.replace("USDT", "") + " / USDT";
+  document.getElementById("itv").innerHTML = ["5m", "15m", "1h", "4h", "1d"].map(i => `<button class="btn ${i === interval ? "on" : ""}" onclick="setItv('${i}')">${i}</button>`).join(" ");
+  const r = await fetch(`/api/chart?symbol=${symbol}&interval=${interval}`); const d = await r.json();
+  if (d.error) { document.getElementById("read").innerHTML = `<span class="down">Données indisponibles : ${d.error}</span>`; return; }
+  const c = d.candles; candles.setData(c); ma20.setData(sma(c, 20)); ma50.setData(sma(c, 50));
+  vol.setData(c.map(x => ({ time: x.time, value: x.volume, color: x.close >= x.open ? "#1d5a4566" : "#5a1d2766" })));
+  const rs = rsiCalc(c); rsi.setData(rs);
+  lines.forEach(l => candles.removePriceLine(l)); lines = [];
+  d.supports.forEach(px => lines.push(candles.createPriceLine({ price: px, color: "#2fe39a", lineStyle: 2, lineWidth: 1, axisLabelVisible: true, title: "support" })));
+  d.resistances.forEach(px => lines.push(candles.createPriceLine({ price: px, color: "#ff5d6c", lineStyle: 2, lineWidth: 1, axisLabelVisible: true, title: "résistance" })));
+  const t0 = c[0].time;
+  candles.setMarkers(d.marks.filter(m => m.t >= t0).sort((a, b) => a.t - b.t).map(m => m.kind === "entry"
+    ? { time: Math.floor(m.t), position: m.side === "SHORT" ? "aboveBar" : "belowBar", color: m.side === "SHORT" ? "#ff5d6c" : "#2fe39a", shape: m.side === "SHORT" ? "arrowDown" : "arrowUp", text: (m.side === "SHORT" ? "short " : "achat ") + fmt(m.px) }
+    : { time: Math.floor(m.t), position: "aboveBar", color: "#ffc24a", shape: "circle", text: "sortie " + fmt(m.px) }));
+  chart.timeScale().fitContent(); rsiChart.timeScale().fitContent();
+
+  const last = c[c.length - 1].close, m20 = sma(c, 20).pop()?.value, m50 = sma(c, 50).pop()?.value, r14 = rs.length ? rs[rs.length - 1].value : null;
+  const ch = 100 * (last - c[0].close) / c[0].close;
+  document.getElementById("last").innerHTML = `${fmt(last)} · <span class="${ch >= 0 ? "up" : "down"}">${ch >= 0 ? "+" : ""}${ch.toFixed(2)} %</span> sur la période`;
+  const trend = m20 && m50 ? (last > m20 && m20 > m50 ? ["Tendance haussière", "up"] : last < m20 && m20 < m50 ? ["Tendance baissière", "down"] : ["Sans direction claire", "warn"]) : ["—", "mut"];
+  const rsiTxt = r14 == null ? "—" : r14 > 70 ? "suracheté" : r14 < 30 ? "survendu" : "neutre";
+  const sup = d.supports[0], res = d.resistances[0];
+  document.getElementById("read").innerHTML = `<div class="verdict ${trend[1]}">${trend[0]}</div>
+    <div class="row"><span>Prix / MM20</span><span class="${last > m20 ? "up" : "down"}">${last > m20 ? "au-dessus" : "en dessous"}</span></div>
+    <div class="row"><span>MM20 / MM50</span><span class="${m20 > m50 ? "up" : "down"}">${m20 > m50 ? "au-dessus" : "en dessous"}</span></div>
+    <div class="row"><span>RSI 14</span><span>${r14 == null ? "—" : r14.toFixed(0)} · ${rsiTxt}</span></div>
+    <div class="row"><span>Marge jusqu'à la résistance</span><span>${res ? (100 * (res - last) / last).toFixed(2) + " %" : "—"}</span></div>
+    <div class="row"><span>Marge jusqu'au support</span><span>${sup ? (100 * (last - sup) / last).toFixed(2) + " %" : "—"}</span></div>`;
+  document.getElementById("levels").innerHTML = d.resistances.map(x => `<div class="row"><span class="down">Résistance</span><span>${fmt(x)}</span></div>`).join("")
+    + d.supports.map(x => `<div class="row"><span class="up">Support</span><span>${fmt(x)}</span></div>`).join("") || '<span class="mut">—</span>';
+  const a = d.analysis[interval] || d.analysis;
+  if (a && (a.trend || a.pattern)) document.getElementById("agent").innerHTML = `<div class="row"><span>Tendance</span><span>${a.trend ?? "—"}</span></div>
+    <div class="row"><span>Figure</span><span>${a.pattern ?? "—"}</span></div><div class="row"><span>Score</span><span>${a.score ?? "—"}</span></div>`;
+  document.getElementById("ours").innerHTML = d.marks.length ? d.marks.slice(-8).reverse().map(m => `<div class="row"><span>${m.kind === "entry" ? (m.side === "SHORT" ? "Short" : "Achat") : "Sortie"} ${new Date(m.t * 1000).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</span><span>${fmt(m.px)}${m.pnl != null ? ` · <span class="${m.pnl >= 0 ? "up" : "down"}">${m.pnl >= 0 ? "+" : ""}${Number(m.pnl).toFixed(2)} $</span>` : ""}</span></div>`).join("") : '<span class="mut">Aucun trade sur cet actif</span>';
+}
+function setItv(i) { interval = i; history.replaceState(null, "", `?symbol=${symbol}&interval=${i}`); load(); }
+document.getElementById("go").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.value) { symbol = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""); if (!symbol.endsWith("USDT")) symbol += "USDT"; history.replaceState(null, "", `?symbol=${symbol}&interval=${interval}`); load(); } });
+load(); setInterval(load, 30000);
+</script>
+</body>
+</html>
