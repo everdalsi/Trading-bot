@@ -264,11 +264,54 @@ def _approve_entry(portfolio: str, symbol: str, price: float | None, proxy_edge:
             extra["polymarket"] = pm["sentiment"]
     except Exception:
         pass
+    try:  # V8: bull/bear debate + 3-profile risk committee, rule-based (no LLM), RECORDED only
+        extra.update(debate(symbol, context.get("side", "LONG"), net, extra))
+    except Exception:
+        pass
     if net <= 0:
         log_event("SeniorExpert", portfolio, "VETO", symbol, detail, score=round(net, 5), result="refuse", **extra)
         return False, detail
     log_event("SeniorExpert", portfolio, "APPROVE", symbol, detail, score=round(net, 5), result="accepte", **extra)
     return True, detail
+
+
+def debate(symbol: str, side: str, net_edge: float, ctx: dict) -> dict:
+    """V8 (trading-agents-v3.md, TradingAgents scheme without an LLM). Each available signal argues for
+    or against THIS side; bull = sum of arguments for, bear = sum against (each in [0, 1]).
+    Committee: aggressive votes yes if bull >= bear - 0.5, neutral if bull > bear, conservative if
+    bull > bear + 0.5 and net edge > 0.2 %. Recorded with the decision, no weight until measured."""
+    sign = 1 if side != "SHORT" else -1
+    args = {}
+    try:
+        import chart_analyst
+        for tf in ("1h", "4h"):
+            t = chart_analyst._tf(symbol, tf).get("trend")
+            if t in ("up", "down"):
+                args[f"tendance_{tf}"] = 0.5 * sign * (1 if t == "up" else -1)
+    except Exception:
+        pass
+    try:
+        import trade_manager
+        c = trade_manager.consensus(symbol)
+        if c is not None:
+            args["consensus_top_wallets"] = sign * c
+    except Exception:
+        pass
+    for k, scale in (("sentiment", 1.0), ("macro_score", 1.0), ("polymarket", 1.0)):
+        v = ctx.get(k)
+        if isinstance(v, (int, float)):
+            args[k] = sign * max(-1.0, min(1.0, float(v) * scale))
+    try:
+        import news_agent
+        if news_agent.against(symbol, side, 6 * 3600):
+            args["news_forte_contre"] = -1.0
+    except Exception:
+        pass
+    bull = round(sum(v for v in args.values() if v > 0), 3)
+    bear = round(-sum(v for v in args.values() if v < 0), 3)
+    votes = {"agressif": bull >= bear - 0.5, "neutre": bull > bear, "prudent": bull > bear + 0.5 and net_edge > 0.002}
+    return {"bull": bull, "bear": bear, "committee_yes": sum(votes.values()),
+            "debate_args": {k: round(v, 3) for k, v in args.items()}}
 
 
 # ---------------------------------------------------------------- Watchdog
