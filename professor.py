@@ -74,7 +74,7 @@ def closed_trades() -> list[dict]:
         out.append({"portfolio": "crypto_copy", "symbol": t.get("symbol"), "side": t.get("side"),
                     "pnl": float(t["pnl"]), "pnl_pct": float(t.get("pnl_pct") or 0),
                     "wallet": t.get("hl_source_addr", ""), "exit": t.get("exit_reason", ""),
-                    "type": t.get("trade_type", "HL_COPY"), "opened": _open_ts(t), "closed": _ts(t)})
+                    "type": t.get("strategy") or t.get("trade_type", "HL_COPY"), "opened": _open_ts(t), "closed": _ts(t)})
     al = _json(DATA_DIR / "alpaca_stocks_ledger.json")
     for t in al.get("closed_trades", []):
         if t.get("pnl") is None:
@@ -82,13 +82,14 @@ def closed_trades() -> list[dict]:
         cost = float(t.get("cost") or 0)
         out.append({"portfolio": "actions_us", "symbol": t.get("symbol"), "side": "LONG", "pnl": float(t["pnl"]),
                     "pnl_pct": float(t["pnl"]) / cost * 100 if cost else 0.0, "wallet": "",
-                    "exit": t.get("exit_reason", "signal"), "type": t.get("trade_type", "NORMAL"),
+                    "exit": t.get("exit_reason", "signal"), "type": "FILL" if t.get("fill_mode") else t.get("trade_type", "NORMAL"),
                     "opened": _open_ts(t), "closed": _ts(t)})
     for pf in ("crypto_copy", "court_terme", "actions_us"):  # scalping sleeves, judged apart (type SCALP)
         for t in _json(DATA_DIR / f"scalp_{pf}.json").get("trades", []):
             out.append({"portfolio": pf, "symbol": t.get("symbol"), "side": t.get("side"), "pnl": float(t.get("pnl") or 0),
                         "pnl_pct": float(t.get("pnl_pct") or 0), "wallet": "", "exit": t.get("reason", ""),
-                        "type": "SCALP", "opened": float(t.get("opened") or 0), "closed": float(t.get("closed") or 0)})
+                        "type": "SCALP_MAKER" if t.get("exec") == "maker" else "SCALP",
+                        "opened": float(t.get("opened") or 0), "closed": float(t.get("closed") or 0)})
     sh = _json(DATA_DIR / "meme_sim.json")
     for t in sh.get("trades", []):
         out.append({"portfolio": "court_terme", "symbol": t.get("symbol"), "side": t.get("side", "LONG"),
@@ -195,9 +196,64 @@ def run() -> dict:
     tmp = OUT.with_suffix(".json.tmp")
     tmp.write_text(json.dumps(data, indent=1), encoding="utf-8")
     tmp.replace(OUT)
+    try:
+        write_lessons(stats, data, prev)
+    except Exception as e:
+        log_event("Professor", "systeme", "INFO", "", f"lecons.md non ecrit : {type(e).__name__}")
     log_event("Professor", "systeme", "INFO", "", f"bilan : {len(trades)} trades clos analyses, "
               f"{len(weights)} wallets ponderes, {len(disabled)} coupes")
     return data
+
+
+LESSONS = DATA_DIR / "lecons.md"
+LESSON_MIN_N = 10
+_GROUP_FR = {"portfolio": "Portefeuille", "type": "Strategie", "rule": "Regle de sortie", "regime": "Regime de marche",
+             "wallet": "Wallet copie"}
+
+
+def _verdict(s: dict) -> str:
+    if s["mean_pnl_pct"] > 0 and s["total_pnl"] > 0:
+        return "GAGNANT net de frais : a garder, a renforcer seulement apres 100 trades"
+    if s["mean_pnl_pct"] < 0 and s["n"] >= 50:
+        return "PERDANT sur un echantillon suffisant : a couper ou corriger"
+    return "negatif mais echantillon encore court : surveiller" if s["mean_pnl_pct"] < 0 else "neutre : surveiller"
+
+
+def write_lessons(stats: dict, data: dict, prev: dict) -> None:
+    """3.9: the Professor's written lessons (DATA_DIR/lecons.md). Lessons are rebuilt from all closed trades
+    at each run; the 'Journal' keeps one dated line per automatic decision (weights, cuts, scalp share)."""
+    day = time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime())
+    lines = [f"# Lecons du Professeur (mise a jour {day})", "",
+             f"{data['trades']} trades clos analyses. Une lecon n'est tiree qu'a partir de {LESSON_MIN_N} trades "
+             "(en dessous : bruit). Toutes les valeurs sont nettes de frais simules.", ""]
+    for g in ("portfolio", "type", "regime", "rule", "wallet"):
+        rows = [(k, s) for k, s in stats.get(g, {}).items() if s["n"] >= LESSON_MIN_N]
+        if not rows:
+            continue
+        lines.append(f"## {_GROUP_FR[g]}")
+        for k, s in sorted(rows, key=lambda kv: kv[1]["total_pnl"]):
+            lines.append(f"- {k[:42]} : {s['n']} trades, {s['win_rate']} % gagnants, moyenne {s['mean_pnl_pct']:+.3f} %/trade, "
+                         f"total {s['total_pnl']:+.2f} $ -> {_verdict(s)}")
+        lines.append("")
+    journal = []
+    try:
+        old = LESSONS.read_text(encoding="utf-8")
+        if "## Journal des decisions" in old:
+            journal = [x for x in old.split("## Journal des decisions", 1)[1].splitlines() if x.startswith("- ")]
+    except OSError:
+        pass
+    for w in sorted(set(data["disabled_wallets"]) - set(prev.get("disabled_wallets", []))):
+        journal.append(f"- {day} : wallet {w[:10]} coupe (esperance nette negative)")
+    for pf, sh in data["scalp_share"].items():
+        if prev.get("scalp_share", {}).get(pf) != sh:
+            journal.append(f"- {day} : scalping {pf} ramene a {sh:.0%} du portefeuille")
+    for w, v in data["wallet_weights"].items():
+        if abs(float(prev.get("wallet_weights", {}).get(w, 1.0)) - v) >= 0.05:
+            journal.append(f"- {day} : poids du wallet {w[:10]} -> {v}")
+    lines += ["## Journal des decisions", *journal[-300:], ""]
+    tmp = LESSONS.with_suffix(".md.tmp")
+    tmp.write_text(chr(10).join(lines), encoding="utf-8")
+    tmp.replace(LESSONS)
 
 
 def wallet_weight(addr: str) -> float:
