@@ -88,6 +88,9 @@
   <section class="panel s7"><h2><span>Décisions des agents en direct</span><span id="feedcount" class="mut"></span></h2><div class="scroll" id="feed"></div></section>
   <section class="panel s5"><h2><span>Positions ouvertes</span><span id="poscount" class="mut"></span></h2><div class="scroll"><table>
     <thead><tr><th>Actif</th><th class="n">Mise</th><th class="n">Entrée</th><th class="n">Prix</th><th class="n">PnL</th></tr></thead><tbody id="pos"></tbody></table></div></section>
+  <section class="panel s12"><h2><span>Scalping 1-5 min</span><span class="mut">capital à part (200 $ virtuels par sleeve) · résultat brut vs net après frais</span></h2><div class="books" id="scalp"></div></section>
+  <section class="panel s7"><h2><span>Apprentissage (Professeur + Auditeur)</span><span id="learnat" class="mut"></span></h2><div id="learn"></div></section>
+  <section class="panel s5"><h2><span>Infos fortes (NewsAgent)</span><span id="newsat" class="mut"></span></h2><div class="scroll" id="news"></div></section>
   <section class="panel s12"><h2><span>L'équipe de l'agence</span><span class="mut">vert = en service · estompé = étape à venir</span></h2><div class="roster" id="roster"></div></section>
   <section class="panel s6"><h2>Analyste actions US : signaux du dernier cycle</h2><div class="scroll"><table>
     <thead><tr><th>Action</th><th>Décision</th><th class="n">Score</th><th>13F</th><th>Congrès</th><th class="n">5 j</th></tr></thead><tbody id="stocks"></tbody></table></div></section>
@@ -192,6 +195,42 @@ function render(st) {
 
   document.getElementById("wallets").innerHTML = (st.wallets || []).map(w => `<tr><td class="mut">${esc(w.addr)}</td><td class="n">${money(w.value, 0)}</td>
     <td class="n ${cls(w.roi_m)}">${w.roi_m == null ? "—" : w.roi_m + " %"}</td><td class="n ${cls(w.roi_w)}">${w.roi_w == null ? "—" : w.roi_w + " %"}</td></tr>`).join("") || '<tr><td colspan="4" class="empty">—</td></tr>';
+
+  const secs = s => s == null ? "—" : s < 60 ? s + " s" : Math.floor(s / 60) + " min " + (s % 60) + " s";
+  document.getElementById("scalp").innerHTML = (st.scalp || []).map(p => {
+    if (!p.available) return `<div class="book"><h3>${esc(p.name)}</h3><div class="empty" style="margin-top:8px">${p.id === "actions_us" ? "Démarre à l'ouverture de Wall Street (14:30 UTC)" : "Démarrage en cours"}</div></div>`;
+    const d = p.equity - p.start, fees = p.gross - p.net;
+    return `<div class="book ${p.halted ? "halt" : ""}"><h3>${esc(p.name)}</h3><div class="eq">${money(p.equity)} <span class="${cls(d)}" style="font-size:13px">${pct(p.start ? 100 * d / p.start : 0)}</span></div>
+      ${p.halted ? '<div class="down" style="font-size:12px">stop du jour atteint (-3 %)</div>' : ""}
+      <div class="kv"><span>Scalps clôturés</span><b>${p.trades} <span class="mut">(${p.trades_24h} sur 24 h)</span></b>
+      <span>Réussite</span><b>${p.win_rate == null ? "—" : p.win_rate + " %"}</b>
+      <span>Brut (avant frais)</span><b class="${cls(p.gross)}">${money(p.gross)}</b>
+      <span>Frais payés</span><b class="down">${money(fees)}</b>
+      <span>Net</span><b class="${cls(p.net)}">${money(p.net)}</b>
+      <span>Durée moyenne</span><b>${secs(p.avg_hold_s)}</b>
+      <span>En cours</span><b>${p.open.length ? p.open.map(o => `${esc(o.symbol.replace("USDT", ""))} ${o.side === "LONG" ? "↑" : "↓"} ${secs(o.age_s)}`).join(", ") : "aucun"}</b></div>
+      ${p.last.length ? `<div class="mut" style="font-size:12px;margin-top:6px">${p.last.slice(0, 4).map(x => `${esc(x.symbol.replace("USDT", ""))} <span class="${cls(x.net)}">${money(x.net)}</span> · ${esc(x.reason || "")}`).join("<br>")}</div>` : ""}</div>`;
+  }).join("") || '<div class="empty">Scalping pas encore démarré</div>';
+
+  const Lr = st.learning || {}, stt = Lr.stats || {};
+  document.getElementById("learnat").textContent = Lr.at ? `bilan il y a ${ago(Date.now() / 1000 - Lr.at)} · ${Lr.trades ?? 0} trades analysés` : "premier bilan en cours";
+  const row = (title, obj) => {
+    const ks = Object.keys(obj || {});
+    if (!ks.length) return "";
+    return `<p class="mut" style="margin:8px 0 2px">${title}</p><table><thead><tr><th></th><th class="n">Trades</th><th class="n">Réussite</th><th class="n">Moy. net</th><th class="n">Total net</th></tr></thead><tbody>${ks.map(k => {
+      const s = obj[k] || {};
+      return `<tr><td>${esc(k)}</td><td class="n">${s.n ?? "—"}</td><td class="n">${s.win_rate == null ? "—" : s.win_rate + " %"}</td><td class="n ${cls(s.mean_pnl_pct)}">${pct(s.mean_pnl_pct)}</td><td class="n ${cls(s.total_pnl)}">${money(s.total_pnl)}</td></tr>`;
+    }).join("")}</tbody></table>`;
+  };
+  const shares = Object.entries(Lr.scalp_share || {}).map(([k, v]) => `${esc(k)} ${Math.round(v * 100)} %`).join(" · ");
+  document.getElementById("learn").innerHTML = (row("Par portefeuille", stt.portfolio) + row("Par type (normal / scalping)", stt.type) + row("Par régime à l'entrée", stt.regime) + row("Par règle de sortie", stt.rule)
+    + `<p class="mut" style="margin-top:8px">Wallets pondérés : ${Object.keys(Lr.weights || {}).length} · coupés par l'Auditeur : ${(Lr.disabled || []).length}${shares ? " · part du scalping : " + shares : ""}</p>`)
+    || '<div class="empty">Le Professeur publie son premier bilan quelques minutes après le démarrage du bot, puis toutes les 6 h.</div>';
+
+  document.getElementById("newsat").textContent = Lr.news_at ? `il y a ${ago(Date.now() / 1000 - Lr.news_at)}` : "";
+  document.getElementById("news").innerHTML = (Lr.news || []).map(f => `<div class="ag"><span class="tag ${f.level === "negatif_fort" ? "VETO" : "BUY"}">${f.level === "negatif_fort" ? "négatif" : "positif"}</span> ${chart(f.symbol)}
+    <p>${f.link ? `<a href="${esc(f.link)}" target="_blank" rel="noopener">${esc(f.title)}</a>` : esc(f.title)}<br><span class="mut">${esc(f.source)} · il y a ${ago(Date.now() / 1000 - f.at)}</span></p></div>`).join("")
+    || '<div class="empty">Aucune info forte sur nos positions dans les dernières 24 h</div>';
 
   const lg = document.getElementById("log");
   lg.textContent = (L.log || []).map(l => l.replace(/^\d{4}-\d\d-\d\d /, "").replace(/\[INFO\] root — /, "")).join("\n");

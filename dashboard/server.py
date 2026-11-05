@@ -42,7 +42,11 @@ def _json(p: Path, default):
 VPS = "root@169.58.57.59"
 KEY = Path.home() / ".ssh" / "id_ed25519_vps_readonly"   # forced-command key: can only read
 LEDGER_FILES = {"hl_copy": "hl_copy_portfolio.json", "alpaca": "alpaca_stocks_portfolio.json", "short": "meme_sim.json",
-                "hl_prices": "hl_copy_prices.json", "charts": "chart_analysis.json"}
+                "hl_prices": "hl_copy_prices.json", "charts": "chart_analysis.json",
+                "scalp_crypto_copy": "scalp_crypto_copy.json", "scalp_court_terme": "scalp_court_terme.json",
+                "scalp_actions_us": "scalp_actions_us.json", "professor": "professor.json", "news_flags": "news_flags.json"}
+SCALP_NAMES = {"crypto_copy": "Copie crypto (A cassure, frais HL)", "court_terme": "Court terme (B retour moyenne, frais Binance)",
+               "actions_us": "Actions US (A, heures de marche)"}
 
 
 def _ssh(cmd: str, timeout: int = 40) -> str:
@@ -284,6 +288,46 @@ def _roster(events: list[dict]) -> list[dict]:
                              if e else None)})
     return out
 
+def _scalp() -> list[dict]:
+    """1-5 min scalping sleeves: capital, open scalps, gross vs net (fees) results, last trades."""
+    out = []
+    day0 = time.time() - 86400
+    for pf, name in SCALP_NAMES.items():
+        led = _json(CACHE / f"scalp_{pf}.json", None)
+        if not led:
+            out.append({"id": pf, "name": name, "available": False})
+            continue
+        t = led.get("trades", [])
+        t24 = [x for x in t if float(x.get("closed") or 0) >= day0]
+        hold = [x.get("hold_s", 0) for x in t]
+        eq = float(led.get("cash", 0)) + sum(float(p.get("usd", 0)) for p in led.get("positions", {}).values())
+        out.append({
+            "id": pf, "name": name, "available": True, "equity": round(eq, 2), "start": led.get("start"),
+            "open": [{"symbol": p["symbol"], "side": p["side"], "usd": round(p["usd"], 2), "age_s": int(time.time() - p["opened"]),
+                      "strategy": p.get("strategy")} for p in led.get("positions", {}).values()],
+            "trades": led.get("trades_total", len(t)), "trades_24h": len(t24),
+            "gross": round(sum(x.get("gross", 0) for x in t), 2), "net": round(sum(x.get("pnl", 0) for x in t), 2),
+            "net_24h": round(sum(x.get("pnl", 0) for x in t24), 2),
+            "win_rate": round(sum(x.get("pnl", 0) > 0 for x in t) / len(t) * 100, 1) if t else None,
+            "avg_hold_s": int(sum(hold) / len(hold)) if hold else None,
+            "halted": led.get("halted_day") == time.strftime("%Y-%m-%d", time.gmtime()),
+            "last": [{"symbol": x["symbol"], "side": x["side"], "net": x.get("pnl"), "gross": x.get("gross"),
+                      "reason": x.get("reason"), "hold_s": x.get("hold_s"), "closed": x.get("closed")} for x in t[-8:][::-1]],
+        })
+    return out
+
+
+def _learning() -> dict:
+    """Professor/Auditor output + strong news flags (from the VPS copies)."""
+    prof = _json(CACHE / "professor.json", {}) or {}
+    news = _json(CACHE / "news_flags.json", {}) or {}
+    flags = [{"symbol": s, **f} for s, lst in (news.get("symbols") or {}).items() for f in lst if f.get("level") != "ambigu"]
+    flags.sort(key=lambda f: -float(f.get("at", 0)))
+    return {"at": prof.get("at"), "trades": prof.get("trades"), "stats": prof.get("stats", {}),
+            "weights": prof.get("wallet_weights", {}), "disabled": prof.get("disabled_wallets", []),
+            "scalp_share": prof.get("scalp_share", {}), "news": flags[:12], "news_at": news.get("at")}
+
+
 def status() -> dict:
     events = _events()
     for e in events:
@@ -301,6 +345,7 @@ def status() -> dict:
     return {"now": time.strftime("%H:%M:%S"), "sync": _json(SYNC_STATE, {}), "portfolios": books,
             "roster": _roster(events), "events": events[:80], "logs": _logs(), "stocks": _stocks(),
             "wallets": _wallets(), "today": counts, "n_today": len(today),
+            "scalp": _scalp(), "learning": _learning(),
             "last": {f"{k[0]}:{k[1]}": v for k, v in picks.items() if v}, "last_exec": exe,
             "total_equity": round(sum(b.get("equity", 0) for b in books if b.get("available")), 2),
             "total_start": sum(b.get("start", 0) for b in books if b.get("available"))}
