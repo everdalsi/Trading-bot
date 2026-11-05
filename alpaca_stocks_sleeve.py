@@ -932,6 +932,11 @@ def _process_symbol(symbol: str, ledger: dict, market_open: bool, send_fn, convi
             return f"BUY(veto:senior_expert,score={score})"
         order = alpaca_broker.submit_market_order(symbol, "buy", qty)
         entry_price = order.get("filled_avg_price") or last_close
+        try:  # ExecutionController (B6): Alpaca paper fill vs the decision price
+            import execution_controller
+            execution_controller.record_stock(symbol, "BUY", qty * entry_price, order.get("filled_avg_price"), last_close)
+        except Exception:
+            pass
         cost = round(qty * entry_price, 2)
         ledger["virtual_cash"] = round(virtual_cash - cost, 2)
         risk = _compute_entry_risk(symbol)

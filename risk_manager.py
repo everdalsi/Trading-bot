@@ -164,6 +164,11 @@ def run() -> dict:
     for v in snap["violations"]:
         if v not in old:
             log_event("RiskManager", "systeme", "VIOLATION", "", v, result="a corriger")
+    try:  # ExecutionController summary refreshed with the risk snapshot (every 5 min)
+        import execution_controller
+        execution_controller.summary()
+    except Exception:
+        pass
     tmp = OUT.with_suffix(".json.tmp")
     tmp.write_text(json.dumps(snap), encoding="utf-8")
     tmp.replace(OUT)

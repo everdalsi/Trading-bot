@@ -214,6 +214,12 @@ def _open(pf: str, led: dict, symbol: str, side: str, bid: float, ask: float, st
     if usd < 5:
         return
     px = maker_px if maker_px else (ask if side == "LONG" else bid)
+    if pf != "actions_us" and not maker_px:  # ExecutionController (B6) on taker entries
+        try:
+            import execution_controller
+            execution_controller.record(f"scalp_{pf}", symbol, side, usd, px, max(0.0, _cost_side(pf, bid, ask) - FEE.get(pf, 0.001)))
+        except Exception:
+            pass
     led["cash"] -= usd
     led["positions"][f"{symbol}:{int(time.time())}"] = {
         "symbol": symbol, "side": side, "entry": px, "usd": usd, "best": px, "opened": time.time(),

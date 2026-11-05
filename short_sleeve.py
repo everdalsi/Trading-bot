@@ -117,6 +117,11 @@ def _open(ledger: dict, lane: str, symbol: str, price: float, usd: float, cost: 
     # fee + slippage on entry: a long buys higher, a (simulated) short sells lower
     fill = price * (1 + cost) if side == "LONG" else price * (1 - cost)
     qty = usd / fill
+    try:  # ExecutionController (B6): modelled slippage = cost minus the 0.10 % fee
+        import execution_controller
+        execution_controller.record("court_terme", symbol, side, usd, fill, max(0.0, cost - 0.0010))
+    except Exception:
+        pass
     tid = ledger["next_id"]; ledger["next_id"] += 1
     ledger["cash"] -= usd
     ledger["positions"][f"{lane}:{symbol}"] = {

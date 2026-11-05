@@ -5,6 +5,7 @@ from agent_events import log_event  # decision journal (agent_events.jsonl), nev
 import agency  # step 1 'agence': CostAnalyst, SeniorExpert, DataGuard, Watchdog
 import chart_analyst  # candle analysis for held symbols (chart_analysis.json)
 import macro_analyst, sentiment_analyst, fundamental_analyst, options_analyst  # agents v2 (Desktop), measurement only
+import execution_controller  # B6: simulated fills vs the real order book (execution_quality.jsonl)
 import meme_hunter  # B2: portfolio 3 memecoins, measurement mode (meme_candidates.jsonl)
 import risk_manager  # B1: vol-targeted sizing + portfolio risk snapshot (risk_manager.json)
 import top_traders  # best HL wallets + consensus per coin (top_traders.json)
@@ -2849,6 +2850,10 @@ def _open_hl_mirror(symbol: str, price: float, side: str, source_addr: str,
     base_amount = min(base_amount * vm, ledger["cash"] * 0.99)
     amount = base_amount * (1.0 - max(0.0, min(1.0, size_reduction)))
     qty = amount / price
+    try:  # ExecutionController (B6): the copy fills at the last price, no slippage modelled
+        execution_controller.record("crypto_copy", symbol, side, amount, price, 0.0)
+    except Exception:
+        pass
     ledger["cash"] -= amount
     risk = risk or {"risk_pct": 50, "top_headline": None}
     trade = {
