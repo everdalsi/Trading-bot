@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Salle des marchés</title>
+<style>
+  :root { --bg:#08100f; --panel:#0f1a19; --panel2:#132220; --line:#1f3532; --ink:#e9f3f1; --muted:#8aa39f;
+          --green:#2fe39a; --red:#ff5d6c; --amber:#ffc24a; --cyan:#3fd0ff; }
+  * { box-sizing: border-box; }
+  body { margin:0; background: radial-gradient(1100px 480px at 20% -10%, #0f3a33 0%, transparent 60%), var(--bg);
+         color:var(--ink); font:14px/1.45 "Segoe UI", system-ui, sans-serif; min-height:100vh; }
+  header { display:flex; align-items:center; gap:16px; padding:14px 22px; border-bottom:1px solid var(--line);
+           position:sticky; top:0; background:rgba(8,16,15,.86); backdrop-filter:blur(8px); z-index:2; }
+  .brand { font-weight:800; font-size:18px; letter-spacing:.4px; color:var(--green); }
+  .pill { font-size:12px; padding:3px 9px; border-radius:999px; border:1px solid var(--line); color:var(--muted); }
+  .grow { flex:1; }
+  main { display:grid; grid-template-columns:repeat(12,1fr); gap:16px; padding:18px 22px 30px; }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px 16px; min-width:0; }
+  .panel h2 { margin:0 0 12px; font-size:12px; text-transform:uppercase; letter-spacing:1.2px; color:var(--muted); }
+  .s12 { grid-column:span 12; } .s7 { grid-column:span 7; } .s5 { grid-column:span 5; }
+  @media (max-width:1100px) { .s7, .s5 { grid-column:span 12; } }
+  .books { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  @media (max-width:900px) { .books { grid-template-columns:1fr; } }
+  .book { background:var(--panel2); border-radius:10px; padding:12px 14px; border-top:3px solid var(--cyan); }
+  .book.halt { border-top-color:var(--red); }
+  .book h3 { margin:0; font-size:14px; }
+  .eq { font-size:28px; font-weight:800; margin:6px 0 2px; }
+  .kv { display:grid; grid-template-columns:1fr 1fr; gap:4px 12px; font-size:12px; color:var(--muted); margin-top:8px; }
+  .kv b { color:var(--ink); font-weight:600; }
+  .up { color:var(--green); } .down { color:var(--red); }
+  svg.spark { width:100%; height:46px; margin-top:8px; }
+  .office { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:10px; }
+  .agent { position:relative; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:11px 12px; }
+  .agent.active { border-color:#1d6b55; box-shadow:0 0 18px -8px var(--green); }
+  .agent b { font-size:13px; } .agent .sub { font-size:11px; color:var(--muted); }
+  .agent .dot { position:absolute; top:10px; right:10px; width:8px; height:8px; border-radius:50%; background:#3a4f4c; }
+  .agent.active .dot { background:var(--green); box-shadow:0 0 8px var(--green); animation:blink 1.2s infinite; }
+  @keyframes blink { 50% { opacity:.3; } }
+  .reason { font-size:11.5px; margin-top:6px; color:#c6d8d5; }
+  table { width:100%; border-collapse:collapse; font-size:12.5px; }
+  td, th { padding:6px; border-bottom:1px solid var(--line); text-align:left; }
+  th { color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.7px; font-weight:600; }
+  .feed { max-height:520px; overflow:auto; }
+  .ev { display:grid; grid-template-columns:64px 140px 1fr; gap:10px; padding:7px 0; border-bottom:1px solid var(--line); font-size:12.5px; }
+  .ev .t { color:var(--muted); font-variant-numeric:tabular-nums; }
+  .tag { font-size:10.5px; font-weight:700; padding:1px 7px; border-radius:5px; background:#1b2f2c; }
+  .tag.buy, .tag.open, .tag.enter { color:var(--green); } .tag.sell, .tag.close, .tag.exit { color:var(--amber); }
+  .tag.block, .tag.reject, .tag.halt, .tag.veto { color:var(--red); }
+  .empty { color:var(--muted); font-size:12.5px; padding:8px 0; }
+  .foot { color:var(--muted); font-size:11px; padding:0 22px 18px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">SALLE DES MARCHÉS</div>
+  <span class="pill">argent fictif (paper)</span>
+  <div class="grow"></div>
+  <span class="pill" id="sync">synchro …</span>
+  <span class="pill" id="clock">…</span>
+</header>
+<main>
+  <section class="panel s12"><h2>Portefeuilles</h2><div class="books" id="books"></div></section>
+  <section class="panel s12"><h2>Équipe d'agents (en direct)</h2><div class="office" id="office"></div></section>
+  <section class="panel s7"><h2>Décisions en direct</h2><div class="feed" id="feed"></div></section>
+  <section class="panel s5"><h2>Positions ouvertes</h2>
+    <table><thead><tr><th>Actif</th><th>Portefeuille</th><th>Mise</th><th>Entrée</th><th>Var.</th></tr></thead><tbody id="pos"></tbody></table>
+  </section>
+</main>
+<div class="foot">Lecture seule : cette page ne passe aucun ordre. Mise à jour toutes les 5 s.</div>
+<script>
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const money = v => (v == null ? "—" : (v < 0 ? "-" : "") + "$" + Math.abs(v).toLocaleString("fr-FR", {maximumFractionDigits: 2}));
+function spark(curve, start) {
+  if (!curve || curve.length < 2) return "";
+  const lo = Math.min(start, ...curve), hi = Math.max(start, ...curve), w = 300, h = 46, n = curve.length - 1;
+  const y = v => h - 4 - (hi === lo ? h / 2 : (v - lo) / (hi - lo) * (h - 8));
+  const pts = curve.map((v, i) => `${(i / n * w).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+  const col = curve[curve.length - 1] >= start ? "var(--green)" : "var(--red)";
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+    <line x1="0" x2="${w}" y1="${y(start)}" y2="${y(start)}" stroke="#2a403c" stroke-dasharray="3 3"/>
+    <polyline fill="none" stroke="${col}" stroke-width="2" points="${pts}"/></svg>`;
+}
+function ago(s) { if (s == null) return "jamais"; if (s < 60) return s + " s"; if (s < 3600) return Math.round(s/60) + " min"; return Math.round(s/3600) + " h"; }
+function render(st) {
+  document.getElementById("clock").textContent = st.now;
+  const sy = st.sync || {};
+  document.getElementById("sync").textContent = sy.at ? `synchro VPS il y a ${ago(Math.round(Date.now()/1000 - sy.at))}` + (sy.error ? " · erreur" : "") : "synchro VPS : en attente";
+  document.getElementById("books").innerHTML = st.portfolios.map(p => {
+    if (!p.available) return `<div class="book"><h3>${esc(p.label)}</h3><div class="empty">Pas encore de données</div></div>`;
+    const perf = p.equity - p.start, cls = perf >= 0 ? "up" : "down";
+    return `<div class="book ${p.halted ? "halt" : ""}"><h3>${esc(p.label)}</h3>
+      <div class="eq">${money(p.equity)} <span class="${cls}" style="font-size:14px">${perf >= 0 ? "+" : ""}${(100 * perf / p.start).toFixed(1)} %</span></div>
+      ${p.halted ? `<div class="down" style="font-size:12px">⛔ coupe-circuit : ${esc(p.halted)}</div>` : ""}
+      ${spark(p.curve, p.start)}
+      <div class="kv"><span>Cash libre</span><b>${money(p.cash)}</b><span>En trade</span><b>${money(p.in_trade)}</b>
+        <span>Trades clôturés</span><b>${p.n_trades}</b><span>Taux de réussite</span><b>${p.win_rate == null ? "—" : p.win_rate + " %"}</b>
+        <span>Profit factor</span><b>${p.profit_factor ?? "—"}</b><span>PnL réalisé</span><b class="${p.pnl_closed >= 0 ? "up" : "down"}">${money(p.pnl_closed)}</b></div></div>`;
+  }).join("");
+  document.getElementById("office").innerHTML = st.agents.length ? st.agents.map(a =>
+    `<div class="agent ${a.active ? "active" : ""}"><i class="dot"></i><b>${esc(a.name)}</b>
+     <div class="sub">${esc(a.portfolio)} · ${a.decisions_1h} décisions / h · il y a ${ago(a.age_s)}</div>
+     <div class="reason"><span class="tag ${esc(a.last_action)}">${esc(a.last_action)}</span> ${esc(a.last_reason).slice(0, 110)}</div></div>`).join("")
+    : '<div class="empty">Les agents n\'ont encore rien publié dans le journal de décisions.</div>';
+  document.getElementById("feed").innerHTML = st.events.length ? st.events.map(e => {
+    const t = e.ts ? new Date(e.ts * 1000).toLocaleTimeString("fr-FR", {hour: "2-digit", minute: "2-digit", second: "2-digit"}) : "";
+    return `<div class="ev"><span class="t">${t}</span><span><b>${esc(e.agent)}</b><br><span class="t">${esc(e.portfolio)}</span></span>
+      <span><span class="tag ${esc(e.action)}">${esc(e.action)}</span> <b>${esc(e.symbol || "")}</b> ${esc(e.reason || "")}
+      ${e.score != null ? `<span class="t"> · score ${esc(e.score)}</span>` : ""}${e.result ? `<span class="t"> · ${esc(e.result)}</span>` : ""}</span></div>`;
+  }).join("") : '<div class="empty">En attente des premières décisions…</div>';
+  const pos = st.portfolios.flatMap(p => (p.positions || []).map(x => ({...x, book: p.label})));
+  document.getElementById("pos").innerHTML = pos.length ? pos.map(x => {
+    const ch = x.entry && x.last ? 100 * (x.last - x.entry) / x.entry : null;
+    return `<tr><td><b>${esc(x.symbol)}</b> ${esc(x.lane)}</td><td>${esc(x.book).split(" (")[0]}</td><td>${money(x.usd)}</td>
+      <td>${x.entry || "—"}</td><td class="${ch == null ? "" : ch >= 0 ? "up" : "down"}">${ch == null ? "—" : ch.toFixed(1) + " %"}</td></tr>`;
+  }).join("") : '<tr><td colspan="5" class="empty">Aucune position ouverte</td></tr>';
+}
+async function tick() {
+  try { render(await (await fetch("/api/status", {cache: "no-store"})).json()); }
+  catch (e) { document.getElementById("clock").textContent = "serveur arrêté"; }
+}
+tick(); setInterval(tick, 5000);
+</script>
+</body>
+</html>
