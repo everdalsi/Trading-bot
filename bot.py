@@ -3121,6 +3121,7 @@ def _crypto_net_exposure(hl_ledger: dict) -> float:
 
 
 HL_FILL_NET_LIMIT = float(os.environ.get("HL_FILL_NET_LIMIT", 0.60))
+HL_HEDGE_NET = float(os.environ.get("HL_HEDGE_NET", 0.30))
 
 
 def hl_consensus_fill(send_fn):
@@ -3148,8 +3149,8 @@ def hl_consensus_fill(send_fn):
 
     # exits: consensus faded or flipped against a consensus position
     for key, p in list(ledger["positions"].items()):
-        if p.get("hl_source_addr") != HL_CONSENSUS_ADDR:
-            continue
+        if p.get("hl_source_addr") != HL_CONSENSUS_ADDR or p.get("strategy") == "HL_HEDGE":
+            continue  # hedge legs have their own exit (below)
         c = cons.get(_coin(p["symbol"]))
         if c is None:
             continue
@@ -3176,6 +3177,14 @@ def hl_consensus_fill(send_fn):
         label = regime.current()["label"]
     except Exception:
         label = "neutral"
+    # hedge exits: not needed any more (books no longer net short) or the regime turned risk_off
+    net0 = _crypto_net_exposure(ledger)
+    for key, p in list(ledger["positions"].items()):
+        if p.get("strategy") == "HL_HEDGE" and (net0 > -0.10 or label == "risk_off"):
+            price = get_current_price(p["symbol"])
+            if price:
+                _close_hl_mirror(key, price, f"couverture levee (expo nette {net0:+.0%}, regime {label})", send_fn)
+                ledger = load_hl_copy_ledger()
     held = {p["symbol"] for p in ledger["positions"].values()}
     why = {"regime": 0, "repartition": 0, "graphique": 0, "senior": 0, "deja_detenu": 0, "ouverts": 0, "expo_nette": 0}
     net = _crypto_net_exposure(ledger)
@@ -3230,6 +3239,41 @@ def hl_consensus_fill(send_fn):
                   score=c, result="ouvert")
         ledger = load_hl_copy_ledger()
         held.add(symbol)
+        invested = sum(float(p.get("amount_usd", 0)) for p in ledger["positions"].values())
+        eq = _hl_equity(ledger)
+        net = _crypto_net_exposure(ledger)
+    # Hedge leg (2026-11-05): neutral regime, both crypto books heavily net short and still cash left ->
+    # LONG BTC then ETH (short alts / long majors = relative value, the lane A thesis). Invests the idle
+    # cash AND reduces the net exposure; capped by the 30 % LONG majors rule; chart veto kept.
+    for sym in ("BTCUSDT", "ETHUSDT"):
+        if label != "neutral" or net > -HL_HEDGE_NET or invested + _hl_position_size(ledger) > eq * 1.0001:
+            break
+        if sym in held:
+            continue
+        ok, why_ = _hl_spread_ok(ledger, sym, "LONG", HL_CONSENSUS_ADDR)
+        if not ok:
+            why["repartition"] += 1
+            break
+        price = get_current_price(sym)
+        if not price:
+            continue
+        try:
+            ca = chart_analyst.ensure(sym)
+            if (ca.get("1h") or {}).get("trend") == (ca.get("4h") or {}).get("trend") == "down":
+                why["graphique"] += 1
+                continue
+        except Exception:
+            pass
+        approved, _ = agency.approve_entry("crypto_copy", sym, price, 0.005, {"side": "LONG", "fill_mode": True})
+        if not approved:
+            why["senior"] += 1
+            continue
+        _open_hl_mirror(sym, price, "LONG", HL_CONSENSUS_ADDR, sym.replace("USDT", ""), 0.0, send_fn, strategy="HL_HEDGE")
+        log_event("FillEngine", "crypto_copy", "BUY", sym.replace("USDT", ""),
+                  f"couverture : LONG majeure contre un livre crypto net {net:+.0%} (regime neutre)", result="ouvert")
+        why["ouverts"] += 1
+        ledger = load_hl_copy_ledger()
+        held.add(sym)
         invested = sum(float(p.get("amount_usd", 0)) for p in ledger["positions"].values())
         eq = _hl_equity(ledger)
         net = _crypto_net_exposure(ledger)
