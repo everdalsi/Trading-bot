@@ -51,7 +51,11 @@ def _rugcheck(mint: str) -> list[str]:
         bad.append("mint/freeze authority non revoquee")
     if d.get("rugged"):
         bad.append("marque rugged")
-    pools = set((d.get("knownAccounts") or {}).keys())
+    # top-10 concentration excludes pools, lockers and burns, but NEVER the creator (calibration 2026-11-05:
+    # every knownAccount was excluded before, the creator's wallet included -> concentration understated)
+    pools = {a for a, v in (d.get("knownAccounts") or {}).items()
+             if str((v or {}).get("type", "")).upper() in ("AMM", "LOCKER", "PROGRAM", "BURN")}
+    pools.add("1nc1nerator11111111111111111111111111111111")
     for m in d.get("markets") or []:
         pools |= {v for k in ("pubkey", "liquidityA", "liquidityB", "liquidityAAccount", "liquidityBAccount")
                   if isinstance(v := m.get(k), str)}
@@ -86,7 +90,11 @@ def _goplus(chain: str, addr: str) -> list[str]:
         bad.append("contrat mintable")
     if d.get("owner_change_balance") == "1":
         bad.append("le proprietaire peut modifier les soldes")
-    top = sum(float(h.get("percent", 0)) for h in (d.get("holders") or [])[:10] if h.get("is_contract") != 1)
+    def _real_holder(h: dict) -> bool:  # exchanges (GoPlus tag), locks, burns and contracts are not owners
+        a = str(h.get("address", "")).lower()
+        return (h.get("is_contract") != 1 and h.get("is_locked") != 1 and not h.get("tag")
+                and not a.startswith(("0x000000000000000000000000000000000000dead", "0x0000000000000000000000000000000000000000")))
+    top = sum(float(h.get("percent", 0)) for h in [h for h in (d.get("holders") or []) if _real_holder(h)][:10])
     if top > MAX_TOP10:
         bad.append(f"top 10 detenteurs {top:.0%}")
     locked = sum(float(h.get("percent", 0)) for h in d.get("lp_holders") or [] if h.get("is_locked") == 1
