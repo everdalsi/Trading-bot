@@ -4288,7 +4288,7 @@ def trading_loop(send_fn):
                 _s_phase   = soul_state.get("phase", "TRAINING")
                 _s_conf    = _soul.params.get("confidence_threshold", 0.01)
                 _s_kelly   = _soul.params.get("kelly_fraction", 0.05)
-                logger.info(
+                logger.debug(  # every minute: debug level (was flooding the logs with an idle MICRO sleeve)
                     f"[SOUL] 🔮 tick → phase={_s_phase} | conf={_s_conf:.0%} | kelly={_s_kelly:.1%} | "
                     f"streak={_soul._criteria_pass_streak}"
                 )

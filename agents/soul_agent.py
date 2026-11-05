@@ -532,7 +532,8 @@ class SoulAgent:
         self._maybe_go_live(metrics)
 
         # Générer une pensée et la journaliser
-        if changes or old_phase != self.params["phase"] or metrics["total_trades"] % 50 == 0:
+        # 0 % 50 == 0: without the > 0 guard this wrote a "difficult streak (0.0% WR)" thought every minute
+        if changes or old_phase != self.params["phase"] or (metrics["total_trades"] > 0 and metrics["total_trades"] % 50 == 0):
             thought = self._generate_thought(metrics, changes, old_phase)
             self._write_thought("AUTO_ADJUST", thought, metrics, changes)
 
