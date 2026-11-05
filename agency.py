@@ -207,6 +207,15 @@ def _approve_entry(portfolio: str, symbol: str, price: float | None, proxy_edge:
     if not ok:
         log_event("DataGuard", portfolio, "VETO", symbol, why, result="entree bloquee (sorties permises)")
         return False, why
+    try:  # NewsAgent: no entry < 6 h after a strong negative headline on this symbol
+        import news_agent
+        bad = news_agent.strong_negative(symbol, 6 * 3600)
+        if bad:
+            why = f"news negative forte < 6 h : {bad[:120]}"
+            log_event("SeniorExpert", portfolio, "VETO", symbol, why, result="refuse")
+            return False, why
+    except ImportError:
+        pass
     if portfolio == "crypto_copy":
         vol = _quote_volume(symbol)
         if vol is not None and vol < MIN_QUOTE_VOL_USD:
