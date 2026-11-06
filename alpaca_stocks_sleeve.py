@@ -253,11 +253,81 @@ FILL_TOPUP = bool(int(os.environ.get("ALPACA_FILL_TOPUP", 0)))
 FILL_MAX_POS_PCT = float(os.environ.get("ALPACA_FILL_MAX_POS_PCT", 0.10))
 
 
+# Cash parking (user 2026-11-06: "100 % des portefeuilles investis"): idle cash above a 2 % reserve sits in SGOV
+# (0-3 month US T-bills, ~0 risk). It counts as invested everywhere, is sold first when a real buy needs cash,
+# is never managed by the TradeManager, never counted as a trade (no closed_trades / circuit breaker entry):
+# its P&L is kept apart in ledger["parking_pnl"]. ALPACA_PARK=0 = off.
+PARK = bool(int(os.environ.get("ALPACA_PARK", 1)))
+PARK_SYMBOL = os.environ.get("ALPACA_PARK_SYMBOL", "SGOV")
+PARK_RESERVE = float(os.environ.get("ALPACA_PARK_RESERVE", 0.02))
+PARK_MIN_USD = 25.0
+
+
+def _real(ledger: dict) -> dict:
+    """Positions without the cash parking."""
+    return {k: v for k, v in ledger["positions"].items() if not v.get("parking")}
+
+
+def _park_price() -> float | None:
+    bars = alpaca_broker.get_recent_bars(PARK_SYMBOL, "15m", 2)
+    return bars[-1][4] if bars else None
+
+
+def _park_sell(ledger: dict, usd: float, send_fn) -> None:
+    """Free `usd` of cash by selling part of the parking (a cash movement, not a trade)."""
+    pos = ledger["positions"].get(PARK_SYMBOL)
+    if not pos or usd <= 0:
+        return
+    px = _park_price() or pos["entry_price"]
+    qty = min(pos["qty"], round(usd / px + 0.0001, 4))
+    order = alpaca_broker.submit_market_order(PARK_SYMBOL, "sell", qty)
+    exit_px = order.get("filled_avg_price") or px
+    part_cost = round(pos["cost"] * qty / pos["qty"], 2)
+    proceeds = round(qty * exit_px, 2)
+    ledger["virtual_cash"] = round(float(ledger.get("virtual_cash", 0)) + proceeds, 2)
+    ledger["parking_pnl"] = round(float(ledger.get("parking_pnl", 0)) + proceeds - part_cost, 4)
+    if qty >= pos["qty"] - 1e-6:
+        del ledger["positions"][PARK_SYMBOL]
+    else:
+        pos["qty"] = round(pos["qty"] - qty, 4)
+        pos["cost"] = round(pos["cost"] - part_cost, 2)
+    log_event("Executor", "actions_us", "REDUCE", PARK_SYMBOL, f"parking : {proceeds:.0f} $ liberes pour un achat",
+              result=round(proceeds - part_cost, 4), price=exit_px, parking=True)
+
+
+def _park_rebalance(ledger: dict, send_fn) -> None:
+    """End of cycle: idle cash above the reserve -> SGOV."""
+    cash = float(ledger.get("virtual_cash", 0))
+    eq = cash + sum(float(p.get("cost", 0)) for p in ledger["positions"].values())
+    excess = cash - PARK_RESERVE * eq
+    if excess < PARK_MIN_USD:
+        return
+    px = _park_price()
+    if not px:
+        return
+    qty = round(excess / px, 4)
+    order = alpaca_broker.submit_market_order(PARK_SYMBOL, "buy", qty)
+    fill = order.get("filled_avg_price") or px
+    cost = round(qty * fill, 2)
+    ledger["virtual_cash"] = round(cash - cost, 2)
+    pos = ledger["positions"].get(PARK_SYMBOL)
+    if pos:
+        pos["qty"] = round(pos["qty"] + qty, 4)
+        pos["cost"] = round(pos["cost"] + cost, 2)
+        pos["entry_price"] = round(pos["cost"] / pos["qty"], 4)
+    else:
+        ledger["positions"][PARK_SYMBOL] = {"qty": qty, "entry_price": fill, "cost": cost, "ref_price": px,
+                                            "entry_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                            "order_id": order.get("id"), "score_at_entry": None, "parking": True}
+    log_event("Executor", "actions_us", "BUY", PARK_SYMBOL, f"parking : {cost:.0f} $ de cash inactif en bons du Tresor",
+              result="parque", price=fill, usd=cost, parking=True)
+
+
 def _fill_topup(ledger: dict, send_fn) -> None:
     """User request 2026-11-05 (~100 % invested): when every candidate with score >= FILL_MIN_SCORE is
     already held at 5 %, top the held ones up toward FILL_TARGET / n positions (max 10 % each), best score
     first, each add approved by the SeniorExpert."""
-    pos = ledger["positions"]
+    pos = _real(ledger)
     if not pos:
         return
     cash = float(ledger.get("virtual_cash", VIRTUAL_STARTING_CASH))
@@ -679,7 +749,7 @@ def _alpaca_stocks_worker_body(send_fn) -> None:
     ledger["_spy_brake"] = bool(brake.get("on"))
 
     max_positions = max(len(effective_universe), int(1 / POS_PCT))
-    invested = sum(float(p.get("cost", 0)) for p in ledger["positions"].values())
+    invested = sum(float(p.get("cost", 0)) for p in _real(ledger).values())  # parking = still free for real buys
     ledger["_fill_mode"] = invested < FILL_TARGET * max(1.0, virtual_equity)
     # best-scored candidates first when filling: order the universe by last cycle's scores
     last = {d.get("symbol"): d.get("score", 0) for d in ledger.get("decisions", [])[-200:] if isinstance(d, dict)}
@@ -696,7 +766,7 @@ def _alpaca_stocks_worker_body(send_fn) -> None:
     if market_open and ledger.get("_fill_mode") and not trading_blocked and ledger.get("_spy_brake"):
         try:
             import spy_brake
-            pos_ = ledger["positions"]
+            pos_ = _real(ledger)
             eq = float(ledger.get("virtual_cash", VIRTUAL_STARTING_CASH)) + sum(float(p.get("cost", 0)) for p in pos_.values())
             each = min(FILL_MAX_POS_PCT, FILL_TARGET / max(1, len(pos_))) * eq
             for sym, p in pos_.items():
@@ -717,6 +787,11 @@ def _alpaca_stocks_worker_body(send_fn) -> None:
         except Exception as e:
             _safe_send(send_fn, f"[ALPACA-STOCKS] TradeManager error (non-blocking): {type(e).__name__}: {e}")
 
+    if market_open and PARK:
+        try:
+            _park_rebalance(ledger, send_fn)
+        except Exception as e:
+            _safe_send(send_fn, f"[ALPACA-STOCKS] parking error (non-blocking): {type(e).__name__}: {e}")
     ledger.pop("_fill_mode", None)
     ledger.pop("_spy_brake", None)
     ledger["last_run"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -845,7 +920,7 @@ def _reduce_position(ledger: dict, symbol: str, fraction: float, reason: str, pr
 
 def _stocks_trade_manager(ledger: dict, send_fn) -> None:
     views = []
-    for symbol, pos in ledger["positions"].items():
+    for symbol, pos in _real(ledger).items():
         bars = alpaca_broker.get_recent_bars(symbol, "15m", 3)
         if not bars or not pos.get("entry_price"):
             continue
@@ -989,7 +1064,7 @@ def _process_symbol(symbol: str, ledger: dict, market_open: bool, send_fn, convi
         action = "BUY"  # filling toward ~100 % invested with the best candidates below the usual threshold
         fill_entry = True
     if action == "BUY" and not has_position:
-        open_count = len(ledger["positions"])
+        open_count = len(_real(ledger))
         if open_count >= max_positions:
             return f"BUY(skip:max_positions,score={score})"
         if trading_blocked:
@@ -1013,9 +1088,15 @@ def _process_symbol(symbol: str, ledger: dict, market_open: bool, send_fn, convi
         virtual_cash = float(ledger.get("virtual_cash", VIRTUAL_STARTING_CASH))
         equity = virtual_cash + sum(float(p.get("cost", 0)) for p in ledger["positions"].values())
         size = equity * POS_PCT
+        if PARK and virtual_cash < size and PARK_SYMBOL in ledger["positions"]:
+            try:  # the parking is sold first to pay for a real signal
+                _park_sell(ledger, size - virtual_cash, send_fn)
+                virtual_cash = float(ledger.get("virtual_cash", VIRTUAL_STARTING_CASH))
+            except Exception as e:
+                _safe_send(send_fn, f"[ALPACA-STOCKS] parking sell error (non-blocking): {type(e).__name__}: {e}")
         if virtual_cash < size * 0.5:
             return f"BUY(skip:cash_insuffisant ${virtual_cash:.0f},score={score})"
-        reduction = compute_correlation_reduction(symbol, closes, ledger["positions"])
+        reduction = compute_correlation_reduction(symbol, closes, _real(ledger))
         usd_size = min(size, virtual_cash) * (1 - reduction)
         qty = round(usd_size / last_close, 4)
         if qty <= 0:
