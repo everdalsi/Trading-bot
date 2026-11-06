@@ -2908,6 +2908,29 @@ def _open_hl_mirror(symbol: str, price: float, side: str, source_addr: str,
               size_reduction=size_reduction, news_risk_pct=risk.get("risk_pct") if risk else None,
               **_market_tags(symbol, side))
 
+_backtest_started = False
+
+
+def _start_daily_backtest() -> None:
+    """Desktop backtester.run() once a day (walk-forward, out-of-sample, real costs) -> backtest_report.json."""
+    global _backtest_started
+    if _backtest_started:
+        return
+    _backtest_started = True
+
+    def loop():
+        time.sleep(900)
+        while True:
+            try:
+                import backtester
+                backtester.run(["BTCUSDT", "ETHUSDT", "SOLUSDT"], 7)
+                log_event("Backtester", "systeme", "INFO", "", "walk-forward quotidien termine", result="cycle")
+            except Exception as e:
+                log_event("Backtester", "systeme", "INFO", "", f"erreur {type(e).__name__}: {str(e)[:120]}")
+            time.sleep(24 * 3600)
+    threading.Thread(target=loop, daemon=True, name="Backtester").start()
+
+
 def _open_positions_all() -> list[dict]:
     """[{symbol, side, usd}] of every open position, HL copy + court terme (for funding_radar.carry_report)."""
     out = []
@@ -6126,6 +6149,9 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         regime_hmm.start(3600)
         import desk_context  # Desktop: concentration, spreads, whale flows, listings, mentions (measurement)
         desk_context.start(_open_positions_all, 600)
+        import api_keeper  # Desktop: provider pings, Binance weight, freshness of every agent file, secrets scan
+        api_keeper.start(600)
+        _start_daily_backtest()
     except Exception as e:
         logger.info(f"[TRENDING] non demarre: {type(e).__name__}: {e}")
     scalper.start()
@@ -7879,6 +7905,9 @@ def auto_start():
         regime_hmm.start(3600)
         import desk_context  # Desktop: concentration, spreads, whale flows, listings, mentions (measurement)
         desk_context.start(_open_positions_all, 600)
+        import api_keeper  # Desktop: provider pings, Binance weight, freshness of every agent file, secrets scan
+        api_keeper.start(600)
+        _start_daily_backtest()
     except Exception as e:
         logger.info(f"[TRENDING] non demarre: {type(e).__name__}: {e}")
     scalper.start()

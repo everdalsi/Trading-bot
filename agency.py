@@ -153,8 +153,28 @@ class DataGuard:
             return self._block(f"{symbol} : saut de prix {abs(price - old[0]) / old[0]:.0%} incoherent")
         if old and portfolio == "crypto_copy" and now - old[2] > 120 and btc and now - btc[2] < 120:
             return self._block(f"{symbol} : prix fige depuis {int((now - old[2]) / 60)} min")
+        stale = self.stale_inputs()
+        if stale:
+            return self._block(f"donnees de controle perimees : {', '.join(stale)} (api_keeper)")
         self.blocked_reason = ""
         return True, ""
+
+    # control inputs an entry relies on: if Desktop's api_keeper sees them stale (> 3 x their period), no new entry
+    CRITICAL = ("chart_analysis.json", "risk_manager.json")
+
+    def stale_inputs(self) -> list[str]:
+        """Critical files flagged stale in DATA_DIR/api_keeper.json (ignored if that report is itself > 30 min old)."""
+        try:
+            import json as _json
+            import os as _os
+            from pathlib import Path as _P
+            f = _P(_os.environ.get("DATA_DIR") or ".") / "api_keeper.json"
+            if time.time() - f.stat().st_mtime > 1800:
+                return []
+            fr = (_json.loads(f.read_text(encoding="utf-8")).get("freshness") or {})
+            return [n for n in self.CRITICAL if (fr.get(n) or {}).get("stale")]
+        except Exception:
+            return []
 
     def _block(self, why: str) -> tuple[bool, str]:
         self.blocked_reason = why
