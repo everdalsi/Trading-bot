@@ -34,6 +34,13 @@ def _desktop_signals(symbol: str, side: str | None) -> dict:
             out["radar_score"], out["radar_dir"] = row.get("score"), row.get("direction")
     except Exception:
         pass
+    try:  # Desktop manipulation.py (control agent, measurement): pump / volume spike / wash / thin book
+        import manipulation
+        m = manipulation.check(symbol)
+        if m:
+            out["manip_verdict"], out["manip_score"] = m.get("verdict"), m.get("score")
+    except Exception:
+        pass
     try:
         out["hmm_regime"] = json.loads((d / "regime_hmm.json").read_text(encoding="utf-8")).get("label")
     except Exception:

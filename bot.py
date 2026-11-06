@@ -2,6 +2,7 @@
 
 import os, time, threading, feedparser, requests, asyncio
 from agent_events import log_event  # decision journal (agent_events.jsonl), never raises
+import signals as trade_bus  # trade circuits + coordinator (desk spec step 1; 'signals' is a local name here)
 import agency  # step 1 'agence': CostAnalyst, SeniorExpert, DataGuard, Watchdog
 import chart_analyst  # candle analysis for held symbols (chart_analysis.json)
 import macro_analyst, sentiment_analyst, fundamental_analyst, options_analyst  # agents v2 (Desktop), measurement only
@@ -3259,6 +3260,7 @@ def hl_consensus_fill(send_fn):
     cands = sorted(((c, v) for c, v in cons.items() if abs(v) >= HL_FILL_MIN_CONS and holders.get(c, 0) >= HL_FILL_MIN_HOLDERS),
                    key=lambda cv: -abs(cv[1]) * min(1.0, holders.get(cv[0], 0) / 10))
     for coin, c in cands:
+        trade_bus.begin("crypto_copy", f"{coin}USDT", "consensus")  # trade circuit (signals.py)
         if invested + _hl_position_size(ledger) > eq * 1.0001:
             break
         symbol = HL_COIN_TO_BINANCE.get(coin) or HL_COIN_TO_BINANCE.get("k" + coin) or f"{coin}USDT"
@@ -3314,6 +3316,7 @@ def hl_consensus_fill(send_fn):
     # LONG BTC then ETH (short alts / long majors = relative value, the lane A thesis). Invests the idle
     # cash AND reduces the net exposure; capped by the 30 % LONG majors rule; chart veto kept.
     for sym in ("BTCUSDT", "ETHUSDT", "SOLUSDT"):  # majors not shorted by the book, in that order
+        trade_bus.begin("crypto_copy", sym, "hedge")
         if label != "neutral" or net > -HL_HEDGE_NET or invested + _hl_position_size(ledger) > eq * 1.0001:
             break
         hedged = sum(float(p.get("amount_usd", 0)) for p in ledger["positions"].values()
@@ -3375,6 +3378,7 @@ def hl_consensus_fill(send_fn):
                  if v >= HL_PAIR_LONG_MIN_CONS and holders.get(c, 0) >= HL_FILL_MIN_HOLDERS]
         li = 0
         for coin, c in cands:
+            trade_bus.begin("crypto_copy", f"{coin}USDT", "pair")
             unit = _hl_position_size(ledger)
             if invested + 2 * unit > eq * 1.0001 or ledger["cash"] < 2 * unit:
                 break
@@ -3420,6 +3424,7 @@ def hl_consensus_fill(send_fn):
             invested = sum(float(p.get("amount_usd", 0)) for p in ledger["positions"].values())
             eq = _hl_equity(ledger)
             net = _crypto_net_exposure(ledger)
+    trade_bus.end()
     # one summary per cycle so the Trading Floor shows WHY the book is not full (Desktop review)
     log_event("FillEngine", "crypto_copy", "INFO", "", f"remplissage : investi {invested / eq:.0%}, {len(cands)} candidats "
               f"consensus, regime {label}, expo nette crypto {net:+.0%}", result=why, invested_pct=round(invested / eq, 3),
@@ -3509,6 +3514,7 @@ def _hl_copytrade_worker_body(send_fn):
 
         copy_disabled = professor.wallet_disabled(addr)  # Auditor: negative net expectancy over >= 50 trades
         for coin, pos in live_positions.items():
+            trade_bus.begin("crypto_copy", f"{coin}USDT", f"copy {addr[:8]}")
             if coin in last_seen:
                 continue
             if copy_disabled:
@@ -6109,6 +6115,7 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     short_sleeve.start(send)
     news_agent.start()
     professor.start()
+    trade_bus.start(60)  # Coordinator: stuck circuits, expired signals -> coordinator.json
     try:  # Desktop trending.py: CoinGecko trending coins every 15 min (measurement next to court terme / MemeHunter)
         import trending
         trending.start(900)
@@ -6117,6 +6124,8 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         import funding_radar, regime_hmm  # Desktop: funding carry + OI radar, BTC regime HMM (measurement)
         funding_radar.start(_open_positions_all, 300)
         regime_hmm.start(3600)
+        import desk_context  # Desktop: concentration, spreads, whale flows, listings, mentions (measurement)
+        desk_context.start(_open_positions_all, 600)
     except Exception as e:
         logger.info(f"[TRENDING] non demarre: {type(e).__name__}: {e}")
     scalper.start()
@@ -7859,6 +7868,7 @@ def auto_start():
     short_sleeve.start(send)
     news_agent.start()
     professor.start()
+    trade_bus.start(60)  # Coordinator: stuck circuits, expired signals -> coordinator.json
     try:  # Desktop trending.py: CoinGecko trending coins every 15 min (measurement next to court terme / MemeHunter)
         import trending
         trending.start(900)
@@ -7867,6 +7877,8 @@ def auto_start():
         import funding_radar, regime_hmm  # Desktop: funding carry + OI radar, BTC regime HMM (measurement)
         funding_radar.start(_open_positions_all, 300)
         regime_hmm.start(3600)
+        import desk_context  # Desktop: concentration, spreads, whale flows, listings, mentions (measurement)
+        desk_context.start(_open_positions_all, 600)
     except Exception as e:
         logger.info(f"[TRENDING] non demarre: {type(e).__name__}: {e}")
     scalper.start()

@@ -349,6 +349,9 @@ def entries(pf: str, led: dict, symbols: list[str], quotes: dict[str, tuple[floa
                 continue
             strat = {"breakout": "A", "mean_reversion": "B"}.get(mode, strat)
         side = signal_a(b) if strat == "A" else signal_b(s, b)
+        if side:
+            import signals
+            signals.begin(f"scalp_{pf}", s, f"scalper {strat}")
         if side and ORDERFLOW and pf != "actions_us":
             try:
                 import microstructure

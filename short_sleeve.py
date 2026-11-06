@@ -328,6 +328,8 @@ def lane_a_rotate(ledger: dict, can_open: bool, send_fn) -> None:
     except Exception:
         alloc = {}
     for s in targets:
+        import signals
+        signals.begin("court_terme", s, "lane A")
         if f"A:{s}" in ledger["positions"] or sum(p["lane"] == "A" for p in ledger["positions"].values()) >= A_MAX_POS:
             continue
         usd = min(alloc.get(s, eq * A_POS_PCT), budget_left)
