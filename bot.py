@@ -2964,6 +2964,8 @@ def _start_measurement_agents() -> None:
         ("RegimeHMM", lambda: __import__("regime_hmm").start(3600)),
         ("MarketDesk", lambda: __import__("market_desk").start(300)),
         ("Kronos", lambda: __import__("kronos_agent").start()),
+        ("PublicData", lambda: __import__("public_data").start(900)),  # Binance futures public data, 100 markets
+        ("KronosPair", lambda: __import__("kronos_pair").start()),  # Kronos paired with its universe's smart money
         ("DeskContext", lambda: __import__("desk_context").start(_open_positions_all, 600)),
         ("ApiKeeper", lambda: __import__("api_keeper").start(600)),
         ("Backtester", _start_daily_backtest),

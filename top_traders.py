@@ -30,7 +30,14 @@ DATA_DIR = Path(os.environ.get("DATA_DIR") or ".")
 OUT = DATA_DIR / "top_traders.json"
 LEADERBOARD = "https://stats-data.hyperliquid.xyz/Mainnet/leaderboard"
 INFO = "https://api.hyperliquid.xyz/info"
-MIN_ACCOUNT, CANDIDATES, MIN_TRADES, MAX_DD, TOP_PER_CAT, MIN_HOLDERS = 50_000, 200, 20, 0.60, 50, 5
+MIN_ACCOUNT, MIN_TRADES, MAX_DD, MIN_HOLDERS = 50_000, 20, 0.60, 5
+# user 06/11: "les 100 meilleurs wallets en fonction des categories de trade qu'on veut prendre" -> 100 per category
+# (majors / alts / memes AND universe A / universe B), so the leaderboard depth grows to 500 candidates. userFills
+# weighs 20 on HL's 1200/min budget (pause 1.1 s): the full selection runs every SELECT_EVERY_S, positions every hour.
+CANDIDATES = int(os.environ.get("TOP_TRADERS_CANDIDATES", 500))
+TOP_PER_CAT = int(os.environ.get("TOP_TRADERS_PER_CAT", 100))
+SELECT_EVERY_S = int(os.environ.get("TOP_TRADERS_SELECT_S", 6 * 3600))
+KEPT = DATA_DIR / "top_traders_kept.json"
 MAX_CLOSES_30D, TOP3_MAX_SHARE = 3000, 0.50
 MAJORS = {"BTC", "ETH", "SOL"}
 MEMES = {"kPEPE", "PEPE", "WIF", "kBONK", "BONK", "POPCAT", "kSHIB", "SHIB", "DOGE", "kFLOKI", "FLOKI", "MEW",
@@ -113,15 +120,60 @@ def positions(addr: str) -> dict[str, tuple[str, float]]:
     return out
 
 
-def run() -> dict:
+def _key(coin: str) -> str:
+    return coin[1:] if coin.startswith("k") and coin[1:].isupper() else coin
+
+
+def _universes() -> dict[str, set]:
+    """Coins of universe A (crypto copy) and B (court terme), from market_desk (single source)."""
+    out = {"A": set(), "B": set()}
+    try:
+        import market_desk
+        for u in ("A", "B"):
+            out[u] = {s.removesuffix("USDT").removeprefix("1000") for s in market_desk.universe(u)}
+    except Exception:
+        pass
+    return out
+
+
+def _consensus(wallets: list[dict]) -> tuple[dict, dict]:
+    num, den, holders = {}, {}, {}
+    for w in wallets:
+        for coin, (side, _) in w["positions"].items():
+            k = _key(coin)
+            num[k] = num.get(k, 0) + (1 if side == "LONG" else -1) * w["score"]
+            den[k] = den.get(k, 0) + w["score"]
+            holders[k] = holders.get(k, 0) + 1
+    return ({c: round(num[c] / den[c], 3) for c in num if holders[c] >= MIN_HOLDERS and den[c] > 0}, holders)
+
+
+def select() -> list[dict]:
+    """Full selection (every SELECT_EVERY_S): leaderboard -> 30-day fills filters -> scored wallets."""
     kept = []
     for w in candidates():
         try:
             r = regularity(w)
         except Exception:
             continue
-        if not r:
-            continue
+        if r:
+            kept.append(r)
+    tmp = KEPT.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps({"at": time.time(), "wallets": kept}), encoding="utf-8")
+    tmp.replace(KEPT)
+    return kept
+
+
+def run(full: bool | None = None) -> dict:
+    try:
+        saved = json.loads(KEPT.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        saved = {}
+    if full or full is None and (not saved.get("wallets") or time.time() - saved.get("at", 0) > SELECT_EVERY_S):
+        kept = select()
+    else:
+        kept = [dict(w) for w in saved["wallets"]]
+    univ = _universes()
+    for r in kept:
         try:
             r["positions"] = positions(r["address"])
         except Exception:
@@ -130,17 +182,19 @@ def run() -> dict:
         for coin, (_, val) in r["positions"].items():
             notional[_cat(coin)] = notional.get(_cat(coin), 0) + val
         r["category"] = max(notional, key=notional.get) if notional else "alts"
-        kept.append(r)
+        nu = {"A": 0.0, "B": 0.0}  # universe category: where most of the wallet's open notional is
+        for coin, (_, val) in r["positions"].items():
+            for u in ("A", "B"):
+                if _key(coin) in univ[u]:
+                    nu[u] += val
+        r["universe"] = max(nu, key=nu.get) if max(nu.values()) > 0 else None
     cats = {c: sorted([w for w in kept if w["category"] == c], key=lambda w: -w["score"])[:TOP_PER_CAT]
             for c in ("majors", "alts", "memes")}
-    num, den, holders = {}, {}, {}
-    for w in kept:
-        for coin, (side, _) in w["positions"].items():
-            key = coin[1:] if coin.startswith("k") and coin[1:].isupper() else coin
-            num[key] = num.get(key, 0) + (1 if side == "LONG" else -1) * w["score"]
-            den[key] = den.get(key, 0) + w["score"]
-            holders[key] = holders.get(key, 0) + 1
-    consensus = {c: round(num[c] / den[c], 3) for c in num if holders[c] >= MIN_HOLDERS and den[c] > 0}
+    ucats = {u: sorted([w for w in kept if w.get("universe") == u], key=lambda w: -w["score"])[:TOP_PER_CAT]
+             for u in ("A", "B")}
+    consensus, holders = _consensus(kept)
+    consensus_a, holders_a = _consensus(ucats["A"])
+    consensus_b, holders_b = _consensus(ucats["B"])
     try:
         old = json.loads(OUT.read_text(encoding="utf-8")).get("consensus", {})
     except (OSError, ValueError):
@@ -158,19 +212,23 @@ def run() -> dict:
     data = {"at": time.time(), "kept": len(kept),
             "categories": {c: [{k: w[k] for k in ("address", "score", "month_roi", "trades_30d", "max_dd", "account")}
                                for w in ws] for c, ws in cats.items()},
-            "consensus": consensus, "holders": holders}
+            "consensus": consensus, "holders": holders,
+            "universes": {u: [{k: w[k] for k in ("address", "score", "month_roi", "trades_30d", "max_dd", "account")}
+                              for w in ws] for u, ws in ucats.items()},
+            "consensus_A": consensus_a, "holders_A": holders_a, "consensus_B": consensus_b, "holders_B": holders_b}
     tmp = OUT.with_suffix(".json.tmp")
     tmp.write_text(json.dumps(data), encoding="utf-8")
     tmp.replace(OUT)
-    log_event("TopTraders", "crypto_copy", "INFO", "", f"{len(kept)} wallets reguliers retenus sur {CANDIDATES}, "
-              f"consensus sur {len(consensus)} coins")
+    log_event("TopTraders", "crypto_copy", "INFO", "", f"{len(kept)} wallets reguliers retenus sur {CANDIDATES} candidats ; "
+              f"univers A {len(ucats['A'])} wallets ({len(consensus_a)} coins), univers B {len(ucats['B'])} wallets "
+              f"({len(consensus_b)} coins), consensus global {len(consensus)} coins")
     return data
 
 
 _started = False
 
 
-def start(every_s: int = 7200) -> None:
+def start(every_s: int = 3600) -> None:
     global _started
     if _started or not int(os.environ.get("TOP_TRADERS_ENABLED", 1)):
         return
