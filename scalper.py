@@ -69,7 +69,15 @@ def _path(pf: str) -> Path:
     return DATA_DIR / f"scalp_{pf}.json"
 
 
+SHARE_OVERRIDE = {"crypto_copy": os.environ.get("SCALP_SHARE_CRYPTO_COPY", "0.05"),
+                  "court_terme": os.environ.get("SCALP_SHARE_COURT_TERME", ""),
+                  "actions_us": os.environ.get("SCALP_SHARE_ACTIONS_US", "")}
+ORDERFLOW = bool(int(os.environ.get("SCALP_ORDERFLOW", 1)))  # TFI/OBI entry filter + ATR stop (orderflow.py)
+
+
 def _share(pf: str) -> float:
+    if SHARE_OVERRIDE.get(pf):  # 2026-11-06: crypto maker scalper 18 % win / -5.6 $ -> 5 %, its cash moved to HL copy
+        return float(SHARE_OVERRIDE[pf])
     try:
         cut = maker_share_cut(pf) if MAKER and pf in MAKER_FEE else None
         if cut is not None:
@@ -198,6 +206,11 @@ def _close(pf: str, led: dict, key: str, bid: float, ask: float, reason: str, ma
     cost = p["usd"] * (p["cost_in"] + (MAKER_FEE.get(pf, 0.0002) if maker_px else _cost_side(pf, bid, ask)))
     net = gross - cost
     led["cash"] += p["usd"] + net
+    try:
+        import trade_memory
+        trade_memory.close(f"scalp_{pf}:{key}", net / p["usd"] * 100)
+    except Exception:
+        pass
     led["trades"].append({"symbol": p["symbol"], "side": p["side"], "strategy": p["strategy"], "trade_type": "SCALP",
                           "entry": p["entry"], "exit": px, "usd": p["usd"], "gross": round(gross, 5),
                           "pnl": round(net, 5), "pnl_pct": round(net / p["usd"] * 100, 4), "reason": reason,
@@ -220,8 +233,22 @@ def _open(pf: str, led: dict, symbol: str, side: str, bid: float, ask: float, st
             execution_controller.record(f"scalp_{pf}", symbol, side, usd, px, max(0.0, _cost_side(pf, bid, ask) - FEE.get(pf, 0.001)))
         except Exception:
             pass
+    sl = SL
+    if ORDERFLOW and pf != "actions_us":
+        try:
+            import orderflow
+            sl = orderflow.stop_pct(symbol) or SL  # ATR(14, 1m) x 1.5, clamped 0.30-1.00 %
+        except Exception:
+            sl = SL
     led["cash"] -= usd
-    led["positions"][f"{symbol}:{int(time.time())}"] = {
+    key = f"{symbol}:{int(time.time())}"
+    try:  # measurement only (Desktop trade_memory.py): no veto until ~100 outcomes
+        import trade_memory
+        trade_memory.record(f"scalp_{pf}:{key}", {"portfolio": pf, "strategy": "SCALP_MAKER" if maker_px else "SCALP",
+                                                  "side": side}, px * (1 - sl) if side == "LONG" else px * (1 + sl))
+    except Exception:
+        pass
+    led["positions"][key] = {"sl": sl,
         "symbol": symbol, "side": side, "entry": px, "usd": usd, "best": px, "opened": time.time(),
         "strategy": strategy, "exec": "maker" if maker_px else "taker",
         "cost_in": MAKER_FEE.get(pf, 0.0002) if maker_px else _cost_side(pf, bid, ask)}
@@ -275,8 +302,8 @@ def manage(pf: str, led: dict, quotes: dict[str, tuple[float, float]]) -> None:
             _close(pf, led, key, bid, ask, f"TP maker +{TP * 100:.2f} %", maker_px=tp_px)
         elif p.get("exec") != "maker" and move >= TP:
             _close(pf, led, key, bid, ask, f"TP +{TP * 100:.2f} %")
-        elif move <= -SL:
-            _close(pf, led, key, bid, ask, f"SL -{SL * 100:.2f} %")
+        elif move <= -p.get("sl", SL):
+            _close(pf, led, key, bid, ask, f"SL -{p.get('sl', SL) * 100:.2f} %")
         elif best_move >= TRAIL_ON and best_move - move >= TRAIL:
             _close(pf, led, key, bid, ask, f"stop suiveur ({best_move * 100:+.2f} % -> {move * 100:+.2f} %)")
         elif now - p["opened"] >= MAX_HOLD_S:
@@ -312,6 +339,16 @@ def entries(pf: str, led: dict, symbols: list[str], quotes: dict[str, tuple[floa
             continue  # one decision per closed 1-minute candle
         led["last_bar"][s] = b[-1][0]
         side = signal_a(b) if STRATEGY[pf] == "A" else signal_b(s, b)
+        if side and ORDERFLOW and pf != "actions_us":
+            try:
+                import orderflow
+                ok, det = orderflow.entry_ok(s, side)
+            except Exception:
+                ok, det = True, {}
+            if not ok:
+                log_event("OrderFlow", pf, "VETO", s, f"flux d'ordres contre le {side} (TFI {det.get('tfi')}, OBI {det.get('obi')})",
+                          result="entree bloquee")
+                continue
         if side and MAKER and pf in MAKER_FEE:
             led.setdefault("pending", {})[s] = {"side": side, "limit": bid if side == "LONG" else ask,
                                                 "at": time.time(), "strategy": STRATEGY[pf]}

@@ -246,7 +246,10 @@ USD_PER_TRADE = 250.0          # legacy fixed size, replaced by POS_PCT below
 # FILL_TARGET is invested, score 1 (the best below the normal BUY threshold of 2) also buys, best first.
 POS_PCT = float(os.environ.get("ALPACA_POS_PCT", 0.05))
 FILL_TARGET = float(os.environ.get("ALPACA_FILL_TARGET", 0.95))
-FILL_MIN_SCORE = int(os.environ.get("ALPACA_FILL_MIN_SCORE", 0))
+# 2026-11-06 (Desktop audit, user "Tout appliquer"): score 0-1 base buys lost money -> fill only from score 2,
+# top-ups off, until the Professor says otherwise (ALPACA_FILL_MIN_SCORE=0 / ALPACA_FILL_TOPUP=1 = old behaviour)
+FILL_MIN_SCORE = int(os.environ.get("ALPACA_FILL_MIN_SCORE", 2))
+FILL_TOPUP = bool(int(os.environ.get("ALPACA_FILL_TOPUP", 0)))
 FILL_MAX_POS_PCT = float(os.environ.get("ALPACA_FILL_MAX_POS_PCT", 0.10))
 
 
@@ -702,7 +705,7 @@ def _alpaca_stocks_worker_body(send_fn) -> None:
                     spy_brake.record_block(sym, None, add, "topup")
         except Exception:
             pass
-    elif market_open and ledger.get("_fill_mode") and not trading_blocked:
+    elif market_open and ledger.get("_fill_mode") and not trading_blocked and FILL_TOPUP:
         try:
             _fill_topup(ledger, send_fn)
         except Exception as e:

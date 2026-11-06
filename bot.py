@@ -3092,7 +3092,7 @@ def get_hl_copy_summary() -> dict:
         "cash": ledger["cash"],
         "invested": invested,
         "total": round(ledger["cash"] + invested, 2),
-        "starting_cash": HL_COPY_STARTING_CASH,
+        "starting_cash": HL_COPY_STARTING_CASH + float(ledger.get("deposits", 0)),
         "realized_pnl": round(sum(t["pnl"] for t in closed), 2),
         "open_positions": ledger["positions"],
         "trades_logged": len(ledger["trades"]),
@@ -3376,7 +3376,7 @@ def _hl_copytrade_worker_body(send_fn):
         guard_resp = asyncio.run(_hl_drawdown_guard.respond("drawdown check", {
             "equity": equity,
             "daily_start_equity": ledger.get("daily_start_equity", equity),
-            "initial_equity": HL_COPY_STARTING_CASH,
+            "initial_equity": HL_COPY_STARTING_CASH + float(ledger.get("deposits", 0)),
         }))
         trading_blocked = bool(guard_resp.get("veto"))
         if trading_blocked:
