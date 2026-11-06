@@ -75,11 +75,11 @@ def _trend_rank(symbol: str):
         return None
 
 
-def _market_tags(symbol: str) -> dict:
-    """Crowd long % / whale radar for the coin (market_tags.py, measurement only)."""
+def _market_tags(symbol: str, side: str | None = None) -> dict:
+    """Crowd long % / whale radar / funding carry / radar / HMM regime (market_tags.py, measurement)."""
     try:
         import market_tags
-        return market_tags.tags(symbol)
+        return market_tags.tags(symbol, side)
     except Exception:
         return {}
 
@@ -148,7 +148,7 @@ def _open(ledger: dict, lane: str, symbol: str, price: float, usd: float, cost: 
     log.info(f"[SHORT] {lane} {side} {symbol} ${usd:.2f} @ {price:.6g}")
     log_event("Executor", "court_terme", "BUY" if side == "LONG" else "SELL", symbol, f"voie {lane} {side}",
               score=extra.get("r14"), result="ouvert", price=price, usd=round(usd, 2), lane=lane, side=side,
-              trending=_trend_rank(symbol), **_market_tags(symbol))
+              trending=_trend_rank(symbol), **_market_tags(symbol, side))
 
 
 def _close(ledger: dict, key: str, price: float, cost: float, reason: str, send_fn) -> float:

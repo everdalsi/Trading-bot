@@ -2905,13 +2905,30 @@ def _open_hl_mirror(symbol: str, price: float, side: str, source_addr: str,
               f"copie du wallet {source_addr[:8]} (ROI mois {source_month_roi*100:.1f}%)",
               score=round(source_month_roi, 4), result="ouvert", price=price, side=side,
               size_reduction=size_reduction, news_risk_pct=risk.get("risk_pct") if risk else None,
-              **_market_tags(symbol))
+              **_market_tags(symbol, side))
 
-def _market_tags(symbol: str) -> dict:
-    """Crowd long % / whale radar for the coin (market_tags.py, measurement only)."""
+def _open_positions_all() -> list[dict]:
+    """[{symbol, side, usd}] of every open position, HL copy + court terme (for funding_radar.carry_report)."""
+    out = []
+    try:
+        for p in load_hl_copy_ledger()["positions"].values():
+            out.append({"symbol": p["symbol"], "side": p.get("side", "LONG"), "usd": float(p.get("amount_usd", 0))})
+    except Exception:
+        pass
+    try:
+        ct = json.loads((HL_COPY_LEDGER_PATH.parent / "meme_sim.json").read_text(encoding="utf-8"))
+        for p in ct.get("positions", {}).values():
+            out.append({"symbol": p.get("symbol"), "side": p.get("side", "LONG"), "usd": float(p.get("usd", 0))})
+    except Exception:
+        pass
+    return out
+
+
+def _market_tags(symbol: str, side: str | None = None) -> dict:
+    """Crowd long % / whale radar / funding carry / radar / HMM regime for the coin (market_tags.py, measurement)."""
     try:
         import market_tags
-        return market_tags.tags(symbol)
+        return market_tags.tags(symbol, side)
     except Exception:
         return {}
 
@@ -6097,6 +6114,9 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         trending.start(900)
         import market_context  # Desktop: liquidations, crowd, whales, funding, CryptoVision news
         market_context.start(300)
+        import funding_radar, regime_hmm  # Desktop: funding carry + OI radar, BTC regime HMM (measurement)
+        funding_radar.start(_open_positions_all, 300)
+        regime_hmm.start(3600)
     except Exception as e:
         logger.info(f"[TRENDING] non demarre: {type(e).__name__}: {e}")
     scalper.start()
@@ -7844,6 +7864,9 @@ def auto_start():
         trending.start(900)
         import market_context  # Desktop: liquidations, crowd, whales, funding, CryptoVision news
         market_context.start(300)
+        import funding_radar, regime_hmm  # Desktop: funding carry + OI radar, BTC regime HMM (measurement)
+        funding_radar.start(_open_positions_all, 300)
+        regime_hmm.start(3600)
     except Exception as e:
         logger.info(f"[TRENDING] non demarre: {type(e).__name__}: {e}")
     scalper.start()
