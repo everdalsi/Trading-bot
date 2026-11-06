@@ -11,6 +11,7 @@ Binds to 127.0.0.1 only. Never sends orders, never holds trading keys.
 import json
 import os
 import subprocess
+import sys
 import threading
 import time
 from datetime import datetime
@@ -373,6 +374,25 @@ def _analysts() -> dict:
     }
 
 
+_mc = {"at": 0.0, "data": {}}
+
+
+def _market() -> dict:
+    """Market context panel (market_context.py, public APIs, keyless). The dashboard refreshes it itself every
+    5 min so it works before the VPS syncs the file; same module and cache as the bot's agent."""
+    if time.time() - _mc["at"] > 300:
+        try:
+            sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+            import market_context
+            market_context.OUT = CACHE / "market_context.json"
+            data = market_context.run()
+            data["news"] = data.get("news", [])[:6]
+            _mc.update(at=time.time(), data=data)
+        except Exception as e:
+            _mc.update(at=time.time(), data={"error": type(e).__name__})
+    return _mc["data"]
+
+
 def status() -> dict:
     events = _events()
     for e in events:
@@ -390,7 +410,7 @@ def status() -> dict:
     return {"now": time.strftime("%H:%M:%S"), "sync": _json(SYNC_STATE, {}), "portfolios": books,
             "roster": _roster(events), "events": events[:80], "logs": _logs(), 
             "wallets": _wallets(), "today": counts, "n_today": len(today),
-            "scalp": _scalp(), "learning": _learning(), "analysts": _analysts(),
+            "scalp": _scalp(), "learning": _learning(), "analysts": _analysts(), "market": _market(),
             "last": {f"{k[0]}:{k[1]}": v for k, v in picks.items() if v}, "last_exec": exe,
             "total_equity": round(sum(b.get("equity", 0) for b in books if b.get("available")), 2),
             "total_start": sum(b.get("start", 0) for b in books if b.get("available"))}

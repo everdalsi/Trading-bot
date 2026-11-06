@@ -92,6 +92,7 @@
   <section class="panel s7"><h2><span>Apprentissage (Professeur + Auditeur)</span><span id="learnat" class="mut"></span></h2><div id="learn"></div></section>
   <section class="panel s5"><h2><span>Infos fortes (NewsAgent)</span><span id="newsat" class="mut"></span></h2><div class="scroll" id="news"></div></section>
   <section class="panel s12"><h2><span>Analystes en mode mesure</span><span class="mut">aucun poids dans les décisions tant que leur IC n'a pas prouvé qu'ils prédisent</span></h2><div class="books" id="analysts"></div></section>
+  <section class="panel s12"><h2><span>Contexte de marché (API publiques)</span><span id="mcat" class="mut"></span></h2><div class="books" id="market"></div></section>
   <section class="panel s12"><h2><span>Les agents prédisent-ils ? (moniteur d'IC)</span><span id="icat" class="mut"></span></h2><div id="ic"></div></section>
   <section class="panel s12"><h2><span>L'équipe de l'agence</span><span class="mut">vert = en service · estompé = étape à venir</span></h2><div class="roster" id="roster"></div></section>
   <section class="panel s6"><h2>Wallets copiés (top 10 du mois)</h2><table>
@@ -237,6 +238,24 @@ function render(st) {
     <p>${f.link ? `<a href="${esc(f.link)}" target="_blank" rel="noopener">${esc(f.title)}</a>` : esc(f.title)}<br><span class="mut">${esc(f.source)} · il y a ${ago(Date.now() / 1000 - f.at)}</span></p></div>`).join("")
     || '<div class="empty">Aucune info forte sur nos positions dans les dernières 24 h</div>';
 
+  const MC = st.market || {}, usd = v => v == null ? "—" : "$" + (v >= 1e9 ? (v / 1e9).toFixed(1) + " Md" : v >= 1e6 ? (v / 1e6).toFixed(1) + " M" : Math.round(v).toLocaleString("fr-FR"));
+  document.getElementById("mcat").textContent = MC.at ? `mesure, aucun poids · il y a ${ago(Date.now() / 1000 - MC.at)}` : (MC.error ? "indisponible" : "");
+  document.getElementById("market").innerHTML = MC.error ? `<div class="empty">Contexte indisponible (${esc(MC.error)})</div>` : [
+    ["Liquidations 24 h", Object.entries(MC.liquidations || {}).map(([s, l]) => l.error ? `<b>${s}</b> <span class="mut">${esc(l.error)}</span>` :
+      `<b>${s}</b> ${usd(l.long_usd_24h)} achats · ${usd(l.short_usd_24h)} ventes <span class="mut">(${Math.round(100 * (l.long_share || 0))} % achats)</span>
+       <div class="mut" style="font-size:11px">zones : ${l.cluster_below ? usd(l.cluster_below.usd) + " à " + l.cluster_below.price : "—"} dessous · ${l.cluster_above ? usd(l.cluster_above.usd) + " à " + l.cluster_above.price : "—"} dessus</div>`).join("")],
+    ["Positionnement des particuliers", `<div style="font-size:12px">${((MC.crowd || {}).coins || []).slice(0, 8).map(c =>
+      `${esc(c.coin)} <b class="${c.long_pct >= 70 ? "down" : c.long_pct <= 30 ? "up" : ""}">${c.long_pct} %</b> à l'achat`).join("<br>") || "—"}</div>
+      <p class="mut" style="font-size:11px">≥ 70 % = foule à l'achat (signal à contre-courant)</p>`],
+    ["Baleines Hyperliquid", `<div style="font-size:12px">${((MC.whales || {}).hl_trades || []).slice(0, 6).map(w =>
+      `<span class="${w.side === "BUY" ? "up" : "down"}">${w.side === "BUY" ? "achat" : "vente"}</span> ${esc(w.coin)} ${usd(w.usd)}`).join("<br>") || "—"}</div>
+      <p class="mut" style="font-size:11px">flux inhabituels : ${((MC.whales || {}).radar || []).filter(r => r.unusual).slice(0, 5).map(r => `${esc(r.coin)} ${r.direction === "buy" ? "↑" : "↓"}`).join(" · ") || "aucun"}</p>`],
+    ["Financement (multi-plateformes)", Object.entries(MC.funding || {}).map(([s, f]) => f.error ? `<b>${s}</b> —` :
+      `<b>${s}</b> ${(100 * (f.apr_avg || 0)).toFixed(1)} %/an <span class="mut">· HL ${f.hyperliquid_hourly != null ? (f.hyperliquid_hourly * 100).toFixed(4) + " %/h" : "—"} · ${f.venues} plateformes</span>`).join("<br>")],
+    ["Actus (Crypto Vision)", `<div style="font-size:12px">${(MC.news || []).slice(0, 5).map(n => `<a href="${esc(n.link)}" target="_blank" rel="noopener">${esc(n.title)}</a>`).join("<br>") || "—"}</div>`],
+    ["Santé des sources", `<div class="kv">${Object.entries(MC.health || {}).map(([k, h]) => `<span>${esc(k)}</span><b class="${h.ok ? "up" : "down"}">${h.ok ? h.ms + " ms" : esc(h.error)}</b>`).join("")}</div>`],
+  ].map(([t, h]) => `<div class="book"><h3>${t}</h3>${h}</div>`).join("");
+
   const A = st.analysts || {}, M = A.macro || {}, FG = A.fear_greed || {};
   const sc = v => v == null ? "—" : `<span class="${cls(v)}">${(v >= 0 ? "+" : "") + Number(v).toFixed(2)}</span>`;
   const lst = (rows, f) => (rows || []).length ? rows.map(f).join("<br>") : '<span class="mut">en attente des premières données</span>';
@@ -255,7 +274,7 @@ function render(st) {
       const r = typeof f.result === "object" && f.result ? f.result : {};
       return `<div class="eq" style="font-size:22px">${f.invested_pct != null ? Math.round(100 * f.invested_pct) + " %" : "—"} <span class="mut" style="font-size:13px">investi</span></div>
         <div class="kv">${Object.entries(r).map(([k, v]) => `<span>${esc(k.replace("_", " "))}</span><b>${esc(v)}</b>`).join("")}</div>
-        <p class="mut" style="font-size:12px">${esc(f.reason || "")} · il y a ${ago(Date.now() / 1000 - f.ts)}</p>`;
+        <p class="mut" style="font-size:12px">${esc(f.reason || "")} · il y a ${ago(Date.now() / 1000 - (typeof f.ts === "number" ? f.ts : Date.parse(f.ts) / 1000))}</p>`;
     })()],
     ["Chasseur de memecoins (mesure)", (() => {
       const m = A.memes || {}; if (!Object.keys(m).length) return '<span class="mut">en attente</span>';
