@@ -212,12 +212,30 @@ def expected_edge(portfolio: str, proxy: float) -> tuple[float, str, int]:
     return proxy, f"proxy (echantillon {len(t)} < {MIN_SAMPLE})", len(t)
 
 
+VETO_MEMO_S = float(os.environ.get("VETO_MEMO_S", 1800))
+VETO_MEMO_MOVE = float(os.environ.get("VETO_MEMO_MOVE", 0.01))
+_VETO_MEMO: dict = {}
+
+
 def approve_entry(portfolio: str, symbol: str, price: float | None, proxy_edge: float,
                   context: dict | None = None) -> tuple[bool, str]:
     """Final go / no-go for a NEW position. Logs one SeniorExpert line either way. Fail-closed:
     any unexpected error refuses the entry instead of reaching the trading loop."""
+    ctx = context or {}
+    key = (portfolio, symbol, ctx.get("side", "LONG"))
+    memo = _VETO_MEMO.get(key)
+    # decision memo (Desktop review 06/11: WLFI vetoed 186 times in 2 h for the same reason): a refusal is reused
+    # for VETO_MEMO_S unless the price moved more than VETO_MEMO_MOVE; the journal keeps the first refusal only
+    if memo and time.time() - memo["at"] < VETO_MEMO_S and price and memo["price"]             and abs(price / memo["price"] - 1) < VETO_MEMO_MOVE:
+        memo["reused"] += 1
+        return False, memo["why"]
     try:
-        return _approve_entry(portfolio, symbol, price, proxy_edge, context or {})
+        ok, why = _approve_entry(portfolio, symbol, price, proxy_edge, ctx)
+        if ok:
+            _VETO_MEMO.pop(key, None)
+        else:
+            _VETO_MEMO[key] = {"at": time.time(), "price": price, "why": why, "reused": 0}
+        return ok, why
     except Exception as e:
         why = f"erreur interne {type(e).__name__}: {str(e)[:150]}"
         log_event("SeniorExpert", portfolio, "VETO", symbol, why, result="refuse (fail-closed)")
