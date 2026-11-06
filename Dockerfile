@@ -37,5 +37,9 @@ RUN python -c "import feedparser; print('✅ Feedparser OK')" \
 
 EXPOSE 8000
 
+# audit 06/11: a frozen bot used to stay "Up". Healthy = the decision journal moved in the last 10 min
+# (every live agent writes agent_events.jsonl; the Coordinator pulses each minute).
+HEALTHCHECK --interval=2m --timeout=10s --start-period=10m --retries=3   CMD python -c "import os,sys,time; p=os.path.join(os.environ.get('DATA_DIR','/app/data'),'agent_events.jsonl'); sys.exit(0 if time.time()-os.path.getmtime(p) < 600 else 1)"
+
 # Commande de démarrage
 CMD ["python", "bot.py"]

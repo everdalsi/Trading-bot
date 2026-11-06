@@ -69,14 +69,16 @@ def _path(pf: str) -> Path:
     return DATA_DIR / f"scalp_{pf}.json"
 
 
-SHARE_OVERRIDE = {"crypto_copy": os.environ.get("SCALP_SHARE_CRYPTO_COPY", "0.05"),
-                  "court_terme": os.environ.get("SCALP_SHARE_COURT_TERME", ""),
+# user 06/11 (answer to "scalping desk losing after fees, 0 %?"): "Set it to 0 %". No new scalp trade in either sleeve;
+# open positions are still managed to their exit. Backtest (walk-forward, out of sample) negative on every fold.
+SHARE_OVERRIDE = {"crypto_copy": os.environ.get("SCALP_SHARE_CRYPTO_COPY", "0"),
+                  "court_terme": os.environ.get("SCALP_SHARE_COURT_TERME", "0"),
                   "actions_us": os.environ.get("SCALP_SHARE_ACTIONS_US", "")}
 ORDERFLOW = bool(int(os.environ.get("SCALP_ORDERFLOW", 1)))  # TFI/OBI entry filter + ATR stop (orderflow.py)
 
 
 def _share(pf: str) -> float:
-    if SHARE_OVERRIDE.get(pf):  # 2026-11-06: crypto maker scalper 18 % win / -5.6 $ -> 5 %, its cash moved to HL copy
+    if SHARE_OVERRIDE.get(pf) not in (None, ""):  # 2026-11-06: crypto maker scalper 18 % win / -5.6 $ -> 5 %, its cash moved to HL copy
         return float(SHARE_OVERRIDE[pf])
     try:
         cut = maker_share_cut(pf) if MAKER and pf in MAKER_FEE else None
@@ -320,6 +322,8 @@ def manage(pf: str, led: dict, quotes: dict[str, tuple[float, float]]) -> None:
 
 
 def entries(pf: str, led: dict, symbols: list[str], quotes: dict[str, tuple[float, float]]) -> None:
+    if _share(pf) <= 0:  # sleeve at 0 % (user 06/11): no new trade, no pending order, no filter calls
+        return
     day = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     eq = led["cash"] + sum(p["usd"] for p in led["positions"].values())
     if led["day"] != day:

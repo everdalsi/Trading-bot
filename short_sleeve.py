@@ -183,6 +183,10 @@ def _close(ledger: dict, key: str, price: float, cost: float, reason: str, send_
 
 # ---------------------------------------------------------------- risk
 
+_BOOT = time.time()
+_DATA_HALTS = ("prix absents", "position introuvable")
+
+
 def _risk(ledger: dict, eq: float, send_fn) -> bool:
     """Update day/week/peak marks; True when NEW entries are allowed. Trips the breaker if needed."""
     now = datetime.now(timezone.utc)
@@ -197,13 +201,20 @@ def _risk(ledger: dict, eq: float, send_fn) -> bool:
         why = f"drawdown {1 - eq / ledger['peak_equity']:.0%} depuis le plus haut"
     elif ledger["loss_streak"] >= MAX_LOSS_STREAK:
         why = f"{ledger['loss_streak']} pertes d'affilee"
-    elif time.time() - ledger["last_price_ok"] > STALE_S:
+    elif time.time() - ledger["last_price_ok"] > STALE_S and time.time() - _BOOT > STALE_S:  # boot grace
         why = "prix absents depuis plus de 5 min"
     if why and not ledger["halted"]:
         ledger["halted"] = why
         log_event("CircuitBreaker", "court_terme", "HALT", "", why, result="portefeuille arrete")
         send_fn(f"🛑 COURT TERME : coupe-circuit ({why}). Portefeuille arrete, rien ne s'ouvre plus. "
-                f"Reprise manuelle uniquement (halted='' dans meme_sim.json apres analyse).")
+                f"Reprise automatique si la cause est l'absence de prix, sinon manuelle (halted='' dans meme_sim.json).")
+    # audit 06/11: a halt caused only by missing prices lifts by itself once prices are back (it used to be
+    # permanent, even right after a restart). Drawdown / loss-streak halts stay manual.
+    if ledger["halted"].startswith(_DATA_HALTS) and time.time() - ledger["last_price_ok"] < 60:
+        log_event("CircuitBreaker", "court_terme", "INFO", "", f"reprise automatique : prix revenus ({ledger['halted']})",
+                  result="portefeuille relance")
+        send_fn(f"✅ COURT TERME : prix revenus, reprise automatique ({ledger['halted']})")
+        ledger["halted"] = ""
     if ledger["halted"]:
         return False
     if eq < ledger["day_start"] * (1 - DAY_LOSS) or eq < ledger["week_start"] * (1 - WEEK_LOSS):
@@ -630,7 +641,13 @@ def telegram_block() -> str:
     if s["halted"]:
         status = f"🛑 arrêté ({s['halted']})"
     pos = ", ".join(s["open_positions"]) or "aucune"
+    try:  # user/Desktop 06/11: the same period holding BTC, so a short-only gain is not mistaken for an edge
+        import bench
+        bl = bench.line((s["total"] / s["starting_cash"] - 1) * 100 if s.get("starting_cash") else None)
+    except Exception:
+        bl = ""
     return (f"⚡ COURT TERME (momentum alts + memecoins en observation, {status})\n"
+            + (f"{bl}\n" if bl else "") +
             f"💰 Total : ${s['total']:,.2f} (départ ${s['starting_cash']:,.0f})\n"
             f"📈 En trade : ${s['invested']:,.2f} | 💵 Cash libre : ${s['cash']:,.2f}\n"
             f"📍 Positions ({len(s['open_positions'])}) : {pos}\n"

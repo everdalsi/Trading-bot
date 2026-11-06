@@ -196,6 +196,11 @@ HF_KEY           = os.environ.get("HF_KEY", "")
 GITHUB_TOKEN     = os.environ.get("GITHUB_TOKEN", "")
 GITHUB_REPO      = os.environ.get("GITHUB_REPO", "")
 WEBHOOK_PATH     = "/webhook"
+# audit 06/11: the control API (start/stop/live_mode/close_all...) had no auth on a public port.
+# POST /api/* now needs "Authorization: Bearer <BOT_CONTROL_TOKEN>" (env, never in code); no token set = refused.
+BOT_CONTROL_TOKEN = os.environ.get("BOT_CONTROL_TOKEN", "")
+# Telegram's secret_token header on the webhook, derived from the bot token (nothing new to store)
+WEBHOOK_SECRET   = hashlib.sha256(("webhook:" + (os.environ.get("TELEGRAM_TOKEN") or "")).encode()).hexdigest()[:48]
 WEBHOOK_PORT     = int(os.environ.get("PORT", 8000))
 
 USER_FIRSTNAME = os.environ.get("USER_FIRSTNAME", "")
@@ -444,6 +449,7 @@ HL_SLEEVE_USD_PER_TRADE  = float(os.environ.get("HL_SLEEVE_USD_PER_TRADE", 25.0)
 # at most 30 % of equity on one side + category (e.g. crypto shorts on alts), at most 3 copies per wallet.
 HL_POS_PCT               = float(os.environ.get("HL_POS_PCT", 0.05))
 HL_MAX_SIDE_CAT_PCT      = float(os.environ.get("HL_MAX_SIDE_CAT_PCT", 0.30))
+HL_MAX_POS_PCT           = float(os.environ.get("HL_MAX_POS_PCT", 0.06))   # hard cap per copy/consensus/pair position
 HL_MAX_PER_WALLET        = int(os.environ.get("HL_MAX_PER_WALLET", 3))
 HL_MAJORS = {"BTCUSDT", "ETHUSDT", "SOLUSDT"}
 HL_SLEEVE_MAX_CONCURRENT = int(os.environ.get("HL_SLEEVE_MAX_CONCURRENT", 20))   # 2026-11-05: 40->20 (user request) so the $1,000 bankroll keeps rotation headroom (20 x $25 = $500). Earlier: 2026-11-04: raised 10->40 alongside HL_TOP_N_WALLETS -- following 75 wallets but still capping at 10 concurrent positions would silently skip most signals, defeating the point of widening coverage
@@ -2880,7 +2886,11 @@ def _hl_spread_ok(ledger: dict, symbol: str, side: str, addr: str) -> tuple[bool
     eq = _hl_equity(ledger)
     cat = _hl_category(symbol)
     bucket = sum(float(p.get("amount_usd", 0)) for p in pos if p.get("side") == side and _hl_category(p["symbol"]) == cat)
-    after = bucket + _hl_position_size(ledger)
+    try:  # the size this entry will really have (vol multiplier included, capped), not the unscaled 5 %
+        vm = risk_manager.vol_mult(symbol)
+    except Exception:
+        vm = 1.0
+    after = bucket + min(_hl_position_size(ledger) * vm, HL_MAX_POS_PCT * eq)
     if eq > 0 and after / eq > HL_MAX_SIDE_CAT_PCT:
         return False, f"{side} {cat} deja a {bucket / eq:.0%} du portefeuille (max {HL_MAX_SIDE_CAT_PCT:.0%})"
     return True, ""
@@ -2903,6 +2913,8 @@ def _open_hl_mirror(symbol: str, price: float, side: str, source_addr: str,
     if amount_override:
         base_amount = min(amount_override, ledger["cash"] * 0.99)
     amount = base_amount * (1.0 - max(0.0, min(1.0, size_reduction)))
+    if not amount_override:  # audit 06/11: hard cap per position (the vol multiplier could reach 7.5 %)
+        amount = min(amount, HL_MAX_POS_PCT * _hl_equity(ledger))
     qty = amount / price
     try:  # ExecutionController (B6): the copy fills at the last price, no slippage modelled
         execution_controller.record("crypto_copy", symbol, side, amount, price, 0.0)
@@ -3320,8 +3332,10 @@ def hl_consensus_fill(send_fn):
     try:
         import regime
         label = regime.current()["label"]
-    except Exception:
-        label = "neutral"
+    except Exception as e:  # audit 06/11: unknown regime = no fill (it used to be treated as "neutral")
+        log_event("FillEngine", "crypto_copy", "SKIP", "", f"regime indisponible ({type(e).__name__}) : pas de remplissage",
+                  result="ferme par securite")
+        return
     # hedge exits: not needed any more (books no longer net short) or the regime turned risk_off
     net0 = _crypto_net_exposure(ledger)
     for key, p in list(ledger["positions"].items()):
@@ -4502,6 +4516,10 @@ def learn_from_backtest_result(result: dict):
         memory.data.setdefault("good_setups", []).append(result)
     save_data()
 
+_SAVE_LOCK = threading.Lock()
+_SAVE_PUSH = {"at": 0.0}
+
+
 def save_data():
     try:
         with sim_lock:
@@ -4510,10 +4528,14 @@ def save_data():
         # Atomic write (temp file + os.replace) -- a reader (SFTP pull, monitoring
         # script) now only ever sees a complete, valid JSON file: either the full
         # old version or the full new one, never a partially-written one.
-        tmp_path = DATA_FILE.with_suffix(DATA_FILE.suffix + ".tmp")
-        tmp_path.write_text(data)
-        os.replace(tmp_path, DATA_FILE)
-        if GITHUB_TOKEN and GITHUB_REPO:
+        # audit 06/11: one tmp file was shared by every thread outside any lock -> a per-thread tmp + a save lock
+        with _SAVE_LOCK:
+            tmp_path = DATA_FILE.with_suffix(DATA_FILE.suffix + f".{threading.get_ident()}.tmp")
+            tmp_path.write_text(data)
+            os.replace(tmp_path, DATA_FILE)
+        # ...and the GitHub copy was pushed on EVERY save: at most every 30 min now
+        if GITHUB_TOKEN and GITHUB_REPO and time.time() - _SAVE_PUSH["at"] > 1800:
+            _SAVE_PUSH["at"] = time.time()
             headers = {"Authorization":f"token {GITHUB_TOKEN}","Content-Type":"application/json"}
             api_url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/sim_portfolio_v7.json"
             r   = requests.get(api_url, headers=headers, timeout=10)
@@ -5455,6 +5477,14 @@ def generate_telegram_status_stocks() -> str:
             f"✅ PnL réalisé : ${hl_summary.get('realized_pnl', 0):+,.2f}\n"
             f"👛 Wallets suivis : {hl_summary.get('followed_wallets', 0)} | WR : {hl_summary.get('win_rate', 0)}% ({hl_summary.get('closed_trades', 0)} clôturés)"
         )
+        try:
+            import bench
+            st = float(hl_summary.get("starting_cash") or 0)
+            bl = bench.line((float(hl_summary.get("total", 0)) / st - 1) * 100 if st else None)
+            if bl:
+                crypto_block += "\n" + bl
+        except Exception:
+            pass
     except Exception as e:
         crypto_block = f"🐋 CRYPTO — statut indisponible ({type(e).__name__})"
 
@@ -6005,12 +6035,21 @@ class BotHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         if self.path == WEBHOOK_PATH:
+            if not hmac.compare_digest(self.headers.get("X-Telegram-Bot-Api-Secret-Token", ""), WEBHOOK_SECRET):
+                self.send_response(403); self.end_headers()  # not from Telegram
+                return
             n    = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(n)
             if _app and _main_loop:
                 asyncio.run_coroutine_threadsafe(_process_update(body), _main_loop)
             self.send_response(200); self.end_headers()
         elif self.path.startswith("/api/"):
+            auth = self.headers.get("Authorization", "")
+            if not BOT_CONTROL_TOKEN or not hmac.compare_digest(auth, f"Bearer {BOT_CONTROL_TOKEN}"):
+                self._send_json({"error": "unauthorized"}, code=403)
+                log_event("ControlAPI", "systeme", "VETO", "", f"commande refusee sans jeton depuis {self.client_address[0]}",
+                          result="403")
+                return
             self._handle_api_post()
         else:
             self.send_response(404); self.end_headers()
@@ -7896,11 +7935,13 @@ async def run_telegram():
         full = WEBHOOK_URL.rstrip("/") + WEBHOOK_PATH
         await asyncio.sleep(2)
         try:
-            await _app.bot.set_webhook(url=full, drop_pending_updates=True, allowed_updates=["message","callback_query"])
+            await _app.bot.set_webhook(url=full, drop_pending_updates=True, allowed_updates=["message","callback_query"],
+                                       secret_token=WEBHOOK_SECRET)
         except Exception as e:
             print(f"[WEBHOOK] {e}")
             await asyncio.sleep(5)
-            await _app.bot.set_webhook(url=full, drop_pending_updates=True, allowed_updates=["message","callback_query"])
+            await _app.bot.set_webhook(url=full, drop_pending_updates=True, allowed_updates=["message","callback_query"],
+                                       secret_token=WEBHOOK_SECRET)
         print(f"Webhook: {full}")
 
     print("Bot v7.1 prêt — /start | /resume | /agent | /agent_stop | /maxtrades")

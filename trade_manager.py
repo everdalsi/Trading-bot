@@ -166,14 +166,18 @@ def decide(view: dict, r: dict, now: float | None = None) -> tuple[str, str, flo
     best = st.get("tm_best") or entry
     best = max(best, price) if side != "SHORT" else min(best, price)
     upd = {"tm_best": best}
+    stop3 = r["r3_stop_crypto_pct"] if view["kind"] == "crypto" else r["r3_stop_stocks_pct"]
+    if view.get("r3_stop") is not None:  # temporary tighter stop (SPY brake on stocks)
+        stop3 = max(stop3, view["r3_stop"])
     if view.get("data_bad_s", 0) > r["r1_bad_data_min"] * 60:
+        # audit 06/11: R1 used to return before the catastrophe stop. A loss beyond 1.5 x the stop is too big to be
+        # data noise: the catastrophe stop still fires; smaller moves wait for clean data.
+        if pnl <= 1.5 * stop3:
+            return "R3", "CLOSE", 1, f"stop catastrophe malgre donnees douteuses : {pnl:+.2f} % <= {1.5 * stop3:.0f} %", upd
         return "R1", "NONE", 0, f"donnees douteuses depuis {int(view['data_bad_s'] / 60)} min", upd
     ratio = view.get("source_ratio")
     if ratio is not None and ratio < r["r2_source_cut_ratio"]:
         return "R2", "CLOSE", 1, f"le wallet copie est sorti ou a coupe sa position (reste {ratio:.0%})", upd
-    stop3 = r["r3_stop_crypto_pct"] if view["kind"] == "crypto" else r["r3_stop_stocks_pct"]
-    if view.get("r3_stop") is not None:  # temporary tighter stop (SPY brake on stocks)
-        stop3 = max(stop3, view["r3_stop"])
     if pnl <= stop3:
         return "R3", "CLOSE", 1, f"stop catastrophe : {pnl:+.2f} % <= {stop3:.0f} %", upd
     if view.get("hedge"):  # hedge legs are against the consensus BY DESIGN: only R1/R3 + their own exit (bot.py)
