@@ -498,7 +498,8 @@ HL_COIN_TO_BINANCE = {
 # live in alpaca_stocks_sleeve.py itself (single source of truth) -- only the
 # cycle cadence and the on/off switch belong here, same split as the other
 # sleeves' CYCLE_* / *_ENABLED constants in this block.
-ALPACA_STOCKS_ENABLED = int(os.environ.get("ALPACA_STOCKS_ENABLED", 1)) and _ALPACA_STOCKS_AVAILABLE
+# 2026-11-06 user: US stocks portfolio removed (no edge, focus on court terme + Hyperliquid copy)
+ALPACA_STOCKS_ENABLED = int(os.environ.get("ALPACA_STOCKS_ENABLED", 0)) and _ALPACA_STOCKS_AVAILABLE
 CYCLE_ALPACA_STOCKS   = int(os.environ.get("CYCLE_ALPACA_STOCKS", 300))   # 5min -- daily-bar signal, no need for tighter polling
 
 # CRYPTO KILL SWITCH (added 2026-11-04, per explicit user instruction): the
@@ -5281,7 +5282,10 @@ def generate_telegram_status_stocks() -> str:
     turned off. Fail-open per block: either portfolio's own failure can
     never hide the other's status."""
     now_label = time.strftime("%H:%M:%S UTC", time.gmtime())
+    stocks_block = ""
     try:
+        if not ALPACA_STOCKS_ENABLED:
+            raise StopIteration
         summary = get_alpaca_stocks_summary()
         account = summary.get("account", {}) or {}
         v_cash = summary.get("virtual_cash", 0)
@@ -5302,6 +5306,8 @@ def generate_telegram_status_stocks() -> str:
             f"📍 Positions ({len(open_pos)}) : {pos_label}\n"
             f"✅ PnL réalisé : ${summary.get('realized_pnl', 0):+,.2f} ({summary.get('closed_trades', 0)} clôturés)"
         )
+    except StopIteration:
+        stocks_block = ""
     except Exception as e:
         stocks_block = f"📊 ACTIONS US — statut indisponible ({type(e).__name__})"
 
@@ -5326,10 +5332,9 @@ def generate_telegram_status_stocks() -> str:
     except Exception as e:
         short_block = f"⚡ COURT TERME — statut indisponible ({type(e).__name__})"
     return (
-        f"🟢 BOT ACTIF — 3 portefeuilles séparés\n"
+        f"🟢 BOT ACTIF — {3 if stocks_block else 2} portefeuilles séparés\n"
         f"━━━━━━━━━━━━━━━━━━━\n"
-        f"{stocks_block}\n"
-        f"━━━━━━━━━━━━━━━━━━━\n"
+        + (f"{stocks_block}\n━━━━━━━━━━━━━━━━━━━\n" if stocks_block else "") +
         f"{crypto_block}\n"
         f"━━━━━━━━━━━━━━━━━━━\n"
         f"{short_block}\n"

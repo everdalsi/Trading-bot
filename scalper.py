@@ -415,6 +415,8 @@ def tick() -> None:
         if new_minute:
             entries(pf, led, syms, quotes)
         save(pf, led)
+    if not int(os.environ.get("SCALP_ACTIONS_US", 0)):  # 2026-11-06 user: US stocks portfolio removed
+        return
     led = load("actions_us")
     if led["positions"] or _market_open_utc():
         q = _stock_quotes()
