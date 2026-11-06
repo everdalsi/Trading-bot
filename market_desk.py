@@ -34,8 +34,9 @@ ENTER = float(os.environ.get("MARKET_DESK_ENTER", 0.35))          # |score| need
 MAX_HOLD_S = 12 * 3600
 PROVEN_N = 100
 STABLES = {"USDC", "FDUSD", "TUSD", "USDP", "DAI", "BUSD", "EUR", "USD1", "USDE", "PYUSD", "AEUR", "XUSD",
-           "RLUSD", "BFUSD", "EURI", "UST", "USTC", "SUSD", "GUSD", "FRAX", "LUSD"}
+           "RLUSD", "BFUSD", "EURI", "UST", "USTC", "SUSD", "GUSD", "FRAX", "LUSD", "RWUSD", "U"}
 WRAPPED = {"WBTC", "WBETH", "BETH", "STETH", "WETH"}
+CRYPTO_B = {"ARB", "BNB", "CKB", "DGB", "SHIB", "TRB", "BB"}   # real cryptos whose ticker ends in B
 _LOCK = threading.Lock()
 _universe: dict = {"at": 0.0, "symbols": []}
 _started = False
@@ -47,6 +48,11 @@ def _eligible(sym: str) -> bool:
     if not sym.endswith("USDT"):
         return False
     base = sym[:-4]
+    # 06/11: Binance lists ~105 tokenized US stocks / ETFs as <TICKER>B (AAPLB, NVDAB, SOXLB, TQQQB, MUB...): they only
+    # move in US market hours and polluted the top 50 (Kronos "forecast" +27 % on SOXLB). Any base ending in B is a
+    # stock token except the real cryptos of CRYPTO_B (checked on exchangeInfo 06/11).
+    if base.endswith("B") and len(base) > 2 and base not in CRYPTO_B:
+        return False
     return (base not in STABLES and base not in WRAPPED
             and not base.endswith(("UP", "DOWN", "BULL", "BEAR")) and base.isascii() and base.isalnum())
 
