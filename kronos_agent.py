@@ -41,7 +41,7 @@ TOKENIZER = os.environ.get("KRONOS_TOKENIZER", "NeoQuasar/Kronos-Tokenizer-base"
 TF, TF_MS = "1h", 3_600_000
 LOOKBACK = int(os.environ.get("KRONOS_LOOKBACK", 400))       # <= 512, the context of Kronos-small
 PRED_LEN = int(os.environ.get("KRONOS_PRED_LEN", 12))
-PATHS = int(os.environ.get("KRONOS_PATHS", 4))
+PATHS = int(os.environ.get("KRONOS_PATHS", 3))   # 06/11: 3 paths so A + B (100 markets) fits in ~30 min
 HORIZONS = (1, 4, 12)
 COST_PCT = float(os.environ.get("KRONOS_COST_PCT", 0.10))    # round trip fees + slippage, in % of the position
 TRACK_DAYS = 30
@@ -215,7 +215,7 @@ def _save(path: Path, data) -> None:
     tmp.replace(path)
 
 
-def run_once(symbols: list[str]) -> dict:
+def run_once(symbols: list[str], universe_of: dict | None = None) -> dict:
     t = time.time()
     series = fetch_all(symbols)
     try:
@@ -231,9 +231,17 @@ def run_once(symbols: list[str]) -> dict:
                           "agree": f["agree"]})
     st = stats(track)
     ok = trusted(st)
+    # 06/11 two universes: B runs every other hour, so keep the previous forecasts that are < 3 h old
+    prev = load().get("markets") or {}
+    now_ms = time.time() * 1000
+    merged = {k: v for k, v in prev.items() if k not in fc and now_ms - v.get("t0", 0) < 3 * 3600 * 1000}
+    merged.update(fc)
+    if universe_of:
+        for k, v in merged.items():
+            v["universe"] = universe_of.get(k, v.get("universe"))
     data = {"at": time.time(), "status": "ok", "model": MODEL, "took_s": round(time.time() - t, 1),
-            "markets_n": len(fc), "paths": PATHS, "horizon_h": PRED_LEN, "trusted": ok, "stats": st,
-            "markets": fc}
+            "markets_n": len(merged), "this_round_n": len(fc), "paths": PATHS, "horizon_h": PRED_LEN,
+            "trusted": ok, "stats": st, "markets": merged}
     with _LOCK:
         _save(TRACK, track)
         _save(OUT, data)
@@ -274,12 +282,18 @@ def start(symbols_fn=None, every_s: int = 3600) -> None:
             return
         while True:
             try:
+                uni = None
                 if symbols_fn:
                     syms = symbols_fn()
                 else:
+                    # 06/11 two universes: A every hour, B every other hour (100 markets at once would take ~40 min
+                    # on the 4-core VPS); B forecasts stay valid 3 h in between
                     import market_desk
-                    syms = market_desk.universe()
-                d = run_once(syms)
+                    a = market_desk.universe("A")
+                    b = market_desk.universe("B") if time.gmtime().tm_hour % 2 == 0 else []
+                    syms = a + b
+                    uni = {**{s: "A" for s in a}, **{s: "B" for s in b}}
+                d = run_once(syms, uni)
                 s4 = d["stats"].get("4", {})
                 log_event("Kronos", "analyse", "INFO", "",
                           f"{d['markets_n']} marches prevus en {d['took_s']} s ; 4 h : {s4.get('n', 0)} notes, "

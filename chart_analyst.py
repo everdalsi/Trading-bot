@@ -273,7 +273,7 @@ def default_symbols() -> tuple[list[str], set[str]]:
     held = held_symbols()
     try:  # 06/11: plus the 50 markets of the market desk
         import market_desk
-        desk = set(market_desk.universe())
+        desk = set(market_desk.universe("ALL"))      # 06/11: both universes, A (crypto copy) + B (short term)
     except Exception:
         desk = set()
     return sorted(held | desk | {"BTCUSDT", "ETHUSDT"}), held

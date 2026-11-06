@@ -38,7 +38,11 @@ STABLES = {"USDC", "FDUSD", "TUSD", "USDP", "DAI", "BUSD", "EUR", "USD1", "USDE"
 WRAPPED = {"WBTC", "WBETH", "BETH", "STETH", "WETH"}
 CRYPTO_B = {"ARB", "BNB", "CKB", "DGB", "SHIB", "TRB", "BB"}   # real cryptos whose ticker ends in B
 _LOCK = threading.Lock()
-_universe: dict = {"at": 0.0, "symbols": []}
+_universe: dict = {"at": 0.0, "symbols": [], "vol": {}}
+MIN_B_VOL = float(os.environ.get("MARKET_DESK_MIN_B_VOL", 5e6))   # universe B: at least 5 M$ traded in 24 h
+FILES = {"A": ("market_desk.json", "market_desk_book.json"),        # A keeps the historic names (dashboard, ledgers)
+         "B": ("market_desk_B.json", "market_desk_book_B.json")}
+SIGNAL_TO = {"A": "FillEngine", "B": "ShortSleeve"}
 _started = False
 
 
@@ -57,27 +61,65 @@ def _eligible(sym: str) -> bool:
             and not base.endswith(("UP", "DOWN", "BULL", "BEAR")) and base.isascii() and base.isalnum())
 
 
-def universe(n: int = N_MARKETS, max_age_s: float = 6 * 3600) -> list[str]:
-    """Top n Binance USDT spot markets by 24 h quote volume (status TRADING)."""
-    with _LOCK:
-        if _universe["symbols"] and time.time() - _universe["at"] < max_age_s:
-            return _universe["symbols"][:n]
+def split_universes(ranked: list[str], vol: dict, trending: list[str], n: int = N_MARKETS,
+                    min_b_vol: float = MIN_B_VOL) -> tuple[list[str], list[str]]:
+    """A = the n most liquid markets. B = n OTHER markets (never in A): trending coins first, then the next ones by
+    volume, each with at least min_b_vol of 24 h volume (user 06/11: 50 markets per portfolio, no overlap)."""
+    a = ranked[:n]
+    sa = set(a)
+    b = []
+    for sym in list(trending) + ranked[n:]:
+        if len(b) >= n:
+            break
+        if sym in sa or sym in b or vol.get(sym, 0) < min_b_vol:
+            continue
+        b.append(sym)
+    return a, b
+
+
+def _trending() -> list[str]:
     try:
-        info = requests.get("https://api.binance.com/api/v3/exchangeInfo", params={"permissions": "SPOT"},
-                            timeout=20).json()
-        trading = {s["symbol"] for s in info.get("symbols", []) if s.get("status") == "TRADING"}
-        tks = requests.get("https://api.binance.com/api/v3/ticker/24hr", timeout=20).json()
-        vol = sorted(((t["symbol"], float(t["quoteVolume"])) for t in tks
-                      if isinstance(t, dict) and t.get("symbol") in trading and _eligible(t["symbol"])),
-                     key=lambda sv: -sv[1])
-        syms = [s for s, _ in vol]
-        if len(syms) >= 10:
-            with _LOCK:
-                _universe.update(at=time.time(), symbols=syms)
-    except Exception:
-        pass
+        t = json.loads((DATA_DIR / "trending.json").read_text(encoding="utf-8"))
+        return [f"{str(c.get('symbol', '')).upper()}USDT" for c in t.get("coins", []) if c.get("symbol")]
+    except (OSError, ValueError):
+        return []
+
+
+def universe(which: str = "A", n: int = N_MARKETS, max_age_s: float = 6 * 3600) -> list[str]:
+    """which = 'A' (crypto copy), 'B' (short term) or 'ALL' (A + B, for the shared analysis agents).
+    Binance USDT spot markets ranked by 24 h quote volume (status TRADING), refreshed every 6 h."""
     with _LOCK:
-        return (_universe["symbols"] or ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT"])[:n]
+        fresh = _universe["symbols"] and time.time() - _universe["at"] < max_age_s
+    if not fresh:
+        try:
+            info = requests.get("https://api.binance.com/api/v3/exchangeInfo", params={"permissions": "SPOT"},
+                                timeout=20).json()
+            trading = {x["symbol"] for x in info.get("symbols", []) if x.get("status") == "TRADING"}
+            tks = requests.get("https://api.binance.com/api/v3/ticker/24hr", timeout=20).json()
+            vol = {t["symbol"]: float(t["quoteVolume"]) for t in tks
+                   if isinstance(t, dict) and t.get("symbol") in trading and _eligible(t["symbol"])}
+            # 06/11: shorts trade on perpetuals, where volume is 5-20x the spot one (WIF 1 M$ spot / 16 M$ perp).
+            # Rank by the larger of the two, but only symbols that also exist on spot with the same price scale
+            # (no 1000BONK-style perps, no stock perps like ORCLUSDT), so every analysis agent keeps its data.
+            try:
+                perp = requests.get("https://fapi.binance.com/fapi/v1/ticker/24hr", timeout=20).json()
+                for t in perp:
+                    sym = t.get("symbol") if isinstance(t, dict) else None
+                    if sym in vol:
+                        vol[sym] = max(vol[sym], float(t.get("quoteVolume") or 0))
+            except Exception:
+                pass
+            syms = sorted(vol, key=lambda k: -vol[k])
+            if len(syms) >= 10:
+                with _LOCK:
+                    _universe.update(at=time.time(), symbols=syms, vol=vol)
+        except Exception:
+            pass
+    with _LOCK:
+        ranked = _universe["symbols"] or ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT"]
+        vol = dict(_universe["vol"])
+    a, b = split_universes(ranked, vol, _trending(), n)
+    return {"A": a, "B": b, "ALL": a + b}[which.upper()]
 
 
 # ---------------------------------------------------------------- scoring
@@ -135,8 +177,8 @@ def score_market(sym: str, chart: dict, kronos: dict | None, kronos_trusted: boo
 
 # ---------------------------------------------------------------- shadow book
 
-def _load_book() -> dict:
-    b = _read(BOOK.name)
+def _load_book(which: str = "A") -> dict:
+    b = _read(FILES[which][1])
     return {"open": b.get("open", {}), "closed": b.get("closed", [])}
 
 
@@ -191,9 +233,15 @@ def book_stats(book: dict) -> dict:
 
 # ---------------------------------------------------------------- run
 
-def tick() -> dict:
+def tick_all() -> dict:
+    """Both universes, each with its own decisions, shadow book and signals."""
+    return {w: tick(w) for w in ("A", "B")}
+
+
+def tick(which: str = "A") -> dict:
     now = time.time()
-    syms = universe()
+    out_name, book_name = FILES[which]
+    syms = universe(which)
     ca = _read("chart_analysis.json")
     # stale chart data (ChartAnalyst dead) = no price = no decision and no shadow trade (06/11 audit)
     charts = ca.get("symbols", {}) if now - (ca.get("at") or 0) < 3 * 300 else {}
@@ -206,30 +254,31 @@ def tick() -> dict:
              if now - (rd.get("at") or 0) < 3 * 300 else {})
     rows = [score_market(s, charts.get(s) or {}, k_markets.get(s), k_ok, radar.get(s)) for s in syms]
     rows.sort(key=lambda r: -abs(r["score"]))
-    old = {m["symbol"]: m["decision"] for m in _read(OUT.name).get("markets", [])}
-    book = update_book(_load_book(), rows, now)
+    old = {m["symbol"]: m["decision"] for m in _read(out_name).get("markets", [])}
+    book = update_book(_load_book(which), rows, now)
     bs = book_stats(book)
-    data = {"at": now, "universe_n": len(syms), "analysed_n": sum(1 for r in rows if r["price"]),
+    data = {"at": now, "universe": which, "universe_n": len(syms), "analysed_n": sum(1 for r in rows if r["price"]),
             "chart_age_s": int(now - ca["at"]) if ca.get("at") else None,
             "decisions": {d: sum(r["decision"] == d for r in rows) for d in ("LONG", "SHORT", "WAIT")},
             "kronos": {"status": kr.get("status", "absent"), "trusted": k_ok, "at": kr.get("at")},
             "book": bs, "open": list(book["open"].values()), "last_closed": book["closed"][-30:], "markets": rows}
     with _LOCK:
-        for path, obj in ((BOOK, book), (OUT, data)):
+        for path, obj in ((DATA_DIR / book_name, book), (DATA_DIR / out_name, data)):
             tmp = path.with_suffix(".json.tmp")
             tmp.write_text(json.dumps(obj), encoding="utf-8")
             tmp.replace(path)
-    _post([r for r in rows if r["decision"] != "WAIT" and old.get(r["symbol"]) != r["decision"]], bs["proven"])
+    _post([r for r in rows if r["decision"] != "WAIT" and old.get(r["symbol"]) != r["decision"]], bs["proven"], which)
     return data
 
 
-def _post(changed: list[dict], proven: bool, top: int = 5) -> None:
+def _post(changed: list[dict], proven: bool, which: str = "A", top: int = 5) -> None:
     try:
         import signals
         for r in sorted(changed, key=lambda r: -r["confidence"])[:top]:
             if r["confidence"] < 0.6:
                 continue
-            signals.post("MarketDesk", r["symbol"], "setup", r["confidence"] if proven else 0.0, 900, to="FillEngine",
+            signals.post(f"MarketDesk{which}", r["symbol"], "setup", r["confidence"] if proven else 0.0, 900,
+                         to=SIGNAL_TO[which], universe=which,
                          reason=f"{r['decision']} score {r['score']:+.2f} : " + ", ".join(r["reasons"][:3])
                                 + ("" if proven else " - mesure"), side=r["decision"])
     except Exception:
@@ -237,9 +286,10 @@ def _post(changed: list[dict], proven: bool, top: int = 5) -> None:
 
 
 def candidates(min_conf: float = 0.6, side: str | None = None, proven_only: bool = True,
-               max_age_s: float = 900) -> list[dict]:
-    """Current LONG / SHORT setups for the FillEngine, best first. Empty until the shadow book is proven."""
-    d = _read(OUT.name)
+               max_age_s: float = 900, which: str = "A") -> list[dict]:
+    """Current LONG / SHORT setups of one universe (A -> FillEngine, B -> short term), best first. Empty until that
+    universe's shadow book is proven."""
+    d = _read(FILES[which][0])
     if not d or time.time() - d.get("at", 0) > max_age_s:
         return []
     if proven_only and not (d.get("book") or {}).get("proven"):
@@ -259,16 +309,18 @@ def start(every_s: int = 300) -> None:
     def loop():
         time.sleep(150)                      # after the first ChartAnalyst round
         while True:
-            try:
-                d = tick()
-                b = d["book"]
-                log_event("MarketDesk", "analyse", "INFO", "",
-                          f"{d['analysed_n']}/{d['universe_n']} marches : {d['decisions']['LONG']} LONG, "
-                          f"{d['decisions']['SHORT']} SHORT ; carnet fictif {b.get('closed', 0)} trades, "
-                          f"moyenne {b.get('avg_net_pct', '-')} % net" + (" - PROUVE" if b.get("proven") else ""),
-                          result=d["decisions"])
-            except Exception as e:
-                log_event("MarketDesk", "analyse", "INFO", "", f"erreur interne {type(e).__name__}: {str(e)[:200]}")
+            for w in ("A", "B"):
+                try:
+                    d = tick(w)
+                    b = d["book"]
+                    log_event(f"MarketDesk{w}", "analyse", "INFO", "",
+                              f"univers {w} : {d['analysed_n']}/{d['universe_n']} marches, {d['decisions']['LONG']} LONG, "
+                              f"{d['decisions']['SHORT']} SHORT ; carnet fictif {b.get('closed', 0)} trades, "
+                              f"moyenne {b.get('avg_net_pct', '-')} % net" + (" - PROUVE" if b.get("proven") else ""),
+                              result=d["decisions"])
+                except Exception as e:
+                    log_event(f"MarketDesk{w}", "analyse", "INFO", "",
+                              f"univers {w} : erreur interne {type(e).__name__}: {str(e)[:200]}")
             time.sleep(every_s)
 
     threading.Thread(target=loop, daemon=True, name="market_desk").start()

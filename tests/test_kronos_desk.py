@@ -33,6 +33,21 @@ def test_spearman():
 def test_universe_filter():
     assert md._eligible("SOLUSDT") and not md._eligible("USDCUSDT") and not md._eligible("BTCUPUSDT")
     assert not md._eligible("WBTCUSDT") and not md._eligible("ETHBTC")
+    # tokenized US stocks <TICKER>B are out, real cryptos ending in B stay
+    assert not md._eligible("SOXLBUSDT") and not md._eligible("NVDABUSDT") and md._eligible("ARBUSDT")
+    assert md._eligible("BNBUSDT") and md._eligible("SHIBUSDT")
+
+
+def test_two_universes_distinct():
+    ranked = [f"C{i}USDT" for i in range(160)]
+    vol = {s: 1e9 / (i + 1) for i, s in enumerate(ranked)}          # rank 160 = 6.2 M$, all above 5 M$
+    trending = ["C120USDT", "C3USDT", "NOPEUSDT"]                     # C3 is in A, NOPE has no volume
+    a, b = md.split_universes(ranked, vol, trending, n=50, min_b_vol=5e6)
+    assert len(a) == 50 and len(b) == 50 and not set(a) & set(b)
+    assert b[0] == "C120USDT" and "C3USDT" not in b and "NOPEUSDT" not in b   # trending first, never from A
+    vol_low = {s: (v if i < 55 else 1e6) for i, (s, v) in enumerate(vol.items())}
+    _, b2 = md.split_universes(ranked, vol_low, [], n=50, min_b_vol=5e6)
+    assert b2 == [f"C{i}USDT" for i in range(50, 55)]                # never pads B with illiquid markets
 
 
 def test_decision_and_kronos_gate():
