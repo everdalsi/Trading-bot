@@ -15,6 +15,7 @@ Components (each -1..+1, + = supportive for risk assets):
   dominance  BTC dominance rising = money leaving alts (-) for the alt-heavy books
   dollar     DXY 5-day change: dollar up = risk-off (-)
   equities   S&P 500 5-day change: up = risk-on (+)
+  stablecoins USDT+USDC supply 7-day change (DefiLlama): growing = new money in (+)
 """
 import json
 import os
@@ -31,7 +32,8 @@ DATA_DIR = Path(os.environ.get("DATA_DIR") or ".")
 OUT = DATA_DIR / "macro.json"
 UA = {"User-Agent": "TradingResearchBot/1.0 paper-trading research (contact: bot-admin@example.org)"}
 FAPI = "https://fapi.binance.com"
-WEIGHTS = {"funding": 0.25, "oi_trend": 0.20, "dominance": 0.15, "dollar": 0.20, "equities": 0.20}
+WEIGHTS = {"funding": 0.25, "oi_trend": 0.20, "dominance": 0.15, "dollar": 0.20, "equities": 0.20,
+           "stablecoins": 0.15}
 BLACKOUT_MIN = 30
 
 
@@ -68,6 +70,20 @@ def dominance() -> tuple[float, dict]:
     change = 0.0 if prev is None else dom - float(prev)
     return _clip(-change / 0.5), {"btc_dominance_pct": round(dom, 2), "change_since_last_pp": round(change, 3),
                                   "mcap_change_24h_pct": round(float(g.get("market_cap_change_percentage_24h_usd", 0)), 2)}
+
+
+def stablecoins() -> tuple[float, dict]:
+    """USDT + USDC circulating supply over 7 days (DefiLlama, free, no key; found via the public-apis list 06/11).
+    Supply growing = new dollars entering crypto (+), shrinking = money leaving (-). +-1 % in 7 d = full score."""
+    out = {}
+    for name, sid in (("usdt", 1), ("usdc", 2)):
+        rows = _get("https://stablecoins.llama.fi/stablecoincharts/all", stablecoin=sid)
+        now, before = rows[-1]["totalCirculatingUSD"]["peggedUSD"], rows[-8]["totalCirculatingUSD"]["peggedUSD"]
+        out[name] = (now, before)
+    now, before = sum(v[0] for v in out.values()), sum(v[1] for v in out.values())
+    ch = now / before - 1
+    return _clip(ch / 0.01), {"supply_bn": round(now / 1e9, 1), "supply_7d_pct": round(ch * 100, 2),
+                              **{f"{k}_7d_pct": round((v[0] / v[1] - 1) * 100, 2) for k, v in out.items()}}
 
 
 def _yahoo_5d(symbol: str) -> float:
@@ -120,7 +136,7 @@ def run() -> dict:
     prev = _json(OUT)
     comps, parts = {}, {}
     for name, fn in (("funding", funding), ("oi_trend", oi_trend), ("dominance", dominance), ("dollar", dollar),
-                     ("equities", equities)):
+                     ("equities", equities), ("stablecoins", stablecoins)):
         try:
             s, detail = fn()
             parts[name] = s
