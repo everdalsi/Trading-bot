@@ -144,19 +144,26 @@ def _portfolio(pid: str) -> dict:
             return usd * (1 - move if str(p.get("side", "")).upper() == "SHORT" else 1 + move)
         return usd
     in_trade = sum(_value(p) for p in positions)
-    start = _num(d.get("starting_cash"), d.get("start_cash"), default=1000.0)
     pnl_closed = sum(_num(t.get("pnl"), t.get("pnl_usd")) for t in trades)
+    # 06/11 audit: no invented 1000 $. Without a stored start, derive it from the book itself:
+    # cash + cost of open positions - realised PnL (exact as long as no money was added or withdrawn).
+    start = _num(d.get("starting_cash"), d.get("start_cash"), default=0.0) or None
+    start_derived = start is None
+    if start_derived:
+        cost = sum(_num(p.get("amount_usd"), p.get("usd"), p.get("size_usd"), p.get("cost"), p.get("value"))
+                   for p in positions)
+        start = round(cash + cost - pnl_closed, 2) if (cash or cost) else None
     wins = sum(1 for t in trades if _num(t.get("pnl"), t.get("pnl_usd")) > 0)
     gross_win = sum(max(0, _num(t.get("pnl"), t.get("pnl_usd"))) for t in trades)
     gross_loss = -sum(min(0, _num(t.get("pnl"), t.get("pnl_usd"))) for t in trades)
-    curve, eq = [], start
+    curve, eq = [], start or 0.0
     for t in trades[-200:]:
         eq += _num(t.get("pnl"), t.get("pnl_usd"))
         curve.append(round(eq, 2))
     return {
         "id": pid, "label": label, "available": True,
         "equity": round(cash + in_trade, 2), "cash": round(cash, 2), "in_trade": round(in_trade, 2),
-        "start": start, "pnl_closed": round(pnl_closed, 2), "n_trades": len(trades),
+        "start": start, "start_derived": start_derived, "pnl_closed": round(pnl_closed, 2), "n_trades": len(trades),
         "win_rate": round(100 * wins / len(trades), 1) if trades else None,
         "profit_factor": round(gross_win / gross_loss, 2) if gross_loss else None,
         "halted": d.get("halted") or d.get("circuit_breaker") or "",
@@ -477,7 +484,7 @@ def status() -> dict:
             "scalp": _scalp(), "learning": _learning(), "analysts": _analysts(), "market": _market(), "ranking": _ranking(),
             "last": {f"{k[0]}:{k[1]}": v for k, v in picks.items() if v}, "last_exec": exe,
             "total_equity": round(sum(b.get("equity", 0) for b in books if b.get("available")), 2),
-            "total_start": sum(b.get("start", 0) for b in books if b.get("available"))}
+            "total_start": sum(b.get("start") or 0 for b in books if b.get("available") and b.get("start"))}
 
 
 

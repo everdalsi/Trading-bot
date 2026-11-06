@@ -67,6 +67,13 @@ def check_all() -> dict:
     return out
 
 
+def _atomic_write(path, text: str) -> None:
+    """Write via a temp file + rename so a reader never sees a half-written file (06/11 audit)."""
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(text, encoding="utf-8")
+    tmp.replace(path)
+
+
 def freshness() -> dict:
     now, out = time.time(), {}
     for name, period in EXPECTED.items():
@@ -75,7 +82,7 @@ def freshness() -> dict:
             age = now - p.stat().st_mtime
             out[name] = {"age_s": int(age), "expected_s": period, "stale": age > 3 * period}
         else:
-            out[name] = {"missing": True}
+            out[name] = {"missing": True, "stale": True}   # missing = not fresh (DataGuard blocks on it)
     return out
 
 
@@ -107,7 +114,7 @@ def report() -> dict:
                       "stale_files": [k for k, v in rep["freshness"].items() if v.get("stale")],
                       "secrets_found": len(rep["secrets_in_clear"])}
     try:
-        (DATA_DIR / "api_keeper.json").write_text(json.dumps(rep, indent=1), encoding="utf-8")
+        _atomic_write(DATA_DIR / "api_keeper.json", json.dumps(rep, indent=1))
     except Exception:
         pass
     return rep

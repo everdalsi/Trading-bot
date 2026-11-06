@@ -188,16 +188,23 @@ def book_stats(book: dict) -> dict:
 def tick() -> dict:
     now = time.time()
     syms = universe()
-    charts = _read("chart_analysis.json").get("symbols", {})
+    ca = _read("chart_analysis.json")
+    # stale chart data (ChartAnalyst dead) = no price = no decision and no shadow trade (06/11 audit)
+    charts = ca.get("symbols", {}) if now - (ca.get("at") or 0) < 3 * 300 else {}
     kr = _read("kronos.json")
+    if kr.get("at") and now - kr["at"] > 3 * 3600:
+        kr = {**kr, "markets": {}, "trusted": False}
     k_markets, k_ok = kr.get("markets", {}), bool(kr.get("trusted"))
-    radar = {f"{c.get('coin')}USDT": c for c in _read("radar.json").get("coins", []) if c.get("coin")}
+    rd = _read("radar.json")
+    radar = ({f"{c.get('coin')}USDT": c for c in rd.get("coins", []) if c.get("coin")}
+             if now - (rd.get("at") or 0) < 3 * 300 else {})
     rows = [score_market(s, charts.get(s) or {}, k_markets.get(s), k_ok, radar.get(s)) for s in syms]
     rows.sort(key=lambda r: -abs(r["score"]))
     old = {m["symbol"]: m["decision"] for m in _read(OUT.name).get("markets", [])}
     book = update_book(_load_book(), rows, now)
     bs = book_stats(book)
     data = {"at": now, "universe_n": len(syms), "analysed_n": sum(1 for r in rows if r["price"]),
+            "chart_age_s": int(now - ca["at"]) if ca.get("at") else None,
             "decisions": {d: sum(r["decision"] == d for r in rows) for d in ("LONG", "SHORT", "WAIT")},
             "kronos": {"status": kr.get("status", "absent"), "trusted": k_ok, "at": kr.get("at")},
             "book": bs, "open": list(book["open"].values()), "last_closed": book["closed"][-30:], "markets": rows}

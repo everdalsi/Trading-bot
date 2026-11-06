@@ -29,6 +29,13 @@ GRID = {
 }
 
 
+
+def _atomic_write(path, text: str) -> None:
+    """Write via a temp file + rename so a reader never sees a half-written file (06/11 audit)."""
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(text, encoding="utf-8")
+    tmp.replace(path)
+
 def klines(symbol: str, days: int) -> list[tuple]:
     """(open_time_ms, open, high, low, close, volume) 1-min bars, oldest first, closed bars only."""
     end = int(time.time() // 60 * 60_000)
@@ -151,7 +158,7 @@ def run(symbols: list[str], days: int = 7) -> dict:
               "current_params": {k: _stats([x for b in data.values() for x in simulate(b, k, p)]) for k, p in current.items()},
               "walk_forward": {k: walk_forward(data, k) for k in GRID}, "mode": "mesure (rien n'est applique)"}
     try:
-        (DATA_DIR / "backtest_report.json").write_text(json.dumps(report, indent=1), encoding="utf-8")
+        _atomic_write(DATA_DIR / "backtest_report.json", json.dumps(report, indent=1))
     except Exception:
         pass
     return report

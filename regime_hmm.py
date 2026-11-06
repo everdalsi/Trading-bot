@@ -21,6 +21,13 @@ DATA_DIR = Path(os.environ.get("DATA_DIR") or ".")
 LABELS = ("risk_off", "neutral", "risk_on")
 
 
+
+def _atomic_write(path, text: str) -> None:
+    """Write via a temp file + rename so a reader never sees a half-written file (06/11 audit)."""
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(text, encoding="utf-8")
+    tmp.replace(path)
+
 def closes(days: int = 730) -> np.ndarray:
     url = f"https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1d&limit={min(days, 1000)}"
     with urllib.request.urlopen(url, timeout=20) as r:
@@ -88,7 +95,7 @@ def start(every_s: int = 3600) -> threading.Thread:
     def loop():
         while True:
             try:
-                (DATA_DIR / "regime_hmm.json").write_text(json.dumps(current()), encoding="utf-8")
+                _atomic_write(DATA_DIR / "regime_hmm.json", json.dumps(current()))
             except Exception:
                 pass
             time.sleep(every_s)

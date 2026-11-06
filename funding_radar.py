@@ -23,6 +23,13 @@ HL = "https://api.hyperliquid.xyz/info"
 _cache: dict[str, tuple[float, object]] = {}
 
 
+
+def _atomic_write(path, text: str) -> None:
+    """Write via a temp file + rename so a reader never sees a half-written file (06/11 audit)."""
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(text, encoding="utf-8")
+    tmp.replace(path)
+
 def _post(body: dict, ttl: float = 60):
     key = json.dumps(body, sort_keys=True)
     hit = _cache.get(key)
@@ -114,7 +121,7 @@ def scan(min_oi_usd: float = 2e6, top: int = 15) -> dict:
         hist = []
     hist = [h for h in hist if now - h["at"] < 6 * 3600] + [{"at": now, "oi": {k: v["oi_usd"] for k, v in cur.items()}}]
     try:
-        hist_path.write_text(json.dumps(hist), encoding="utf-8")
+        _atomic_write(hist_path, json.dumps(hist))
     except Exception:
         pass
     old = min(hist, key=lambda h: abs(now - 3600 - h["at"]))      # snapshot closest to 1 h ago
@@ -141,13 +148,13 @@ def refresh(positions: list[dict] | None = None) -> dict:
     out = {}
     try:
         out["radar"] = scan()
-        (DATA_DIR / "radar.json").write_text(json.dumps(out["radar"], ensure_ascii=False), encoding="utf-8")
+        _atomic_write(DATA_DIR / "radar.json", json.dumps(out["radar"], ensure_ascii=False))
     except Exception as e:
         out["radar_error"] = type(e).__name__
     if positions is not None:
         try:
             out["carry"] = carry_report(positions)
-            (DATA_DIR / "funding_carry.json").write_text(json.dumps({"at": time.time(), **out["carry"]}), encoding="utf-8")
+            _atomic_write(DATA_DIR / "funding_carry.json", json.dumps({"at": time.time(), **out["carry"]}))
         except Exception as e:
             out["carry_error"] = type(e).__name__
     return out
