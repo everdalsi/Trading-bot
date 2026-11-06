@@ -92,12 +92,21 @@ def _share(pf: str) -> float:
 
 
 def load(pf: str) -> dict:
-    try:
-        return json.loads(_path(pf).read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        cash = PARENT_CASH[pf] * _share(pf)
-        return {"cash": cash, "start": cash, "positions": {}, "trades": [], "day": "", "day_start": cash,
-                "halted_day": "", "last_bar": {}}
+    if _path(pf).exists():
+        try:
+            return json.loads(_path(pf).read_text(encoding="utf-8"))
+        except (OSError, ValueError) as e:  # audit 06/11: keep a copy, stop this sleeve, never overwrite
+            bad = _path(pf).with_suffix(f".corrupt-{int(time.time())}.json")
+            try:
+                import shutil
+                shutil.copy2(_path(pf), bad)
+            except OSError:
+                pass
+            log_event("DataGuard", f"scalp_{pf}", "HALT", "", f"ledger illisible ({type(e).__name__}), copie {bad.name}")
+            raise RuntimeError(f"scalp_{pf}.json unreadable ({e})")
+    cash = PARENT_CASH[pf] * _share(pf)
+    return {"cash": cash, "start": cash, "positions": {}, "trades": [], "day": "", "day_start": cash,
+            "halted_day": "", "last_bar": {}}
 
 
 def save(pf: str, led: dict) -> None:

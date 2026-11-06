@@ -189,8 +189,8 @@ def firecrawl_flags() -> list[tuple[str, dict]]:
         sym = sym if sym.endswith("USDT") else sym + "USDT"
         try:
             at = datetime.fromisoformat(it["published"].replace("Z", "+00:00")).timestamp()
-        except Exception:
-            at = time.time()
+        except Exception:  # audit 06/11: undated = dropped (it used to look fresh at every run and re-fire vetoes)
+            continue
         key = it.get("url") or it.get("title", "")
         out.append((sym, {"at": at, "level": lvl, "title": (it.get("title") or "")[:200], "source": "Firecrawl",
                           "link": it.get("url", ""), "id": hashlib.md5(key.encode()).hexdigest()[:10]}))

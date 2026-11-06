@@ -461,7 +461,7 @@ HL_SLEEVE_HARD_SL_PCT    = float(os.environ.get("HL_SLEEVE_HARD_SL_PCT", 0.15)) 
 # resetting, see that file's 2026-11-04 note for why that matters).
 HL_COPY_STARTING_CASH  = float(os.environ.get("HL_COPY_STARTING_CASH", 1000.0))   # 2026-11-05: back to 1000 (user request: crypto and US-stocks portfolios both restart at $1,000). Note 40 slots x $25 = $1,000, so no rotation headroom when fully invested.
 HL_COPY_LEDGER_PATH    = Path(os.environ.get("DATA_DIR") or ".") / "hl_copy_ledger.json"
-HL_COPY_LEDGER_LOCK    = threading.Lock()
+HL_COPY_LEDGER_LOCK    = threading.RLock()  # re-entrant: the worker merges under it (load/save take it too)
 HL_FRESH_MAX_MOVE      = float(os.environ.get("HL_FRESH_MAX_MOVE", 0.01))  # copy only if price within 1 % of the wallet's entry
 HL_COPY_TRADE_ID_BASE  = 90_000_000   # far above the shared sim's own trade ids (currently ~35k) so db_save_trade's "INSERT OR REPLACE" by id can never collide with an unrelated MICRO/legacy trade
 
@@ -2724,15 +2724,21 @@ def fetch_hl_top_wallets() -> list:
                 f"{sum(c['tt_score'] is not None for c in candidates)} also regular per TopTraders")
     return candidates[:HL_TOP_N_WALLETS]
 
-def fetch_hl_wallet_positions(address: str) -> dict:
+def fetch_hl_wallet_positions(address: str) -> dict | None:
     """Returns {coin: {side, size, entry_px}} for a wallet's currently open
-    Hyperliquid perp positions (empty dict if none or on any fetch error)."""
+    Hyperliquid perp positions ({} = really flat). None on ANY fetch error (timeout, 429, error JSON without
+    assetPositions): the caller must skip the wallet this cycle, never read it as "the wallet closed everything"
+    (audit 06/11: an error used to close every mirror of the wallet)."""
     try:
         r = requests.post(HL_INFO_URL, json={"type": "clearinghouseState", "user": address}, timeout=15)
+        if r.status_code != 200:
+            raise RuntimeError(f"HTTP {r.status_code}")
         d = r.json()
+        if not isinstance(d, dict) or "assetPositions" not in d:
+            raise RuntimeError(f"unexpected reply {str(d)[:80]}")
     except Exception as e:
-        logger.debug(f"[HL-COPY] clearinghouseState fetch failed for {address}: {type(e).__name__}: {e}")
-        return {}
+        logger.warning(f"[HL-COPY] clearinghouseState fetch failed for {address[:10]}: {type(e).__name__}: {e} (wallet skipped this cycle)")
+        return None
     out = {}
     for ap in d.get("assetPositions", []) or []:
         pos = ap.get("position", {}) or {}
@@ -2765,10 +2771,18 @@ def load_hl_copy_ledger() -> dict:
             for k, v in _default_hl_copy_ledger().items():
                 data.setdefault(k, v)
             return data
-        except Exception:
-            # Corrupt/partial file -- never crash the sleeve over it, start
-            # fresh in memory (file on disk untouched until next save).
-            return _default_hl_copy_ledger()
+        except Exception as e:
+            # audit 06/11: a corrupt file used to come back as a fresh $1000 ledger that the next save wrote over
+            # the history. Keep a copy, stop the sleeve (raise) and alert; never save over it.
+            bad = HL_COPY_LEDGER_PATH.with_suffix(f".corrupt-{int(time.time())}.json")
+            try:
+                import shutil as _sh
+                _sh.copy2(HL_COPY_LEDGER_PATH, bad)
+            except Exception:
+                pass
+            log_event("DataGuard", "crypto_copy", "HALT", "", f"ledger illisible ({type(e).__name__}), copie {bad.name}",
+                      result="portefeuille arrete, aucune ecriture")
+            raise RuntimeError(f"hl_copy_ledger.json unreadable ({e}); copy kept as {bad.name}")
 
 
 def save_hl_copy_ledger(ledger: dict) -> None:
@@ -2820,6 +2834,23 @@ def compute_crypto_risk_pct(symbol: str, side: str) -> dict:
     except Exception as e:
         logger.debug(f"[HL-COPY] Risk check unavailable (non-blocking): {type(e).__name__}: {e}")
         return {"risk_pct": 50, "sentiment_score": 0.5, "is_critical": False, "top_headline": None}
+
+
+_HL_GUARD = {"blocked": False, "why": "", "at": 0.0}  # last drawdown-guard verdict, also gates the FillEngine
+
+
+def _hl_equity_mtm(ledger: dict, prices: dict | None) -> float:
+    """Cash + positions at the CURRENT price (cost basis when a price is missing)."""
+    eq = float(ledger["cash"])
+    for p in ledger["positions"].values():
+        usd, entry = float(p.get("amount_usd", 0)), float(p.get("price_in") or 0)
+        px = (prices or {}).get(p.get("symbol"))
+        if usd and entry and px:
+            move = (px / entry - 1) * (1 if p.get("side", "LONG") == "LONG" else -1)
+            eq += usd * (1 + move)
+        else:
+            eq += usd
+    return eq
 
 
 def _hl_equity(ledger: dict) -> float:
@@ -2907,6 +2938,28 @@ def _open_hl_mirror(symbol: str, price: float, side: str, source_addr: str,
               score=round(source_month_roi, 4), result="ouvert", price=price, side=side,
               size_reduction=size_reduction, news_risk_pct=risk.get("risk_pct") if risk else None,
               **_market_tags(symbol, side))
+
+def _start_measurement_agents() -> None:
+    """Measurement / research agents (Desktop modules). Audit 06/11: one try PER agent, logged at error level,
+    so one failing start never prevents the others."""
+    starts = [
+        ("Trending", lambda: __import__("trending").start(900)),
+        ("MarketContext", lambda: __import__("market_context").start(300)),
+        ("FundingRadar", lambda: __import__("funding_radar").start(_open_positions_all, 300)),
+        ("RegimeHMM", lambda: __import__("regime_hmm").start(3600)),
+        ("MarketDesk", lambda: __import__("market_desk").start(300)),
+        ("Kronos", lambda: __import__("kronos_agent").start()),
+        ("DeskContext", lambda: __import__("desk_context").start(_open_positions_all, 600)),
+        ("ApiKeeper", lambda: __import__("api_keeper").start(600)),
+        ("Backtester", _start_daily_backtest),
+    ]
+    for name, fn in starts:
+        try:
+            fn()
+        except Exception as e:
+            logger.error(f"[AGENTS] {name} not started: {type(e).__name__}: {e}")
+            log_event(name, "systeme", "INFO", "", f"demarrage impossible : {type(e).__name__}: {str(e)[:150]}", result="erreur")
+
 
 _backtest_started = False
 
@@ -3466,7 +3519,11 @@ def _hl_copytrade_worker(send_fn):
     except Exception as e:
         logger.warning(f"[HL-COPY] Worker error: {type(e).__name__}: {e}")
     try:
-        hl_consensus_fill(send_fn)
+        if _HL_GUARD["blocked"]:  # audit 06/11: the drawdown guard also stops consensus / hedge / pair entries
+            log_event("FillEngine", "crypto_copy", "VETO", "", f"remplissage arrete : {_HL_GUARD['why']}",
+                      result="garde drawdown active")
+        else:
+            hl_consensus_fill(send_fn)
     except Exception as e:
         logger.warning(f"[HL-FILL] error: {type(e).__name__}: {e}")
     finally:
@@ -3492,7 +3549,8 @@ def _hl_copytrade_worker_body(send_fn):
     # streak should block ALL new opens this cycle, not just the one being
     # evaluated when the threshold was crossed. Never blocks closes/monitoring
     # (monitor_hl_copytrade_risk runs independently) -- only new mirrors.
-    equity = ledger["cash"] + sum(p.get("amount_usd", 0) for p in ledger["positions"].values())
+    # audit 06/11: MARK-TO-MARKET equity (cost basis hid unrealised losses from the drawdown guard)
+    equity = _hl_equity_mtm(ledger, get_prices_batch())
     today = datetime.now().strftime("%Y-%m-%d")
     if ledger.get("daily_start_date") != today:
         ledger["daily_start_equity"] = equity
@@ -3505,19 +3563,26 @@ def _hl_copytrade_worker_body(send_fn):
             "initial_equity": HL_COPY_STARTING_CASH + float(ledger.get("deposits", 0)),
         }))
         trading_blocked = bool(guard_resp.get("veto"))
+        _HL_GUARD.update(blocked=trading_blocked, why=guard_resp.get("summary", "") if trading_blocked else "", at=time.time())
         if trading_blocked:
             log_event("DrawdownGuard", "crypto_copy", "VETO", "", guard_resp.get("summary", "pause active"),
                       result="aucune nouvelle position ce cycle", equity=round(equity, 2))
         if trading_blocked and guard_resp.get("telegram_alert"):
             send_fn(f"🛑 HL-Copy circuit breaker: {guard_resp.get('summary', 'pause active')}")
-    except Exception as e:
-        logger.debug(f"[HL-COPY] drawdown_guard check unavailable (non-blocking): {type(e).__name__}: {e}")
+    except Exception as e:  # audit 06/11: fail CLOSED (no new position) when the guard cannot answer
+        trading_blocked = True
+        _HL_GUARD.update(blocked=True, why=f"garde indisponible ({type(e).__name__})", at=time.time())
+        logger.warning(f"[HL-COPY] drawdown_guard unavailable -> no new entries this cycle: {type(e).__name__}: {e}")
+        log_event("DrawdownGuard", "crypto_copy", "VETO", "", f"garde indisponible ({type(e).__name__}) : pas de nouvelle position",
+                  result="ferme par securite")
 
     prices = get_prices_batch()
 
     for w in ledger["wallets"]:
         addr = w["address"]
         live_positions = fetch_hl_wallet_positions(addr)
+        if live_positions is None:  # fetch failed: keep the last known positions, decide nothing for this wallet
+            continue
         last_seen = ledger["wallet_positions"].get(addr, {})
         first_poll = addr not in ledger["wallet_positions"]  # positions already open when we started following
 
@@ -3620,7 +3685,15 @@ def _hl_copytrade_worker_body(send_fn):
 
         ledger["wallet_positions"][addr] = live_positions
 
-    save_hl_copy_ledger(ledger)
+    # audit 06/11: this copy of the ledger was loaded minutes ago; monitor_hl_copytrade_risk (main loop) may have
+    # closed positions since (hard SL). Merge only what this worker owns into a FRESH copy, under the lock.
+    with HL_COPY_LEDGER_LOCK:
+        fresh = load_hl_copy_ledger()
+        fresh.setdefault("wallet_positions", {}).update(ledger.get("wallet_positions", {}))
+        for k in ("wallets", "last_wallet_refresh", "daily_start_equity", "daily_start_date"):
+            if k in ledger:
+                fresh[k] = ledger[k]
+        save_hl_copy_ledger(fresh)
 
     save_data()
 
@@ -6139,24 +6212,7 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     news_agent.start()
     professor.start()
     trade_bus.start(60)  # Coordinator: stuck circuits, expired signals -> coordinator.json
-    try:  # Desktop trending.py: CoinGecko trending coins every 15 min (measurement next to court terme / MemeHunter)
-        import trending
-        trending.start(900)
-        import market_context  # Desktop: liquidations, crowd, whales, funding, CryptoVision news
-        market_context.start(300)
-        import funding_radar, regime_hmm  # Desktop: funding carry + OI radar, BTC regime HMM (measurement)
-        funding_radar.start(_open_positions_all, 300)
-        regime_hmm.start(3600)
-        import market_desk, kronos_agent  # Desktop 06/11: 50-market desk (shadow book) + Kronos candle forecasts (measurement)
-        market_desk.start(300)
-        kronos_agent.start()
-        import desk_context  # Desktop: concentration, spreads, whale flows, listings, mentions (measurement)
-        desk_context.start(_open_positions_all, 600)
-        import api_keeper  # Desktop: provider pings, Binance weight, freshness of every agent file, secrets scan
-        api_keeper.start(600)
-        _start_daily_backtest()
-    except Exception as e:
-        logger.info(f"[TRENDING] non demarre: {type(e).__name__}: {e}")
+    _start_measurement_agents()  # one try per agent (audit 06/11)
     scalper.start()
     polymarket_analyst.start()
     threading.Thread(target=daily_summary, args=(send,), daemon=True).start()
@@ -7898,24 +7954,7 @@ def auto_start():
     news_agent.start()
     professor.start()
     trade_bus.start(60)  # Coordinator: stuck circuits, expired signals -> coordinator.json
-    try:  # Desktop trending.py: CoinGecko trending coins every 15 min (measurement next to court terme / MemeHunter)
-        import trending
-        trending.start(900)
-        import market_context  # Desktop: liquidations, crowd, whales, funding, CryptoVision news
-        market_context.start(300)
-        import funding_radar, regime_hmm  # Desktop: funding carry + OI radar, BTC regime HMM (measurement)
-        funding_radar.start(_open_positions_all, 300)
-        regime_hmm.start(3600)
-        import market_desk, kronos_agent  # Desktop 06/11: 50-market desk (shadow book) + Kronos candle forecasts (measurement)
-        market_desk.start(300)
-        kronos_agent.start()
-        import desk_context  # Desktop: concentration, spreads, whale flows, listings, mentions (measurement)
-        desk_context.start(_open_positions_all, 600)
-        import api_keeper  # Desktop: provider pings, Binance weight, freshness of every agent file, secrets scan
-        api_keeper.start(600)
-        _start_daily_backtest()
-    except Exception as e:
-        logger.info(f"[TRENDING] non demarre: {type(e).__name__}: {e}")
+    _start_measurement_agents()  # one try per agent (audit 06/11)
     scalper.start()
     polymarket_analyst.start()
     threading.Thread(target=daily_summary, args=(send,), daemon=True).start()

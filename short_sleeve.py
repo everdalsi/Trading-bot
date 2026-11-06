@@ -93,13 +93,24 @@ def _default() -> dict:
 
 def load() -> dict:
     with LOCK:
+        if not LEDGER_PATH.exists():
+            return _default()
         try:
             data = json.loads(LEDGER_PATH.read_text(encoding="utf-8"))
             for k, v in _default().items():
                 data.setdefault(k, v)
             return data
-        except (OSError, ValueError):
-            return _default()
+        except (OSError, ValueError) as e:
+            # audit 06/11: never replace an unreadable ledger by a fresh one (the next save erased the history)
+            bad = LEDGER_PATH.with_suffix(f".corrupt-{int(time.time())}.json")
+            try:
+                import shutil
+                shutil.copy2(LEDGER_PATH, bad)
+            except OSError:
+                pass
+            log_event("DataGuard", "court_terme", "HALT", "", f"ledger illisible ({type(e).__name__}), copie {bad.name}",
+                      result="portefeuille arrete, aucune ecriture")
+            raise RuntimeError(f"meme_sim.json unreadable ({e}); copy kept as {bad.name}")
 
 
 def save(ledger: dict) -> None:

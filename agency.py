@@ -169,12 +169,14 @@ class DataGuard:
             import os as _os
             from pathlib import Path as _P
             f = _P(_os.environ.get("DATA_DIR") or ".") / "api_keeper.json"
-            if time.time() - f.stat().st_mtime > 1800:
-                return []
+            if not f.exists():
+                return []  # keeper not running yet (first minutes after boot)
+            if time.time() - f.stat().st_mtime > 1800:  # audit 06/11: fail CLOSED
+                return ["api_keeper.json (rapport de plus de 30 min)"]
             fr = (_json.loads(f.read_text(encoding="utf-8")).get("freshness") or {})
-            return [n for n in self.CRITICAL if (fr.get(n) or {}).get("stale")]
-        except Exception:
-            return []
+            return [n for n in self.CRITICAL if (fr.get(n) or {}).get("stale") or (fr.get(n) or {}).get("missing")]
+        except Exception as e:
+            return [f"api_keeper.json illisible ({type(e).__name__})"]
 
     def _block(self, why: str) -> tuple[bool, str]:
         self.blocked_reason = why
