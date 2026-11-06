@@ -3143,6 +3143,9 @@ def _crypto_net_exposure(hl_ledger: dict) -> float:
 
 
 HL_FILL_NET_LIMIT = float(os.environ.get("HL_FILL_NET_LIMIT", 0.60))
+HL_PAIRS = bool(int(os.environ.get("HL_PAIRS", 1)))
+HL_PAIR_LONG_MIN_CONS = float(os.environ.get("HL_PAIR_LONG_MIN_CONS", 0.2))
+HL_PAIR_LONG_MAX_PCT = float(os.environ.get("HL_PAIR_LONG_MAX_PCT", 0.10))
 HL_HEDGE_NET = float(os.environ.get("HL_HEDGE_NET", 0.30))
 HL_HEDGE_MAX_PCT = float(os.environ.get("HL_HEDGE_MAX_PCT", 0.40))
 HL_FILL_COOLDOWN_S = int(os.environ.get("HL_FILL_COOLDOWN_S", 3600))
@@ -3322,6 +3325,71 @@ def hl_consensus_fill(send_fn):
         invested = sum(float(p.get("amount_usd", 0)) for p in ledger["positions"].values())
         eq = _hl_equity(ledger)
         net = _crypto_net_exposure(ledger)
+    # Neutral pairs (2026-11-06, user "100 % des portefeuilles investis"): the consensus is almost all SHORT
+    # (58 vs 2 on 06/11) and the 30 % side+category rule refuses the rest, so cash sat at ~25 %. A pair = one
+    # consensus SHORT (refused alone) + one LONG of the same size on the strongest LONG consensus coin
+    # (|c| >= HL_PAIR_LONG_MIN_CONS, max HL_PAIR_LONG_MAX_PCT of equity per long coin): net direction
+    # unchanged, idle cash invested. Neutral regime only; ChartAnalyst + SeniorExpert on both legs;
+    # strategy HL_PAIR so the Professor measures it apart. HL_PAIRS=0 = off.
+    if HL_PAIRS and label == "neutral":
+        def _sym(coin: str) -> str:
+            return HL_COIN_TO_BINANCE.get(coin) or HL_COIN_TO_BINANCE.get("k" + coin) or f"{coin}USDT"
+
+        def _chart_ok(sym: str, side: str) -> bool:
+            try:
+                ca = chart_analyst.ensure(sym)
+                t1, t4 = (ca.get("1h") or {}).get("trend"), (ca.get("4h") or {}).get("trend")
+                return not ((side == "LONG" and t1 == t4 == "down") or (side == "SHORT" and t1 == t4 == "up"))
+            except Exception:
+                return True
+
+        longs = [_sym(c) for c, v in sorted(cons.items(), key=lambda cv: -cv[1])
+                 if v >= HL_PAIR_LONG_MIN_CONS and holders.get(c, 0) >= HL_FILL_MIN_HOLDERS]
+        li = 0
+        for coin, c in cands:
+            unit = _hl_position_size(ledger)
+            if invested + 2 * unit > eq * 1.0001 or ledger["cash"] < 2 * unit:
+                break
+            s_sym = _sym(coin)
+            if c >= 0 or s_sym in held or s_sym in MANUAL_SYMBOL_BLACKLIST or _recently_closed(ledger, s_sym):
+                continue
+            l_sym = None
+            while li < len(longs):
+                cand = longs[li]
+                leg = sum(float(p.get("amount_usd", 0)) for p in ledger["positions"].values()
+                          if p["symbol"] == cand and p.get("strategy") == "HL_PAIR")
+                if (cand in MANUAL_SYMBOL_BLACKLIST or (cand in held and not leg)
+                        or leg + unit > HL_PAIR_LONG_MAX_PCT * eq or not _chart_ok(cand, "LONG")):
+                    li += 1
+                    continue
+                l_sym = cand
+                break
+            if not l_sym:
+                why["paire_sans_long"] = why.get("paire_sans_long", 0) + 1
+                break
+            if not _chart_ok(s_sym, "SHORT"):
+                why["graphique"] += 1
+                continue
+            ps, pl = get_current_price(s_sym), get_current_price(l_sym)
+            if not ps or not pl:
+                continue
+            ok_s, _ = agency.approve_entry("crypto_copy", s_sym, ps, 0.01 * abs(c), {"side": "SHORT", "score": c, "fill_mode": True})
+            ok_l, _ = agency.approve_entry("crypto_copy", l_sym, pl, 0.005, {"side": "LONG", "fill_mode": True})
+            if not (ok_s and ok_l):
+                why["senior"] += 1
+                continue
+            _open_hl_mirror(s_sym, ps, "SHORT", HL_CONSENSUS_ADDR, coin, 0.0, send_fn, strategy="HL_PAIR", amount_override=unit)
+            _open_hl_mirror(l_sym, pl, "LONG", HL_CONSENSUS_ADDR, l_sym.replace("USDT", ""), 0.0, send_fn,
+                            strategy="HL_PAIR", amount_override=unit)
+            log_event("FillEngine", "crypto_copy", "BUY", f"{coin}/{l_sym.replace('USDT', '')}",
+                      f"paire neutre : SHORT {coin} (consensus {c:+.2f}) + LONG {l_sym.replace('USDT', '')} meme taille",
+                      result="ouvert", usd=round(unit, 2))
+            why["paires"] = why.get("paires", 0) + 1
+            ledger = load_hl_copy_ledger()
+            held |= {s_sym, l_sym}
+            invested = sum(float(p.get("amount_usd", 0)) for p in ledger["positions"].values())
+            eq = _hl_equity(ledger)
+            net = _crypto_net_exposure(ledger)
     # one summary per cycle so the Trading Floor shows WHY the book is not full (Desktop review)
     log_event("FillEngine", "crypto_copy", "INFO", "", f"remplissage : investi {invested / eq:.0%}, {len(cands)} candidats "
               f"consensus, regime {label}, expo nette crypto {net:+.0%}", result=why, invested_pct=round(invested / eq, 3),
