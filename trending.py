@@ -45,13 +45,20 @@ def rank(symbol: str) -> int | None:
         return None
 
 
+_thread = None
+
 def start(every_s: int = 900) -> threading.Thread:
+    """Idempotent: bot.py starts agents from auto_start() AND from the Telegram /start command."""
+    global _thread
+    if _thread is not None and _thread.is_alive():
+        return _thread
     def loop():
         while True:
             refresh()
             time.sleep(every_s)
     t = threading.Thread(target=loop, name="Trending", daemon=True)
     t.start()
+    _thread = t
     return t
 
 

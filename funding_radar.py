@@ -153,7 +153,13 @@ def refresh(positions: list[dict] | None = None) -> dict:
     return out
 
 
+_thread = None
+
 def start(positions_fn=None, every_s: int = 300) -> threading.Thread:
+    """Idempotent: bot.py starts agents from auto_start() AND from the Telegram /start command."""
+    global _thread
+    if _thread is not None and _thread.is_alive():
+        return _thread
     """positions_fn() -> [{symbol, side, usd}] of all open positions (the bot passes its ledgers reader)."""
     def loop():
         while True:
@@ -164,6 +170,7 @@ def start(positions_fn=None, every_s: int = 300) -> threading.Thread:
             time.sleep(every_s)
     t = threading.Thread(target=loop, name="FundingRadar", daemon=True)
     t.start()
+    _thread = t
     return t
 
 

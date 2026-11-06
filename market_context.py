@@ -155,7 +155,13 @@ def read() -> dict:
         return {}
 
 
+_thread = None
+
 def start(every_s: int = 300) -> threading.Thread:
+    """Idempotent: bot.py starts agents from auto_start() AND from the Telegram /start command."""
+    global _thread
+    if _thread is not None and _thread.is_alive():
+        return _thread
     def loop():
         while True:
             try:
@@ -165,6 +171,7 @@ def start(every_s: int = 300) -> threading.Thread:
             time.sleep(every_s)
     t = threading.Thread(target=loop, name="MarketContext", daemon=True)
     t.start()
+    _thread = t
     return t
 
 
