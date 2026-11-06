@@ -34,6 +34,12 @@ def log_event(agent: str, portfolio: str, action: str, symbol: str = "", reason:
            "portfolio": portfolio, "action": action, "symbol": symbol, "reason": str(reason)[:300],
            "score": score, "result": result, **extra}
     rec["msg_id"] = uuid.uuid4().hex[:12]
+    if not trade_id:
+        try:  # the trade circuit open in this thread (signals.begin), so every step of a trade is linked on disk
+            import signals
+            trade_id = signals.current()
+        except Exception:
+            trade_id = None
     for k, v in (("to", to), ("kind", kind), ("trade_id", trade_id)):
         if v:
             rec[k] = v
