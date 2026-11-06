@@ -47,6 +47,8 @@ def lire(batiment: str, route: str) -> object:
 
 def _rafraichir(batiment: str) -> None:
     for route in ROUTES:
+        if route == "wallets" and batiment != "A":       # route propre au batiment A
+            continue
         try:
             data = lire(batiment, "/" + route)
             with _lock:
