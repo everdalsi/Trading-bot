@@ -300,6 +300,11 @@ def start(every_s: int = 6 * 3600) -> None:
                 run()
             except Exception as e:
                 log_event("Professor", "systeme", "INFO", "", f"erreur interne {type(e).__name__}: {e}")
+            try:  # Desktop filter_audit.py: scores the scalper entry filters against real 3-min outcomes
+                import filter_audit
+                filter_audit.run()
+            except Exception as e:
+                log_event("Professor", "systeme", "INFO", "", f"filter_audit erreur {type(e).__name__}: {e}")
             time.sleep(every_s)
 
     threading.Thread(target=loop, daemon=True, name="professor").start()

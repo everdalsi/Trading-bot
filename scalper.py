@@ -338,7 +338,27 @@ def entries(pf: str, led: dict, symbols: list[str], quotes: dict[str, tuple[floa
         if not b or led["last_bar"].get(s) == b[-1][0]:
             continue  # one decision per closed 1-minute candle
         led["last_bar"][s] = b[-1][0]
-        side = signal_a(b) if STRATEGY[pf] == "A" else signal_b(s, b)
+        strat = STRATEGY[pf]
+        if ORDERFLOW and pf != "actions_us":  # Desktop microstructure.py: route A/B by variance ratio + VPIN
+            try:
+                import microstructure
+                mode, why = microstructure.scalp_mode(s)
+            except Exception:
+                mode, why = "any", ""
+            if mode == "skip":
+                continue
+            strat = {"breakout": "A", "mean_reversion": "B"}.get(mode, strat)
+        side = signal_a(b) if strat == "A" else signal_b(s, b)
+        if side and ORDERFLOW and pf != "actions_us":
+            try:
+                import microstructure
+                casc = microstructure.cascade_risk(s) or {}
+            except Exception:
+                casc = {}
+            if casc.get("cascade") and side == ("LONG" if casc.get("side") == "down" else "SHORT"):
+                log_event("OrderFlow", pf, "VETO", s, f"cascade de liquidations {casc.get('side')} (OI {casc.get('oi_chg_1h')}, "
+                          f"prix {casc.get('px_chg_1h')}) : pas de {side} contre", result="entree bloquee")
+                continue
         if side and ORDERFLOW and pf != "actions_us":
             try:
                 import orderflow
@@ -351,11 +371,11 @@ def entries(pf: str, led: dict, symbols: list[str], quotes: dict[str, tuple[floa
                 continue
         if side and MAKER and pf in MAKER_FEE:
             led.setdefault("pending", {})[s] = {"side": side, "limit": bid if side == "LONG" else ask,
-                                                "at": time.time(), "strategy": STRATEGY[pf]}
+                                                "at": time.time(), "strategy": strat}
             _maker_stat(led, "placed")
             held.add(s)
         elif side:
-            _open(pf, led, s, side, bid, ask, STRATEGY[pf])
+            _open(pf, led, s, side, bid, ask, strat)
             held.add(s)
 
 

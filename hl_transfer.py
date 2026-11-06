@@ -7,8 +7,7 @@ D = Path(os.environ.get("DATA_DIR") or ".")
 sc_p, hl_p = D / "scalp_crypto_copy.json", D / "hl_copy_ledger.json"
 sc, hl = json.loads(sc_p.read_text()), json.loads(hl_p.read_text())
 keep = 1000.0 * float(os.environ.get("SCALP_SHARE_CRYPTO_COPY", "0.05"))
-if sc["positions"] or sc.get("pending"):
-    sys.exit("scalper has open positions/orders: retry later")
+# open positions keep their own cash (already out of sc['cash']): only the free cash above the share moves
 amt = round(sc["cash"] - keep, 2)
 if amt <= 0:
     sys.exit(f"nothing to move (cash {sc['cash']:.2f} <= {keep})")
