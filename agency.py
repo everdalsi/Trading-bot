@@ -196,7 +196,14 @@ def _quote_volume(symbol: str) -> float | None:
     if time.time() - _vol_cache["at"] > 900:
         try:
             rows = requests.get(f"{BINANCE}/api/v3/ticker/24hr", timeout=15).json()
-            _vol_cache.update(at=time.time(), vol={r["symbol"]: float(r["quoteVolume"]) for r in rows})
+            vol = {r["symbol"]: float(r["quoteVolume"]) for r in rows}
+            try:  # Desktop 06/11: positions (shorts especially) trade on perps, where volume is 5-20x the spot one
+                fut = requests.get("https://fapi.binance.com/fapi/v1/ticker/24hr", timeout=15).json()
+                for r in fut:
+                    vol[r["symbol"]] = max(vol.get(r["symbol"], 0.0), float(r["quoteVolume"]))
+            except (requests.RequestException, ValueError, KeyError, TypeError):
+                pass
+            _vol_cache.update(at=time.time(), vol=vol)
         except (requests.RequestException, ValueError, KeyError):
             return None
     return _vol_cache["vol"].get(symbol)

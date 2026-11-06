@@ -33,7 +33,10 @@ def _save(path: Path, data: dict) -> None:
 def _universe() -> list[str]:
     try:
         import market_desk
-        return market_desk.universe()
+        try:
+            return market_desk.universe("ALL")  # both universes (A crypto copy + B court terme)
+        except TypeError:
+            return market_desk.universe()
     except Exception:
         return ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
 

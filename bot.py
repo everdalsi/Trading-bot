@@ -3270,21 +3270,14 @@ def _fill_state(t=..., **kw) -> dict:
 
 
 def _crypto_net_exposure(hl_ledger: dict) -> float:
-    """(long - short) / equity over BOTH crypto books (HL copy + court terme), in [-1, +1]."""
+    """(long - short) / equity of the crypto-copy book ALONE (universe A), in [-1, +1].
+    User 06/11 "deux univers separes": the court-terme book (universe B) used to be added here, so its shorts
+    blocked A's fill and triggered A's hedge. Each universe now has its own limits."""
     lng = sht = 0.0
     eq = _hl_equity(hl_ledger)
     for p in hl_ledger["positions"].values():
         a = float(p.get("amount_usd", 0))
         lng, sht = (lng + a, sht) if p.get("side") != "SHORT" else (lng, sht + a)
-    try:
-        ct = json.loads((HL_COPY_LEDGER_PATH.parent / "meme_sim.json").read_text(encoding="utf-8"))
-        eq += float(ct.get("cash", 0))
-        for p in ct.get("positions", {}).values():
-            a = float(p.get("usd", 0))
-            eq += a
-            lng, sht = (lng + a, sht) if p.get("side", "LONG") != "SHORT" else (lng, sht + a)
-    except (OSError, ValueError):
-        pass
     return (lng - sht) / eq if eq > 0 else 0.0
 
 

@@ -143,8 +143,25 @@ def snapshot() -> dict:
     if ct:
         pos = list(ct.get("positions", {}).values())
         inv = sum(float(p.get("usd", 0)) for p in pos)
-        out["court_terme"] = {"equity": round(float(ct.get("cash", 0)) + inv, 2), "invested": round(inv, 2),
+        eq_ct = float(ct.get("cash", 0)) + inv
+        out["court_terme"] = {"equity": round(eq_ct, 2), "invested": round(inv, 2),
                               "positions": len(pos), "side": ct.get("a_side")}
+        # universe B has its own risk view (user 06/11: two separate universes): same 6 % / 30 % limits, on B alone
+        if eq_ct:
+            buckets_b = {}
+            for p in pos:
+                try:
+                    cat = category_fn(p["symbol"]) if category_fn else "?"
+                except Exception:
+                    cat = "?"
+                k = f"{p.get('side', 'LONG')} {cat}"
+                buckets_b[k] = buckets_b.get(k, 0) + float(p.get("usd", 0))
+            out["court_terme"]["side_category"] = {k: round(v / eq_ct, 3) for k, v in buckets_b.items()}
+            big = [p.get("symbol") for p in pos if float(p.get("usd", 0)) / eq_ct > 0.06 + 1e-6]
+            out["court_terme"]["over_6pct"] = big
+            violations += [f"court_terme {k} {v:.0%} > 30 % (univers B)" for k, v in out["court_terme"]["side_category"].items()
+                           if v > 0.30 + 1e-6]
+            violations += [f"court_terme {b} > 6 % du portefeuille (univers B)" for b in big]
     for pf in ("crypto_copy", "court_terme", "actions_us"):
         sc = _json(f"scalp_{pf}.json")
         if sc:

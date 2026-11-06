@@ -264,6 +264,15 @@ def coin_perps() -> set[str]:
 
 
 def universe() -> list[str]:
+    """Universe B (user 06/11): market_desk.universe("B") is the single source (50 markets, never in A, perp volume
+    >= 5 M$, trending first). Local computation only if that module is unavailable."""
+    try:
+        import market_desk
+        b = market_desk.universe("B")
+        if b:
+            return b
+    except Exception:
+        pass
     r = requests.get(f"{BINANCE}/api/v3/ticker/24hr", timeout=15)
     r.raise_for_status()
     rows = [d for d in r.json() if d["symbol"].endswith("USDT")]
@@ -273,7 +282,26 @@ def universe() -> list[str]:
     perps = coin_perps()
     rows = [d for d in rows if ok(d["symbol"]) and (not perps or d["symbol"] in perps)]
     rows.sort(key=lambda d: float(d["quoteVolume"]), reverse=True)
+    # universe B (user 06/11 "deux univers separes, 50 marches chacun"): the 50 markets ranked right after
+    # universe A (the crypto-copy 50), never one of A's, with >= B_MIN_VOL of 24 h volume
+    a_set = set(_universe_a())
+    rows = [d for d in rows if d["symbol"] not in a_set and float(d["quoteVolume"]) >= B_MIN_VOL]
     return [d["symbol"] for d in rows[:A_TOP_N]]
+
+
+B_MIN_VOL = float(os.environ.get("CT_B_MIN_VOL", 5e6))
+
+
+def _universe_a() -> list[str]:
+    """Universe A = crypto copy's 50 markets (market_desk, Desktop). Fallback: none excluded."""
+    try:
+        import market_desk
+        try:
+            return market_desk.universe("A")
+        except TypeError:
+            return market_desk.universe()
+    except Exception:
+        return []
 
 
 def lane_a_targets() -> tuple[list[str], bool, dict[str, float]]:
