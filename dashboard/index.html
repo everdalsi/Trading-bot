@@ -94,8 +94,6 @@
   <section class="panel s12"><h2><span>Analystes en mode mesure</span><span class="mut">aucun poids dans les décisions tant que leur IC n'a pas prouvé qu'ils prédisent</span></h2><div class="books" id="analysts"></div></section>
   <section class="panel s12"><h2><span>Les agents prédisent-ils ? (moniteur d'IC)</span><span id="icat" class="mut"></span></h2><div id="ic"></div></section>
   <section class="panel s12"><h2><span>L'équipe de l'agence</span><span class="mut">vert = en service · estompé = étape à venir</span></h2><div class="roster" id="roster"></div></section>
-  <section class="panel s6"><h2>Analyste actions US : signaux du dernier cycle</h2><div class="scroll"><table>
-    <thead><tr><th>Action</th><th>Décision</th><th class="n">Score</th><th>13F</th><th>Congrès</th><th class="n">5 j</th></tr></thead><tbody id="stocks"></tbody></table></div></section>
   <section class="panel s6"><h2>Wallets copiés (top 10 du mois)</h2><table>
     <thead><tr><th>Wallet</th><th class="n">Taille</th><th class="n">Mois</th><th class="n">Semaine</th></tr></thead><tbody id="wallets"></tbody></table></section>
   <section class="panel s12"><details><summary>Journal technique du bot</summary><div class="log" id="log" style="margin-top:10px"></div></details></section>
@@ -165,8 +163,7 @@ function render(st) {
       <div class="ag"><b>Analyseur de courbes</b>${evLine(Lt["ChartAnalyst:SIGNAL"])}</div>`],
     ["2 · Expert senior", `<div class="ag"><b>Dernier accord</b>${evLine(Lt["SeniorExpert:APPROVE"])}</div><div class="ag"><b>Dernier veto</b>${evLine(Lt["SeniorExpert:VETO"] || Lt["DataGuard:VETO"] || Lt["ChartAnalyst:VETO"])}</div>`],
     ["3 · Exécution", `<div class="ag"><b>Dernier ordre</b>${evLine(ex)}</div>`],
-    ["4 · Risque", `<div class="ag"><b>Coupe-circuit</b><span class="v ${halted ? "down" : "up"}">${halted ? "DÉCLENCHÉ" : "armé"}</span><p>${st.portfolios.filter(p => p.halted).map(p => esc(p.label) + " : " + esc(p.halted)).join("<br>") || "aucun portefeuille arrêté"}</p></div>
-      <div class="ag"><b>Garde-fou actions US</b><span class="v ${(S.risk || {}).pause_until ? "down" : "up"}">${(S.risk || {}).pause_until ? "PAUSE" : "OK"}</span><p>pertes d'affilée : ${(S.risk || {}).consecutive_losses ?? 0}</p></div>`],
+    ["4 · Risque", `<div class="ag"><b>Coupe-circuit</b><span class="v ${halted ? "down" : "up"}">${halted ? "DÉCLENCHÉ" : "armé"}</span><p>${st.portfolios.filter(p => p.halted).map(p => esc(p.label) + " : " + esc(p.halted)).join("<br>") || "aucun portefeuille arrêté"}</p></div>`],
   ].map(([t, h]) => `<div class="stage"><h3>${t}</h3>${h}</div>`).join("");
 
   document.getElementById("books").innerHTML = st.portfolios.map(p => {
@@ -198,11 +195,6 @@ function render(st) {
     <span class="st ${r.state === "planned" ? "mut" : "up"}">${r.state === "live" ? "● en action" : r.state === "on" ? "en service" : "étape " + r.step}</span>
     <b>${esc(r.label)}</b><p>${esc(r.role)}</p>${r.last ? `<div class="last"><span class="tag ${esc(r.last.action)}">${esc(r.last.action)}</span> ${esc(r.last.symbol || "")} ${esc(r.last.reason || "").slice(0, 70)} <span class="mut">· il y a ${ago(r.last.age_s)}</span></div>` : ""}</div>`).join("");
 
-  const mx = Math.max(1, ...(S.signals || []).map(x => Math.abs(x.score || 0)));
-  document.getElementById("stocks").innerHTML = (S.signals || []).map(x => `<tr><td><b>${esc(x.symbol)}</b></td><td><span class="tag ${esc(x.action)}">${esc(x.action)}</span></td>
-    <td class="n ${cls(x.score)}">${x.score ?? "—"} <span class="bar" style="width:${Math.round(30 * Math.abs(x.score || 0) / mx)}px;background:${(x.score || 0) >= 0 ? "var(--green)" : "var(--red)"}"></span></td>
-    <td class="${cls(x.f13)}">${x.f13 > 0 ? "achète" : x.f13 < 0 ? "vend" : "—"}</td><td class="${cls(x.congress)}">${x.congress > 0 ? "achète" : x.congress < 0 ? "vend" : "—"}</td>
-    <td class="n ${cls(x.ret5)}">${pct(x.ret5)}</td></tr>`).join("") || '<tr><td colspan="6" class="empty">Pas de cycle récent</td></tr>';
 
   document.getElementById("wallets").innerHTML = (st.wallets || []).map(w => `<tr><td class="mut">${esc(w.addr)}</td><td class="n">${money(w.value, 0)}</td>
     <td class="n ${cls(w.roi_m)}">${w.roi_m == null ? "—" : w.roi_m + " %"}</td><td class="n ${cls(w.roi_w)}">${w.roi_w == null ? "—" : w.roi_w + " %"}</td></tr>`).join("") || '<tr><td colspan="4" class="empty">—</td></tr>';
@@ -274,7 +266,6 @@ function render(st) {
         <span>x2 parmi les vetos (faux veto)</span><b>${pct(m.hit_x2_vetoed_24h)}</b><span>Trades fantômes net</span><b class="${cls(m.shadow_net)}">${money(m.shadow_net)}</b>
         <span>Latence médiane</span><b>${m.latency_median_s ?? "—"} s</b><span>Argent papier autorisé</span><b>${m.paper_allowed ? "oui" : "non (500 candidats + ton accord)"}</b></div>`;
     })()],
-    ["Fondamentaux actions US", `<div style="font-size:12px">${lst(A.fundamentals, r => `<b>${esc(r[0])}</b> ${sc(r[1])} <span class="mut">CA ${r[2] ?? "—"} % · PER ${r[3] ?? "—"}</span>`)}</div>`],
   ].map(([t, h]) => `<div class="book"><h3>${t}</h3>${h}</div>`).join("");
 
   const IC = A.ic || {}, ag = IC.agents || {};

@@ -4,7 +4,7 @@
 
 The bot runs on the VPS. A sync step (sync_from_vps(), every 30 s, read-only SFTP with an SSH key)
 copies the small state files into dashboard/cache/; this server only reads that cache:
-  - portfolio ledgers (crypto copy, US stocks, short-term) -> cash, equity, open positions, closed trades
+  - portfolio ledgers (crypto copy, short-term; US stocks removed 06/11 by the user) -> cash, equity, open positions, closed trades
   - agent_events.jsonl -> every agent decision (ts, agent, portfolio, action, symbol, reason, score, result)
 Binds to 127.0.0.1 only. Never sends orders, never holds trading keys.
 """
@@ -25,7 +25,6 @@ PORT = 3471
 # file in cache/ -> (portfolio id, label). Missing files are simply shown as "no data yet".
 PORTFOLIOS = {
     "hl_copy": ("hl_copy_portfolio.json", "Crypto copie (Hyperliquid)"),
-    "stocks": ("alpaca_stocks_portfolio.json", "Actions US (Alpaca)"),
     "short": ("meme_sim.json", "Court terme (momentum + memecoins)"),
 }
 EVENTS = CACHE / "agent_events.jsonl"
@@ -41,15 +40,14 @@ def _json(p: Path, default):
 
 VPS = "root@169.58.57.59"
 KEY = Path.home() / ".ssh" / "id_ed25519_vps_readonly"   # forced-command key: can only read
-LEDGER_FILES = {"hl_copy": "hl_copy_portfolio.json", "alpaca": "alpaca_stocks_portfolio.json", "short": "meme_sim.json",
+LEDGER_FILES = {"hl_copy": "hl_copy_portfolio.json", "short": "meme_sim.json",
                 "hl_prices": "hl_copy_prices.json", "charts": "chart_analysis.json",
                 "scalp_crypto_copy": "scalp_crypto_copy.json", "scalp_court_terme": "scalp_court_terme.json",
-                "scalp_actions_us": "scalp_actions_us.json", "professor": "professor.json", "news_flags": "news_flags.json",
-                "macro": "macro.json", "sentiment": "sentiment.json", "fundamentals": "fundamentals.json",
+                "professor": "professor.json", "news_flags": "news_flags.json",
+                "macro": "macro.json", "sentiment": "sentiment.json",
                 "top_traders": "top_traders.json", "polymarket": "polymarket.json", "options": "options.json",
                 "memes": "meme_hunter.json", "risk": "risk_manager.json"}
-SCALP_NAMES = {"crypto_copy": "Copie crypto (A cassure, frais HL)", "court_terme": "Court terme (B retour moyenne, frais Binance)",
-               "actions_us": "Actions US (A, heures de marche)"}
+SCALP_NAMES = {"crypto_copy": "Copie crypto (A cassure, frais HL)", "court_terme": "Court terme (B retour moyenne, frais Binance)"}
 
 
 def _ssh(cmd: str, timeout: int = 40) -> str:
@@ -390,7 +388,7 @@ def status() -> dict:
                                           ("ChartAnalyst", "SIGNAL"), ("ChartAnalyst", "VETO"))}
     exe = next((e for e in events if e.get("action") in ("BUY", "SELL", "CLOSE", "REDUCE")), None)
     return {"now": time.strftime("%H:%M:%S"), "sync": _json(SYNC_STATE, {}), "portfolios": books,
-            "roster": _roster(events), "events": events[:80], "logs": _logs(), "stocks": _stocks(),
+            "roster": _roster(events), "events": events[:80], "logs": _logs(), 
             "wallets": _wallets(), "today": counts, "n_today": len(today),
             "scalp": _scalp(), "learning": _learning(), "analysts": _analysts(),
             "last": {f"{k[0]}:{k[1]}": v for k, v in picks.items() if v}, "last_exec": exe,
