@@ -6147,6 +6147,9 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         import funding_radar, regime_hmm  # Desktop: funding carry + OI radar, BTC regime HMM (measurement)
         funding_radar.start(_open_positions_all, 300)
         regime_hmm.start(3600)
+        import market_desk, kronos_agent  # Desktop 06/11: 50-market desk (shadow book) + Kronos candle forecasts (measurement)
+        market_desk.start(300)
+        kronos_agent.start()
         import desk_context  # Desktop: concentration, spreads, whale flows, listings, mentions (measurement)
         desk_context.start(_open_positions_all, 600)
         import api_keeper  # Desktop: provider pings, Binance weight, freshness of every agent file, secrets scan
@@ -7903,6 +7906,9 @@ def auto_start():
         import funding_radar, regime_hmm  # Desktop: funding carry + OI radar, BTC regime HMM (measurement)
         funding_radar.start(_open_positions_all, 300)
         regime_hmm.start(3600)
+        import market_desk, kronos_agent  # Desktop 06/11: 50-market desk (shadow book) + Kronos candle forecasts (measurement)
+        market_desk.start(300)
+        kronos_agent.start()
         import desk_context  # Desktop: concentration, spreads, whale flows, listings, mentions (measurement)
         desk_context.start(_open_positions_all, 600)
         import api_keeper  # Desktop: provider pings, Binance weight, freshness of every agent file, secrets scan

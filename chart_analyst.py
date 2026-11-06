@@ -167,17 +167,24 @@ def run(symbols: list[str], held: set[str] | None = None) -> dict:
     """Analyse every symbol on its timeframes, save, log new patterns on held symbols."""
     held = held or set()
     old = load().get("symbols", {})
-    out = {}
-    for s in sorted(set(symbols)):
-        tfs = CRYPTO_TF if s.endswith("USDT") else STOCK_TF
-        out[s] = {}
-        for tf in tfs:
+
+    def one(s: str) -> tuple[str, dict]:
+        res = {}
+        for tf in (CRYPTO_TF if s.endswith("USDT") else STOCK_TF):
             try:
                 c = candles(s, tf)
                 if len(c) >= 60:
-                    out[s][tf] = analyse(c)
+                    res[tf] = analyse(c)
             except Exception as e:  # one symbol never stops the others
-                out[s][tf] = {"error": f"{type(e).__name__}: {str(e)[:80]}"}
+                res[tf] = {"error": f"{type(e).__name__}: {str(e)[:80]}"}
+        return s, res
+
+    # 06/11: the market desk asks for ~50 markets x 3 timeframes; 8 in parallel keeps a round under ~20 s
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(8) as ex:
+        out = dict(ex.map(one, sorted(set(symbols))))
+    for s in out:
+        for tf in out[s]:
             p = out[s].get(tf, {}).get("pattern")
             # SIGNAL only on 1h / 4h / 1d: 5m and 15m patterns change every run and would flood the journal
             if tf in ("1h", "4h", "1d") and s in held and p and p != old.get(s, {}).get(tf, {}).get("pattern"):
@@ -264,7 +271,12 @@ def held_symbols() -> set[str]:
 
 def default_symbols() -> tuple[list[str], set[str]]:
     held = held_symbols()
-    return sorted(held | {"BTCUSDT", "ETHUSDT"}), held
+    try:  # 06/11: plus the 50 markets of the market desk
+        import market_desk
+        desk = set(market_desk.universe())
+    except Exception:
+        desk = set()
+    return sorted(held | desk | {"BTCUSDT", "ETHUSDT"}), held
 
 
 def start(symbols_fn=None, every_s: int = 300) -> None:

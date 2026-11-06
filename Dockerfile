@@ -15,6 +15,10 @@ WORKDIR /workspace
 # 2. Mise à jour de PIP
 RUN pip install --no-cache-dir --upgrade pip
 
+# 2b. torch CPU only for the Kronos agent (06/11): the default PyPI wheel pulls CUDA (several GB); this one is ~200 MB
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu \
+    && pip install --no-cache-dir einops==0.8.1 huggingface_hub safetensors tqdm
+
 # 3. Installation des dépendances
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt

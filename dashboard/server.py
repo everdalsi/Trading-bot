@@ -50,7 +50,7 @@ LEDGER_FILES = {"hl_copy": "hl_copy_portfolio.json", "short": "meme_sim.json",
                 # desk agents added 06/11 (keys served by ledgers_dump.py on the VPS)
                 "coordinator": "coordinator.json", "desk_context": "desk_context.json", "funding_carry": "funding_carry.json",
                 "radar": "radar.json", "regime_hmm": "regime_hmm.json", "api_keeper": "api_keeper.json",
-                "backtest": "backtest_report.json"}
+                "backtest": "backtest_report.json", "kronos": "kronos.json", "market_desk": "market_desk.json"}
 SCALP_NAMES = {"crypto_copy": "Copie crypto (A cassure, frais HL)", "court_terme": "Court terme (B retour moyenne, frais Binance)"}
 
 
@@ -283,12 +283,14 @@ ROSTER = [
     ("FundingRadar", "Funding et radar", "carry de chaque position, argent qui entre", "Recherche", "radar.json", 300, True),
     ("ChartAnalyst", "Analyseur de courbes", "tendances, supports, résistances, multi-unités", "Analyse", "chart_analysis.json", 300, True),
     ("RegimeAgent", "Détecteur de régime", "tendance / range / volatilité (+ modèle HMM)", "Analyse", "regime_hmm.json", 3600, True),
+    ("Kronos", "Prévisionniste Kronos", "prévoit les bougies 1 h des 50 marchés (mesure tant que non fiable)", "Analyse", "kronos.json", 3600, True),
     ("OrderFlow", "Analyste du carnet d'ordres", "pression acheteuse / vendeuse, VPIN", "Analyse", None, 0, True),
     ("Correlation", "Corrélation + arbitrage", "paris indépendants, écarts entre exchanges", "Analyse", "desk_context.json", 900, True),
     ("Backtester", "Backtesteur + chercheur quantitatif", "tests hors échantillon avec vrais frais", "Analyse", "backtest_report.json", 86400, True),
     ("HL_COPY", "Desk crypto long terme", "copie des meilleurs wallets", "Desks", "hl_copy_portfolio.json", 300, True),
     ("Scalper", "Desk micro-trading", "1-5 min (perdant en backtest, à couper)", "Desks", "scalp_crypto_copy.json", 600, True),
     ("ShortSleeve", "Desk court terme / memecoins", "momentum, ventes à découvert", "Desks", "meme_sim.json", 600, True),
+    ("MarketDesk", "Desk 50 marchés", "LONG / SHORT / attente sur 50 marchés, carnet fictif", "Desks", "market_desk.json", 300, True),
     ("PolymarketDesk", "Desk Polymarket", "paris fictifs sur probabilités mal évaluées", "Desks", None, 0, False),
     ("StocksDesk", "Desk actions", "actions US en fictif (à recréer)", "Desks", None, 0, False),
     ("DevilsAdvocate", "Avocat du diable", "veto sur les gros trades (débat existant)", "Contrôle", None, 0, False),

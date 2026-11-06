@@ -90,9 +90,13 @@ def secrets_scan(paths: list[Path] | None = None, max_bytes: int = 2_000_000) ->
         for rx in KEY_PATTERNS:
             for m in rx.finditer(text):
                 s = m.group(0)
-                if s.startswith("0x") and len(s) == 66 and ("tx" in text[max(0, m.start() - 40):m.start()].lower()
-                                                           or "hash" in text[max(0, m.start() - 40):m.start()].lower()):
-                    continue                                          # a transaction hash, not a private key
+                if s.startswith("0x") and len(s) == 66:
+                    # 32-byte hex is also a tx hash or a pool / pair id (MemeHunter, 06/11 CLI report): count it
+                    # only when a key word sits just before it
+                    before = text[max(0, m.start() - 40):m.start()].lower()
+                    if not any(w in before for w in ("private", "secret", "priv_key", "privkey", '"pk"', "pk=",
+                                                     "pk:", "mnemonic", "seed")):
+                        continue
                 found.append({"file": p.name, "pattern": rx.pattern[:30], "masked": s[:4] + "..." + s[-2:]})
     return found
 
