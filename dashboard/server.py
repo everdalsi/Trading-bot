@@ -488,6 +488,155 @@ def status() -> dict:
 
 
 
+# ---------------------------------------------------------------- "salle des marches" v2 (CLI, user 06/11)
+# User: "complet mais pas trop charge, que les informations utiles, pas de fausse information".
+# Every value below comes from a real file or a real API call; missing data = None, shown as "pas de donnee".
+BOOK_START_UTC = "2026-11-05T00:00:00+00:00"   # reset of both books (same reference as bot bench.py)
+_btc_cache = {"at": 0.0, "v": None}
+
+
+def _btc_since_start() -> dict | None:
+    if time.time() - _btc_cache["at"] < 300:
+        return _btc_cache["v"]
+    v = None
+    try:
+        from datetime import datetime as _dt
+        t0 = int(_dt.fromisoformat(BOOK_START_UTC).timestamp() * 1000)
+        with urllib.request.urlopen(f"https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1h&startTime={t0}&limit=1",
+                                    timeout=10) as r:
+            k = json.loads(r.read())
+        with urllib.request.urlopen("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT", timeout=10) as r:
+            last = float(json.loads(r.read())["price"])
+        p0 = float(k[0][4])
+        v = {"start_price": p0, "price": last, "pct": round((last / p0 - 1) * 100, 2), "since": BOOK_START_UTC[:10]}
+    except Exception:
+        v = None
+    _btc_cache.update(at=time.time(), v=v)
+    return v
+
+
+def _kronos() -> dict:
+    d = _json(CACHE / "kronos.json", {})
+    if not d:
+        return {"status": "pas de donnee", "why": "aucune prevision terminee pour l'instant (une passe toutes les heures)"}
+    if d.get("status") != "ok":
+        return {"status": d.get("status"), "why": d.get("why")}
+    s4 = (d.get("stats") or {}).get("4") or {}
+    rows = []
+    for sym, f in (d.get("markets") or {}).items():
+        pr = f.get("pred_ret_pct") or {}
+        rows.append({"symbol": sym.replace("USDT", ""), "price": f.get("price"), "p1": pr.get("1"), "p4": pr.get("4"),
+                     "p12": pr.get("12"), "agree": f.get("agree"), "dir": f.get("direction"),
+                     "hi": f.get("pred_high_pct"), "lo": f.get("pred_low_pct")})
+    rows.sort(key=lambda r: -abs(r["p4"] or 0) * (r["agree"] or 0))
+    return {"status": "ok", "at": d.get("at"), "took_s": d.get("took_s"), "markets_n": d.get("markets_n"),
+            "trusted": bool(d.get("trusted")), "model": d.get("model"),
+            "score_4h": {"n": s4.get("n", 0), "runs": s4.get("runs"), "hit": s4.get("hit"), "edge": s4.get("edge_net_pct"),
+                         "ic": s4.get("ic")},
+            "top": rows[:12]}
+
+
+_ROSTER_FILES = {r[0]: (r[4], r[5]) for r in ROSTER}
+
+
+def _file_at(fname: str) -> float | None:
+    """When the AGENT wrote its file (its own "at" field), not when the dashboard copied it."""
+    d = _json(CACHE / fname, {}) if fname else {}
+    v = d.get("at") if isinstance(d, dict) else None
+    try:
+        return _ts(v) if v else None
+    except Exception:
+        return None
+
+
+def _desk_truth(a: dict) -> dict:
+    """Desk state from real evidence only: a decision logged < 5/15 min ago, or the agent's own output timestamp."""
+    a = dict(a)
+    last = a.get("last") or {}
+    age = last.get("age_s")
+    fname, period = _ROSTER_FILES.get(a.get("key"), (None, None))
+    at = _file_at(fname)
+    fage = time.time() - at if at else None
+    if age is not None and age < 300 and last.get("action") in ("BUY", "SELL", "CLOSE", "REDUCE"):
+        desk = "trade"
+    elif age is not None and age < 900 and last.get("action") in ("VETO", "HALT"):
+        desk = "refuse"            # a control agent refusing an entry is doing its job, not "blocked"
+    elif (age is not None and age < 900) or (fage is not None and period and fage < period * 1.5):
+        desk = "analyse"
+    else:
+        desk = "veille"
+    a["desk"] = desk
+    a["output_age_s"] = int(fage) if fage is not None else None
+    return a
+
+
+def room() -> dict:
+    """Payload of the new trading-room page (index.html): books + BTC benchmark, live agents, Kronos, positions,
+    decision feed, alerts. Planned agents are not shown as working."""
+    st = status()
+    btc = _btc_since_start()
+    books = []
+    for b in st["portfolios"]:
+        if not b.get("available"):
+            books.append({"label": b.get("label"), "available": False})
+            continue
+        ret = round((b["equity"] / b["start"] - 1) * 100, 2) if b.get("start") else None
+        pos = []
+        for p in b.get("positions") or []:
+            e, l = p.get("entry"), p.get("last")
+            pnl = round(((l / e - 1) * (-1 if p.get("side") == "SHORT" else 1)) * 100, 2) if e and l else None
+            pos.append({"symbol": (p.get("symbol") or "").replace("USDT", ""), "side": p.get("side"), "usd": p.get("usd"),
+                        "entry": e, "last": l, "pnl_pct": pnl, "opened": p.get("opened"), "lane": p.get("lane")})
+        pos.sort(key=lambda x: -(x["usd"] or 0))
+        books.append({"label": b["label"], "available": True, "equity": b["equity"], "start": b.get("start"),
+                      "ret_pct": ret, "vs_btc_pts": round(ret - btc["pct"], 2) if (ret is not None and btc) else None,
+                      "cash": b.get("cash"), "in_trade": b.get("in_trade"),
+                      "invested_pct": round(100 * b["in_trade"] / b["equity"], 1) if b.get("equity") else None,
+                      "pnl_closed": b.get("pnl_closed"), "n_trades": b.get("n_trades"), "win_rate": b.get("win_rate"),
+                      "halted": b.get("halted"), "positions": pos,
+                      "long_usd": round(sum(x["usd"] or 0 for x in pos if x["side"] != "SHORT"), 2),
+                      "short_usd": round(sum(x["usd"] or 0 for x in pos if x["side"] == "SHORT"), 2)})
+    agents = [_desk_truth(a) for a in st["roster"] if a.get("state") != "planned"]
+    # desks act through the Executor: their state comes from the Executor's events of THEIR portfolio
+    desk_pf = {"HL_COPY": "crypto_copy", "ShortSleeve": "court_terme"}
+    now = time.time()
+    for a in agents:
+        pf = desk_pf.get(a["key"])
+        if pf:
+            e = next((x for x in st["events"] if x.get("portfolio") == pf and x.get("agent") in ("Executor", "FillEngine", "TradeManager")
+                      and x.get("action") in ("BUY", "SELL", "CLOSE", "REDUCE")), None)
+            if e:
+                age = int(now - e["ts"])
+                a["last"] = {"action": e["action"], "symbol": e.get("symbol"), "reason": e.get("reason"), "age_s": age}
+                a["desk"] = "trade" if age < 300 else "analyse" if age < 3600 else a["desk"]
+        if a["key"] == "Scalper":  # user 06/11: scalping set to 0 % of capital
+            a["desk"], a["last"] = "veille", {"action": "HALT", "symbol": "", "reason": "arrêté par décision du 06/11 (0 % du capital)", "age_s": None}
+            a["role"] = "1-5 min, arrêté (perdant après frais, backtest négatif)"
+    planned = [a.get("label") for a in st["roster"] if a.get("state") == "planned"]
+    feed, seen = [], set()
+    for e in st["events"]:  # newest first; the same refusal repeated every minute is shown once
+        if e.get("action") not in ("BUY", "SELL", "CLOSE", "REDUCE", "VETO", "HALT", "APPROVE"):
+            continue
+        k = (e.get("agent"), e.get("action"), e.get("symbol"), e.get("reason"))
+        if k in seen:
+            continue
+        seen.add(k)
+        feed.append(e)
+        if len(feed) >= 40:
+            break
+    alerts, seen_a = [], set()
+    for x in st["alerts"]:
+        k = (x.get("agent"), x.get("symbol"), x.get("reason"))
+        if k not in seen_a:
+            seen_a.add(k)
+            alerts.append(x)
+    tot = st.get("total_equity")
+    return {"now": st["now"], "sync": st["sync"], "btc": btc, "total_equity": tot, "total_start": st.get("total_start"),
+            "total_ret_pct": round((tot / st["total_start"] - 1) * 100, 2) if tot and st.get("total_start") else None,
+            "books": books, "agents": agents, "planned": planned, "kronos": _kronos(), "feed": feed,
+            "alerts": alerts[:12], "today": st["today"], "n_today": st["n_today"]}
+
+
 # ---------------------------------------------------------------- charts (public Binance candles, read-only)
 import urllib.parse
 import urllib.request
@@ -579,6 +728,10 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, json.dumps(chart_data(sym, itv)).encode(), "application/json")
             except Exception as e:
                 return self._send(502, json.dumps({"error": str(e)[:200]}).encode(), "application/json")
+        if self.path.startswith("/api/room"):
+            return self._send(200, json.dumps(room(), ensure_ascii=False, default=str).encode(), "application/json")
+        if self.path.startswith("/full"):  # previous detailed page, kept
+            return self._send(200, (HERE / "index_full.html").read_bytes(), "text/html; charset=utf-8")
         if self.path.startswith("/api/status"):
             return self._send(200, json.dumps(status(), ensure_ascii=False).encode(), "application/json")
         self._send(404, b"not found", "text/plain")
