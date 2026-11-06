@@ -3359,8 +3359,10 @@ def hl_consensus_fill(send_fn):
                 cand = longs[li]
                 leg = sum(float(p.get("amount_usd", 0)) for p in ledger["positions"].values()
                           if p["symbol"] == cand and p.get("strategy") == "HL_PAIR")
+                # no chart veto on the long leg: it is hedged by the same-size short (in a falling market every
+                # long fails the 1 h + 4 h "down" test and no pair could ever open, seen 06/11 00:52)
                 if (cand in MANUAL_SYMBOL_BLACKLIST or (cand in held and not leg)
-                        or leg + unit > HL_PAIR_LONG_MAX_PCT * eq or not _chart_ok(cand, "LONG")):
+                        or leg + unit > HL_PAIR_LONG_MAX_PCT * eq):
                     li += 1
                     continue
                 l_sym = cand
@@ -6080,6 +6082,11 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     short_sleeve.start(send)
     news_agent.start()
     professor.start()
+    try:  # Desktop trending.py: CoinGecko trending coins every 15 min (measurement next to court terme / MemeHunter)
+        import trending
+        trending.start(900)
+    except Exception as e:
+        logger.info(f"[TRENDING] non demarre: {type(e).__name__}: {e}")
     scalper.start()
     polymarket_analyst.start()
     threading.Thread(target=daily_summary, args=(send,), daemon=True).start()
@@ -7820,6 +7827,11 @@ def auto_start():
     short_sleeve.start(send)
     news_agent.start()
     professor.start()
+    try:  # Desktop trending.py: CoinGecko trending coins every 15 min (measurement next to court terme / MemeHunter)
+        import trending
+        trending.start(900)
+    except Exception as e:
+        logger.info(f"[TRENDING] non demarre: {type(e).__name__}: {e}")
     scalper.start()
     polymarket_analyst.start()
     threading.Thread(target=daily_summary, args=(send,), daemon=True).start()

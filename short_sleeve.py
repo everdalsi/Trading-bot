@@ -66,6 +66,15 @@ TRADE_ID_BASE = 95_000_000        # far from MICRO (~35k) and HL copy (90M) trad
 
 # ---------------------------------------------------------------- ledger
 
+def _trend_rank(symbol: str):
+    """CoinGecko trending rank (Desktop trending.py), measurement only; None if not trending / no data."""
+    try:
+        import trending
+        return trending.rank(symbol)
+    except Exception:
+        return None
+
+
 def _default() -> dict:
     return {"cash": STARTING_CASH, "starting_cash": STARTING_CASH, "positions": {}, "trades": [],
             "peak_equity": STARTING_CASH, "day": "", "day_start": STARTING_CASH, "week": "",
@@ -129,7 +138,8 @@ def _open(ledger: dict, lane: str, symbol: str, price: float, usd: float, cost: 
         "peak": price, "last_price": price, "opened": time.time(), **extra}
     log.info(f"[SHORT] {lane} {side} {symbol} ${usd:.2f} @ {price:.6g}")
     log_event("Executor", "court_terme", "BUY" if side == "LONG" else "SELL", symbol, f"voie {lane} {side}",
-              score=extra.get("r14"), result="ouvert", price=price, usd=round(usd, 2), lane=lane, side=side)
+              score=extra.get("r14"), result="ouvert", price=price, usd=round(usd, 2), lane=lane, side=side,
+              trending=_trend_rank(symbol))
 
 
 def _close(ledger: dict, key: str, price: float, cost: float, reason: str, send_fn) -> float:

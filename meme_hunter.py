@@ -38,6 +38,15 @@ MIN_CANDIDATES_FOR_PAPER = 500
 _LOCK = threading.Lock()
 
 
+def _trend_rank(symbol: str):
+    """CoinGecko trending rank (Desktop trending.py), measurement only; None if not trending / no data."""
+    try:
+        import trending
+        return trending.rank(symbol)
+    except Exception:
+        return None
+
+
 def _get(url: str):
     r = requests.get(url, timeout=15)
     r.raise_for_status()
@@ -153,7 +162,8 @@ def scan() -> int:
                                  "half_sold": False, "realized": 0.0, "open": True}
                 log_event("MemeHunter", "memes", "SIGNAL", rec["symbol"] or tok[:8],
                           f"{chain} liquidite {rec['liq']:,.0f} $, volume 5 min {rec['vol_m5']:,.0f} $ : achat fictif 10 $ (mode mesure)",
-                          result="trade (ombre)", latency_s=rec["latency_s"], pair=rec.get("pair"))
+                          result="trade (ombre)", latency_s=rec["latency_s"], pair=rec.get("pair"),
+                          trending=_trend_rank(rec.get("symbol") or ""))
             rows.append(rec)
             n += 1
     if n:
