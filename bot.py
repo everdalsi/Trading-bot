@@ -2904,7 +2904,17 @@ def _open_hl_mirror(symbol: str, price: float, side: str, source_addr: str,
     log_event("Executor", "crypto_copy", "BUY" if side == "LONG" else "SELL", coin_label,
               f"copie du wallet {source_addr[:8]} (ROI mois {source_month_roi*100:.1f}%)",
               score=round(source_month_roi, 4), result="ouvert", price=price, side=side,
-              size_reduction=size_reduction, news_risk_pct=risk.get("risk_pct") if risk else None)
+              size_reduction=size_reduction, news_risk_pct=risk.get("risk_pct") if risk else None,
+              **_market_tags(symbol))
+
+def _market_tags(symbol: str) -> dict:
+    """Crowd long % / whale radar for the coin (market_tags.py, measurement only)."""
+    try:
+        import market_tags
+        return market_tags.tags(symbol)
+    except Exception:
+        return {}
+
 
 def _close_hl_mirror(pos_key: str, price: float, reason: str, send_fn):
     ledger = load_hl_copy_ledger()
@@ -6085,6 +6095,8 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     try:  # Desktop trending.py: CoinGecko trending coins every 15 min (measurement next to court terme / MemeHunter)
         import trending
         trending.start(900)
+        import market_context  # Desktop: liquidations, crowd, whales, funding, CryptoVision news
+        market_context.start(300)
     except Exception as e:
         logger.info(f"[TRENDING] non demarre: {type(e).__name__}: {e}")
     scalper.start()
@@ -7830,6 +7842,8 @@ def auto_start():
     try:  # Desktop trending.py: CoinGecko trending coins every 15 min (measurement next to court terme / MemeHunter)
         import trending
         trending.start(900)
+        import market_context  # Desktop: liquidations, crowd, whales, funding, CryptoVision news
+        market_context.start(300)
     except Exception as e:
         logger.info(f"[TRENDING] non demarre: {type(e).__name__}: {e}")
     scalper.start()

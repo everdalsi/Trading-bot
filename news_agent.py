@@ -109,6 +109,30 @@ def _entries(url: str, source: str) -> list[dict]:
     return out
 
 
+def _cryptovision() -> list[dict]:
+    """Crypto Vision headlines (Desktop market_context.news()), source "CryptoVision"; undated items dropped."""
+    try:
+        import market_context
+        from email.utils import parsedate_to_datetime
+        from datetime import datetime
+        out = []
+        for a in market_context.news(30):
+            pub = a.get("published")
+            if not pub or not a.get("title"):
+                continue
+            try:
+                at = parsedate_to_datetime(pub).timestamp()
+            except (TypeError, ValueError):
+                try:
+                    at = datetime.fromisoformat(str(pub).replace("Z", "+00:00")).timestamp()
+                except ValueError:
+                    continue
+            out.append({"title": a["title"], "link": a.get("link", ""), "source": "CryptoVision", "at": at})
+        return out
+    except Exception:
+        return []
+
+
 def collect(symbols: list[str]) -> list[tuple[str, dict]]:
     """(symbol, item) pairs from every source, last 24 h."""
     items = []
@@ -117,6 +141,7 @@ def collect(symbols: list[str]) -> list[tuple[str, dict]]:
     if crypto:
         for name, url in CRYPTO_FEEDS.items():
             items += _entries(url, name)
+        items += _cryptovision()
         for s in crypto:
             q = quote(f"{ALIASES.get(s[:-4], [s[:-4]])[0]} crypto")
             items += _entries(f"https://news.google.com/rss/search?q={q}&hl=en-US&gl=US&ceid=US:en", "Google News")
