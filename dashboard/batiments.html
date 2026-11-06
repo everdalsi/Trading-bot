@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deux batiments</title>
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+:root{--bg:#0f1115;--pan:#171a21;--ln:#262b36;--tx:#e6e8ee;--mu:#8b93a7;--ok:#2fbf71;--wa:#e0a43a;--ko:#e5534b;--ac:#5b9cf5}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.45 system-ui,Segoe UI,sans-serif}
+header{padding:12px 16px;border-bottom:1px solid var(--ln);display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
+header h1{font-size:17px;margin:0}header span{color:var(--mu);font-size:12px}
+main{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px}
+@media(max-width:900px){main{grid-template-columns:1fr;padding:8px 16px}}
+.col{min-width:0;display:flex;flex-direction:column;gap:12px}
+.col.off{opacity:.55}
+.box{background:var(--pan);border:1px solid var(--ln);border-radius:8px;padding:12px;min-width:0}
+.box h2{font-size:13px;margin:0 0 8px;color:var(--mu);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.titre{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700}
+.dot{width:12px;height:12px;border-radius:50%;background:var(--mu);flex:none}
+.dot.ok{background:var(--ok)}.dot.wa{background:var(--wa)}.dot.ko{background:var(--ko)}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.kpi{background:#11141a;border-radius:6px;padding:8px}.kpi b{display:block;font-size:17px}.kpi small{color:var(--mu);font-size:11px}
+.bar{height:6px;background:#11141a;border-radius:3px;margin-top:4px;overflow:hidden}.bar i{display:block;height:100%;background:var(--ac)}
+.up{color:var(--ok)}.dn{color:var(--ko)}.mu{color:var(--mu)}
+.alerte{background:#3a1416;border:1px solid var(--ko);color:#ffd7d4;border-radius:6px;padding:8px;margin-top:8px}
+.badge{font-size:11px;padding:1px 6px;border-radius:9px;background:#2a2f3a;color:var(--mu);white-space:nowrap}
+.badge.wa{background:#3b2f14;color:var(--wa)}.badge.ko{background:#3a1416;color:var(--ko)}.badge.ok{background:#123423;color:var(--ok)}
+.tw{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{text-align:left;padding:5px 6px;border-bottom:1px solid var(--ln);white-space:nowrap}th{color:var(--mu);font-weight:500}
+.agents{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+.ag{background:#11141a;border-radius:6px;padding:6px 8px;cursor:pointer;font-size:12px;border-left:3px solid var(--mu)}
+.ag.ok{border-color:var(--ok)}.ag.wa{border-color:var(--wa)}.ag.ko{border-color:var(--ko)}.ag b{display:block;font-size:12.5px}
+.feed{max-height:320px;overflow-y:auto;font-size:12.5px}.feed div{padding:4px 0;border-bottom:1px solid var(--ln)}
+.feed time{color:var(--mu);margin-right:6px}
+.filtres button,.ctl button,select{background:#11141a;color:var(--tx);border:1px solid var(--ln);border-radius:5px;padding:3px 8px;font-size:12px;cursor:pointer}
+.filtres button.on,.ctl button.on{border-color:var(--ac);color:var(--ac)}
+.ctl{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;align-items:center}
+#chart{height:320px}
+.skel{color:var(--mu);font-style:italic}
+details summary{cursor:pointer;color:var(--mu)}
+</style>
+</head>
+<body>
+<header><h1>Deux bâtiments</h1><span>A : copie de wallets Hyperliquid · B : court terme 1-5 min · argent fictif · lecture seule</span><span id="maj"></span></header>
+<main>
+  <section class="col" id="col-A"></section>
+  <section class="col" id="col-B"></section>
+</main>
+<script>
+const NOMS={A:"A · Copie de wallets",B:"B · Court terme 1-5 min"};
+const ETAT={A:{},B:{}}, FILTRE={A:"tout",B:"tout"};
+let graphe=null, serie=null, med=null, q10=null, q90=null, symB=null, tfB="1m";
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const nb=(x,d=2)=>x==null||isNaN(x)?"—":Number(x).toLocaleString("fr-FR",{minimumFractionDigits:d,maximumFractionDigits:d});
+const sg=(x,d=2)=>x==null?"—":(x>0?"+":"")+nb(x,d);
+const cls=x=>x==null?"mu":x>0?"up":x<0?"dn":"";
+const heure=t=>t?new Date(t*1000).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"}):"—";
+const court=a=>a&&a.length>12?a.slice(0,6)+"…"+a.slice(-4):(a||"—");
+const age=r=>!r?null:r.age_s;
+
+function route(b,n){return (ETAT[b].routes||{})[n]||null}
+function donnee(b,n){const r=route(b,n);return r?r.data:undefined}
+function perime(b,n){const r=route(b,n);if(!r)return"";const lim=3*(ETAT[b].periode_s||10);
+  if(r.erreur&&!r.data)return`<span class="badge ko">indisponible</span>`;
+  if(r.age_s!=null&&r.age_s>lim)return`<span class="badge wa">périmée ${Math.round(r.age_s/60)} min</span>`;return""}
+
+function sante(b){
+  const e=donnee(b,"etat"), ag=donnee(b,"agents")||[];
+  if(!e) return {c:"",txt:"en attente"};
+  if(e.halted) return {c:"ko",txt:"arrêté"};
+  const retard=ag.filter(a=>a.state&&a.state!=="ok").length;
+  return retard?{c:"wa",txt:`${retard} agent(s) en retard`}:{c:"ok",txt:"tous les agents vivants"};
+}
+
+function bandeau(b){
+  const e=donnee(b,"etat");
+  if(e===undefined) return `<div class="box"><div class="titre"><span class="dot"></span>${NOMS[b]}</div><p class="skel">Chargement…</p></div>`;
+  const s=sante(b), start=e.start_capital, eq=e.equity, plancher=e.breaker_floor??(start!=null?start*0.7:null);
+  const res=eq!=null&&start!=null?eq-start:null, dist=eq!=null&&plancher!=null?100*(plancher/eq-1):null;
+  const eng=e.engaged_pct;
+  return `<div class="box"><div class="titre"><span class="dot ${s.c}"></span>${NOMS[b]} <span class="badge">${s.txt}</span> ${perime(b,"etat")}</div>
+  ${e.halted?`<div class="alerte"><b>Coupe-circuit déclenché</b> · ${esc(e.halted_reason||"raison non fournie")}</div>`:""}
+  <div class="kpis">
+   <div class="kpi"><small>Valeur / départ</small><b>${nb(eq)} $</b><small class="${cls(res)}">${sg(res)} $ depuis ${nb(start,0)} $</small></div>
+   <div class="kpi"><small>Résultat du jour (après frais)</small><b class="${cls(e.day_pnl)}">${sg(e.day_pnl)} $</b><small>${e.day_pnl==null?"non fourni":""}</small></div>
+   <div class="kpi"><small>Avant l'arrêt à ${nb(plancher,0)} $</small><b>${dist==null?"—":nb(dist,1)+" %"}</b><small>coupe-circuit -30 %</small></div>
+   <div class="kpi"><small>Capital engagé (objectif 100 %)</small><b>${eng==null?"—":nb(eng,0)+" %"}</b><div class="bar"><i style="width:${Math.min(100,eng||0)}%"></i></div></div>
+   <div class="kpi"><small>Levier moyen</small><b>${e.avg_leverage==null?"—":nb(e.avg_leverage,1)+"×"}</b></div>
+   <div class="kpi"><small>Capital libre</small><b>${nb(e.capital_free)} $</b></div>
+  </div></div>`;
+}
+
+function blocWallets(){
+  const w=donnee("A","wallets");
+  if(w===undefined) return `<div class="box"><h2>Wallets suivis</h2><p class="skel">Chargement…</p></div>`;
+  const rows=(w||[]).flatMap(x=>{
+    const st={actif:"ok",probation:"wa",provisoire:"wa",retire:"ko"}[x.status]||"";
+    const pos=(x.positions||[]);
+    const tete=`<tr><td><b>${court(x.address)}</b></td><td><span class="badge ${st}">${esc(x.status||"—")}</span></td><td>${nb(x.score,2)}</td><td>${x.weight==null?"—":nb(100*x.weight,0)+" %"}</td><td colspan="4" class="mu">${pos.length} position(s)</td></tr>`;
+    return [tete,...pos.map(p=>{const c=p.our_copy;
+      return `<tr><td></td><td>${esc(p.coin)} ${esc(p.side||"")}</td><td>${nb(p.size,2)}</td><td>${p.leverage==null?"—":nb(p.leverage,0)+"×"}</td><td>${nb(p.entry_px,4)}</td>
+      <td>${c?`copie ${nb(c.usd)} $ · ${nb(c.leverage,0)}× · ${nb(c.entry_px,4)}`:`<span class="mu">non copiée${p.refus?" : "+esc(p.refus):""}</span>`}</td>
+      <td class="${cls(c&&c.pnl)}">${c?sg(c.pnl)+" $":""}</td></tr>`})];
+  });
+  return `<div class="box"><h2>Wallets suivis et nos copies ${perime("A","wallets")}</h2><div class="tw"><table>
+   <tr><th>Wallet</th><th>Statut</th><th>Score / taille</th><th>Poids / levier</th><th>Entrée wallet</th><th>Notre copie</th><th>Résultat</th></tr>
+   ${rows.join("")||`<tr><td colspan="7" class="mu">Aucun wallet actif pour l'instant.</td></tr>`}</table></div></div>`;
+}
+
+function blocGraphe(){
+  return `<div class="box"><h2>Bougies en direct + prévision Chronos ${perime("B","trades")}</h2>
+  <div class="ctl"><select id="symB"></select>${["1m","5m","15m"].map(t=>`<button data-tf="${t}" class="${t===tfB?"on":""}">${t}</button>`).join("")}<span id="chronosInfo" class="mu"></span></div>
+  <div id="chart"></div></div>`;
+}
+
+function blocTrades(b){
+  const t=donnee(b,"trades");
+  if(t===undefined) return `<div class="box"><h2>Trades ouverts</h2><p class="skel">Chargement…</p></div>`;
+  const o=(t&&t.open)||[], now=Date.now()/1000;
+  if(!o.length){const ch=(donnee(b,"chat")||[]).find(m=>m.kind==="veto"||m.kind==="refus");
+    return `<div class="box"><h2>Trades ouverts ${perime(b,"trades")}</h2><p class="mu">Aucune position.${ch?" Dernier refus : "+esc(ch.text):""}</p></div>`}
+  return `<div class="box"><h2>Trades ouverts (${o.length}) ${perime(b,"trades")}</h2><div class="tw"><table>
+  <tr><th>Marché</th><th>Sens</th><th>Taille</th><th>Levier</th><th>Entrée</th><th>Stop / objectif</th><th>Latent</th><th>${b==="B"?"Sortie dans":"Wallet"}</th>${b==="B"?"<th>Mode</th>":""}</tr>
+  ${o.map(p=>`<tr><td>${esc(p.symbol)}</td><td>${esc(p.side)}</td><td>${nb(p.usd)} $</td><td>${p.leverage==null?"—":nb(p.leverage,0)+"×"}</td><td>${nb(p.entry_px,4)}</td>
+   <td>${nb(p.stop,4)} / ${nb(p.target,4)}</td><td class="${cls(p.unrealised)}">${sg(p.unrealised)} $</td>
+   <td>${b==="B"?(p.deadline?Math.max(0,Math.round(p.deadline-now))+" s":"—"):court(p.wallet)}</td>${b==="B"?`<td><span class="badge ${p.mode==="prouve"?"ok":"wa"}">${esc(p.mode||"—")}</span></td>`:""}</tr>`).join("")}
+  </table></div></div>`;
+}
+
+function blocAgents(b){
+  const a=donnee(b,"agents");
+  if(a===undefined) return `<div class="box"><h2>Agents</h2><p class="skel">Chargement…</p></div>`;
+  return `<details class="box" open><summary><h2 style="display:inline">Agents (${(a||[]).length}) ${perime(b,"agents")}</h2></summary><div class="agents" style="margin-top:8px">
+  ${(a||[]).map(x=>`<div class="ag ${esc(x.state)}" title="${esc(x.role||"")}"><b>${esc(x.name)}</b>${esc(x.group||"")}<br>
+   <span class="mu">vu ${heure(x.last_seen)}</span><br>${esc((x.last_action||"").slice(0,70))}<br>
+   <span class="mu">coach : ${x.coach_score==null?"pas assez de données":nb(x.coach_score,2)}</span></div>`).join("")}</div></details>`;
+}
+
+function blocChat(b){
+  const c=donnee(b,"chat");
+  if(c===undefined) return `<div class="box"><h2>Fil des agents</h2><p class="skel">Chargement…</p></div>`;
+  const f=FILTRE[b], l=(c||[]).filter(m=>f==="tout"||m.kind===f).slice(0,200);
+  return `<div class="box"><h2>Fil des agents ${perime(b,"chat")}</h2>
+  <div class="filtres ctl">${["tout","decision","veto","lecon","alerte"].map(k=>`<button data-b="${b}" data-f="${k}" class="${k===f?"on":""}">${k}</button>`).join("")}</div>
+  <div class="feed">${l.map(m=>`<div><time>${heure(m.at)}</time><b>${esc(m.agent)}</b> : ${esc(m.text)}</div>`).join("")||`<p class="mu">Aucun message.</p>`}</div></div>`;
+}
+
+function blocLecons(b){
+  const l=donnee(b,"lecons"), r=donnee(b,"rapport");
+  if(l===undefined) return "";
+  const st={adoptee:"ok",rejetee:"ko",en_test:"wa"};
+  return `<div class="box"><h2>Leçons et règles ${perime(b,"lecons")}</h2>
+  ${((l&&l.lecons)||[]).slice(0,10).map(x=>`<div class="feed"><div><time>${heure(x.at)}</time>${esc(x.text)}</div></div>`).join("")||`<p class="mu">Aucune leçon pour l'instant.</p>`}
+  ${((l&&l.regles)||[]).map(x=>`<div style="margin-top:6px"><span class="badge ${st[x.status]||""}">${esc(x.status)}</span> ${esc(x.text)} <span class="mu">${esc(x.chiffre||"")}</span></div>`).join("")}
+  ${r?`<details style="margin-top:8px"><summary>Rapport du jour ${esc(r.date||"")}</summary><pre style="white-space:pre-wrap;font-size:12px">${esc(r.texte||r.md||"")}</pre></details>`:""}</div>`;
+}
+
+function colonne(b){
+  const el=$("#col-"+b), e=route(b,"etat");
+  el.classList.toggle("off",!!(e&&e.erreur&&!e.data));
+  const panne=e&&e.erreur&&!e.data?`<div class="alerte">Bâtiment ${b} injoignable : ${esc(e.erreur)}. L'autre colonne continue.</div>`:"";
+  const garderGraphe=b==="B"&&$("#chart");
+  if(garderGraphe){                                 // ne pas recreer le graphique toutes les 5 s
+    for(const id of ["band","trades","agents","chat","lecons"]) { const n=$(`[data-part="${b}-${id}"]`,el); if(n) n.outerHTML=part(b,id); }
+    return;
+  }
+  el.innerHTML=panne+part(b,"band")+(b==="A"?blocWallets():blocGraphe())+part(b,"trades")+part(b,"agents")+part(b,"chat")+part(b,"lecons");
+  if(b==="B") initGraphe();
+}
+function part(b,id){const f={band:bandeau,trades:blocTrades,agents:blocAgents,chat:blocChat,lecons:blocLecons}[id];
+  return `<div data-part="${b}-${id}">${f(b)}</div>`}
+
+async function charger(b){
+  try{const r=await fetch(`/api/batiments/${b}`,{cache:"no-store"});ETAT[b]=await r.json();}
+  catch(e){ETAT[b]={routes:{etat:{erreur:"tableau de bord injoignable"}}};}
+  colonne(b);
+  const e0=route(b,"etat"); if(!e0||(!e0.data&&!e0.erreur)) setTimeout(()=>charger(b),1500);   // premier chargement : ne pas attendre 15 s
+  if(b==="B") remplirSymboles();
+  $("#maj").textContent="mis à jour "+new Date().toLocaleTimeString("fr-FR");
+}
+
+function remplirSymboles(){
+  const s=$("#symB"); if(!s) return;
+  const t=donnee("B","trades")||{}, syms=[...new Set([...(t.open||[]),...(t.closed||[]).slice().reverse()].map(x=>x.symbol).filter(Boolean))];
+  if(!symB&&syms.length) {symB=syms[0]; chargerBougies();}
+  const cur=[...s.options].map(o=>o.value).join();
+  if(cur!==syms.join()) s.innerHTML=syms.map(x=>`<option ${x===symB?"selected":""}>${esc(x)}</option>`).join("")||`<option>aucun marché</option>`;
+}
+
+function initGraphe(){
+  const box=$("#chart"); if(!box||!window.LightweightCharts) return;
+  graphe=LightweightCharts.createChart(box,{layout:{background:{color:"#171a21"},textColor:"#c8ccd6"},grid:{vertLines:{color:"#20242d"},horzLines:{color:"#20242d"}},
+    timeScale:{timeVisible:true,secondsVisible:false,tickMarkFormatter:t=>new Date(t*1000).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})},
+    localization:{timeFormatter:t=>new Date(t*1000).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})},autoSize:true});
+  serie=graphe.addCandlestickSeries({upColor:"#2fbf71",downColor:"#e5534b",borderVisible:false,wickUpColor:"#2fbf71",wickDownColor:"#e5534b"});
+  q90=graphe.addLineSeries({color:"#5b9cf5",lineWidth:1,lineStyle:2,priceLineVisible:false,lastValueVisible:false});
+  q10=graphe.addLineSeries({color:"#5b9cf5",lineWidth:1,lineStyle:2,priceLineVisible:false,lastValueVisible:false});
+  med=graphe.addLineSeries({color:"#5b9cf5",lineWidth:2,priceLineVisible:false,lastValueVisible:false});
+  $("#col-B").addEventListener("change",e=>{if(e.target.id==="symB"){symB=e.target.value;chargerBougies();}});
+  $("#col-B .ctl").addEventListener("click",e=>{const t=e.target.dataset.tf;if(!t)return;tfB=t;
+    document.querySelectorAll("#col-B [data-tf]").forEach(x=>x.classList.toggle("on",x.dataset.tf===t));chargerBougies();});
+}
+
+async function chargerBougies(){
+  if(!serie||!symB) return;
+  try{
+    const d=await (await fetch(`/api/batiments/B/bougies?symbol=${encodeURIComponent(symB)}&tf=${tfB}`,{cache:"no-store"})).json();
+    serie.setData(d.candles||[]);
+    const c=d.chronos||{}, fiable=(d.chronos_w||0)>0;
+    for(const [s,k] of [[med,"median"],[q10,"q10"],[q90,"q90"]]) {s.applyOptions({lineStyle:fiable&&k==="median"?0:2});s.setData(c[k]||[]);}
+    serie.setMarkers((d.markers||[]).map(m=>({time:m.time,position:m.kind==="entry"?(m.side==="SHORT"?"aboveBar":"belowBar"):"inBar",
+      color:m.kind==="entry"?"#5b9cf5":(m.pnl>0?"#2fbf71":"#e5534b"),shape:m.kind==="entry"?(m.side==="SHORT"?"arrowDown":"arrowUp"):"circle",
+      text:m.kind==="exit"?sg(m.pnl)+" $":(m.mode==="exploration"?"expl.":"")})).sort((a,b)=>a.time-b.time));
+    $("#chronosInfo").textContent=d.chronos_n==null?"Chronos : pas de mesure":
+      (fiable?`Chronos utilisé · poids w = ${nb(d.chronos_w,2)} · n = ${d.chronos_n}`:`Chronos en mesure, pas encore utilisé (n = ${d.chronos_n}/200)`);
+  }catch(e){$("#chronosInfo").textContent="bougies indisponibles";}
+}
+
+document.addEventListener("click",e=>{const f=e.target.dataset&&e.target.dataset.f;if(!f)return;FILTRE[e.target.dataset.b]=f;colonne(e.target.dataset.b);});
+charger("A");charger("B");
+setInterval(()=>charger("A"),15000);setInterval(()=>charger("B"),5000);setInterval(chargerBougies,5000);
+</script>
+</body>
+</html>

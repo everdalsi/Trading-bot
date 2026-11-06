@@ -643,6 +643,8 @@ def room() -> dict:
 import urllib.parse
 import urllib.request
 
+import batiments  # noqa: E402  page /batiments, lecture seule des batiments A et B
+
 _kcache: dict = {}
 
 
@@ -716,6 +718,9 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_GET(self):  # noqa: N802
+        rep = batiments.handle(self.path)                  # page /batiments (mission deux batiments)
+        if rep:
+            return self._send(*rep)
         if self.path in ("/", "/index.html"):
             return self._send(200, (HERE / "index.html").read_bytes(), "text/html; charset=utf-8")
         if self.path.startswith("/chart"):
