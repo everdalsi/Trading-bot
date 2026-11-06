@@ -30,7 +30,8 @@ from agent_events import PATH as EVENTS_PATH, log_event
 DATA_DIR = Path(os.environ.get("DATA_DIR") or ".")
 BINANCE = "https://api.binance.com"
 MIN_SAMPLE = 100
-FEE_SIDE = {"crypto_copy": float(os.environ.get("FEE_PCT", 0.001)), "actions_us": 0.0}  # Alpaca: no commission
+# fee manager 06/11: crypto_copy trades on Hyperliquid perps (taker 0.045 %), not Binance spot (0.1 %)
+FEE_SIDE = {"crypto_copy": float(os.environ.get("HL_FEE_PCT", 0.00045)), "actions_us": 0.0}
 SLIP_ASSUMED = {"crypto_copy": 0.0005, "actions_us": 0.0005}  # per side, until measured on our fills
 MIN_QUOTE_VOL_USD = float(os.environ.get("AGENCY_MIN_QUOTE_VOL", 5_000_000))
 CHART_TREND_MALUS = float(os.environ.get("AGENCY_CHART_MALUS", 0.0025))  # 0.25 % of edge

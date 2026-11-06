@@ -2915,9 +2915,11 @@ def _open_hl_mirror(symbol: str, price: float, side: str, source_addr: str,
     amount = base_amount * (1.0 - max(0.0, min(1.0, size_reduction)))
     if not amount_override:  # audit 06/11: hard cap per position (the vol multiplier could reach 7.5 %)
         amount = min(amount, HL_MAX_POS_PCT * _hl_equity(ledger))
+    ref_price = price
+    price, slip, slip_src = _sim_fill(symbol, side, price, opening=True)  # realistic simulator (06/11)
     qty = amount / price
-    try:  # ExecutionController (B6): the copy fills at the last price, no slippage modelled
-        execution_controller.record("crypto_copy", symbol, side, amount, price, 0.0)
+    try:  # ExecutionController (B6): simulated fill vs the real book
+        execution_controller.record("crypto_copy", symbol, side, amount, price, slip)
     except Exception:
         pass
     ledger["cash"] -= amount
@@ -2926,6 +2928,7 @@ def _open_hl_mirror(symbol: str, price: float, side: str, source_addr: str,
         "id": HL_COPY_TRADE_ID_BASE + len(ledger["trades"]) + 1,
         "symbol": symbol, "market": "HL_COPY", "side": side, "trade_type": "HL_COPY",
         "price_in": price, "price_out": None, "qty": qty, "amount_usd": amount,
+        "ref_price": ref_price, "slip_applied": round(slip, 6), "slip_source": slip_src,
         "confidence": 0, "reason": f"HL copy: {source_addr[:10]}... (ROI mois {source_month_roi*100:.1f}%)",
         "exit_reason": None,
         "time_in": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "time_out": None,
@@ -2964,6 +2967,8 @@ def _start_measurement_agents() -> None:
         ("DeskContext", lambda: __import__("desk_context").start(_open_positions_all, 600)),
         ("ApiKeeper", lambda: __import__("api_keeper").start(600)),
         ("Backtester", _start_daily_backtest),
+        ("MarketWatch", lambda: __import__("market_watch").start()),  # order book + manipulation watch (50 markets)
+        ("Accountant", lambda: __import__("accountant").start()),  # result per trade / desk / total
     ]
     for name, fn in starts:
         try:
@@ -3022,6 +3027,25 @@ def _market_tags(symbol: str, side: str | None = None) -> dict:
         return {}
 
 
+HL_FEE_PCT = float(os.environ.get("HL_FEE_PCT", 0.00045))  # Hyperliquid perps taker fee, base tier, one side
+
+
+def _sim_fill(symbol: str, side: str, price: float, opening: bool) -> tuple[float, float, str]:
+    """Realistic simulator (user 06/11): a paper fill crosses the spread like a market order would.
+    Buying (open LONG / close SHORT) pays half the measured spread above the mid, selling gets half below.
+    Spread measured by market_watch (Binance book, 2 min old max); unknown -> no adjustment, said so."""
+    try:
+        import market_watch
+        sp = market_watch.spread_bps(symbol)
+    except Exception:
+        sp = None
+    if sp is None:
+        return price, 0.0, "spread inconnu"
+    half = sp / 2 / 1e4
+    buying = (side != "SHORT") if opening else (side == "SHORT")
+    return price * (1 + half if buying else 1 - half), half, f"demi-spread mesure {sp / 2:.1f} bps"
+
+
 def _close_hl_mirror(pos_key: str, price: float, reason: str, send_fn):
     ledger = load_hl_copy_ledger()
     pos = ledger["positions"].get(pos_key)
@@ -3029,12 +3053,13 @@ def _close_hl_mirror(pos_key: str, price: float, reason: str, send_fn):
         return
     entry = pos["price_in"]
     is_short = pos.get("side") == "SHORT"
+    price, _slip, _src = _sim_fill(pos["symbol"], pos.get("side", "LONG"), price, opening=False)
     change = (entry - price) / entry if is_short else (price - entry) / entry
     # FEE FIX (2026-09-24): same bug as monitor_micro_positions -- this closer
     # bypasses close_trade() too, so the earlier fee fix never applied here either.
     notional = pos["amount_usd"] * pos.get("leverage", 1)
     gross_pnl = change * notional
-    fee_cost = notional * FEE_PCT * 2
+    fee_cost = notional * HL_FEE_PCT * 2  # Hyperliquid taker fee (fee manager 06/11), was the Binance 0.1 %
     pnl = gross_pnl - fee_cost
     ledger["cash"] += pos["amount_usd"] + pnl
     elapsed = time.time() - pos.get("open_time", time.time())
@@ -3071,10 +3096,11 @@ def _reduce_hl_mirror(pos_key: str, price: float, fraction: float, reason: str, 
         return
     entry = pos["price_in"]
     is_short = pos.get("side") == "SHORT"
+    price, _slip, _src = _sim_fill(pos["symbol"], pos.get("side", "LONG"), price, opening=False)
     change = (entry - price) / entry if is_short else (price - entry) / entry
     part = pos["amount_usd"] * fraction
     notional = part * pos.get("leverage", 1)
-    pnl = change * notional - notional * FEE_PCT * 2
+    pnl = change * notional - notional * HL_FEE_PCT * 2
     ledger["cash"] += part + pnl
     pos["amount_usd"] -= part
     pos["qty"] = pos.get("qty", 0) * (1 - fraction)
@@ -3577,6 +3603,10 @@ def _hl_copytrade_worker_body(send_fn):
             "initial_equity": HL_COPY_STARTING_CASH + float(ledger.get("deposits", 0)),
         }))
         trading_blocked = bool(guard_resp.get("veto"))
+        if not trading_blocked and time.time() - _HL_GUARD.get("last_ok_log", 0) > 900:
+            _HL_GUARD["last_ok_log"] = time.time()
+            log_event("DrawdownGuard", "crypto_copy", "INFO", "", f"surveillance : capital {equity:.2f} $ au prix actuel, "
+                      f"debut de journee {ledger.get('daily_start_equity', equity):.2f} $, aucun seuil franchi", result="ok")
         _HL_GUARD.update(blocked=trading_blocked, why=guard_resp.get("summary", "") if trading_blocked else "", at=time.time())
         if trading_blocked:
             log_event("DrawdownGuard", "crypto_copy", "VETO", "", guard_resp.get("summary", "pause active"),

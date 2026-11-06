@@ -118,7 +118,9 @@ PULSE = {"ChartAnalyst": "chart_analysis.json", "TopTraders": "top_traders.json"
          "PolymarketAnalyst": "polymarket.json", "NewsAgent": "news_flags.json", "Professor": "professor.json",
          "FilterAudit": "filter_audit.json", "Trending": "trending.json", "MarketContext": "market_context.json",
          "FundingRadar": "radar.json", "RegimeHMM": "regime_hmm.json", "DeskContext": "desk_context.json",
-         "FundamentalAnalyst": "fundamentals.json", "ApiKeeper": "api_keeper.json", "Backtester": "backtest_report.json"}
+         "FundamentalAnalyst": "fundamentals.json", "ApiKeeper": "api_keeper.json", "Backtester": "backtest_report.json",
+         "OrderFlow": "orderbook.json", "Manipulation": "manipulation.json",
+         "CostAnalyst": "fees.json", "ExecutionController": "execution_quality.json"}  # Accountant and Kronos log their own events
 _mtimes: dict[str, float] = {}
 
 
