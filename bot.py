@@ -2975,7 +2975,12 @@ def _start_measurement_agents() -> None:
         ("PolymarketDesk", lambda: __import__("polymarket_desk").start()),  # paper desk, measurement book
         ("StocksDesk", lambda: __import__("stocks_desk").start()),  # US stocks paper desk, measurement book
     ]
+    off = {x.strip() for x in os.getenv("AGENTS_OFF", "").split(",") if x.strip()}
     for name, fn in starts:
+        if name in off:   # mission "deux batiments" 06/11: Kronos out of the old bot during the parallel tests
+            logger.info(f"[AGENTS] {name} not started (AGENTS_OFF)")
+            log_event(name, "systeme", "INFO", "", "arrete pendant les tests des deux batiments (AGENTS_OFF)", result="arrete")
+            continue
         try:
             fn()
         except Exception as e:
