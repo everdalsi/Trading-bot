@@ -9,7 +9,6 @@ copies the small state files into dashboard/cache/; this server only reads that 
 Binds to 127.0.0.1 only. Never sends orders, never holds trading keys.
 """
 import json
-import os
 import subprocess
 import sys
 import threading
