@@ -2969,6 +2969,9 @@ def _start_measurement_agents() -> None:
         ("Backtester", _start_daily_backtest),
         ("MarketWatch", lambda: __import__("market_watch").start()),  # order book + manipulation watch (50 markets)
         ("Accountant", lambda: __import__("accountant").start()),  # result per trade / desk / total
+        ("Treasury", lambda: __import__("treasury").start()),  # split proposal from measured results (never moves cash)
+        ("PolymarketDesk", lambda: __import__("polymarket_desk").start()),  # paper desk, measurement book
+        ("StocksDesk", lambda: __import__("stocks_desk").start()),  # US stocks paper desk, measurement book
     ]
     for name, fn in starts:
         try:
@@ -3458,7 +3461,8 @@ def hl_consensus_fill(send_fn):
                 continue
         except Exception:
             pass
-        approved, _ = agency.approve_entry("crypto_copy", sym, price, 0.005, {"side": "LONG", "fill_mode": True})
+        approved, _ = agency.approve_entry("crypto_copy", sym, price, 0.005, {"side": "LONG", "fill_mode": True,
+                                                                              "usd": size, "hedge": True})
         if not approved:
             why["senior"] += 1
             continue
@@ -3523,8 +3527,8 @@ def hl_consensus_fill(send_fn):
             ps, pl = get_current_price(s_sym), get_current_price(l_sym)
             if not ps or not pl:
                 continue
-            ok_s, _ = agency.approve_entry("crypto_copy", s_sym, ps, 0.01 * abs(c), {"side": "SHORT", "score": c, "fill_mode": True})
-            ok_l, _ = agency.approve_entry("crypto_copy", l_sym, pl, 0.005, {"side": "LONG", "fill_mode": True})
+            ok_s, _ = agency.approve_entry("crypto_copy", s_sym, ps, 0.01 * abs(c), {"side": "SHORT", "score": c, "fill_mode": True, "usd": unit})
+            ok_l, _ = agency.approve_entry("crypto_copy", l_sym, pl, 0.005, {"side": "LONG", "fill_mode": True, "usd": unit})
             if not (ok_s and ok_l):
                 why["senior"] += 1
                 continue

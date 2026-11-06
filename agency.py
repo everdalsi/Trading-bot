@@ -294,8 +294,32 @@ def _approve_entry(portfolio: str, symbol: str, price: float | None, proxy_edge:
     if net <= 0:
         log_event("SeniorExpert", portfolio, "VETO", symbol, detail, score=round(net, 5), result="refuse", **extra)
         return False, detail
+    veto = devils_advocate(extra, context)
+    if veto:  # desk spec 06/11: the debate now has teeth (it was recorded only)
+        log_event("DevilsAdvocate", portfolio, "VETO", symbol, veto, score=round(net, 5), result="refuse", **extra)
+        return False, veto
     log_event("SeniorExpert", portfolio, "APPROVE", symbol, detail, score=round(net, 5), result="accepte", **extra)
     return True, detail
+
+
+DA_BIG_USD = float(os.environ.get("DEVIL_BIG_USD", 60))  # "gros trade" for the devil's advocate
+
+
+def devils_advocate(debate_out: dict, context: dict) -> str:
+    """Veto (returns the reason) when the arguments against this side clearly win:
+    - any size: all 3 risk profiles vote no AND the bear case beats the bull case by >= 1 point;
+    - big trades (>= DEVIL_BIG_USD or a hedge leg): at most 1 profile out of 3 votes yes.
+    No debate data -> no veto (it never invents an argument)."""
+    yes, bull, bear = debate_out.get("committee_yes"), debate_out.get("bull"), debate_out.get("bear")
+    if yes is None or bull is None or bear is None or not debate_out.get("debate_args"):
+        return ""
+    args = ", ".join(f"{k} {v:+.2f}" for k, v in debate_out["debate_args"].items())
+    if yes == 0 and bear - bull >= 1.0:
+        return f"avocat du diable : arguments contre {bear:.2f} vs pour {bull:.2f}, 0 profil sur 3 pour ({args})"
+    usd = float(context.get("usd") or 0)
+    if (usd >= DA_BIG_USD or context.get("hedge")) and yes <= 1:
+        return f"avocat du diable : gros trade ({usd:.0f} $), seulement {yes} profil sur 3 pour ({args})"
+    return ""
 
 
 def debate(symbol: str, side: str, net_edge: float, ctx: dict) -> dict:
