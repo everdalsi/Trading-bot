@@ -43,6 +43,7 @@
   .ag b { font-size:12.5px; } .ag .v { float:right; font-weight:700; } .ag p { margin:3px 0 0; color:#b8ccc8; font-size:11.5px; }
   .up { color:var(--green); } .down { color:var(--red); } .warn { color:var(--amber); } .mut { color:var(--muted); }
   .roster { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:8px; }
+  .roster .grp { grid-column:1/-1; margin:10px 0 0; font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--mut, #8b949e); }
   .rm { background:var(--panel2); border:1px solid var(--line); border-radius:9px; padding:9px 10px; position:relative; font-size:12px; }
   .rm b { font-size:12.5px; } .rm p { margin:3px 0 0; color:var(--muted); font-size:11.5px; }
   .rm .st { position:absolute; top:9px; right:9px; font-size:10px; font-weight:700; }
@@ -194,7 +195,7 @@ function render(st) {
     <td class="n ${cls(x.pnl)}">${x.pnl == null ? "—" : money(x.pnl)}<br><span class="mut">${x.ch == null ? "" : pct(100 * x.ch)}</span></td></tr>`).join("")
     || '<tr><td colspan="5" class="empty">Aucune position ouverte</td></tr>';
 
-  document.getElementById("roster").innerHTML = (st.roster || []).map(r => `<div class="rm ${r.state}">
+  let g0 = ""; document.getElementById("roster").innerHTML = (st.roster || []).map(r => (r.group && r.group !== g0 ? (g0 = r.group, `<h4 class="grp">${esc(r.group)}</h4>`) : "") + `<div class="rm ${r.state}">
     <span class="st ${({trade: "up", analyse: "up", bloque: "down", veille: "mut", planned: "mut"})[r.desk] || "mut"}">${({trade: "● trade", analyse: "● analyse", bloque: "■ bloqué", veille: "veille", planned: "étape " + r.step})[r.desk] || esc(r.desk)}</span>
     <b>${esc(r.label)}</b><p>${esc(r.role)}</p>${r.last ? `<div class="last"><span class="tag ${esc(r.last.action)}">${esc(r.last.action)}</span> ${esc(r.last.symbol || "")} ${esc(r.last.reason || "").slice(0, 70)} <span class="mut">· il y a ${ago(r.last.age_s)}</span></div>` : ""}</div>`).join("");
 

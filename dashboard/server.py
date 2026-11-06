@@ -46,7 +46,11 @@ LEDGER_FILES = {"hl_copy": "hl_copy_portfolio.json", "short": "meme_sim.json",
                 "professor": "professor.json", "news_flags": "news_flags.json",
                 "macro": "macro.json", "sentiment": "sentiment.json",
                 "top_traders": "top_traders.json", "polymarket": "polymarket.json", "options": "options.json",
-                "memes": "meme_hunter.json", "risk": "risk_manager.json"}
+                "memes": "meme_hunter.json", "risk": "risk_manager.json",
+                # desk agents added 06/11 (keys served by ledgers_dump.py on the VPS)
+                "coordinator": "coordinator.json", "desk_context": "desk_context.json", "funding_carry": "funding_carry.json",
+                "radar": "radar.json", "regime_hmm": "regime_hmm.json", "api_keeper": "api_keeper.json",
+                "backtest": "backtest_report.json"}
 SCALP_NAMES = {"crypto_copy": "Copie crypto (A cassure, frais HL)", "court_terme": "Court terme (B retour moyenne, frais Binance)"}
 
 
@@ -262,51 +266,76 @@ def _wallets() -> list:
 
 
 # The agency (plan ~/.claude/plans/trading-agence-pro.md): name in agent_events.jsonl -> (label, role, step)
+# Desk spec 06/11: every agent of the trading company, grouped. (event key in agent_events, label, role, group,
+# output file in cache/ used for the state when the agent writes no events, expected period s, built?)
 ROSTER = [
-    ("Coordinator", "Coordinateur", "répartit le capital entre portefeuilles, coupe ceux qui perdent", 2),
-    ("SeniorExpert", "Expert senior", "veto si le gain espéré ne paie pas les frais", 1),
-    ("Professor", "Professeur", "apprend de chaque trade, propose des réglages", 3),
-    ("Auditor", "Auditeur", "n'adopte un changement que s'il bat l'ancien sur 200 trades", 3),
-    ("CostAnalyst", "Analyste des coûts", "frais + glissement réels attendus", 1),
-    ("Pruner", "Élagueur", "réduit ce qui perd par stratégie / symbole / régime", 2),
-    ("SizingAgent", "Dimensionnement", "même risque par trade selon la volatilité", 2),
-    ("RegimeAgent", "Régime de marché", "tendance / range / baisse", 0),
-    ("ChartAnalyst", "Analyseur de courbes", "tendance, RSI, supports / résistances, figures", 1),
-    ("SignalAgent", "Signal", "momentum et scores d'entrée", 0),
-    ("TradeManager", "Gestionnaire de trades", "10 règles : ferme, réduit, encaisse, ajuste les stops", 1),
-    ("DrawdownGuard", "Garde-fou drawdown", "veto si la perte devient trop forte", 0),
-    ("CorrelationWatcher", "Surveillant corrélation", "réduit les positions trop liées", 0),
-    ("Executor", "Exécuteur", "passe les ordres (fictifs)", 0),
-    ("DataGuard", "Gardien des données", "bloque les entrées si un prix est faux ou figé", 1),
-    ("Watchdog", "Veilleur technique", "santé du bot + alertes Telegram", 1),
-    ("EventAgent", "Agent événements", "pause autour de la Fed, inflation, piratages", 4),
-    ("DerivativesAnalyst", "Analyste dérivés", "funding, positions ouvertes, liquidations", 4),
-    ("MemeScout", "Éclaireur memecoins", "observe les memecoins (sans trader)", 0),
+    ("SeniorExpert", "Directeur des investissements", "décide chaque entrée, tranche les conflits", "Direction", None, 0, True),
+    ("Coordinator", "Coordinateur des opérations", "circuits de signaux, messages expirés, agents silencieux", "Direction", "coordinator.json", 300, True),
+    ("Treasury", "Trésorerie", "rééquilibre le capital entre desks selon les performances", "Direction", None, 0, False),
+    ("PolymarketAnalyst", "Scanner Polymarket", "probabilités et volumes anormaux", "Recherche", "polymarket.json", 1800, True),
+    ("NewsAgent", "Veilleur d'actualité", "RSS, SEC, CryptoVision, Firecrawl", "Recherche", "news_flags.json", 600, True),
+    ("SentimentAnalyst", "Analyste du sentiment", "Fear & Greed, funding, Telegram public", "Recherche", "sentiment.json", 900, True),
+    ("TopTraders", "Traqueur de wallets", "meilleurs wallets Hyperliquid, consensus", "Recherche", "top_traders.json", 7200, True),
+    ("MemeHunter", "Éclaireur de nouveaux tokens", "memecoins qui démarrent (mesure)", "Recherche", "meme_hunter.json", 900, True),
+    ("DeskContext", "Analyste on-chain + calendrier", "flux vers les exchanges, mints, listings, mentions", "Recherche", "desk_context.json", 900, True),
+    ("MacroAnalyst", "Analyste macro", "taux, dollar, Fed, stablecoins", "Recherche", "macro.json", 1800, True),
+    ("MarketContext", "Analyste des dérivés", "liquidations, foule, baleines, funding multi-plateformes", "Recherche", "market_context.json", 300, True),
+    ("FundingRadar", "Funding et radar", "carry de chaque position, argent qui entre", "Recherche", "radar.json", 300, True),
+    ("ChartAnalyst", "Analyseur de courbes", "tendances, supports, résistances, multi-unités", "Analyse", "chart_analysis.json", 300, True),
+    ("RegimeAgent", "Détecteur de régime", "tendance / range / volatilité (+ modèle HMM)", "Analyse", "regime_hmm.json", 3600, True),
+    ("OrderFlow", "Analyste du carnet d'ordres", "pression acheteuse / vendeuse, VPIN", "Analyse", None, 0, True),
+    ("Correlation", "Corrélation + arbitrage", "paris indépendants, écarts entre exchanges", "Analyse", "desk_context.json", 900, True),
+    ("Backtester", "Backtesteur + chercheur quantitatif", "tests hors échantillon avec vrais frais", "Analyse", "backtest_report.json", 86400, True),
+    ("HL_COPY", "Desk crypto long terme", "copie des meilleurs wallets", "Desks", "hl_copy_portfolio.json", 300, True),
+    ("Scalper", "Desk micro-trading", "1-5 min (perdant en backtest, à couper)", "Desks", "scalp_crypto_copy.json", 600, True),
+    ("ShortSleeve", "Desk court terme / memecoins", "momentum, ventes à découvert", "Desks", "meme_sim.json", 600, True),
+    ("PolymarketDesk", "Desk Polymarket", "paris fictifs sur probabilités mal évaluées", "Desks", None, 0, False),
+    ("StocksDesk", "Desk actions", "actions US en fictif (à recréer)", "Desks", None, 0, False),
+    ("DevilsAdvocate", "Avocat du diable", "veto sur les gros trades (débat existant)", "Contrôle", None, 0, False),
+    ("RiskManager", "Gestionnaire du risque", "tailles, stops, pertes max, veto absolu", "Contrôle", "risk_manager.json", 300, True),
+    ("SecurityAgent", "Sécurité on-chain", "rug pulls, honeypots", "Contrôle", None, 0, True),
+    ("Manipulation", "Détecteur de manipulation", "pump, faux volume, wash trading", "Contrôle", None, 0, True),
+    ("TradeManager", "Gestionnaire de trades + exposition", "10 règles, plafond 30 % par côté", "Contrôle", None, 0, True),
+    ("DrawdownGuard", "Coupe-circuit", "arrêt en cas de krach ou de perte anormale, veto absolu", "Contrôle", None, 0, True),
+    ("Executor", "Exécuteur d'ordres", "meilleur prix, maker quand possible", "Exécution", None, 0, True),
+    ("CostAnalyst", "Gestionnaire des frais", "frais + glissement attendus", "Exécution", None, 0, True),
+    ("ExecutionController", "Simulateur réaliste", "fills comparés au vrai carnet", "Exécution", None, 0, True),
+    ("Accountant", "Comptable", "résultat par trade, desk et total", "Après trade", "hl_copy_portfolio.json", 300, True),
+    ("Auditor", "Auditeur de performance", "note les agents (IC) et les stratégies", "Après trade", "ic_monitor.json", 3600, True),
+    ("Professor", "Professeur", "leçons, poids des signaux, registre", "Après trade", "professor.json", 21600, True),
+    ("Watchdog", "Superviseur système", "santé du bot, alertes Telegram", "Technique", None, 0, True),
+    ("DataGuard", "Contrôle qualité des données", "bloque les signaux sur données fausses", "Technique", None, 0, True),
+    ("ApiKeeper", "Gardien des API", "quotas, fraîcheur, clés jamais en clair", "Technique", "api_keeper.json", 600, True),
 ]
 
 
 def _roster(events: list[dict]) -> list[dict]:
+    """State of each desk agent: from its last live event, else from the freshness of its output file."""
     seen = {}
     for e in events:  # newest first
         seen.setdefault(e.get("agent"), e)
     now = time.time()
     out = []
-    for key, label, role, step in ROSTER:
+    for key, label, role, group, fname, period, built in ROSTER:
         e = seen.get(key)
         age = (now - e["ts"]) if e and e.get("ts") else None
         act = (e or {}).get("action", "")
-        if step and not e:
+        fage = None
+        if fname and (CACHE / fname).exists():
+            fage = now - (CACHE / fname).stat().st_mtime
+        if not built:
             desk = "planned"
         elif age is not None and age < 300 and act in ("BUY", "SELL", "CLOSE", "REDUCE", "OPEN", "SHORT"):
             desk = "trade"                                   # desk spec 06/11: veille / analyse / trade / bloque
         elif age is not None and age < 900 and act in ("VETO", "HALT", "ALERT", "BLOCK"):
             desk = "bloque"
-        elif age is not None and age < 900:
+        elif (age is not None and age < 900) or (fage is not None and period and fage < period * 1.5):
             desk = "analyse"
         else:
             desk = "veille"
-        out.append({"key": key, "label": label, "role": role, "step": step, "desk": desk,
-                    "state": "live" if age is not None and age < 900 else "on" if e or step == 0 else "planned",
+        out.append({"key": key, "label": label, "role": role, "group": group, "step": 0 if built else 1, "desk": desk,
+                    "state": "live" if desk in ("trade", "analyse", "bloque") else "on" if built else "planned",
+                    "file_age_s": int(fage) if fage is not None else None,
                     "last": ({"action": e.get("action"), "symbol": e.get("symbol"), "reason": e.get("reason"), "age_s": int(age)}
                              if e else None)})
     return out
