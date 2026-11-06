@@ -92,6 +92,8 @@
   <section class="panel s7"><h2><span>Apprentissage (Professeur + Auditeur)</span><span id="learnat" class="mut"></span></h2><div id="learn"></div></section>
   <section class="panel s5"><h2><span>Infos fortes (NewsAgent)</span><span id="newsat" class="mut"></span></h2><div class="scroll" id="news"></div></section>
   <section class="panel s12"><h2><span>Analystes en mode mesure</span><span class="mut">aucun poids dans les décisions tant que leur IC n'a pas prouvé qu'ils prédisent</span></h2><div class="books" id="analysts"></div></section>
+  <section class="panel s6"><h2><span>Classement des agents</span><span class="mut">pouvoir prédictif mesuré (IC à 4 h)</span></h2><div id="ranking"></div></section>
+  <section class="panel s6"><h2><span>Alertes (1 h)</span></h2><div id="alerts"></div></section>
   <section class="panel s12"><h2><span>Contexte de marché (API publiques)</span><span id="mcat" class="mut"></span></h2><div class="books" id="market"></div></section>
   <section class="panel s12"><h2><span>Les agents prédisent-ils ? (moniteur d'IC)</span><span id="icat" class="mut"></span></h2><div id="ic"></div></section>
   <section class="panel s12"><h2><span>L'équipe de l'agence</span><span class="mut">vert = en service · estompé = étape à venir</span></h2><div class="roster" id="roster"></div></section>
@@ -193,7 +195,7 @@ function render(st) {
     || '<tr><td colspan="5" class="empty">Aucune position ouverte</td></tr>';
 
   document.getElementById("roster").innerHTML = (st.roster || []).map(r => `<div class="rm ${r.state}">
-    <span class="st ${r.state === "planned" ? "mut" : "up"}">${r.state === "live" ? "● en action" : r.state === "on" ? "en service" : "étape " + r.step}</span>
+    <span class="st ${({trade: "up", analyse: "up", bloque: "down", veille: "mut", planned: "mut"})[r.desk] || "mut"}">${({trade: "● trade", analyse: "● analyse", bloque: "■ bloqué", veille: "veille", planned: "étape " + r.step})[r.desk] || esc(r.desk)}</span>
     <b>${esc(r.label)}</b><p>${esc(r.role)}</p>${r.last ? `<div class="last"><span class="tag ${esc(r.last.action)}">${esc(r.last.action)}</span> ${esc(r.last.symbol || "")} ${esc(r.last.reason || "").slice(0, 70)} <span class="mut">· il y a ${ago(r.last.age_s)}</span></div>` : ""}</div>`).join("");
 
 
@@ -238,6 +240,11 @@ function render(st) {
     <p>${f.link ? `<a href="${esc(f.link)}" target="_blank" rel="noopener">${esc(f.title)}</a>` : esc(f.title)}<br><span class="mut">${esc(f.source)} · il y a ${ago(Date.now() / 1000 - f.at)}</span></p></div>`).join("")
     || '<div class="empty">Aucune info forte sur nos positions dans les dernières 24 h</div>';
 
+  document.getElementById("ranking").innerHTML = (st.ranking || []).length ? `<table><thead><tr><th>Agent</th><th class="n">IC</th><th class="n">Mesures</th><th>Verdict</th></tr></thead><tbody>${st.ranking.map((r, i) =>
+    `<tr><td>${i + 1}. ${esc(r.agent)}</td><td class="n ${cls(r.ic)}">${(r.ic >= 0 ? "+" : "") + r.ic.toFixed(3)}</td><td class="n">${r.n ?? "—"}</td><td class="mut">${esc(r.verdict || "")}</td></tr>`).join("")}</tbody></table>`
+    : '<div class="empty">Pas encore assez de mesures</div>';
+  document.getElementById("alerts").innerHTML = (st.alerts || []).map(a => `<div class="ag"><span class="tag ${esc(a.action)}">${esc(a.action)}</span>
+    <b>${esc(a.agent)}</b> ${esc(a.symbol || "")} <span class="mut">${esc(a.reason)}</span></div>`).join("") || '<div class="empty">Aucune alerte</div>';
   const MC = st.market || {}, usd = v => v == null ? "—" : "$" + (v >= 1e9 ? (v / 1e9).toFixed(1) + " Md" : v >= 1e6 ? (v / 1e6).toFixed(1) + " M" : Math.round(v).toLocaleString("fr-FR"));
   document.getElementById("mcat").textContent = MC.at ? `mesure, aucun poids · il y a ${ago(Date.now() / 1000 - MC.at)}` : (MC.error ? "indisponible" : "");
   document.getElementById("market").innerHTML = MC.error ? `<div class="empty">Contexte indisponible (${esc(MC.error)})</div>` : [

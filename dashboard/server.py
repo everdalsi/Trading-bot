@@ -295,11 +295,45 @@ def _roster(events: list[dict]) -> list[dict]:
     for key, label, role, step in ROSTER:
         e = seen.get(key)
         age = (now - e["ts"]) if e and e.get("ts") else None
-        out.append({"key": key, "label": label, "role": role, "step": step,
+        act = (e or {}).get("action", "")
+        if step and not e:
+            desk = "planned"
+        elif age is not None and age < 300 and act in ("BUY", "SELL", "CLOSE", "REDUCE", "OPEN", "SHORT"):
+            desk = "trade"                                   # desk spec 06/11: veille / analyse / trade / bloque
+        elif age is not None and age < 900 and act in ("VETO", "HALT", "ALERT", "BLOCK"):
+            desk = "bloque"
+        elif age is not None and age < 900:
+            desk = "analyse"
+        else:
+            desk = "veille"
+        out.append({"key": key, "label": label, "role": role, "step": step, "desk": desk,
                     "state": "live" if age is not None and age < 900 else "on" if e or step == 0 else "planned",
                     "last": ({"action": e.get("action"), "symbol": e.get("symbol"), "reason": e.get("reason"), "age_s": int(age)}
                              if e else None)})
     return out
+
+def _ranking() -> list[dict]:
+    """Agents ranked by their measured predictive power (IC monitor, 4 h horizon)."""
+    ic = (_json(CACHE / "ic_monitor.json", {}) or {}).get("agents") or {}
+    rows = []
+    for name, hz in ic.items():
+        r = (hz or {}).get("4h") or {}
+        if r.get("ic") is not None:
+            rows.append({"agent": name, "ic": r["ic"], "icir": r.get("icir"), "n": r.get("n"), "verdict": r.get("verdict")})
+    return sorted(rows, key=lambda r: -(r["ic"] or 0))
+
+
+def _alerts(events: list[dict]) -> list[dict]:
+    now = time.time()
+    out = [{"at": e["ts"], "agent": e.get("agent"), "action": e.get("action"), "symbol": e.get("symbol"),
+            "reason": (e.get("reason") or "")[:140]}
+           for e in events if e.get("action") in ("VETO", "HALT", "ALERT") and e.get("ts") and now - e["ts"] < 3600]
+    for k, h in ((_mc.get("data") or {}).get("health") or {}).items():
+        if not h.get("ok"):
+            out.append({"at": h.get("at"), "agent": "MarketContext", "action": "ALERT", "symbol": "",
+                        "reason": f"source {k} indisponible ({h.get('error')})"})
+    return out[:20]
+
 
 def _scalp() -> list[dict]:
     """1-5 min scalping sleeves: capital, open scalps, gross vs net (fees) results, last trades."""
@@ -408,9 +442,9 @@ def status() -> dict:
                                           ("ChartAnalyst", "SIGNAL"), ("ChartAnalyst", "VETO"))}
     exe = next((e for e in events if e.get("action") in ("BUY", "SELL", "CLOSE", "REDUCE")), None)
     return {"now": time.strftime("%H:%M:%S"), "sync": _json(SYNC_STATE, {}), "portfolios": books,
-            "roster": _roster(events), "events": events[:80], "logs": _logs(), 
+            "roster": _roster(events), "events": events[:80], "alerts": _alerts(events), "logs": _logs(), 
             "wallets": _wallets(), "today": counts, "n_today": len(today),
-            "scalp": _scalp(), "learning": _learning(), "analysts": _analysts(), "market": _market(),
+            "scalp": _scalp(), "learning": _learning(), "analysts": _analysts(), "market": _market(), "ranking": _ranking(),
             "last": {f"{k[0]}:{k[1]}": v for k, v in picks.items() if v}, "last_exec": exe,
             "total_equity": round(sum(b.get("equity", 0) for b in books if b.get("available")), 2),
             "total_start": sum(b.get("start", 0) for b in books if b.get("available"))}
