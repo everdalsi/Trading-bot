@@ -2737,6 +2737,9 @@ def fetch_hl_wallet_positions(address: str) -> dict | None:
     (audit 06/11: an error used to close every mirror of the wallet)."""
     try:
         r = requests.post(HL_INFO_URL, json={"type": "clearinghouseState", "user": address}, timeout=15)
+        if r.status_code == 429:  # rate limited (bursts of ~14 skipped wallets, Desktop 09/11): one retry after 2 s
+            time.sleep(2)
+            r = requests.post(HL_INFO_URL, json={"type": "clearinghouseState", "user": address}, timeout=15)
         if r.status_code != 200:
             raise RuntimeError(f"HTTP {r.status_code}")
         d = r.json()

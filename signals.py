@@ -161,7 +161,11 @@ def check() -> dict:
         open_n = sum(1 for c in _circuits.values() if not c["done"])
         recent = [dict(trade_id=t, **{k: v for k, v in c.items() if k != "steps"}, steps=c["steps"][-8:])
                   for t, c in sorted(_circuits.items(), key=lambda kv: -kv[1]["last"])[:30]]
+        # read as a loop / a failure for days (Desktop 07-09/11): both are expected, say so in the file itself
         snap = {"at": _now_iso(), "signals_alive": len(_signals), "circuits_open": open_n, **_stats,
+                "note": "signaux en mesure seulement : aucun desk n'appelle fresh() (etape 2 non branchee), donc "
+                        "signals_expired_unused = signals_posted est normal ; circuits_opened = cumul depuis le "
+                        "demarrage des candidats examines (~3/s), pas une boucle",
                 "recent_circuits": recent}
     for tid, c in stuck:
         try:

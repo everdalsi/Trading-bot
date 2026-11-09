@@ -322,12 +322,12 @@ def manage(pf: str, led: dict, quotes: dict[str, tuple[float, float]]) -> None:
 
 
 def entries(pf: str, led: dict, symbols: list[str], quotes: dict[str, tuple[float, float]]) -> None:
-    if _share(pf) <= 0:  # sleeve at 0 % (user 06/11): no new trade, no pending order, no filter calls
-        return
     day = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     eq = led["cash"] + sum(p["usd"] for p in led["positions"].values())
-    if led["day"] != day:
+    if led["day"] != day:  # rolled even at 0 %: a frozen 'day' read as a stuck loop (Desktop 07-09/11)
         led.update(day=day, day_start=eq)
+    if _share(pf) <= 0:  # sleeve at 0 % (user 06/11): no new trade, no pending order, no filter calls
+        return
     if len(led["positions"]) == 0 and eq > _capital(pf) * 1.5:
         return  # share cut by the Auditor: the extra cash stays idle, never traded
     stop_base = min(led["day_start"], _capital(pf))

@@ -48,6 +48,9 @@ DEX = "https://api.dexscreener.com"
 # 2026-11-05 user request (paper): ~100 % invested, spread at 5 % per position (up to 20 positions, the
 # best momentum first). Lane M stays observation-only, so lane A gets the whole capital.
 A_SHARE, A_POS_PCT, A_MAX_POS = 1.0, 0.05, 20
+# hard cap per position (RiskManager's 6 % rule for universe B): risk_parity allowed up to 2x the equal weight
+# (10 %), so ATOM/PENDLE/SEI/LDO/GRAM opened above 6 % and the violation was reported for days (Desktop 07-09/11)
+A_POS_MAX = float(os.environ.get("SHORT_A_POS_MAX", 0.06))
 A_TOP_N, A_LOOKBACK, A_TRAIL = 50, 14, 0.12
 A_HYST = float(os.environ.get("SHORT_A_HYST", 0.01))  # regime switch only 1 % beyond BTC's MA50
 A_COST = 0.0010 + 0.0020          # fee + slippage, each side
@@ -179,6 +182,23 @@ def _close(ledger: dict, key: str, price: float, cost: float, reason: str, send_
     send_fn(f"{'✅' if pnl > 0 else '❌'} COURT TERME {p['lane']} {p['symbol']} ${pnl:+.2f} ({reason})")
     log_event("Executor", "court_terme", "CLOSE", p["symbol"], reason, result=round(pnl, 4), lane=p["lane"])
     return pnl
+
+
+def _trim_over_cap(ledger: dict, eq: float, prices: dict[str, float], send_fn) -> None:
+    """Partially close any lane A position whose collateral is above A_POS_MAX of equity (back to the cap)."""
+    cap = eq * A_POS_MAX
+    for key, p in list(ledger["positions"].items()):
+        if p["lane"] != "A" or p["usd"] <= cap * 1.001 or eq <= 0:
+            continue
+        frac = 1 - cap / p["usd"]
+        px = prices.get(p["symbol"], p["last_price"])
+        part = {**p, "qty": p["qty"] * frac, "usd": p["usd"] * frac}
+        ledger["positions"][key + ":trim"] = part
+        streak = ledger["loss_streak"]  # a risk trim is not a strategy loss: keep the losing-streak breaker clean
+        _close(ledger, key + ":trim", px, A_COST, f"reduction au plafond {A_POS_MAX:.0%}", send_fn)
+        ledger["loss_streak"] = streak
+        p["qty"] *= 1 - frac
+        p["usd"] *= 1 - frac
 
 
 # ---------------------------------------------------------------- risk
@@ -382,7 +402,7 @@ def lane_a_rotate(ledger: dict, can_open: bool, send_fn) -> None:
         signals.begin("court_terme", s, "lane A")
         if f"A:{s}" in ledger["positions"] or sum(p["lane"] == "A" for p in ledger["positions"].values()) >= A_MAX_POS:
             continue
-        usd = min(alloc.get(s, eq * A_POS_PCT), budget_left)
+        usd = min(alloc.get(s, eq * A_POS_PCT), budget_left, eq * A_POS_MAX)
         z = funding_z(s)  # V6: no entry on the crowded side (longs paying > +2 sigma / shorts < -2 sigma)
         if z is not None and ((side == "LONG" and z > FUNDING_Z_MAX) or (side == "SHORT" and z < -FUNDING_Z_MAX)):
             log_event("FundingFilter", "court_terme", "VETO", s, f"{side} : funding a {z:+.1f} sigma (cote encombre)",
@@ -603,6 +623,8 @@ def tick(send_fn, now: datetime | None = None) -> None:
         log.warning(f"[SHORT] price error: {e}")
         prices = {}
     can_open = _risk(ledger, equity(ledger, prices), send_fn)
+    if prices and not ledger["halted"]:
+        _trim_over_cap(ledger, equity(ledger, prices), prices, send_fn)
     now = now or datetime.now(timezone.utc)
     today = now.strftime("%Y-%m-%d")
     # daily rotation; plus an hourly retry while lane A is empty (startup, or a day with no target)

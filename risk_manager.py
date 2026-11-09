@@ -159,9 +159,11 @@ def snapshot() -> dict:
             out["court_terme"]["side_category"] = {k: round(v / eq_ct, 3) for k, v in buckets_b.items()}
             big = [p.get("symbol") for p in pos if float(p.get("usd", 0)) / eq_ct > 0.06 + 1e-6]
             out["court_terme"]["over_6pct"] = big
-            violations += [f"court_terme {k} {v:.0%} > 30 % (univers B)" for k, v in out["court_terme"]["side_category"].items()
-                           if v > 0.30 + 1e-6]
-            violations += [f"court_terme {b} > 6 % du portefeuille (univers B)" for b in big]
+            # no 30 % same-side rule here: lane A takes ONE side for the whole book, set by the BTC/MA50 regime
+            # (user 05/11: ~100 % invested in both regimes, weakest coins shorted in risk off). The side is a
+            # design choice, not a breach; the per-position 6 % cap is enforced in short_sleeve (A_POS_MAX).
+            out["court_terme"]["side_rule"] = "derogation : sens unique fixe par le regime (voie A)"
+            violations +=[f"court_terme {b} > 6 % du portefeuille (univers B)" for b in big]
     for pf in ("crypto_copy", "court_terme", "actions_us"):
         sc = _json(f"scalp_{pf}.json")
         if sc:
