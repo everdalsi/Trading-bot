@@ -447,8 +447,10 @@ CYCLE_HL_COPYTRADE        = int(os.environ.get("CYCLE_HL_COPYTRADE", 300))      
 HL_SLEEVE_USD_PER_TRADE  = float(os.environ.get("HL_SLEEVE_USD_PER_TRADE", 25.0))  # legacy floor, see HL_POS_PCT
 # 2026-11-05 user request (paper): ~100 % of the capital invested, but SPREAD: 5 % of equity per position,
 # at most 30 % of equity on one side + category (e.g. crypto shorts on alts), at most 3 copies per wallet.
+# 2026-11-11 user decision: 30 % and a 90-95 % fill target are incompatible when consensus is one-sided
+# (crypto_copy stuck ~47-57 % invested) -> raised to 90 % to match the new HL_FILL_TARGET, same number.
 HL_POS_PCT               = float(os.environ.get("HL_POS_PCT", 0.05))
-HL_MAX_SIDE_CAT_PCT      = float(os.environ.get("HL_MAX_SIDE_CAT_PCT", 0.30))
+HL_MAX_SIDE_CAT_PCT      = float(os.environ.get("HL_MAX_SIDE_CAT_PCT", 0.90))
 HL_MAX_POS_PCT           = float(os.environ.get("HL_MAX_POS_PCT", 0.06))   # hard cap per copy/consensus/pair position
 HL_MAX_PER_WALLET        = int(os.environ.get("HL_MAX_PER_WALLET", 3))
 HL_MAJORS = {"BTCUSDT", "ETHUSDT", "SOLUSDT"}
@@ -3006,8 +3008,14 @@ def _start_daily_backtest() -> None:
         while True:
             try:
                 import backtester
-                backtester.run(["BTCUSDT", "ETHUSDT", "SOLUSDT"], 7)
-                log_event("Backtester", "systeme", "INFO", "", "walk-forward quotidien termine", result="cycle")
+                report = backtester.run(["BTCUSDT", "ETHUSDT", "SOLUSDT"], 7)
+                summary = " | ".join(
+                    f"{strat} out_of_sample_net_avg_pct={w.get('out_of_sample_net_avg_pct')}% "
+                    f"positive_folds={w.get('positive_folds')}"
+                    for strat, w in report.get("walk_forward", {}).items()
+                ) or "aucune strategie testee"
+                logger.info(f"[BACKTEST] {summary}")
+                log_event("Backtester", "systeme", "INFO", "", summary, result="cycle")
             except Exception as e:
                 log_event("Backtester", "systeme", "INFO", "", f"erreur {type(e).__name__}: {str(e)[:120]}")
             time.sleep(24 * 3600)
@@ -3260,7 +3268,7 @@ def get_hl_copy_summary() -> dict:
 
 
 HL_CONSENSUS_ADDR = "consensus"  # pseudo-wallet: positions opened by the fill engine
-HL_FILL_TARGET = float(os.environ.get("HL_FILL_TARGET", 0.95))
+HL_FILL_TARGET = float(os.environ.get("HL_FILL_TARGET", 0.90))  # 2026-11-11 user decision: 90 % (was 95 %)
 HL_FILL_WAIT_S = int(os.environ.get("HL_FILL_WAIT_S", 1800))
 HL_FILL_MIN_CONS, HL_FILL_MIN_HOLDERS, HL_FILL_EXIT_CONS = 0.4, 5, 0.1
 _HL_FILL_STATE = HL_COPY_LEDGER_PATH.parent / "hl_fill_state.json"  # survives restarts (Desktop review)
@@ -4821,7 +4829,6 @@ def trading_loop(send_fn):
 
     in_secretary_mode = TELEGRAM_CHAT_ID in AGENT_CHAT_SESSIONS
     last_micro = last_meme = last_epargne = last_status = last_regime = last_staking = last_solana = 0
-    last_backtest = 0
     last_monitor = 0
     last_soul_tick   = 0
     last_risk_check = 0
@@ -4831,26 +4838,12 @@ def trading_loop(send_fn):
 
     logger.info("🚀 Trading Loop autonome V8 démarré — Agents décident seuls")
     _aegis_log_sink.emit("INFO", "Bot trading loop started")
-    logger.info("✅ PHASE 1 ACTIVÉE : Backtester VectorBT + ExecutionEngine pro + SQLite Memory")
+    _start_daily_backtest()
 
     while bot_state["running"]:
         now = time.time()
         equity = get_equity_safe()
         current_price = get_current_price("BTCUSDT") or 0.0
-
-        if now - last_backtest >= 21600:
-            last_backtest = now
-            try:
-                future = asyncio.run_coroutine_threadsafe(
-                    run_backtest("BTCUSDT", "5m"), 
-                    _main_loop
-                )
-                backtest_stats = future.result(timeout=45)
-                logger.info(f"[BACKTEST PHASE 1] Return: {backtest_stats.get('total_return', 0):.2%} | "
-                           f"Max DD: {backtest_stats.get('max_drawdown', 0):.2%} | "
-                           f"Win Rate: {backtest_stats.get('win_rate', 0):.2%}")
-            except Exception as bt_e:
-                logger.warning(f"Backtest error (non blocking): {type(bt_e).__name__}: {bt_e or 'timeout'}")
 
         if now - last_risk_check >= 300:
             last_risk_check = now
@@ -8110,16 +8103,6 @@ def safe_pnl(pnl_pct: float, amount_usd: float, leverage: float = 1) -> float:
     except Exception as e:
         print(f"[SAFETY-PnL] Erreur: {e}")
         return 0.0
-
-
-async def run_backtest(symbol: str = "BTCUSDT", interval: str = "5m") -> dict:
-    """Async wrapper pour backtest_strategy — appelé depuis trading_loop via run_coroutine_threadsafe"""
-    try:
-        result = backtest_strategy(symbol, interval, days=30)
-        return result
-    except Exception as e:
-        logger.warning(f"[RUN-BACKTEST] {e}")
-        return {"error": str(e), "total_return": 0, "max_drawdown": 0, "win_rate": 0}
 
 
 async def cmd_stake_status(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
