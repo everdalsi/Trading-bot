@@ -13,7 +13,7 @@ Sizing (V4: volatility targeting):
   Used only as an upper bound on a position's share, never to size up past the 5 % rule.
 
 Monitoring: every 5 min, risk_manager.json = per portfolio {equity, invested, invested_pct,
-positions, day_pnl, drawdown_from_peak} + violations (exposure > 100 %, side+category > 30 %);
+positions, day_pnl, drawdown_from_peak} + violations (exposure > 100 %, side+category > HL_MAX_SIDE_CAT_PCT, same cap as bot.py);
 a VIOLATION event is logged once per new violation.
 """
 import json
@@ -23,6 +23,9 @@ import time
 from pathlib import Path
 
 from agent_events import log_event
+
+# Same env var and default as bot.py, so the check reports what the bot actually allows.
+SIDE_CAT_MAX = float(os.environ.get("HL_MAX_SIDE_CAT_PCT", 0.90))
 
 DATA_DIR = Path(os.environ.get("DATA_DIR") or ".")
 OUT = DATA_DIR / "risk_manager.json"
@@ -124,7 +127,7 @@ def snapshot() -> dict:
         buckets = {}
         for p in pos:
             if p.get("strategy") in ("HL_HEDGE", "HL_PAIR"):  # pair legs are matched long/short
-                continue  # hedge legs reduce the net exposure: outside the 30 % side+category rule by design
+                continue  # hedge legs reduce the net exposure: outside the side+category rule by design
             try:
                 cat = category_fn(p["symbol"]) if category_fn else "?"
             except Exception:
@@ -132,8 +135,8 @@ def snapshot() -> dict:
             k = f"{p.get('side')} {cat}"
             buckets[k] = buckets.get(k, 0) + float(p.get("amount_usd", 0))
         out["crypto_copy"]["side_category"] = {k: round(v / eq, 3) for k, v in buckets.items()} if eq else {}
-        violations += [f"crypto_copy {k} {v:.0%} > 30 %" for k, v in out["crypto_copy"]["side_category"].items()
-                       if v > 0.30 + 1e-6]
+        violations += [f"crypto_copy {k} {v:.0%} > {SIDE_CAT_MAX:.0%}"
+                       for k, v in out["crypto_copy"]["side_category"].items() if v > SIDE_CAT_MAX + 1e-6]
     al = _json("alpaca_stocks_ledger.json")
     if al:
         inv = sum(float(p.get("cost", 0)) for p in al.get("positions", {}).values())
