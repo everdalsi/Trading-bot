@@ -10,6 +10,10 @@ APPROVE or VETO) per new verdict; verdicts cached 15 min. EVERY rule must pass:
   < 5 %, not mintable, owner cannot change balances, top-10 holders <= 30 %, LP locked >= 90 %) and
   honeypot.is (simulated buy + sell must succeed, sell tax < 5 %)
 Any API failure = VETO (fail-closed): we never trade a token we could not check.
+
+details also carries creator_pct (share of the supply still held by the token creator, None when unknown).
+It is information, not a rule here: each caller applies its own limit (MemeHunter vetoes above
+MEME_MAX_CREATOR_PCT and exits when the creator sells). creator_pct(chain, token) re-reads it, uncached.
 """
 import time
 
@@ -21,10 +25,10 @@ MIN_LIQ_USD, MIN_AGE_H, MAX_TOP10, MAX_TAX, MIN_LP_LOCK = 100_000, 24, 0.30, 0.0
 CACHE_S = 900
 GOPLUS_CHAIN = {"ethereum": "1", "bsc": "56", "base": "8453", "arbitrum": "42161", "polygon": "137"}
 HONEYPOT_CHAIN = {"ethereum": 1, "bsc": 56, "base": 8453, "arbitrum": 42161}
-_cache: dict[tuple[str, str], tuple[float, tuple]] = {}
+_cache: dict[tuple, tuple[float, tuple]] = {}
 
 
-def _dex(chain: str, token: str) -> tuple[list[str], dict]:
+def _dex(chain: str, token: str, min_age_h: float = MIN_AGE_H, min_liq_usd: float = MIN_LIQ_USD) -> tuple[list[str], dict]:
     r = requests.get(f"https://api.dexscreener.com/tokens/v1/{chain}/{token}", timeout=15)
     pairs = [p for p in (r.json() if r.status_code == 200 else []) if (p.get("liquidity") or {}).get("usd")]
     if not pairs:
@@ -33,18 +37,56 @@ def _dex(chain: str, token: str) -> tuple[list[str], dict]:
     liq = float(best["liquidity"]["usd"])
     age_h = (time.time() * 1000 - float(best.get("pairCreatedAt") or 0)) / 3.6e6
     bad = []
-    if liq < MIN_LIQ_USD:
-        bad.append(f"liquidite {liq:,.0f} $ < {MIN_LIQ_USD:,.0f} $")
-    if age_h < MIN_AGE_H:
-        bad.append(f"paire agee de {age_h:.0f} h < {MIN_AGE_H} h")
+    if liq < min_liq_usd:
+        bad.append(f"liquidite {liq:,.0f} $ < {min_liq_usd:,.0f} $")
+    if age_h < min_age_h:
+        bad.append(f"paire agee de {age_h:.0f} h < {min_age_h:g} h")
     return bad, {"pair": best.get("pairAddress"), "liq_usd": round(liq), "age_h": round(age_h, 1),
                  "symbol": (best.get("baseToken") or {}).get("symbol")}
 
 
-def _rugcheck(mint: str) -> list[str]:
-    r = requests.get(f"https://api.rugcheck.xyz/v1/tokens/{mint}/report", timeout=20)
+def _creator_pct_rugcheck(d: dict) -> float | None:
+    supply = float((d.get("token") or {}).get("supply") or 0)
+    if not d.get("creator") or supply <= 0:
+        return None
+    return float(d.get("creatorBalance") or 0) / supply
+
+
+def _creator_pct_goplus(d: dict) -> float | None:
+    raw = d.get("creator_percent")
+    try:
+        return float(raw) if raw not in (None, "") else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _rugcheck_report(mint: str) -> requests.Response:
+    return requests.get(f"https://api.rugcheck.xyz/v1/tokens/{mint}/report", timeout=20)
+
+
+def _goplus_token(chain: str, addr: str) -> dict:
+    r = requests.get(f"https://api.gopluslabs.io/api/v1/token_security/{GOPLUS_CHAIN[chain]}",
+                     params={"contract_addresses": addr}, timeout=20)
+    return (r.json().get("result") or {}).get(addr.lower()) or {}
+
+
+def creator_pct(chain: str, token: str) -> float | None:
+    """Share of the supply the creator still holds right now (uncached); None = unknown, never a verdict."""
+    try:
+        if chain == "solana":
+            r = _rugcheck_report(token)
+            return _creator_pct_rugcheck(r.json()) if r.status_code == 200 else None
+        if chain in GOPLUS_CHAIN:
+            return _creator_pct_goplus(_goplus_token(chain, token))
+    except Exception:  # network / malformed answer: the caller treats None as "no information"
+        return None
+    return None
+
+
+def _rugcheck(mint: str) -> tuple[list[str], dict]:
+    r = _rugcheck_report(mint)
     if r.status_code != 200:
-        return [f"rugcheck indisponible ({r.status_code})"]
+        return [f"rugcheck indisponible ({r.status_code})"], {}
     d = r.json()
     bad = []
     if d.get("mintAuthority") or d.get("freezeAuthority"):
@@ -71,15 +113,13 @@ def _rugcheck(mint: str) -> list[str]:
         bad.append(f"taxe de transfert {fee:.0%}")
     if any(str(x.get("level", "")).lower() == "danger" for x in d.get("risks") or []):
         bad.append("risque 'danger' signale par RugCheck")
-    return bad
+    return bad, {"creator_pct": _creator_pct_rugcheck(d)}
 
 
-def _goplus(chain: str, addr: str) -> list[str]:
-    r = requests.get(f"https://api.gopluslabs.io/api/v1/token_security/{GOPLUS_CHAIN[chain]}",
-                     params={"contract_addresses": addr}, timeout=20)
-    d = (r.json().get("result") or {}).get(addr.lower()) or {}
+def _goplus(chain: str, addr: str) -> tuple[list[str], dict]:
+    d = _goplus_token(chain, addr)
     if not d:
-        return ["GoPlus sans donnees"]
+        return ["GoPlus sans donnees"], {}
     bad = []
     if d.get("is_honeypot") == "1" or d.get("cannot_sell_all") == "1":
         bad.append("honeypot / revente bloquee (GoPlus)")
@@ -101,7 +141,7 @@ def _goplus(chain: str, addr: str) -> list[str]:
                  or str(h.get("address", "")).lower().startswith("0x000000000000000000000000000000000000dead"))
     if locked < MIN_LP_LOCK:
         bad.append(f"LP verrouillee {locked:.0%}")
-    return bad
+    return bad, {"creator_pct": _creator_pct_goplus(d)}
 
 
 def _honeypot_is(chain: str, addr: str) -> list[str]:
@@ -123,17 +163,24 @@ def _honeypot_is(chain: str, addr: str) -> list[str]:
     return bad
 
 
-def check(chain: str, token: str, portfolio: str = "court_terme") -> tuple[bool, list[str], dict]:
-    key = (chain, token.lower())
+def check(chain: str, token: str, portfolio: str = "court_terme", min_age_h: float | None = None,
+          min_liq_usd: float | None = None) -> tuple[bool, list[str], dict]:
+    """min_age_h / min_liq_usd: a caller's own thresholds (MemeHunter measures young pairs); the defaults
+    (24 h, 100 k$) stay in force for every caller that does not pass them."""
+    age_h = MIN_AGE_H if min_age_h is None else min_age_h
+    liq_usd = MIN_LIQ_USD if min_liq_usd is None else min_liq_usd
+    key = (chain, token.lower(), age_h, liq_usd)
     hit = _cache.get(key)
     if hit and time.time() - hit[0] < CACHE_S:
         return hit[1]
     try:
-        reasons, details = _dex(chain, token)
+        reasons, details = _dex(chain, token, age_h, liq_usd)
         if chain == "solana":
-            reasons += _rugcheck(token)
+            bad, extra = _rugcheck(token)
+            reasons, details = reasons + bad, {**details, **extra}
         elif chain in GOPLUS_CHAIN:
-            reasons += _goplus(chain, token) + _honeypot_is(chain, token)
+            bad, extra = _goplus(chain, token)
+            reasons, details = reasons + bad + _honeypot_is(chain, token), {**details, **extra}
         else:
             reasons.append(f"chaine {chain} non couverte par les controles")
     except Exception as e:
