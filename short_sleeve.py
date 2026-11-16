@@ -51,6 +51,9 @@ A_SHARE, A_POS_PCT, A_MAX_POS = 1.0, 0.05, 20
 # hard cap per position (RiskManager's 6 % rule for universe B): risk_parity allowed up to 2x the equal weight
 # (10 %), so ATOM/PENDLE/SEI/LDO/GRAM opened above 6 % and the violation was reported for days (Desktop 07-09/11)
 A_POS_MAX = float(os.environ.get("SHORT_A_POS_MAX", 0.06))
+# 2026-11-16: hourly top-up threshold (see lane_a_topup) -- below this invested share of lane A,
+# try to open more of today's targets instead of waiting for tomorrow's 00:05 UTC rotation.
+TOPUP_MIN_INVESTED_PCT = float(os.environ.get("SHORT_A_TOPUP_MIN_PCT", 0.90))
 A_TOP_N, A_LOOKBACK, A_TRAIL = 50, 14, 0.12
 A_HYST = float(os.environ.get("SHORT_A_HYST", 0.01))  # regime switch only 1 % beyond BTC's MA50
 A_COST = 0.0010 + 0.0020          # fee + slippage, each side
@@ -388,6 +391,13 @@ def lane_a_rotate(ledger: dict, can_open: bool, send_fn) -> None:
         log.info(f"[SHORT] A: no new entries (risk limits, BTC>MA50={btc_ok})")
         return
     eq = equity(ledger, prices)
+    _lane_a_fill(ledger, side, targets, r14, eq, prices, send_fn)
+
+
+def _lane_a_fill(ledger: dict, side: str, targets: list[str], r14: dict[str, float], eq: float,
+                  prices: dict[str, float], send_fn) -> None:
+    """Open-missing-targets loop, shared by the daily rotation and the hourly top-up (see
+    lane_a_topup below). Never closes/rotates -- that stays the daily job's job alone."""
     budget_left = eq * A_SHARE - sum(p["usd"] for p in ledger["positions"].values() if p["lane"] == "A")
     # RiskManager (B1/V4): inverse-volatility weights over the missing targets, using the whole budget left
     missing = [s for s in targets if f"A:{s}" not in ledger["positions"]][:max(0, A_MAX_POS - sum(
@@ -419,6 +429,34 @@ def lane_a_rotate(ledger: dict, can_open: bool, send_fn) -> None:
         if s in prices and usd >= 5:
             _open(ledger, "A", s, prices[s], usd, A_COST, {"r14": round(r14[s], 4)}, side=side)
             budget_left -= usd
+
+
+def lane_a_topup(ledger: dict, can_open: bool, send_fn) -> None:
+    """Hourly fill-only pass (2026-11-16 fix, proposed in the 12/11 06:25 check-in): the daily
+    rotation (00:05 UTC) only runs once a day, so budget left idle that day by same-day refusals
+    (funding veto, resistance veto, a price gap) stayed uninvested until the next day's rotation
+    -- court_terme sat at 81-88 % invested for hours with 2-3 free lane-A slots. This never
+    closes or re-targets anything (lane_a_rotate alone does that, once a day) -- it only opens
+    more of TODAY's already-decided targets if lane A is under TOPUP_MIN_INVESTED_PCT and has
+    room under A_MAX_POS, so it is safe to run every hour without fighting the daily rotation."""
+    if not can_open or ledger["halted"]:
+        return
+    n_a = sum(p["lane"] == "A" for p in ledger["positions"].values())
+    if n_a >= A_MAX_POS:
+        return
+    targets, btc_ok, r14 = lane_a_targets()
+    side = ledger.get("a_side") or ("LONG" if btc_ok else "SHORT")
+    targets = targets if side == "LONG" else getattr(lane_a_targets, "weak", [])
+    if not targets:
+        return
+    prices = _price_a(list({*targets, *(p["symbol"] for p in ledger["positions"].values() if p["lane"] == "A")}))
+    eq = equity(ledger, prices)
+    if eq <= 0:
+        return
+    invested_pct = sum(p["usd"] for p in ledger["positions"].values() if p["lane"] == "A") / eq
+    if invested_pct >= TOPUP_MIN_INVESTED_PCT:
+        return
+    _lane_a_fill(ledger, side, targets, r14, eq, prices, send_fn)
 
 
 def lane_a_watch(ledger: dict, send_fn) -> dict[str, float]:
@@ -639,6 +677,12 @@ def tick(send_fn, now: datetime | None = None) -> None:
             ledger["last_rotation"] = today
         except requests.RequestException as e:
             log.warning(f"[SHORT] rotation error: {e}")
+    elif time.time() - ledger.get("last_topup_try", 0) >= 3600:  # 2026-11-16: hourly fill-only top-up
+        try:
+            ledger["last_topup_try"] = time.time()
+            lane_a_topup(ledger, can_open, send_fn)
+        except requests.RequestException as e:
+            log.warning(f"[SHORT] top-up error: {e}")
     save(ledger)
 
 
