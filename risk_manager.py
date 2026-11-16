@@ -146,7 +146,18 @@ def snapshot() -> dict:
     if ct:
         pos = list(ct.get("positions", {}).values())
         inv = sum(float(p.get("usd", 0)) for p in pos)
-        eq_ct = float(ct.get("cash", 0)) + inv
+        # 2026-11-16 fix: match short_sleeve.equity() (cash + collateral + unrealised SHORT PnL), not just
+        # cash+collateral -- the naive sum understated equity by the unrealised gain, which overstated every
+        # position's %-of-equity and produced false "> 6 %" violations for days (VIRTUAL/BEAMX/KAITO/SAND
+        # 16/11, ATOM/PENDLE/SEI/LDO/GRAM 07-09/11) that short_sleeve's own (correct) _trim_over_cap never
+        # acted on because they were never actually over cap.
+        eq_ct = float(ct.get("cash", 0))
+        for p in pos:
+            px = float(p.get("last_price", p.get("entry", 0)) or 0)
+            if p.get("side") == "SHORT":
+                eq_ct += float(p.get("usd", 0)) + float(p.get("qty", 0)) * (float(p.get("entry", 0)) - px)
+            else:
+                eq_ct += float(p.get("qty", 0)) * px
         out["court_terme"] = {"equity": round(eq_ct, 2), "invested": round(inv, 2),
                               "positions": len(pos), "side": ct.get("a_side")}
         # universe B has its own risk view (user 06/11: two separate universes): same 6 % / 30 % limits, on B alone

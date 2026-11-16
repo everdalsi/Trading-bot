@@ -1434,7 +1434,12 @@ def is_correlated(symbol: str) -> bool:
 # TRUMPUSDT (PF 0.56, n=202), SPCXBUSDT (PF 0.52, n=119) -- all clearly
 # negative at a sample size large enough to trust, from a full-history
 # analysis of the 28k-trade log, same bar as the earlier four cuts.
-MANUAL_SYMBOL_BLACKLIST = {"LAUSDT", "COTIUSDT", "TURBOUSDT", "ERAUSDT", "API3USDT", "NEIROUSDT", "TRUMPUSDT", "SPCXBUSDT"}
+# 2026-11-16: XMRUSDT -- Binance exchangeInfo shows status "BREAK" (spot trading halted), so
+# /ticker/price keeps returning the frozen last trade (118.7) forever. A HL-copy mirror opened
+# on it 11/11 (entry 118.7) while the real market (Hyperliquid/CoinGecko ~583-586) moved on,
+# invisible to DataGuard until it flagged R1 "donnees douteuses" -- by then the position was
+# already untrackable. Blacklisted so no sleeve opens/re-opens it while Binance keeps it halted.
+MANUAL_SYMBOL_BLACKLIST = {"LAUSDT", "COTIUSDT", "TURBOUSDT", "ERAUSDT", "API3USDT", "NEIROUSDT", "TRUMPUSDT", "SPCXBUSDT", "XMRUSDT"}
 
 def is_blacklisted(symbol: str) -> bool:
     if symbol in MANUAL_SYMBOL_BLACKLIST:
