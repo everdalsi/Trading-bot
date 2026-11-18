@@ -138,9 +138,12 @@ class Lab:
         rows = []
         for slot, m in mirror_data.items():
             # mirrors are valued at cost and their fees are not all known: never comparable enough to be "candidat"
-            rows.append(scoreboard.build_row(
+            row = scoreboard.build_row(
                 slot, m["label"], self.state["mirrors"].get(slot, []), bench, trades=m.get("n_trades", 0),
-                win_rate=m.get("win_rate"), fees=m.get("fees"), halted=m.get("halted", ""), measure_only=True))
+                win_rate=m.get("win_rate"), fees=m.get("fees"), halted=m.get("halted", ""), measure_only=True)
+            if m.get("agents"):
+                row["agents"] = m["agents"]  # per-agent results inside the shared portfolio
+            rows.append(row)
         for slot in self.slots:
             led = self.ledgers[slot.name]
             st = led.stats()

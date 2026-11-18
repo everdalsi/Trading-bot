@@ -427,6 +427,17 @@ def _lane_a_fill(ledger: dict, side: str, targets: list[str], r14: dict[str, flo
         except Exception:
             pass
         if s in prices and usd >= 5:
+            # 18/11 (user plan "more trades, but only winning ones"): same SeniorExpert gate as crypto_copy --
+            # historical net edge per trade after fees, news against the side, data quality. If the agency module
+            # itself cannot load, keep the previous behaviour rather than freezing the lane.
+            try:
+                import agency
+                ok, why = agency.approve_entry("court_terme", s, prices[s], proxy_edge=0.0,
+                                               context={"side": side, "score": round(r14[s], 4)})
+            except ImportError:
+                ok, why = True, ""
+            if not ok:
+                continue
             _open(ledger, "A", s, prices[s], usd, A_COST, {"r14": round(r14[s], 4)}, side=side)
             budget_left -= usd
 

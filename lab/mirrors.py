@@ -46,7 +46,19 @@ def summarize_ledger(d: dict) -> dict:
     return {"available": True, "equity": round(cash + cost, 2), "pnl_closed": round(sum(map(_pnl, trades)), 2),
             "n_trades": len(trades), "win_rate": round(100 * wins / len(trades), 1) if trades else None,
             "fees": round(sum(_num(*(t.get(k) for k in fee_keys)) for t in trades), 2) if has_fees else None,
-            "halted": str(d.get("halted") or d.get("circuit_breaker") or "")}
+            "halted": str(d.get("halted") or d.get("circuit_breaker") or ""), "agents": by_agent(trades)}
+
+
+def by_agent(trades: list) -> dict:
+    """Result per agent/technique inside one shared portfolio (trade tag `strategy`, else `lane`)."""
+    out: dict = {}
+    for t in trades:
+        a = out.setdefault(str(t.get("strategy") or t.get("lane") or "?"), {"trades": 0, "pnl": 0.0, "wins": 0})
+        a["trades"] += 1
+        a["pnl"] += _pnl(t)
+        a["wins"] += _pnl(t) > 0
+    return {k: {"trades": v["trades"], "pnl": round(v["pnl"], 2), "win_rate": round(100 * v["wins"] / v["trades"], 1)}
+            for k, v in sorted(out.items(), key=lambda kv: -kv[1]["pnl"])}
 
 
 def summarize_meme(d: dict) -> dict:

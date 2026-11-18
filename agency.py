@@ -31,11 +31,13 @@ DATA_DIR = Path(os.environ.get("DATA_DIR") or ".")
 BINANCE = "https://api.binance.com"
 MIN_SAMPLE = 100
 # fee manager 06/11: crypto_copy trades on Hyperliquid perps (taker 0.045 %), not Binance spot (0.1 %)
-FEE_SIDE = {"crypto_copy": float(os.environ.get("HL_FEE_PCT", 0.00045)), "actions_us": 0.0}
-SLIP_ASSUMED = {"crypto_copy": 0.0005, "actions_us": 0.0005}  # per side, until measured on our fills
+FEE_SIDE = {"crypto_copy": float(os.environ.get("HL_FEE_PCT", 0.00045)), "actions_us": 0.0,
+            "court_terme": 0.0010}  # 18/11: court terme gated too (short_sleeve A_COST = 0.10 % fee + 0.20 % slip)
+SLIP_ASSUMED = {"crypto_copy": 0.0005, "actions_us": 0.0005, "court_terme": 0.0020}  # per side, until measured
 MIN_QUOTE_VOL_USD = float(os.environ.get("AGENCY_MIN_QUOTE_VOL", 5_000_000))
 CHART_TREND_MALUS = float(os.environ.get("AGENCY_CHART_MALUS", 0.0025))  # 0.25 % of edge
-LEDGERS = {"crypto_copy": DATA_DIR / "hl_copy_ledger.json", "actions_us": DATA_DIR / "alpaca_stocks_ledger.json"}
+LEDGERS = {"crypto_copy": DATA_DIR / "hl_copy_ledger.json", "actions_us": DATA_DIR / "alpaca_stocks_ledger.json",
+           "court_terme": DATA_DIR / "meme_sim.json"}
 
 
 def _load(path: Path) -> dict:

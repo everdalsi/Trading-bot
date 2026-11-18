@@ -294,6 +294,13 @@ class TestMirrorsAndScoreboard(unittest.TestCase):
         self.assertEqual((s["equity"], s["n_trades"], s["pnl_closed"], s["win_rate"], s["fees"]),
                          (900.0, 2, 5.0, 50.0, None))
 
+    def test_results_per_agent_in_a_shared_portfolio(self):
+        d = {"cash": 0, "positions": {}, "trades": [{"pnl": 5, "strategy": "copy"}, {"pnl": -2, "strategy": "copy"},
+                                                       {"pnl": 9, "strategy": "consensus"}, {"pnl": 1, "lane": "A"}]}
+        agents = mirrors.summarize_ledger(d)["agents"]
+        self.assertEqual(list(agents), ["consensus", "copy", "A"])        # best first
+        self.assertEqual(agents["copy"], {"trades": 2, "pnl": 3.0, "win_rate": 50.0})
+
     def test_real_cached_ledgers_if_present(self):
         cache = Path(__file__).resolve().parent.parent / "dashboard" / "cache"
         for fname in ("hl_copy_portfolio.json", "meme_sim.json"):
