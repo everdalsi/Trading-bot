@@ -229,6 +229,35 @@ SYMBOL_MEMORY_DAYS = float(os.environ.get("AGENCY_SYMBOL_MEMORY_DAYS", 14))
 SYMBOL_MEMORY_MIN_N = int(os.environ.get("AGENCY_SYMBOL_MEMORY_MIN_N", 8))
 SYMBOL_MEMORY_MAX_WIN = float(os.environ.get("AGENCY_SYMBOL_MEMORY_MAX_WIN", 0.35))
 FUNDING_CROWD_Z = float(os.environ.get("AGENCY_FUNDING_CROWD_Z", 2.0))
+# Benchmark vs freqtrade Protections (18/11): CooldownPeriod and StoplossGuard were missing. Measured on our own
+# crypto_copy trades: 11 same-symbol same-side re-entries < 60 min after an exit = -11.44 $; hard stops come in bursts
+# (several 6-12 min apart when the market turns).
+COOLDOWN_MIN = float(os.environ.get("AGENCY_COOLDOWN_MIN", 60))
+SLG_LOOKBACK_H = float(os.environ.get("AGENCY_SLG_LOOKBACK_H", 2))
+SLG_LIMIT = int(os.environ.get("AGENCY_SLG_LIMIT", 3))
+HARD_STOP_WORDS = ("catastrophe", "sous support", "stop suiveur short")
+
+
+def _cooldown_veto(portfolio: str, symbol: str) -> str:
+    """freqtrade CooldownPeriod: no new entry on a symbol we closed less than COOLDOWN_MIN minutes ago."""
+    if COOLDOWN_MIN <= 0:
+        return ""
+    since = time.time() - COOLDOWN_MIN * 60
+    recent = [t for t in _closed(portfolio) if t.get("symbol") == symbol and t.get("strategy") != "HL_HEDGE"
+              and _ts(t) >= since]
+    return f"delai apres sortie : {symbol} ferme il y a moins de {COOLDOWN_MIN:.0f} min" if recent else ""
+
+
+def _stoploss_guard_veto(portfolio: str, side: str) -> str:
+    """freqtrade StoplossGuard (only_per_side): SLG_LIMIT hard stops on this side within SLG_LOOKBACK_H hours ->
+    no new entry on that side until they age out of the window (the market just turned against it)."""
+    since = time.time() - SLG_LOOKBACK_H * 3600
+    stops = [t for t in _closed(portfolio) if _ts(t) >= since and float(t["pnl"]) < 0
+             and any(w in str(t.get("exit_reason") or t.get("reason") or "") for w in HARD_STOP_WORDS)
+             and t.get("side", side) == side]
+    if len(stops) >= SLG_LIMIT:
+        return f"pause {side} : {len(stops)} stops durs en {SLG_LOOKBACK_H:.0f} h (marche retourne)"
+    return ""
 
 
 def _regime_veto(side: str) -> str:
@@ -289,9 +318,10 @@ def pre_trade_research(portfolio: str, symbol: str, context: dict) -> str:
         if why:
             return why
     if not hedge:
-        why = _symbol_memory_veto(portfolio, symbol)
-        if why:
-            return why
+        for why in (_stoploss_guard_veto(portfolio, side), _cooldown_veto(portfolio, symbol),
+                    _symbol_memory_veto(portfolio, symbol)):
+            if why:
+                return why
     if portfolio == "crypto_copy":  # court_terme already applies its own funding filter before calling us
         return _funding_crowd_veto(symbol, side)
     return ""

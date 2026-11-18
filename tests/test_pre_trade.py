@@ -55,6 +55,21 @@ class TestPreTradeResearch(unittest.TestCase):
         hedges = _trades(10, -0.5, symbol="BTCUSDT", strategy="HL_HEDGE")
         self.assertEqual(self.run_check(MIXED, "SHORT", hedges, symbol="BTCUSDT"), "")
 
+    def test_cooldown_after_exit(self):
+        just_closed = [{"symbol": "SOLUSDT", "pnl": 1.0, "pnl_pct": 1.0, "time_out": time.time() - 600}]
+        self.assertIn("delai apres sortie", self.run_check(MIXED, "SHORT", just_closed))
+        long_ago = [{**just_closed[0], "time_out": time.time() - 2 * 3600}]
+        self.assertEqual(self.run_check(MIXED, "SHORT", long_ago), "")
+
+    def test_stoploss_guard_pauses_one_side(self):
+        now = time.time()
+        stops = [{"symbol": f"C{i}USDT", "pnl": -2.0, "pnl_pct": -8.0, "side": "SHORT", "time_out": now - 900 * i,
+                  "exit_reason": "R3 : stop catastrophe : -8.1 %"} for i in range(1, 4)]
+        self.assertIn("pause SHORT", self.run_check(MIXED, "SHORT", stops))
+        self.assertEqual(self.run_check(MIXED, "LONG", stops), "")          # the other side stays open
+        old = [{**s, "time_out": now - 5 * 3600} for s in stops]
+        self.assertEqual(self.run_check(MIXED, "SHORT", old), "")
+
     def test_other_portfolios_untouched(self):
         with mock.patch.dict(sys.modules, {"regime": _regime(DOWN)}):
             self.assertEqual(agency.pre_trade_research("actions_us", "AAPL", {"side": "LONG"}), "")
