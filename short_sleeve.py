@@ -47,7 +47,13 @@ DEX = "https://api.dexscreener.com"
 # lane A
 # 2026-11-05 user request (paper): ~100 % invested, spread at 5 % per position (up to 20 positions, the
 # best momentum first). Lane M stays observation-only, so lane A gets the whole capital.
-A_SHARE, A_POS_PCT, A_MAX_POS = 1.0, 0.05, 20
+A_SHARE = 1.0
+# 2026-11-18 user request: many more positions at once -> 40 x 2.5 % (was 20 x 5 %); env-tunable.
+A_POS_PCT = float(os.environ.get("SHORT_A_POS_PCT", 0.025))
+A_MAX_POS = int(os.environ.get("SHORT_A_MAX_POS", 40))
+# 2026-11-18: 171 trims "reduction au plafond 6 %" cost -5.1 $ at 8 % wins (fees on tiny cuts each time a winner
+# drifted just over the cap) -> trim only once a position is TRIM_TOL x the cap, back to the cap.
+A_TRIM_TOL = float(os.environ.get("SHORT_A_TRIM_TOL", 1.25))
 # hard cap per position (RiskManager's 6 % rule for universe B): risk_parity allowed up to 2x the equal weight
 # (10 %), so ATOM/PENDLE/SEI/LDO/GRAM opened above 6 % and the violation was reported for days (Desktop 07-09/11)
 A_POS_MAX = float(os.environ.get("SHORT_A_POS_MAX", 0.06))
@@ -191,7 +197,7 @@ def _trim_over_cap(ledger: dict, eq: float, prices: dict[str, float], send_fn) -
     """Partially close any lane A position whose collateral is above A_POS_MAX of equity (back to the cap)."""
     cap = eq * A_POS_MAX
     for key, p in list(ledger["positions"].items()):
-        if p["lane"] != "A" or p["usd"] <= cap * 1.001 or eq <= 0:
+        if p["lane"] != "A" or p["usd"] <= cap * A_TRIM_TOL or eq <= 0:
             continue
         frac = 1 - cap / p["usd"]
         px = prices.get(p["symbol"], p["last_price"])

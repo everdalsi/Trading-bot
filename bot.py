@@ -3543,8 +3543,8 @@ def hl_consensus_fill(send_fn):
             ps, pl = get_current_price(s_sym), get_current_price(l_sym)
             if not ps or not pl:
                 continue
-            ok_s, _ = agency.approve_entry("crypto_copy", s_sym, ps, 0.01 * abs(c), {"side": "SHORT", "score": c, "fill_mode": True, "usd": unit})
-            ok_l, _ = agency.approve_entry("crypto_copy", l_sym, pl, 0.005, {"side": "LONG", "fill_mode": True, "usd": unit})
+            ok_s, _ = agency.approve_entry("crypto_copy", s_sym, ps, 0.01 * abs(c), {"side": "SHORT", "score": c, "fill_mode": True, "usd": unit, "pair": True})
+            ok_l, _ = agency.approve_entry("crypto_copy", l_sym, pl, 0.005, {"side": "LONG", "fill_mode": True, "usd": unit, "pair": True})
             if not (ok_s and ok_l):
                 why["senior"] += 1
                 continue

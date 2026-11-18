@@ -96,7 +96,7 @@ def fees_report(portfolio: str, since: float = 0.0) -> dict:
 
 
 def _ts(t: dict) -> float:
-    for k in ("closed_at", "time_out", "exit_time"):
+    for k in ("closed_at", "time_out", "exit_time", "closed"):  # "closed": court_terme (meme_sim.json)
         v = t.get(k)
         if isinstance(v, (int, float)):
             return float(v)
@@ -221,6 +221,82 @@ def expected_edge(portfolio: str, proxy: float) -> tuple[float, str, int]:
     return proxy, f"proxy (echantillon {len(t)} < {MIN_SAMPLE})", len(t)
 
 
+# ---------------------------------------------------------------- pre-trade research (user request 18/11)
+# Measured on 378 crypto_copy trades (05-18/11): SHORT +178.8 $ at 86 % wins, LONG -21.4 $ at 8 % wins while BTC was
+# under its falling MA50; repeated losers on one symbol (ZEC 26 trades 23 % wins). Each check below is env-switchable.
+REGIME_GATE = os.environ.get("AGENCY_REGIME_GATE", "1") == "1"
+SYMBOL_MEMORY_DAYS = float(os.environ.get("AGENCY_SYMBOL_MEMORY_DAYS", 14))
+SYMBOL_MEMORY_MIN_N = int(os.environ.get("AGENCY_SYMBOL_MEMORY_MIN_N", 8))
+SYMBOL_MEMORY_MAX_WIN = float(os.environ.get("AGENCY_SYMBOL_MEMORY_MAX_WIN", 0.35))
+FUNDING_CROWD_Z = float(os.environ.get("AGENCY_FUNDING_CROWD_Z", 2.0))
+
+
+def _regime_veto(side: str) -> str:
+    """Trade with the market regime: no LONG while BTC is under a falling MA50, no SHORT while it is over a rising
+    one. In between (mixed signals) both sides stay allowed."""
+    try:
+        import regime
+        st = regime.current()
+    except Exception:
+        return ""
+    if side == "LONG" and st.get("down"):
+        return "achat contre le regime baissier (BTC sous sa MM50 en baisse)"
+    up = st["close"] > st["ma50"] and st["ma50"] > st["ma50_prev"]
+    if side == "SHORT" and up:
+        return "vente a decouvert contre le regime haussier (BTC au-dessus de sa MM50 en hausse)"
+    return ""
+
+
+def _symbol_memory_veto(portfolio: str, symbol: str) -> str:
+    """Our own recent record on this symbol: >= MIN_N closed trades over the last MEMORY_DAYS (hedges excluded),
+    net negative AND win rate under MAX_WIN -> skip it. The window slides, so the ban lifts by itself."""
+    since = time.time() - SYMBOL_MEMORY_DAYS * 86400
+    rows = [t for t in _closed(portfolio) if t.get("symbol") == symbol and t.get("strategy") != "HL_HEDGE"
+            and _ts(t) >= since]
+    if len(rows) < SYMBOL_MEMORY_MIN_N:
+        return ""
+    net = sum(float(t["pnl"]) for t in rows)
+    win = sum(float(t["pnl"]) > 0 for t in rows) / len(rows)
+    if net < 0 and win < SYMBOL_MEMORY_MAX_WIN:
+        return (f"historique perdant sur {symbol} : {len(rows)} trades en {SYMBOL_MEMORY_DAYS:.0f} j, "
+                f"net {net:+.2f} $, {win:.0%} gagnants")
+    return ""
+
+
+def _funding_crowd_veto(symbol: str, side: str) -> str:
+    """No entry on the crowded side: longs paying a funding > +Z sigma, or shorts paying < -Z sigma."""
+    try:
+        import short_sleeve
+        z = short_sleeve.funding_z(symbol)
+    except Exception:
+        return ""
+    if z is None:
+        return ""
+    if (side == "LONG" and z > FUNDING_CROWD_Z) or (side == "SHORT" and z < -FUNDING_CROWD_Z):
+        return f"cote encombre : funding a {z:+.1f} sigma"
+    return ""
+
+
+def pre_trade_research(portfolio: str, symbol: str, context: dict) -> str:
+    """Research done before every new crypto entry; returns the reason to refuse, or '' to go on.
+    Hedge legs are insurance, not bets: they skip the regime and symbol-memory checks."""
+    if portfolio not in ("crypto_copy", "court_terme"):
+        return ""
+    side = context.get("side", "LONG")
+    hedge = bool(context.get("hedge") or context.get("pair"))  # market-neutral legs: not a directional bet
+    if REGIME_GATE and not hedge:
+        why = _regime_veto(side)
+        if why:
+            return why
+    if not hedge:
+        why = _symbol_memory_veto(portfolio, symbol)
+        if why:
+            return why
+    if portfolio == "crypto_copy":  # court_terme already applies its own funding filter before calling us
+        return _funding_crowd_veto(symbol, side)
+    return ""
+
+
 VETO_MEMO_S = float(os.environ.get("VETO_MEMO_S", 1800))
 VETO_MEMO_MOVE = float(os.environ.get("VETO_MEMO_MOVE", 0.01))
 _VETO_MEMO: dict = {}
@@ -266,7 +342,11 @@ def _approve_entry(portfolio: str, symbol: str, price: float | None, proxy_edge:
             return False, why
     except ImportError:
         pass
-    if portfolio == "crypto_copy":
+    research = pre_trade_research(portfolio, symbol, context)
+    if research:
+        log_event("SeniorExpert", portfolio, "VETO", symbol, research, result="refuse (recherche avant trade)")
+        return False, research
+    if portfolio in ("crypto_copy", "court_terme"):
         vol = _quote_volume(symbol)
         if vol is not None and vol < MIN_QUOTE_VOL_USD:
             why = f"liquidite faible : {vol / 1e6:.1f} M$ echanges sur 24 h (< {MIN_QUOTE_VOL_USD / 1e6:.0f} M$)"
